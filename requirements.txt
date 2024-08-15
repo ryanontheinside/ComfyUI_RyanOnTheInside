@@ -1,10 +1,6 @@
-opencv-python
-numpy
-torch
-tqdm
+opencv-python==4.10
 scipy
 pillow
 librosa
-pymunk
+pymunk==6.8.1
 matplotlib
-Pillow

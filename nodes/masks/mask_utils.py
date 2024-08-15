@@ -61,11 +61,15 @@ def rotate_mask(mask: np.ndarray, angle: float) -> np.ndarray:
 
 def scale_mask(mask: np.ndarray, scale_x: float, scale_y: float) -> np.ndarray:
     height, width = mask.shape[:2]
-    M = cv2.getAffineTransform(
-        np.float32([[0, 0], [width, 0], [0, height]]),
-        np.float32([[0, 0], [width * scale_x, 0], [0, height * scale_y]])
-    )
+    center_x, center_y = width / 2, height / 2
+    
+    M = np.float32([
+        [scale_x, 0, center_x * (1 - scale_x)],
+        [0, scale_y, center_y * (1 - scale_y)]
+    ])
+    
     return warp_affine(mask, M)
+
 
 def transform_mask(mask: np.ndarray, transform_type: str, x_value: float, y_value: float) -> np.ndarray:
     if transform_type == "translate":

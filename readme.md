@@ -6,13 +6,21 @@ RyanOnTheInside node pack introduces the following (so far):
 - Optical Flow
 - Temporal Masks
 
-  <img src="./assets/RyanOnTheInside.gif" width="400" alt="RyanOnTheInside particle demo header">
+<table style="border-collapse: collapse; border: none;">
+  <tr>
+    <td style="border: none; padding: 0 2px 2px 0;"><img src="./assets/particle_systems.gif" width="300" alt="RyanOnTheInside particle demo header"></td>
+    <td style="border: none; padding: 0 0 2px 2px;"><img src="./assets/optical_flow.gif" width="300" alt="RyanOnTheInside optical flow demo"></td>
+  </tr>
+  <tr>
+    <td style="border: none; padding: 2px 2px 0 0;">
+      <img src="./assets/time.gif" width="300" alt="Time"><br>
+      <img src="./assets/plume_examples.gif" width="300" alt="Plume examples using two particle emitters" style="margin-top: 2px;">
+    </td>
+    <td style="border: none; padding: 2px 0 0 2px;"><img src="./assets/iris.gif" width="300" alt="Plume examples using two particle emitters"></td>
+  </tr>
+</table>
 
-  <img src="./assets/plume_examples.gif" width="400" alt="Plume examples using two particle emitters">
-
-  <img src="./assets/iris.gif" width="400" alt="Plume examples using two particle emitters">
-
-  *Some examples using particle emitters and vortices*
+*Some examples using particle emitters and vortices*
 
 ## Installation
 
@@ -159,6 +167,10 @@ Motion-based effects:
 - Particle simulations reactive to optical flow - work in progress
 - Directional flow isolation and emphasis  - in progress
 - Advanced blending and modulation options
+
+    <img src="./assets/opticalflow_examples.gif" width="400" alt="Particle System Demo">
+
+    *Motion generated trails*
 
 ### Optical Flow Mask Nodes
 
