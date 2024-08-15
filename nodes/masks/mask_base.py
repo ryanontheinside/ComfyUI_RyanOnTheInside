@@ -139,9 +139,10 @@ class MaskBase(ABC):
 class TemporalMaskBase(MaskBase, ABC):
     @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()
         return {
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs["required"],
                 "start_frame": ("INT", {"default": 0, "min": 0, "max": 1000, "step": 1}),
                 "end_frame": ("INT", {"default": 0, "min": 0, "max": 1000, "step": 1}),
                 "effect_duration": ("INT", {"default": 0, "min": 0, "max": 1000, "step": 1}),
@@ -149,6 +150,9 @@ class TemporalMaskBase(MaskBase, ABC):
                 "palindrome": ("BOOLEAN", {"default": False}),
             }
         }
+
+    def __init__(self):
+        super().__init__()
 
     @abstractmethod
     def process_single_mask(self, mask: np.ndarray, strength: float, **kwargs) -> np.ndarray:
@@ -208,9 +212,10 @@ class TemporalMaskBase(MaskBase, ABC):
 class ParticleSystemMaskBase(MaskBase, ABC):
     @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()
         return {
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs["required"],
                 "emitters": ("PARTICLE_EMITTER",),
                 "particle_count": ("INT", {"default": 200, "min": 1, "max": 10000, "step": 1}),
                 "particle_lifetime": ("FLOAT", {"default": 4.0, "min": 0.1, "max": 10.0, "step": 0.1}),
@@ -592,6 +597,9 @@ class OpticalFlowMaskBase(MaskBase, ABC):
         }
 
     CATEGORY = "/RyanOnTheInside/masks/"
+
+    def __init__(self):
+        super().__init__()
 
     def process_mask(self, mask: np.ndarray, strength: float, images: np.ndarray, flow_method: str, flow_threshold: float, magnitude_threshold: float, frame_index: int, **kwargs) -> np.ndarray:
         if frame_index == 0 or frame_index >= len(images) - 1:

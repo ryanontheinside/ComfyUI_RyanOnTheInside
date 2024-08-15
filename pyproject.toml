@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ComfyUI_RyanOnTheInside"
+description = "Custom nodes introducing particle simulations, optical flow, and temporal masks"
+version = "0.1.0"
+license = { text = "CC BY-NC 4.0" }
+dependencies = [
+    "opencv-python==4.10",
+    "scipy",
+    "pillow",
+    "librosa",
+    "pymunk==6.8.1",
+    "matplotlib"
+]
+
+[project.urls]
+Repository = "https://github.com/ryanontheinside/ComfyUI_RyanOnTheInside"
+
+[tool.comfy]
+PublisherId = "ryanontheinside"
+DisplayName = "RyanOnTheInside"
+Icon = ""
