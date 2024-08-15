@@ -1,0 +1,15 @@
+[project]
+name = "comfyui_ryanontheinside"
+description = "RyanOnTheInside node pack introduces the following (so far): Particle Systems, Optical Flow, Temporal Masks."
+version = "1.0.0"
+license = {file = "LICENSE"}
+dependencies = ["opencv-python", "numpy", "torch", "tqdm", "scipy", "pillow", "librosa", "pymunk", "matplotlib", "Pillow"]
+
+[project.urls]
+Repository = "https://github.com/ryanontheinside/ComfyUI_RyanOnTheInside"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "ComfyUI_RyanOnTheInside"
+Icon = ""
