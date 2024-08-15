@@ -7,15 +7,18 @@ RyanOnTheInside node pack introduces the following (so far):
 - Temporal Masks
 
   
-<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-start;">
-  <img src="./assets/particle_systems.gif" style="max-width: 400px; width: calc(50% - 5px); height: auto;" alt="RyanOnTheInside particle demo header">
-  <img src="./assets/optical_flow.gif" style="max-width: 400px; width: calc(50% - 5px); height: auto;" alt="RyanOnTheInside optical flow demo">
-  <div style="display: flex; flex-direction: column; max-width: 400px; width: calc(50% - 5px);">
-    <img src="./assets/time.gif" style="width: 100%; height: auto;" alt="Time">
-    <img src="./assets/plume_examples.gif" style="width: 100%; height: auto; margin-top: 10px;" alt="Plume examples using two particle emitters">
+<div style="max-width: 600px; margin: 0;">
+  <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-start;">
+    <img src="./assets/particle_systems.gif" style="max-width: 400px; width: calc(50% - 5px); height: auto;" alt="RyanOnTheInside particle demo header">
+    <img src="./assets/optical_flow.gif" style="max-width: 400px; width: calc(50% - 5px); height: auto;" alt="RyanOnTheInside optical flow demo">
+    <div style="display: flex; flex-direction: column; max-width: 400px; width: calc(50% - 5px);">
+      <img src="./assets/time.gif" style="width: 100%; height: auto; max-height: 200px; object-fit: contain;" alt="Time">
+      <img src="./assets/plume_examples.gif" style="width: 100%; height: auto; max-height: 200px; object-fit: contain; margin-top: 10px;" alt="Plume examples using two particle emitters">
+    </div>
+    <img src="./assets/iris.gif" style="max-width: 400px; width: calc(50% - 5px); height: auto;" alt="Plume examples using two particle emitters">
   </div>
-  <img src="./assets/iris.gif" style="max-width: 400px; width: calc(50% - 5px); height: auto;" alt="Plume examples using two particle emitters">
 </div>
+
 
 *Some examples using particle emitters and vortices*
 
