@@ -24,6 +24,8 @@ RyanOnTheInside node pack introduces the following (so far):
 
 ## Installation
 
+Install via the ComfyUI Manager, or...
+
 1. Navigate to your ComfyUI's `custom_nodes` directory
 2. Clone the repository:
    ```
