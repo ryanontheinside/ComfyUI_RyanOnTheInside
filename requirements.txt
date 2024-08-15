@@ -1,0 +1,10 @@
+opencv-python
+numpy
+torch
+tqdm
+scipy
+pillow
+librosa
+pymunk
+matplotlib
+Pillow

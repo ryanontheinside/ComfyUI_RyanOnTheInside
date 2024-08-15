@@ -1,0 +1,6321 @@
+{
+  "last_node_id": 227,
+  "last_link_id": 325,
+  "nodes": [
+    {
+      "id": 103,
+      "type": "ParticleEmitter",
+      "pos": [
+        -420,
+        -4480
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 270
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_emitter",
+          "type": "PARTICLE_EMITTER",
+          "link": null,
+          "slot_index": 0
+        },
+        {
+          "name": "emitter_movement",
+          "type": "EMITTER_MOVEMENT",
+          "link": null,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "PARTICLE_EMITTER",
+          "type": "PARTICLE_EMITTER",
+          "links": [
+            143
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmitter"
+      },
+      "widgets_values": [
+        0,
+        0,
+        45,
+        0,
+        73.5,
+        609,
+        16.8,
+        "(255,0,0)",
+        0
+      ]
+    },
+    {
+      "id": 91,
+      "type": "EmptyImage",
+      "pos": [
+        -1977,
+        681
+      ],
+      "size": {
+        "0": 315,
+        "1": 130
+      },
+      "flags": {},
+      "order": 26,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "batch_size",
+          "type": "INT",
+          "link": 180,
+          "widget": {
+            "name": "batch_size"
+          }
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "link": 182,
+          "widget": {
+            "name": "width"
+          },
+          "slot_index": 1
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "link": 183,
+          "widget": {
+            "name": "height"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            168
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyImage"
+      },
+      "widgets_values": [
+        512,
+        768,
+        30,
+        0
+      ]
+    },
+    {
+      "id": 126,
+      "type": "Reroute",
+      "pos": [
+        -1166.5090260535044,
+        939.5748645327526
+      ],
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 45,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 169
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "MASK",
+          "links": [
+            170,
+            171,
+            172,
+            195,
+            209,
+            220,
+            222
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 142,
+      "type": "ParticleEmitter",
+      "pos": [
+        1320,
+        -2170
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 270
+      },
+      "flags": {},
+      "order": 40,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_emitter",
+          "type": "PARTICLE_EMITTER",
+          "link": 197,
+          "slot_index": 0
+        },
+        {
+          "name": "emitter_movement",
+          "type": "EMITTER_MOVEMENT",
+          "link": null,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "PARTICLE_EMITTER",
+          "type": "PARTICLE_EMITTER",
+          "links": [
+            196
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmitter"
+      },
+      "widgets_values": [
+        0.99,
+        0.5,
+        180,
+        0,
+        63.7,
+        609,
+        16.8,
+        "(255,0,0)",
+        0
+      ]
+    },
+    {
+      "id": 143,
+      "type": "ParticleEmitter",
+      "pos": [
+        920,
+        -2160
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 270
+      },
+      "flags": {},
+      "order": 32,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_emitter",
+          "type": "PARTICLE_EMITTER",
+          "link": 199,
+          "slot_index": 0
+        },
+        {
+          "name": "emitter_movement",
+          "type": "EMITTER_MOVEMENT",
+          "link": null,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "PARTICLE_EMITTER",
+          "type": "PARTICLE_EMITTER",
+          "links": [
+            197
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmitter"
+      },
+      "widgets_values": [
+        0,
+        0.5,
+        0,
+        0,
+        62.400000000000006,
+        609,
+        16.8,
+        "(50,100,150)",
+        0
+      ]
+    },
+    {
+      "id": 145,
+      "type": "ParticleEmitter",
+      "pos": [
+        510,
+        -2160
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 270
+      },
+      "flags": {},
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_emitter",
+          "type": "PARTICLE_EMITTER",
+          "link": null,
+          "slot_index": 0
+        },
+        {
+          "name": "emitter_movement",
+          "type": "EMITTER_MOVEMENT",
+          "link": 200,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "PARTICLE_EMITTER",
+          "type": "PARTICLE_EMITTER",
+          "links": [
+            199
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmitter"
+      },
+      "widgets_values": [
+        0,
+        0.9,
+        270,
+        0,
+        20.6,
+        609,
+        16.8,
+        "(0,100,0)",
+        0
+      ]
+    },
+    {
+      "id": 146,
+      "type": "EmitterMovement",
+      "pos": [
+        120,
+        -2130
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 181.7848663330078
+      },
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "EMITTER_MOVEMENT",
+          "type": "EMITTER_MOVEMENT",
+          "links": [
+            200
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmitterMovement"
+      },
+      "widgets_values": [
+        0.5,
+        0.5,
+        0,
+        0.5,
+        0,
+        180
+      ]
+    },
+    {
+      "id": 147,
+      "type": "ParticleEmitter",
+      "pos": [
+        3790,
+        -2020
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 270
+      },
+      "flags": {},
+      "order": 20,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_emitter",
+          "type": "PARTICLE_EMITTER",
+          "link": null,
+          "slot_index": 0
+        },
+        {
+          "name": "emitter_movement",
+          "type": "EMITTER_MOVEMENT",
+          "link": 204,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "PARTICLE_EMITTER",
+          "type": "PARTICLE_EMITTER",
+          "links": [
+            203
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmitter"
+      },
+      "widgets_values": [
+        0.5,
+        0.5,
+        270,
+        0,
+        20.6,
+        609,
+        100,
+        "(150,0,150)",
+        0
+      ]
+    },
+    {
+      "id": 149,
+      "type": "EmitterMovement",
+      "pos": [
+        3410,
+        -1980
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 181.7848663330078
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "EMITTER_MOVEMENT",
+          "type": "EMITTER_MOVEMENT",
+          "links": [
+            204
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmitterMovement"
+      },
+      "widgets_values": [
+        0,
+        0,
+        0,
+        0,
+        0.62,
+        360
+      ]
+    },
+    {
+      "id": 156,
+      "type": "ParticleEmitter",
+      "pos": [
+        3320,
+        -620
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 270
+      },
+      "flags": {},
+      "order": 21,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_emitter",
+          "type": "PARTICLE_EMITTER",
+          "link": 212,
+          "slot_index": 0
+        },
+        {
+          "name": "emitter_movement",
+          "type": "EMITTER_MOVEMENT",
+          "link": null,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "PARTICLE_EMITTER",
+          "type": "PARTICLE_EMITTER",
+          "links": [
+            210
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmitter"
+      },
+      "widgets_values": [
+        1,
+        0.5700000000000001,
+        180,
+        0,
+        19.400000000000002,
+        170,
+        100,
+        "(255,0,0)",
+        0
+      ]
+    },
+    {
+      "id": 157,
+      "type": "ParticleEmitter",
+      "pos": [
+        3310,
+        -940
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 270
+      },
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_emitter",
+          "type": "PARTICLE_EMITTER",
+          "link": null,
+          "slot_index": 0
+        },
+        {
+          "name": "emitter_movement",
+          "type": "EMITTER_MOVEMENT",
+          "link": null,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "PARTICLE_EMITTER",
+          "type": "PARTICLE_EMITTER",
+          "links": [
+            212
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmitter"
+      },
+      "widgets_values": [
+        0,
+        0.35000000000000003,
+        0,
+        0,
+        17.6,
+        37,
+        100,
+        "(50,100,150)",
+        0
+      ]
+    },
+    {
+      "id": 160,
+      "type": "Vortex",
+      "pos": [
+        3750,
+        -610
+      ],
+      "size": {
+        "0": 306.17706298828125,
+        "1": 178
+      },
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_vortex",
+          "type": "VORTEX",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VORTEX",
+          "type": "VORTEX",
+          "links": [
+            214
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Vortex"
+      },
+      "widgets_values": [
+        0.5,
+        0.6,
+        500,
+        370,
+        0.14,
+        0
+      ]
+    },
+    {
+      "id": 140,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        2590,
+        -2170
+      ],
+      "size": [
+        410,
+        909
+      ],
+      "flags": {},
+      "order": 74,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 194
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": false,
+        "pingpong": false,
+        "save_output": false,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00008.mp4",
+            "subfolder": "",
+            "type": "temp",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 113,
+      "type": "ParticleEmitter",
+      "pos": [
+        2660,
+        -3020
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 270
+      },
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_emitter",
+          "type": "PARTICLE_EMITTER",
+          "link": null,
+          "slot_index": 0
+        },
+        {
+          "name": "emitter_movement",
+          "type": "EMITTER_MOVEMENT",
+          "link": null,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "PARTICLE_EMITTER",
+          "type": "PARTICLE_EMITTER",
+          "links": [
+            156
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmitter"
+      },
+      "widgets_values": [
+        0,
+        0.5,
+        0,
+        30,
+        20.400000000000002,
+        384,
+        45.900000000000006,
+        "(50,100,150)",
+        0.51
+      ]
+    },
+    {
+      "id": 112,
+      "type": "ParticleEmitter",
+      "pos": [
+        2660,
+        -3450
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 270
+      },
+      "flags": {},
+      "order": 22,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_emitter",
+          "type": "PARTICLE_EMITTER",
+          "link": 156,
+          "slot_index": 0
+        },
+        {
+          "name": "emitter_movement",
+          "type": "EMITTER_MOVEMENT",
+          "link": null,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "PARTICLE_EMITTER",
+          "type": "PARTICLE_EMITTER",
+          "links": [
+            155,
+            223,
+            224
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmitter"
+      },
+      "widgets_values": [
+        1,
+        0.5,
+        180,
+        30,
+        21.3,
+        312,
+        45.1,
+        "(255,0,0)",
+        0.49
+      ]
+    },
+    {
+      "id": 110,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        5480,
+        -4980
+      ],
+      "size": [
+        410,
+        310
+      ],
+      "flags": {},
+      "order": 73,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 153
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": false,
+        "pingpong": false,
+        "save_output": false,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00002.mp4",
+            "subfolder": "",
+            "type": "temp",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 114,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        5290,
+        -1900
+      ],
+      "size": [
+        410,
+        909
+      ],
+      "flags": {},
+      "order": 71,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 157
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": false,
+        "pingpong": false,
+        "save_output": false,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00005.mp4",
+            "subfolder": "",
+            "type": "temp",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 109,
+      "type": "MaskFromColor+",
+      "pos": [
+        -340,
+        -4830
+      ],
+      "size": {
+        "0": 315,
+        "1": 130
+      },
+      "flags": {},
+      "order": 33,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 151
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            152
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskFromColor+"
+      },
+      "widgets_values": [
+        255,
+        255,
+        255,
+        0
+      ]
+    },
+    {
+      "id": 123,
+      "type": "ParticleEmitter",
+      "pos": [
+        240,
+        -1030
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 270
+      },
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_emitter",
+          "type": "PARTICLE_EMITTER",
+          "link": null,
+          "slot_index": 0
+        },
+        {
+          "name": "emitter_movement",
+          "type": "EMITTER_MOVEMENT",
+          "link": null,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "PARTICLE_EMITTER",
+          "type": "PARTICLE_EMITTER",
+          "links": [
+            166
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmitter"
+      },
+      "widgets_values": [
+        0,
+        0.17,
+        0,
+        0,
+        17.6,
+        137,
+        16.8,
+        "(50,100,150)",
+        0
+      ]
+    },
+    {
+      "id": 122,
+      "type": "ParticleEmitter",
+      "pos": [
+        770,
+        -920
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 270
+      },
+      "flags": {},
+      "order": 23,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_emitter",
+          "type": "PARTICLE_EMITTER",
+          "link": 166,
+          "slot_index": 0
+        },
+        {
+          "name": "emitter_movement",
+          "type": "EMITTER_MOVEMENT",
+          "link": null,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "PARTICLE_EMITTER",
+          "type": "PARTICLE_EMITTER",
+          "links": [
+            165
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmitter"
+      },
+      "widgets_values": [
+        1,
+        0.6900000000000001,
+        180,
+        0,
+        19.400000000000002,
+        170,
+        16.8,
+        "(255,0,0)",
+        0
+      ]
+    },
+    {
+      "id": 124,
+      "type": "GravityWell",
+      "pos": [
+        1040,
+        -550
+      ],
+      "size": {
+        "0": 330,
+        "1": 154
+      },
+      "flags": {},
+      "order": 24,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_well",
+          "type": "GRAVITY_WELL",
+          "link": 207
+        }
+      ],
+      "outputs": [
+        {
+          "name": "GRAVITY_WELL",
+          "type": "GRAVITY_WELL",
+          "links": [
+            167
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GravityWell"
+      },
+      "widgets_values": [
+        0.35000000000000003,
+        0.3,
+        100,
+        140,
+        "attract"
+      ]
+    },
+    {
+      "id": 153,
+      "type": "GravityWell",
+      "pos": [
+        470,
+        -550
+      ],
+      "size": {
+        "0": 330,
+        "1": 154
+      },
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_well",
+          "type": "GRAVITY_WELL",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "GRAVITY_WELL",
+          "type": "GRAVITY_WELL",
+          "links": [
+            207
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GravityWell"
+      },
+      "widgets_values": [
+        0.5,
+        0.66,
+        870,
+        140,
+        "repel"
+      ]
+    },
+    {
+      "id": 166,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        5480,
+        -3970
+      ],
+      "size": [
+        410,
+        310
+      ],
+      "flags": {},
+      "order": 78,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 221
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": false,
+        "pingpong": false,
+        "save_output": false,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00004.mp4",
+            "subfolder": "",
+            "type": "temp",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 57,
+      "type": "VHS_LoadVideo",
+      "pos": [
+        -2483,
+        1781
+      ],
+      "size": [
+        235.1999969482422,
+        286
+      ],
+      "flags": {},
+      "order": 25,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        },
+        {
+          "name": "frame_load_cap",
+          "type": "*",
+          "link": 179,
+          "widget": {
+            "name": "frame_load_cap"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            151,
+            225
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null,
+          "shape": 3
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null,
+          "shape": 3
+        },
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_LoadVideo"
+      },
+      "widgets_values": {
+        "video": "polina809MaskFull_00001.mp4",
+        "force_rate": 0,
+        "force_size": "Custom",
+        "custom_width": 512,
+        "custom_height": 768,
+        "frame_load_cap": 30,
+        "skip_first_frames": 30,
+        "select_every_nth": 1,
+        "choose video to upload": "image",
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "frame_load_cap": 30,
+            "skip_first_frames": 30,
+            "force_rate": 0,
+            "select_every_nth": 1,
+            "filename": "polina809MaskFull_00001.mp4",
+            "type": "input",
+            "format": "video/mp4",
+            "force_size": "512x768"
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 125,
+      "type": "_mfc",
+      "pos": [
+        -1515,
+        755
+      ],
+      "size": {
+        "0": 315,
+        "1": 130
+      },
+      "flags": {},
+      "order": 35,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 168
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            169
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "_mfc"
+      },
+      "widgets_values": [
+        255,
+        255,
+        255,
+        0
+      ]
+    },
+    {
+      "id": 135,
+      "type": "PrimitiveNode",
+      "pos": [
+        -2571,
+        878
+      ],
+      "size": {
+        "0": 210,
+        "1": 82
+      },
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [
+            182,
+            231
+          ],
+          "slot_index": 0,
+          "widget": {
+            "name": "width"
+          }
+        }
+      ],
+      "properties": {
+        "Run widget replace on values": false
+      },
+      "widgets_values": [
+        512,
+        "fixed"
+      ]
+    },
+    {
+      "id": 136,
+      "type": "PrimitiveNode",
+      "pos": [
+        -2551,
+        1058
+      ],
+      "size": {
+        "0": 210,
+        "1": 82
+      },
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [
+            183,
+            232
+          ],
+          "slot_index": 0,
+          "widget": {
+            "name": "height"
+          }
+        }
+      ],
+      "properties": {
+        "Run widget replace on values": false
+      },
+      "widgets_values": [
+        768,
+        "fixed"
+      ]
+    },
+    {
+      "id": 130,
+      "type": "PrimitiveNode",
+      "pos": [
+        -2749,
+        1379
+      ],
+      "size": {
+        "0": 210,
+        "1": 82
+      },
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [
+            179,
+            180
+          ],
+          "slot_index": 0,
+          "widget": {
+            "name": "frame_load_cap"
+          }
+        }
+      ],
+      "properties": {
+        "Run widget replace on values": false
+      },
+      "widgets_values": [
+        30,
+        "fixed"
+      ]
+    },
+    {
+      "id": 138,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        370,
+        877
+      ],
+      "size": [
+        315,
+        310
+      ],
+      "flags": {},
+      "order": 80,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 193
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00094.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 139,
+      "type": "MaskToImage",
+      "pos": [
+        -105,
+        1006
+      ],
+      "size": {
+        "0": 210,
+        "1": 26
+      },
+      "flags": {},
+      "order": 63,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 267
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            193
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskToImage"
+      }
+    },
+    {
+      "id": 181,
+      "type": "ParticleEmitter",
+      "pos": [
+        1587,
+        1079
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 270
+      },
+      "flags": {},
+      "order": 27,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_emitter",
+          "type": "PARTICLE_EMITTER",
+          "link": null,
+          "slot_index": 0
+        },
+        {
+          "name": "emitter_movement",
+          "type": "EMITTER_MOVEMENT",
+          "link": 244,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "PARTICLE_EMITTER",
+          "type": "PARTICLE_EMITTER",
+          "links": [
+            243
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmitter"
+      },
+      "widgets_values": [
+        0.2,
+        0.9,
+        270,
+        0,
+        20.6,
+        609,
+        16.8,
+        "(0,100,0)",
+        0
+      ]
+    },
+    {
+      "id": 183,
+      "type": "EmitterMovement",
+      "pos": [
+        1527,
+        1471
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 181.7848663330078
+      },
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "EMITTER_MOVEMENT",
+          "type": "EMITTER_MOVEMENT",
+          "links": [
+            247
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmitterMovement"
+      },
+      "widgets_values": [
+        0.5,
+        0.5,
+        0,
+        0.5,
+        0,
+        129
+      ]
+    },
+    {
+      "id": 182,
+      "type": "EmitterMovement",
+      "pos": [
+        1138,
+        1203
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 181.7848663330078
+      },
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "EMITTER_MOVEMENT",
+          "type": "EMITTER_MOVEMENT",
+          "links": [
+            244
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmitterMovement"
+      },
+      "widgets_values": [
+        0.5,
+        0.5,
+        0,
+        0.5,
+        0,
+        180
+      ]
+    },
+    {
+      "id": 180,
+      "type": "ParticleEmitter",
+      "pos": [
+        1980.9579632874907,
+        1073.2051034373235
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 270
+      },
+      "flags": {},
+      "order": 36,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_emitter",
+          "type": "PARTICLE_EMITTER",
+          "link": 243,
+          "slot_index": 0
+        },
+        {
+          "name": "emitter_movement",
+          "type": "EMITTER_MOVEMENT",
+          "link": 247,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "PARTICLE_EMITTER",
+          "type": "PARTICLE_EMITTER",
+          "links": [
+            242
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmitter"
+      },
+      "widgets_values": [
+        0.25,
+        0.1,
+        90,
+        0,
+        27.3,
+        609,
+        16.8,
+        "(50,100,150)",
+        0
+      ]
+    },
+    {
+      "id": 192,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        2440,
+        6870
+      ],
+      "size": [
+        315,
+        310
+      ],
+      "flags": {},
+      "order": 67,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 254
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00089.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 193,
+      "type": "MaskToImage",
+      "pos": [
+        2020,
+        7880
+      ],
+      "size": {
+        "0": 210,
+        "1": 26
+      },
+      "flags": {},
+      "order": 53,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 259
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            255
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskToImage"
+      }
+    },
+    {
+      "id": 196,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        2460,
+        8900
+      ],
+      "size": [
+        315,
+        310
+      ],
+      "flags": {},
+      "order": 70,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 256
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00091.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 187,
+      "type": "MaskRings",
+      "pos": [
+        880,
+        8960
+      ],
+      "size": {
+        "0": 315,
+        "1": 298
+      },
+      "flags": {},
+      "order": 44,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 252
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            260
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskRings"
+      },
+      "widgets_values": [
+        1,
+        false,
+        0,
+        0,
+        0,
+        0,
+        0,
+        "ease_in_out",
+        true,
+        10,
+        0.39
+      ]
+    },
+    {
+      "id": 190,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        2430,
+        5520
+      ],
+      "size": [
+        315,
+        310
+      ],
+      "flags": {},
+      "order": 86,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 253
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00112.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 185,
+      "type": "MaskMorph",
+      "pos": [
+        1217,
+        7126
+      ],
+      "size": {
+        "0": 315,
+        "1": 322
+      },
+      "flags": {},
+      "order": 42,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 250
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            258
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskMorph"
+      },
+      "widgets_values": [
+        1,
+        false,
+        0.72,
+        0,
+        0,
+        0,
+        0,
+        "ease_in_out",
+        true,
+        "dilate",
+        11,
+        10
+      ]
+    },
+    {
+      "id": 200,
+      "type": "MovingShape",
+      "pos": [
+        -219,
+        6761
+      ],
+      "size": {
+        "0": 315,
+        "1": 394
+      },
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            263
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MovingShape"
+      },
+      "widgets_values": [
+        512,
+        768,
+        30,
+        "(255,255,255)",
+        "square",
+        50,
+        50,
+        0,
+        0,
+        0,
+        0,
+        "ease_in_out",
+        0,
+        true,
+        0
+      ]
+    },
+    {
+      "id": 199,
+      "type": "MaskWarp",
+      "pos": [
+        1184,
+        6469
+      ],
+      "size": {
+        "0": 315,
+        "1": 346
+      },
+      "flags": {},
+      "order": 28,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 263
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            265
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskWarp"
+      },
+      "widgets_values": [
+        1,
+        false,
+        0,
+        0,
+        0,
+        0,
+        0,
+        "ease_in_out",
+        false,
+        "perlin",
+        0.05,
+        298.90000000000003,
+        3
+      ]
+    },
+    {
+      "id": 203,
+      "type": "MaskWarp",
+      "pos": [
+        -298,
+        1144
+      ],
+      "size": {
+        "0": 315,
+        "1": 346
+      },
+      "flags": {},
+      "order": 48,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 266
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            267,
+            268
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskWarp"
+      },
+      "widgets_values": [
+        1,
+        false,
+        0,
+        0,
+        0,
+        0,
+        0,
+        "ease_in_out",
+        false,
+        "perlin",
+        0.05,
+        298.90000000000003,
+        3
+      ]
+    },
+    {
+      "id": 179,
+      "type": "ParticleEmitter",
+      "pos": [
+        2455,
+        1141
+      ],
+      "size": {
+        "0": 285.6000061035156,
+        "1": 270
+      },
+      "flags": {},
+      "order": 46,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_emitter",
+          "type": "PARTICLE_EMITTER",
+          "link": 242,
+          "slot_index": 0
+        },
+        {
+          "name": "emitter_movement",
+          "type": "EMITTER_MOVEMENT",
+          "link": null,
+          "slot_index": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "PARTICLE_EMITTER",
+          "type": "PARTICLE_EMITTER",
+          "links": [
+            241
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmitter"
+      },
+      "widgets_values": [
+        0,
+        0.48,
+        0,
+        7,
+        17.6,
+        351,
+        16.8,
+        "(255,0,0)",
+        0.21
+      ]
+    },
+    {
+      "id": 133,
+      "type": "TextMaskNode",
+      "pos": [
+        -1135,
+        1079
+      ],
+      "size": {
+        "0": 315,
+        "1": 342
+      },
+      "flags": {},
+      "order": 29,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "link": 232,
+          "widget": {
+            "name": "width"
+          }
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "link": 231,
+          "widget": {
+            "name": "height"
+          }
+        },
+        {
+          "name": "batch_size",
+          "type": "INT",
+          "link": 262,
+          "widget": {
+            "name": "batch_size"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            246
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TextMaskNode"
+      },
+      "widgets_values": [
+        768,
+        512,
+        "RyanOnTheInside",
+        "Arial",
+        50,
+        "(255,255,255)",
+        "(0,0,0)",
+        0.5,
+        0.5,
+        0,
+        1,
+        30
+      ]
+    },
+    {
+      "id": 198,
+      "type": "PrimitiveNode",
+      "pos": [
+        -2070.699048437932,
+        1419.7775949970946
+      ],
+      "size": {
+        "0": 210,
+        "1": 82
+      },
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [
+            262
+          ],
+          "slot_index": 0,
+          "widget": {
+            "name": "batch_size"
+          }
+        }
+      ],
+      "properties": {
+        "Run widget replace on values": false
+      },
+      "widgets_values": [
+        30,
+        "fixed"
+      ]
+    },
+    {
+      "id": 176,
+      "type": "MaskMorph",
+      "pos": [
+        -704,
+        1137
+      ],
+      "size": {
+        "0": 315,
+        "1": 322
+      },
+      "flags": {},
+      "order": 38,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 246
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            266
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskMorph"
+      },
+      "widgets_values": [
+        0.34,
+        false,
+        0,
+        0,
+        0,
+        0,
+        0,
+        "ease_in_out",
+        true,
+        "dilate",
+        3,
+        4
+      ]
+    },
+    {
+      "id": 164,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        5480,
+        -2990
+      ],
+      "size": [
+        410,
+        310
+      ],
+      "flags": {},
+      "order": 77,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 219
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "init_plum_east_wind",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": false,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "init_plum_east_wind_00001.mp4",
+            "subfolder": "",
+            "type": "temp",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 111,
+      "type": "ParticleEmissionMask",
+      "pos": [
+        3320,
+        -3920
+      ],
+      "size": {
+        "0": 360.8669128417969,
+        "1": 454
+      },
+      "flags": {},
+      "order": 58,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 172
+        },
+        {
+          "name": "emitters",
+          "type": "PARTICLE_EMITTER",
+          "link": 155,
+          "slot_index": 1
+        },
+        {
+          "name": "vortices",
+          "type": "VORTEX",
+          "link": null
+        },
+        {
+          "name": "wells",
+          "type": "GRAVITY_WELL",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "shape": 3
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            153
+          ],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmissionMask"
+      },
+      "widgets_values": [
+        0.99,
+        false,
+        0,
+        0,
+        340,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        true,
+        1,
+        10,
+        0.68
+      ]
+    },
+    {
+      "id": 167,
+      "type": "ParticleEmissionMask",
+      "pos": [
+        3350,
+        -3340
+      ],
+      "size": {
+        "0": 360.8669128417969,
+        "1": 454
+      },
+      "flags": {},
+      "order": 62,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 222
+        },
+        {
+          "name": "emitters",
+          "type": "PARTICLE_EMITTER",
+          "link": 223,
+          "slot_index": 1
+        },
+        {
+          "name": "vortices",
+          "type": "VORTEX",
+          "link": null
+        },
+        {
+          "name": "wells",
+          "type": "GRAVITY_WELL",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "shape": 3
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            221,
+            282
+          ],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmissionMask"
+      },
+      "widgets_values": [
+        0.99,
+        false,
+        0,
+        0,
+        340,
+        4,
+        0,
+        0,
+        464,
+        0,
+        0,
+        true,
+        1,
+        10,
+        0.68
+      ]
+    },
+    {
+      "id": 165,
+      "type": "ParticleEmissionMask",
+      "pos": [
+        3240,
+        -2740
+      ],
+      "size": {
+        "0": 360.8669128417969,
+        "1": 454
+      },
+      "flags": {},
+      "order": 61,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 220
+        },
+        {
+          "name": "emitters",
+          "type": "PARTICLE_EMITTER",
+          "link": 224,
+          "slot_index": 1
+        },
+        {
+          "name": "vortices",
+          "type": "VORTEX",
+          "link": null
+        },
+        {
+          "name": "wells",
+          "type": "GRAVITY_WELL",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "shape": 3
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            219
+          ],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmissionMask"
+      },
+      "widgets_values": [
+        0.99,
+        false,
+        0,
+        0,
+        340,
+        4,
+        100,
+        0,
+        0,
+        0,
+        0,
+        true,
+        1,
+        10,
+        0.68
+      ]
+    },
+    {
+      "id": 213,
+      "type": "TextMaskNode",
+      "pos": [
+        7802.457575074447,
+        -3784.9684488571847
+      ],
+      "size": {
+        "0": 315,
+        "1": 342
+      },
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TextMaskNode"
+      },
+      "widgets_values": [
+        512,
+        512,
+        "Hello World",
+        "Arial",
+        32,
+        "(255,255,255)",
+        "(0,0,0)",
+        0.5,
+        0.5,
+        0,
+        0.9,
+        1
+      ]
+    },
+    {
+      "id": 104,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        640,
+        -4890
+      ],
+      "size": [
+        1010.0657348632812,
+        310
+      ],
+      "flags": {},
+      "order": 51,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 145
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "masks/pelting",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": false,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "pelting_00002.mp4",
+            "subfolder": "masks",
+            "type": "temp",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 141,
+      "type": "ParticleEmissionMask",
+      "pos": [
+        1830,
+        -2190
+      ],
+      "size": {
+        "0": 360.8669128417969,
+        "1": 454
+      },
+      "flags": {},
+      "order": 59,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 195
+        },
+        {
+          "name": "emitters",
+          "type": "PARTICLE_EMITTER",
+          "link": 196,
+          "slot_index": 1
+        },
+        {
+          "name": "vortices",
+          "type": "VORTEX",
+          "link": null
+        },
+        {
+          "name": "wells",
+          "type": "GRAVITY_WELL",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "shape": 3
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            194,
+            286
+          ],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmissionMask"
+      },
+      "widgets_values": [
+        0.99,
+        false,
+        0,
+        0,
+        340,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        true,
+        1,
+        10,
+        0.68
+      ]
+    },
+    {
+      "id": 115,
+      "type": "ParticleEmissionMask",
+      "pos": [
+        4300,
+        -2030
+      ],
+      "size": {
+        "0": 360.8669128417969,
+        "1": 454
+      },
+      "flags": {},
+      "order": 56,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 170
+        },
+        {
+          "name": "emitters",
+          "type": "PARTICLE_EMITTER",
+          "link": 203,
+          "slot_index": 1
+        },
+        {
+          "name": "vortices",
+          "type": "VORTEX",
+          "link": null
+        },
+        {
+          "name": "wells",
+          "type": "GRAVITY_WELL",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "shape": 3
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            157,
+            319
+          ],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmissionMask"
+      },
+      "widgets_values": [
+        0.99,
+        false,
+        0,
+        0,
+        340,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        true,
+        1,
+        10,
+        0.68
+      ]
+    },
+    {
+      "id": 102,
+      "type": "ParticleEmissionMask",
+      "pos": [
+        20,
+        -4540
+      ],
+      "size": {
+        "0": 360.8669128417969,
+        "1": 454
+      },
+      "flags": {},
+      "order": 41,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 152
+        },
+        {
+          "name": "emitters",
+          "type": "PARTICLE_EMITTER",
+          "link": 143,
+          "slot_index": 1
+        },
+        {
+          "name": "vortices",
+          "type": "VORTEX",
+          "link": null
+        },
+        {
+          "name": "wells",
+          "type": "GRAVITY_WELL",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            145,
+            289
+          ],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmissionMask"
+      },
+      "widgets_values": [
+        0.99,
+        false,
+        0,
+        0,
+        340,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        true,
+        1,
+        10,
+        0.68
+      ]
+    },
+    {
+      "id": 172,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        1217,
+        3154
+      ],
+      "size": [
+        315,
+        310
+      ],
+      "flags": {},
+      "order": 83,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 229
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00106.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 208,
+      "type": "OpticalFlowMaskModulation",
+      "pos": [
+        299,
+        3373
+      ],
+      "size": {
+        "0": 386.3999938964844,
+        "1": 366
+      },
+      "flags": {},
+      "order": 49,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 293
+        },
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 273
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            274
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "OpticalFlowMaskModulation"
+      },
+      "widgets_values": [
+        0.99,
+        false,
+        0.9500000000000001,
+        0,
+        "Farneback",
+        0.04,
+        0,
+        1,
+        5,
+        15,
+        0.8,
+        "thickness",
+        50
+      ]
+    },
+    {
+      "id": 169,
+      "type": "_mfc",
+      "pos": [
+        -1914,
+        5166
+      ],
+      "size": {
+        "0": 315,
+        "1": 130
+      },
+      "flags": {},
+      "order": 34,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 225
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            250,
+            251,
+            252
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "_mfc"
+      },
+      "widgets_values": [
+        255,
+        255,
+        255,
+        0
+      ]
+    },
+    {
+      "id": 218,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        1612,
+        3717
+      ],
+      "size": [
+        315,
+        310
+      ],
+      "flags": {},
+      "order": 84,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 297
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00107.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 171,
+      "type": "MaskToImage",
+      "pos": [
+        837,
+        3335
+      ],
+      "size": {
+        "0": 210,
+        "1": 26
+      },
+      "flags": {},
+      "order": 65,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 274
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            229,
+            306
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskToImage"
+      }
+    },
+    {
+      "id": 204,
+      "type": "MaskToImage",
+      "pos": [
+        762,
+        3944
+      ],
+      "size": {
+        "0": 296.50048828125,
+        "1": 26
+      },
+      "flags": {},
+      "order": 66,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 296
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            297,
+            307
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskToImage"
+      }
+    },
+    {
+      "id": 217,
+      "type": "_mfc",
+      "pos": [
+        -551,
+        3172
+      ],
+      "size": {
+        "0": 315,
+        "1": 130
+      },
+      "flags": {},
+      "order": 39,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 291
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            293,
+            295
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "_mfc"
+      },
+      "widgets_values": [
+        255,
+        255,
+        255,
+        0
+      ]
+    },
+    {
+      "id": 216,
+      "type": "VHS_LoadVideo",
+      "pos": [
+        -1248,
+        2851
+      ],
+      "size": [
+        235.1999969482422,
+        286
+      ],
+      "flags": {},
+      "order": 30,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        },
+        {
+          "name": "frame_load_cap",
+          "type": "*",
+          "link": 303,
+          "widget": {
+            "name": "frame_load_cap"
+          },
+          "slot_index": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            291
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null,
+          "shape": 3
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null,
+          "shape": 3
+        },
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_LoadVideo"
+      },
+      "widgets_values": {
+        "video": "polina809MaskFull_00001.mp4",
+        "force_rate": 0,
+        "force_size": "Custom",
+        "custom_width": 512,
+        "custom_height": 768,
+        "frame_load_cap": 30,
+        "skip_first_frames": 0,
+        "select_every_nth": 1,
+        "choose video to upload": "image",
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "frame_load_cap": 30,
+            "skip_first_frames": 0,
+            "force_rate": 0,
+            "select_every_nth": 1,
+            "filename": "polina809MaskFull_00001.mp4",
+            "type": "input",
+            "format": "video/mp4",
+            "force_size": "512x768"
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 221,
+      "type": "PrimitiveNode",
+      "pos": [
+        -1721,
+        3131
+      ],
+      "size": {
+        "0": 210,
+        "1": 82
+      },
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [
+            303,
+            304
+          ],
+          "widget": {
+            "name": "frame_load_cap"
+          },
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Run widget replace on values": false
+      },
+      "widgets_values": [
+        30,
+        "fixed"
+      ]
+    },
+    {
+      "id": 207,
+      "type": "OpticalFlowMaskModulation",
+      "pos": [
+        297,
+        3884
+      ],
+      "size": {
+        "0": 386.3999938964844,
+        "1": 366
+      },
+      "flags": {},
+      "order": 50,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 295
+        },
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 294
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            296
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "OpticalFlowMaskModulation"
+      },
+      "widgets_values": [
+        1,
+        false,
+        1,
+        0,
+        "Farneback",
+        0.04,
+        0,
+        1,
+        5,
+        15,
+        0.8,
+        "fade",
+        50
+      ]
+    },
+    {
+      "id": 222,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        5559,
+        3351
+      ],
+      "size": [
+        315,
+        262
+      ],
+      "flags": {},
+      "order": 90,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 305
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "masks/opticalflow_examples",
+        "format": "video/ffmpeg-gif",
+        "dither": "sierra2_4a",
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "opticalflow_examples_00001.gif",
+            "subfolder": "masks",
+            "type": "output",
+            "format": "video/ffmpeg-gif",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 56,
+      "type": "VHS_LoadVideo",
+      "pos": [
+        -1351,
+        3575
+      ],
+      "size": [
+        235.1999969482422,
+        682.5777723524305
+      ],
+      "flags": {},
+      "order": 31,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        },
+        {
+          "name": "frame_load_cap",
+          "type": "INT",
+          "link": 304,
+          "widget": {
+            "name": "frame_load_cap"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            273,
+            294,
+            298
+          ],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null,
+          "shape": 3
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null,
+          "shape": 3
+        },
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_LoadVideo"
+      },
+      "widgets_values": {
+        "video": "pexels-polina-tankilevitch-5385809 (1080p).mp4",
+        "force_rate": 15,
+        "force_size": "Custom",
+        "custom_width": 512,
+        "custom_height": 768,
+        "frame_load_cap": 30,
+        "skip_first_frames": 0,
+        "select_every_nth": 1,
+        "choose video to upload": "image",
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "frame_load_cap": 30,
+            "skip_first_frames": 0,
+            "force_rate": 15,
+            "select_every_nth": 1,
+            "filename": "pexels-polina-tankilevitch-5385809 (1080p).mp4",
+            "type": "input",
+            "format": "video/mp4",
+            "force_size": "512x768"
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 219,
+      "type": "ImageConcatMulti",
+      "pos": [
+        4919,
+        3218
+      ],
+      "size": {
+        "0": 210,
+        "1": 170
+      },
+      "flags": {},
+      "order": 85,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_1",
+          "type": "IMAGE",
+          "link": 298
+        },
+        {
+          "name": "image_2",
+          "type": "IMAGE",
+          "link": 306
+        },
+        {
+          "name": "image_3",
+          "type": "IMAGE",
+          "link": 307
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            302,
+            305
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageConcatMulti"
+      },
+      "widgets_values": [
+        3,
+        "right",
+        false,
+        null
+      ]
+    },
+    {
+      "id": 220,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        5805,
+        1738
+      ],
+      "size": [
+        2078.699462890625,
+        310
+      ],
+      "flags": {},
+      "order": 89,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 302
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00109.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 202,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        5110,
+        5325
+      ],
+      "size": [
+        751.7349243164062,
+        310
+      ],
+      "flags": {},
+      "order": 47,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 264
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00098.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 186,
+      "type": "MaskTransform",
+      "pos": [
+        1240,
+        7860
+      ],
+      "size": {
+        "0": 344.3999938964844,
+        "1": 322
+      },
+      "flags": {},
+      "order": 43,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 251
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            259,
+            310
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskTransform"
+      },
+      "widgets_values": [
+        1,
+        false,
+        0,
+        0,
+        0,
+        0,
+        0,
+        "ease_in_out",
+        true,
+        "rotate",
+        169.5,
+        171.4
+      ]
+    },
+    {
+      "id": 188,
+      "type": "MaskMath",
+      "pos": [
+        1825,
+        5961
+      ],
+      "size": {
+        "0": 315,
+        "1": 294
+      },
+      "flags": {},
+      "order": 54,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 310
+        },
+        {
+          "name": "mask_b",
+          "type": "MASK",
+          "link": 311
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            257
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskMath"
+      },
+      "widgets_values": [
+        1,
+        false,
+        0,
+        0,
+        0,
+        0,
+        0,
+        "ease_in_out",
+        false,
+        "subtract"
+      ]
+    },
+    {
+      "id": 194,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        1696,
+        7952
+      ],
+      "size": [
+        315,
+        310
+      ],
+      "flags": {},
+      "order": 68,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 255
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00090.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 197,
+      "type": "MovingShape",
+      "pos": [
+        469,
+        5965
+      ],
+      "size": {
+        "0": 315,
+        "1": 394
+      },
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            311
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MovingShape"
+      },
+      "widgets_values": [
+        512,
+        768,
+        30,
+        "(255,255,255)",
+        "square",
+        50,
+        50,
+        0,
+        0,
+        0,
+        0,
+        "ease_in_out",
+        0,
+        true,
+        0
+      ]
+    },
+    {
+      "id": 195,
+      "type": "MaskToImage",
+      "pos": [
+        2040,
+        8920
+      ],
+      "size": {
+        "0": 210,
+        "1": 26
+      },
+      "flags": {},
+      "order": 55,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 260
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            256,
+            312
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskToImage"
+      }
+    },
+    {
+      "id": 191,
+      "type": "MaskToImage",
+      "pos": [
+        2030,
+        6890
+      ],
+      "size": {
+        "0": 210,
+        "1": 26
+      },
+      "flags": {},
+      "order": 52,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 258
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            254,
+            313
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskToImage"
+      }
+    },
+    {
+      "id": 201,
+      "type": "MaskToImage",
+      "pos": [
+        1808,
+        6429
+      ],
+      "size": {
+        "0": 210,
+        "1": 26
+      },
+      "flags": {},
+      "order": 37,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 265
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            264,
+            314
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskToImage"
+      }
+    },
+    {
+      "id": 189,
+      "type": "MaskToImage",
+      "pos": [
+        2020,
+        5540
+      ],
+      "size": {
+        "0": 210,
+        "1": 26
+      },
+      "flags": {},
+      "order": 69,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 257
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            253,
+            315
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskToImage"
+      }
+    },
+    {
+      "id": 224,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        6573,
+        6632
+      ],
+      "size": [
+        751.7349243164062,
+        310
+      ],
+      "flags": {},
+      "order": 91,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 316
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00113.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 223,
+      "type": "ImageConcatMulti",
+      "pos": [
+        5800,
+        6981
+      ],
+      "size": {
+        "0": 210,
+        "1": 190
+      },
+      "flags": {},
+      "order": 87,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_1",
+          "type": "IMAGE",
+          "link": 312
+        },
+        {
+          "name": "image_2",
+          "type": "IMAGE",
+          "link": 313
+        },
+        {
+          "name": "image_3",
+          "type": "IMAGE",
+          "link": 314
+        },
+        {
+          "name": "image_4",
+          "type": "IMAGE",
+          "link": 315
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            316,
+            317
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageConcatMulti"
+      },
+      "widgets_values": [
+        4,
+        "right",
+        false,
+        null
+      ]
+    },
+    {
+      "id": 225,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        6414,
+        7480
+      ],
+      "size": [
+        751.7349243164062,
+        262
+      ],
+      "flags": {},
+      "order": 92,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 317
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "masks/temporal_examples",
+        "format": "video/ffmpeg-gif",
+        "dither": "sierra2_4a",
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "temporal_examples_00002.gif",
+            "subfolder": "masks",
+            "type": "output",
+            "format": "video/ffmpeg-gif",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 210,
+      "type": "ImageScaleBy",
+      "pos": [
+        3297,
+        1285
+      ],
+      "size": {
+        "0": 315,
+        "1": 82
+      },
+      "flags": {},
+      "order": 81,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 277
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageScaleBy"
+      },
+      "widgets_values": [
+        "nearest-exact",
+        2
+      ]
+    },
+    {
+      "id": 178,
+      "type": "ParticleEmissionMask",
+      "pos": [
+        2825,
+        925
+      ],
+      "size": {
+        "0": 360.8669128417969,
+        "1": 454
+      },
+      "flags": {},
+      "order": 64,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 268
+        },
+        {
+          "name": "emitters",
+          "type": "PARTICLE_EMITTER",
+          "link": 241,
+          "slot_index": 1
+        },
+        {
+          "name": "vortices",
+          "type": "VORTEX",
+          "link": null
+        },
+        {
+          "name": "wells",
+          "type": "GRAVITY_WELL",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "shape": 3
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            277,
+            318
+          ],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmissionMask"
+      },
+      "widgets_values": [
+        0.99,
+        false,
+        0,
+        0,
+        340,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        true,
+        1,
+        10,
+        0.68
+      ]
+    },
+    {
+      "id": 177,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        3850,
+        805
+      ],
+      "size": [
+        602.3653564453125,
+        262
+      ],
+      "flags": {},
+      "order": 82,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 318
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "masks/RyanOnTheInside",
+        "format": "video/ffmpeg-gif",
+        "dither": "sierra2_4a",
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "RyanOnTheInside_00001.gif",
+            "subfolder": "masks",
+            "type": "output",
+            "format": "video/ffmpeg-gif",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 215,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        9806,
+        -2945
+      ],
+      "size": [
+        315,
+        262
+      ],
+      "flags": {},
+      "order": 94,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 325
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "masks/particle_examples",
+        "format": "video/ffmpeg-gif",
+        "dither": "sierra2_4a",
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "particle_examples_00002.gif",
+            "subfolder": "masks",
+            "type": "output",
+            "format": "video/ffmpeg-gif",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 120,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        2320,
+        -980
+      ],
+      "size": [
+        410,
+        310
+      ],
+      "flags": {},
+      "order": 72,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 163
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "gravwells",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": false,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "gravwells_00001.mp4",
+            "subfolder": "",
+            "type": "temp",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 121,
+      "type": "ParticleEmissionMask",
+      "pos": [
+        1660,
+        -930
+      ],
+      "size": {
+        "0": 360.8669128417969,
+        "1": 454
+      },
+      "flags": {},
+      "order": 57,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 171
+        },
+        {
+          "name": "emitters",
+          "type": "PARTICLE_EMITTER",
+          "link": 165,
+          "slot_index": 1
+        },
+        {
+          "name": "vortices",
+          "type": "VORTEX",
+          "link": null
+        },
+        {
+          "name": "wells",
+          "type": "GRAVITY_WELL",
+          "link": 167,
+          "slot_index": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "shape": 3
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            163,
+            321
+          ],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmissionMask"
+      },
+      "widgets_values": [
+        0.99,
+        false,
+        0,
+        0,
+        340,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        true,
+        1,
+        10,
+        0.68
+      ]
+    },
+    {
+      "id": 211,
+      "type": "ImageConcatMulti",
+      "pos": [
+        8404,
+        -3209
+      ],
+      "size": {
+        "0": 210,
+        "1": 170
+      },
+      "flags": {},
+      "order": 79,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_1",
+          "type": "IMAGE",
+          "link": 289
+        },
+        {
+          "name": "image_2",
+          "type": "IMAGE",
+          "link": 282
+        },
+        {
+          "name": "image_3",
+          "type": "IMAGE",
+          "link": 286
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            322
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageConcatMulti"
+      },
+      "widgets_values": [
+        3,
+        "right",
+        false,
+        null
+      ]
+    },
+    {
+      "id": 227,
+      "type": "ImageConcatMulti",
+      "pos": [
+        8628,
+        -2961
+      ],
+      "size": {
+        "0": 210,
+        "1": 170
+      },
+      "flags": {},
+      "order": 76,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_1",
+          "type": "IMAGE",
+          "link": 320
+        },
+        {
+          "name": "image_2",
+          "type": "IMAGE",
+          "link": 321
+        },
+        {
+          "name": "image_3",
+          "type": "IMAGE",
+          "link": 319
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            323
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageConcatMulti"
+      },
+      "widgets_values": [
+        3,
+        "right",
+        false,
+        null
+      ]
+    },
+    {
+      "id": 214,
+      "type": "MovingShape",
+      "pos": [
+        8207,
+        -3806
+      ],
+      "size": {
+        "0": 315,
+        "1": 394
+      },
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MovingShape"
+      },
+      "widgets_values": [
+        512,
+        512,
+        30,
+        "(255,255,255)",
+        "square",
+        100,
+        100,
+        0,
+        0,
+        0,
+        0,
+        "linear",
+        0,
+        false,
+        0
+      ]
+    },
+    {
+      "id": 212,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        10070,
+        -4430
+      ],
+      "size": [
+        996.1886596679688,
+        310
+      ],
+      "flags": {},
+      "order": 93,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 324
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00115.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 226,
+      "type": "ImageConcatMulti",
+      "pos": [
+        8976,
+        -3005
+      ],
+      "size": {
+        "0": 210,
+        "1": 150
+      },
+      "flags": {},
+      "order": 88,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_1",
+          "type": "IMAGE",
+          "link": 322
+        },
+        {
+          "name": "image_2",
+          "type": "IMAGE",
+          "link": 323
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            324,
+            325
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageConcatMulti"
+      },
+      "widgets_values": [
+        2,
+        "right",
+        false,
+        null
+      ]
+    },
+    {
+      "id": 155,
+      "type": "ParticleEmissionMask",
+      "pos": [
+        4140,
+        -800
+      ],
+      "size": {
+        "0": 360.8669128417969,
+        "1": 454
+      },
+      "flags": {},
+      "order": 60,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "link": 209
+        },
+        {
+          "name": "emitters",
+          "type": "PARTICLE_EMITTER",
+          "link": 210,
+          "slot_index": 1
+        },
+        {
+          "name": "vortices",
+          "type": "VORTEX",
+          "link": 214,
+          "slot_index": 2
+        },
+        {
+          "name": "wells",
+          "type": "GRAVITY_WELL",
+          "link": null,
+          "slot_index": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [],
+          "shape": 3
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            208,
+            320
+          ],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParticleEmissionMask"
+      },
+      "widgets_values": [
+        0.99,
+        false,
+        0,
+        0,
+        340,
+        4,
+        0,
+        0,
+        0,
+        1,
+        0,
+        true,
+        1,
+        10,
+        0.68
+      ]
+    },
+    {
+      "id": 154,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        4860,
+        -770
+      ],
+      "size": [
+        410,
+        310
+      ],
+      "flags": {},
+      "order": 75,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 208
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 15,
+        "loop_count": 0,
+        "filename_prefix": "vortex",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": false,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "vortex_00001.mp4",
+            "subfolder": "",
+            "type": "temp",
+            "format": "video/h264-mp4",
+            "frame_rate": 15
+          },
+          "muted": false
+        }
+      }
+    }
+  ],
+  "links": [
+    [
+      143,
+      103,
+      0,
+      102,
+      1,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      145,
+      102,
+      1,
+      104,
+      0,
+      "IMAGE"
+    ],
+    [
+      151,
+      57,
+      0,
+      109,
+      0,
+      "IMAGE"
+    ],
+    [
+      152,
+      109,
+      0,
+      102,
+      0,
+      "MASK"
+    ],
+    [
+      153,
+      111,
+      1,
+      110,
+      0,
+      "IMAGE"
+    ],
+    [
+      155,
+      112,
+      0,
+      111,
+      1,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      156,
+      113,
+      0,
+      112,
+      0,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      157,
+      115,
+      1,
+      114,
+      0,
+      "IMAGE"
+    ],
+    [
+      163,
+      121,
+      1,
+      120,
+      0,
+      "IMAGE"
+    ],
+    [
+      165,
+      122,
+      0,
+      121,
+      1,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      166,
+      123,
+      0,
+      122,
+      0,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      167,
+      124,
+      0,
+      121,
+      3,
+      "GRAVITY_WELL"
+    ],
+    [
+      168,
+      91,
+      0,
+      125,
+      0,
+      "IMAGE"
+    ],
+    [
+      169,
+      125,
+      0,
+      126,
+      0,
+      "*"
+    ],
+    [
+      170,
+      126,
+      0,
+      115,
+      0,
+      "MASK"
+    ],
+    [
+      171,
+      126,
+      0,
+      121,
+      0,
+      "MASK"
+    ],
+    [
+      172,
+      126,
+      0,
+      111,
+      0,
+      "MASK"
+    ],
+    [
+      179,
+      130,
+      0,
+      57,
+      2,
+      "*"
+    ],
+    [
+      180,
+      130,
+      0,
+      91,
+      0,
+      "INT"
+    ],
+    [
+      182,
+      135,
+      0,
+      91,
+      1,
+      "INT"
+    ],
+    [
+      183,
+      136,
+      0,
+      91,
+      2,
+      "INT"
+    ],
+    [
+      193,
+      139,
+      0,
+      138,
+      0,
+      "IMAGE"
+    ],
+    [
+      194,
+      141,
+      1,
+      140,
+      0,
+      "IMAGE"
+    ],
+    [
+      195,
+      126,
+      0,
+      141,
+      0,
+      "MASK"
+    ],
+    [
+      196,
+      142,
+      0,
+      141,
+      1,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      197,
+      143,
+      0,
+      142,
+      0,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      199,
+      145,
+      0,
+      143,
+      0,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      200,
+      146,
+      0,
+      145,
+      1,
+      "EMITTER_MOVEMENT"
+    ],
+    [
+      203,
+      147,
+      0,
+      115,
+      1,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      204,
+      149,
+      0,
+      147,
+      1,
+      "EMITTER_MOVEMENT"
+    ],
+    [
+      207,
+      153,
+      0,
+      124,
+      0,
+      "GRAVITY_WELL"
+    ],
+    [
+      208,
+      155,
+      1,
+      154,
+      0,
+      "IMAGE"
+    ],
+    [
+      209,
+      126,
+      0,
+      155,
+      0,
+      "MASK"
+    ],
+    [
+      210,
+      156,
+      0,
+      155,
+      1,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      212,
+      157,
+      0,
+      156,
+      0,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      214,
+      160,
+      0,
+      155,
+      2,
+      "VORTEX"
+    ],
+    [
+      219,
+      165,
+      1,
+      164,
+      0,
+      "IMAGE"
+    ],
+    [
+      220,
+      126,
+      0,
+      165,
+      0,
+      "MASK"
+    ],
+    [
+      221,
+      167,
+      1,
+      166,
+      0,
+      "IMAGE"
+    ],
+    [
+      222,
+      126,
+      0,
+      167,
+      0,
+      "MASK"
+    ],
+    [
+      223,
+      112,
+      0,
+      167,
+      1,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      224,
+      112,
+      0,
+      165,
+      1,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      225,
+      57,
+      0,
+      169,
+      0,
+      "IMAGE"
+    ],
+    [
+      229,
+      171,
+      0,
+      172,
+      0,
+      "IMAGE"
+    ],
+    [
+      231,
+      135,
+      0,
+      133,
+      1,
+      "INT"
+    ],
+    [
+      232,
+      136,
+      0,
+      133,
+      0,
+      "INT"
+    ],
+    [
+      241,
+      179,
+      0,
+      178,
+      1,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      242,
+      180,
+      0,
+      179,
+      0,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      243,
+      181,
+      0,
+      180,
+      0,
+      "PARTICLE_EMITTER"
+    ],
+    [
+      244,
+      182,
+      0,
+      181,
+      1,
+      "EMITTER_MOVEMENT"
+    ],
+    [
+      246,
+      133,
+      0,
+      176,
+      0,
+      "MASK"
+    ],
+    [
+      247,
+      183,
+      0,
+      180,
+      1,
+      "EMITTER_MOVEMENT"
+    ],
+    [
+      250,
+      169,
+      0,
+      185,
+      0,
+      "MASK"
+    ],
+    [
+      251,
+      169,
+      0,
+      186,
+      0,
+      "MASK"
+    ],
+    [
+      252,
+      169,
+      0,
+      187,
+      0,
+      "MASK"
+    ],
+    [
+      253,
+      189,
+      0,
+      190,
+      0,
+      "IMAGE"
+    ],
+    [
+      254,
+      191,
+      0,
+      192,
+      0,
+      "IMAGE"
+    ],
+    [
+      255,
+      193,
+      0,
+      194,
+      0,
+      "IMAGE"
+    ],
+    [
+      256,
+      195,
+      0,
+      196,
+      0,
+      "IMAGE"
+    ],
+    [
+      257,
+      188,
+      0,
+      189,
+      0,
+      "MASK"
+    ],
+    [
+      258,
+      185,
+      0,
+      191,
+      0,
+      "MASK"
+    ],
+    [
+      259,
+      186,
+      0,
+      193,
+      0,
+      "MASK"
+    ],
+    [
+      260,
+      187,
+      0,
+      195,
+      0,
+      "MASK"
+    ],
+    [
+      262,
+      198,
+      0,
+      133,
+      2,
+      "INT"
+    ],
+    [
+      263,
+      200,
+      0,
+      199,
+      0,
+      "MASK"
+    ],
+    [
+      264,
+      201,
+      0,
+      202,
+      0,
+      "IMAGE"
+    ],
+    [
+      265,
+      199,
+      0,
+      201,
+      0,
+      "MASK"
+    ],
+    [
+      266,
+      176,
+      0,
+      203,
+      0,
+      "MASK"
+    ],
+    [
+      267,
+      203,
+      0,
+      139,
+      0,
+      "MASK"
+    ],
+    [
+      268,
+      203,
+      0,
+      178,
+      0,
+      "MASK"
+    ],
+    [
+      273,
+      56,
+      0,
+      208,
+      1,
+      "IMAGE"
+    ],
+    [
+      274,
+      208,
+      0,
+      171,
+      0,
+      "MASK"
+    ],
+    [
+      277,
+      178,
+      1,
+      210,
+      0,
+      "IMAGE"
+    ],
+    [
+      282,
+      167,
+      1,
+      211,
+      1,
+      "IMAGE"
+    ],
+    [
+      286,
+      141,
+      1,
+      211,
+      2,
+      "IMAGE"
+    ],
+    [
+      289,
+      102,
+      1,
+      211,
+      0,
+      "IMAGE"
+    ],
+    [
+      291,
+      216,
+      0,
+      217,
+      0,
+      "IMAGE"
+    ],
+    [
+      293,
+      217,
+      0,
+      208,
+      0,
+      "MASK"
+    ],
+    [
+      294,
+      56,
+      0,
+      207,
+      1,
+      "IMAGE"
+    ],
+    [
+      295,
+      217,
+      0,
+      207,
+      0,
+      "MASK"
+    ],
+    [
+      296,
+      207,
+      0,
+      204,
+      0,
+      "MASK"
+    ],
+    [
+      297,
+      204,
+      0,
+      218,
+      0,
+      "IMAGE"
+    ],
+    [
+      298,
+      56,
+      0,
+      219,
+      0,
+      "IMAGE"
+    ],
+    [
+      302,
+      219,
+      0,
+      220,
+      0,
+      "IMAGE"
+    ],
+    [
+      303,
+      221,
+      0,
+      216,
+      2,
+      "*"
+    ],
+    [
+      304,
+      221,
+      0,
+      56,
+      2,
+      "*"
+    ],
+    [
+      305,
+      219,
+      0,
+      222,
+      0,
+      "IMAGE"
+    ],
+    [
+      306,
+      171,
+      0,
+      219,
+      1,
+      "IMAGE"
+    ],
+    [
+      307,
+      204,
+      0,
+      219,
+      2,
+      "IMAGE"
+    ],
+    [
+      310,
+      186,
+      0,
+      188,
+      0,
+      "MASK"
+    ],
+    [
+      311,
+      197,
+      0,
+      188,
+      1,
+      "MASK"
+    ],
+    [
+      312,
+      195,
+      0,
+      223,
+      0,
+      "IMAGE"
+    ],
+    [
+      313,
+      191,
+      0,
+      223,
+      1,
+      "IMAGE"
+    ],
+    [
+      314,
+      201,
+      0,
+      223,
+      2,
+      "IMAGE"
+    ],
+    [
+      315,
+      189,
+      0,
+      223,
+      3,
+      "IMAGE"
+    ],
+    [
+      316,
+      223,
+      0,
+      224,
+      0,
+      "IMAGE"
+    ],
+    [
+      317,
+      223,
+      0,
+      225,
+      0,
+      "IMAGE"
+    ],
+    [
+      318,
+      178,
+      1,
+      177,
+      0,
+      "IMAGE"
+    ],
+    [
+      319,
+      115,
+      1,
+      227,
+      2,
+      "IMAGE"
+    ],
+    [
+      320,
+      155,
+      1,
+      227,
+      0,
+      "IMAGE"
+    ],
+    [
+      321,
+      121,
+      1,
+      227,
+      1,
+      "IMAGE"
+    ],
+    [
+      322,
+      211,
+      0,
+      226,
+      0,
+      "IMAGE"
+    ],
+    [
+      323,
+      227,
+      0,
+      226,
+      1,
+      "IMAGE"
+    ],
+    [
+      324,
+      226,
+      0,
+      212,
+      0,
+      "IMAGE"
+    ],
+    [
+      325,
+      226,
+      0,
+      215,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "title": "Particle System",
+      "bounding": [
+        -750,
+        -5800,
+        8048,
+        6053
+      ],
+      "color": "#3f789e",
+      "font_size": 500
+    },
+    {
+      "title": "Initial Plume",
+      "bounding": [
+        6118,
+        -4562,
+        512,
+        115
+      ],
+      "color": "#A88",
+      "font_size": 75
+    },
+    {
+      "title": "Temporal Masks",
+      "bounding": [
+        -445,
+        4855,
+        6008,
+        5214
+      ],
+      "color": "#3f789e",
+      "font_size": 300
+    },
+    {
+      "title": "Simulation Gravity",
+      "bounding": [
+        6081,
+        -3543,
+        710,
+        98
+      ],
+      "color": "#A88",
+      "font_size": 75
+    },
+    {
+      "title": "Eastward simulation wind",
+      "bounding": [
+        6037,
+        -2481,
+        862,
+        119
+      ],
+      "color": "#A88",
+      "font_size": 75
+    },
+    {
+      "title": "Optical Flow",
+      "bounding": [
+        -91,
+        2712,
+        4320,
+        1834
+      ],
+      "color": "#3f789e",
+      "font_size": 300
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.1,
+      "offset": {
+        "0": 5597.44268311216,
+        "1": 3995.674021868648
+      }
+    }
+  },
+  "version": 0.4
+}

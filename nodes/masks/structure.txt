@@ -1,0 +1,76 @@
+"""
+Mask Operation Inheritance Structure
+
+Other types can be extrapolated from this temporal mask structure (ie, the particle system nodes). 
+
+1. MaskBase (Abstract Base Class)
+   - Location: 
+   - Inherits from: ABC (Abstract Base Class)
+   - Key features:
+     - Defines basic structure for all mask operations
+     - Provides common methods: pre_process, post_process, start_progress, update_progress, end_progress
+     - Defines abstract method: process_mask
+     - Implements apply_mask_operation method
+   - Abstract methods that must be implemented by subclasses:
+     - process_mask
+     - main_function
+
+2. TemporalMaskBase (Abstract Base Class)  
+   - Location:
+   - Inherits from: MaskBase, ABC
+   - Key features:
+     - Adds temporal-specific inputs (start_frame, end_frame, effect_duration, temporal_easing, palindrome)
+     - Implements apply_temporal_mask_operation method
+     - Overrides process_mask to delegate to process_single_mask
+     - Implements main_function to handle temporal operations
+   - Abstract methods that must be implemented by subclasses:
+     - process_single_mask
+
+3. Specific Mask Operation Classes (e.g., MaskMorph, MaskTransform)
+   - Location: 
+   - Inherit from: TemporalMaskBase
+   - Key features:
+     - Implement process_single_mask method with specific mask operation logic
+     - May override main_function if additional processing is needed
+     - Define operation-specific inputs
+
+Inheritance Structure:
+ABC
+ |
+ +--> MaskBase (ABC)
+       |
+       +--> TemporalMaskBase (ABC)
+             |
+             +--> MaskMorph
+             |
+             +--> MaskTransform
+             |
+             +--> (Other temporal mask operations)
+
+Responsibilities:
+
+1. MaskBase:
+   - Defines the basic structure for all mask operations
+   - Handles progress tracking and reporting
+   - Provides pre- and post-processing capabilities
+   - Defines the interface for mask processing (process_mask)
+
+2. TemporalMaskBase:
+   - Adds temporal functionality to mask operations
+   - Handles frame-by-frame processing with temporal effects
+   - Provides easing and palindrome capabilities
+   - Defines the interface for single frame processing (process_single_mask)
+
+3. Specific Mask Operation Classes:
+   - Implement the actual mask processing logic
+   - Define operation-specific parameters
+   - May provide additional customization of the temporal processing
+
+
+When creating a new mask operation:
+- For non-temporal operations, inherit directly from MaskBase
+- For temporal operations, inherit from TemporalMaskBase
+- Implement the required abstract methods
+- Add any operation-specific inputs and logic
+
+"""
