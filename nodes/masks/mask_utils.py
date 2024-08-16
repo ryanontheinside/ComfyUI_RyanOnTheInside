@@ -214,3 +214,10 @@ def calculate_optical_flow(frame1, frame2, flow_method):
         return dense_flow
     else:
         raise ValueError(f"Unknown flow method: {flow_method}")
+    
+
+def string_to_rgb(color_string):
+    if isinstance(color_string, tuple):
+        return color_string
+    color_values = color_string.strip('()').split(',')
+    return tuple(int(value.strip()) / 255.0 for value in color_values)

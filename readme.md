@@ -65,14 +65,16 @@ Create dynamic, fluid-like effects through particle simulation:
 - Supports N particle emitters, each with independent settings including movement, particle (spread, speed, size, COLOR, etc)
 - Supports N force fields (Gravity Well (repel and attract), and Vortex), each with independent settings
 - Each simulation space has basic gravity and wind settings
-- Boundary-respecting particle behavior, where the particles try to respect the boundary of a mask.
+- Boundary-respecting particle behavior, where the particles try to respect the boundary of a mask
+- Static bodies for particle interactions
+- Spring joint settings for more complex particle behaviors
 
     <img src="./assets/particle_examples.gif" width="400" alt="Particle System Demo">
 
     *A few examples showcasing object-aware particles, initial plume effects, vortex interactions, gravity wells, and directional emitters.*
 
 #### General Parameters for particle system
-These settings apply to all particle system mask nodes, and generally apply to the simulation space level.
+These settings apply to all particle system mask nodes, and generally affect the simulation space level.
 - `particle_count`: Total number of particles in the system (1 to 10000)
 - `particle_lifetime`: Lifetime of each particle in seconds (0.1 to 10.0)
 - `wind_strength`: Strength of the wind effect (-100.0 to 100.0)
@@ -95,17 +97,6 @@ This node is particularly useful for creating complex, animated mask effects tha
 - `emission_strength`: Strength of particle emission effect (0.0 to 1.0), basically opacity
 - `draw_modifiers`: Visibility of vortices and gravity wells (0.0 to 1.0)
 
-##### Optional Parameters:
-- `vortices`: Vortex effects to apply to the particle system (VORTEX type)
-- `wells`: Gravity well effects to apply to the particle system (GRAVITY_WELL type)
-- `well_strength_multiplier`: Multiplier for gravity well strength (0.0 to 10.0)
-
-###### Color Information
-These are the colors of the circles should you choose to draw_modifiers (see above). These colors are fixed. Use them if you want to separatly mask the modifier circles. Think, like, the event horizon of a black hole or somthing.
-- Vortex: RGB(0, 127, 255) - Blue
-- Gravity Well (Attract): RGB(255, 127, 0) - Orange-Red
-- Gravity Well (Repel): RGB(255, 64, 0) - Darker Orange-Red
-
 ##### Outputs:
 - `MASK`: The resulting particle system binary mask
 - `IMAGE`: A visualization of the particle system - useful for masking different colors for different particle systems
@@ -122,8 +113,10 @@ The Particle Emitter node...creates a particle emitter. They can be chained toge
 - `color`: Color of emitted particles (RGB tuple)
 - `emission_rate`: Rate of particle emission
 - `initial_plume`: Initial burst of particles (0.0 to 1.0)
+- `emitter_movement`: (optional) Movement settings for the emitter
+- `spring_joint_setting`: (optional) Spring joint configuration for particles
 
-##### Optional Movement Parameters
+#### EmitterMovement Parameters
 These settings are encapulated in a node that can optionally be fed to particle emitters.
 
 Position Control:
@@ -131,7 +124,6 @@ Position Control:
 - `emitter_y_amplitude`: Maximum vertical distance from center (larger values = taller movement)
 - `emitter_x_frequency`: Rate of horizontal oscillation (higher values = faster left-right movement)
 - `emitter_x_amplitude`: Maximum horizontal distance from center (larger values = wider movement)
-
 
 Direction Control:
 - `direction_frequency`: Rate of emission angle change (higher values = faster direction shifts)
@@ -142,6 +134,22 @@ By adjusting frequencies and amplitudes, you can achieve various patterns like c
 figure-eights, or more chaotic motions. The direction parameters add extra dynamism by 
 altering the angle of particle emission over time.
 
+#### SpringJointSetting Parameters
+These settings define the behavior of spring joints attached to particles:
+- `stiffness`: Stiffness of the spring (0.0 to 1000.0)
+- `damping`: Damping factor of the spring (0.0 to 100.0)
+- `rest_length`: Rest length of the spring (0.0 to 100.0)
+- `max_distance`: Maximum distance the spring can stretch (0.0 to 500.0)
+
+#### StaticBody Parameters
+These settings define static bodies in the simulation that particles can interact with. It allows you to draw solid objects, like walls for instance. You can chain them together to add N to a given simulation:
+- `shape_type`: Type of shape ("segment" or "polygon")
+- `x1`, `y1`, `x2`, `y2`: Coordinates defining the shape
+- `elasticity`: Bounciness of the static body (0.0 to 1.0)
+- `friction`: Friction of the static body (0.0 to 1.0)
+- `draw`: Whether to visualize the static body and how thick
+- `color`: Color of the static body (RGB tuple)
+
 #### GravityWell Parameters
 These are optional inputs for a simulation space. They can be chained together to have N in a given simulation.
 - `x`: X-coordinate of the gravity well (0.0 to 1.0)
@@ -149,7 +157,8 @@ These are optional inputs for a simulation space. They can be chained together t
 - `strength`: Strength of the gravity well
 - `radius`: Radius of effect for the gravity well
 - `type`: Type of gravity well ('attract' or 'repel')
-
+- `color`: Color of the gravity well visualization (RGB tuple)
+- `draw`: Visibility of the gravity well (0.0 to 1.0)
 
 #### Vortex Parameters
 These are optional inputs for a simulation space. They can be chained together to have N in a given simulation.
@@ -158,8 +167,9 @@ These are optional inputs for a simulation space. They can be chained together t
 - `strength`: Strength of the vortex effect (0.0 to 1000.0)
 - `radius`: Radius of effect for the vortex (10.0 to 500.0)
 - `inward_factor`: Factor controlling how quickly particles are pulled towards the center (0.0 to 1.0)
-- `movement_speed`: Speed of movement of the vortext object (0.0 to 10.0)
-
+- `movement_speed`: Speed of movement of the vortex object (0.0 to 10.0)
+- `color`: Color of the vortex visualization (RGB tuple)
+- `draw`: Visibility of the vortex (0.0 to 1.0)
 
 ## Optical Flow Masks
 
