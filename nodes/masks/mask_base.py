@@ -393,7 +393,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                 
                 # Apply the force to the particle instead of directly modifying its velocity
                 particle.apply_force_at_local_point(total_force)
-                print(f"Applied vortex force: {total_force} to particle at {particle.position}")
+                # print(f"Applied vortex force: {total_force} to particle at {particle.position}")
 
     def setup_spring_joints(self):
         for emitter_index, emitter in enumerate(self.emitters):
@@ -440,7 +440,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                     force_direction = -force_direction
                 force = force_direction * force_magnitude
                 particle.apply_force_at_world_point(force, particle.position)
-                print(f"Applied gravity well force: {force} to particle at {particle.position}")       
+                # print(f"Applied gravity well force: {force} to particle at {particle.position}")       
 
     def initialize_static_bodies(self, width, height, static_bodies):
         pass
