@@ -161,6 +161,7 @@ class ParticleEmitter:
             "optional": {
                 "previous_emitter": ("PARTICLE_EMITTER",),
                 "emitter_movement": ("EMITTER_MOVEMENT",),
+                "spring_joint_setting": ("SPRING_JOINT_SETTING",),
             }
         }
 
@@ -170,7 +171,7 @@ class ParticleEmitter:
 
     def create_emitter(self, emitter_x, emitter_y, particle_direction, particle_spread, 
                        particle_size, particle_speed, emission_rate, color, initial_plume,
-                       previous_emitter=None, emitter_movement=None):
+                       previous_emitter=None, emitter_movement=None, spring_joint_setting=None):
         emitter = {
             "emitter_x": emitter_x,
             "emitter_y": emitter_y,
@@ -186,6 +187,9 @@ class ParticleEmitter:
         if emitter_movement:
             emitter["movement"] = emitter_movement
         
+        if spring_joint_setting:
+            emitter["spring_joint_setting"] = spring_joint_setting
+        
         if previous_emitter is None:
             emitter_list = [emitter]
         else:
@@ -193,6 +197,30 @@ class ParticleEmitter:
         
         return (emitter_list,)
 
+class SpringJointSetting:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "stiffness": ("FLOAT", {"default": 100.0, "min": 0.0, "max": 1000.0, "step": 1.0}),
+                "damping": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 100.0, "step": 0.1}),
+                "rest_length": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 100.0, "step": 0.1}),
+                "max_distance": ("FLOAT", {"default": 50.0, "min": 0.0, "max": 500.0, "step": 1.0}),
+            }
+        }
+
+    RETURN_TYPES = ("SPRING_JOINT_SETTING",)
+    FUNCTION = "create_setting"
+    CATEGORY = "/RyanOnTheInside/masks/"
+
+    def create_setting(self, stiffness, damping, rest_length, max_distance):
+        return ({
+            "stiffness": stiffness,
+            "damping": damping,
+            "rest_length": rest_length,
+            "max_distance": max_distance,
+        },)
+    
 class EmitterMovement:
     @classmethod
     def INPUT_TYPES(cls):
