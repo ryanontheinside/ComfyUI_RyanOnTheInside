@@ -251,7 +251,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         self.max_particles = 0
         self.emitters = []
         self.gravity_wells = []
-        
+        self.spring_joints = []
 
     @abstractmethod
     def process_single_mask(self, mask: np.ndarray, frame_index: int, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
@@ -261,30 +261,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         """
         pass
 
-    def initialize_gravity_wells(self, width, height, wells):
-        self.gravity_wells = []
-        for well in wells:
-            x = well['x'] * width
-            y = well['y'] * height
-            well_obj = {
-                'position': pymunk.Vec2d(x, y),
-                'strength': well['strength'],
-                'radius': well['radius'],
-                'type': well['type']  # 'attract' or 'repel'
-            }
-            self.gravity_wells.append(well_obj)
 
-    def apply_gravity_well_force(self, particle):
-        for well in self.gravity_wells:
-            offset = well['position'] - particle.position
-            distance = offset.length
-            if distance < well['radius']:
-                force_magnitude = well['strength'] * (1 - distance / well['radius']) * self.well_strength_multiplier
-                force_direction = offset.normalized()
-                if well['type'] == 'repel':
-                    force_direction = -force_direction
-                force = force_direction * force_magnitude
-                particle.apply_force_at_world_point(force, particle.position)
 
     def process_mask(self, masks: torch.Tensor, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         masks_np = masks.cpu().numpy() if isinstance(masks, torch.Tensor) else masks
@@ -332,20 +309,15 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         self.particles_to_emit = [0] * len(self.emitters)
         self.total_particles_emitted = 0
 
-
-        for emitter in self.emitters:
+        for emitter_index, emitter in enumerate(self.emitters):
             emitter_pos = (float(emitter['emitter_x']) * width, float(emitter['emitter_y']) * height)
-            particle_direction = math.radians(float(emitter['particle_direction']))
-            particle_spread = math.radians(float(emitter['particle_spread']))
-            particle_speed = float(emitter['particle_speed'])
-            particle_size = float(emitter['particle_size'])
-            emitter['color'] = self.string_to_rgb(emitter['color'])  # Convert color here
+            emitter['color'] = self.string_to_rgb(emitter['color'])
             initial_plume = float(emitter['initial_plume'])
             initial_particle_count = int(self.max_particles * initial_plume / len(self.emitters))
             
             # Create initial plume of particles for this emitter
             for _ in range(initial_particle_count):
-                self.emit_particle(emitter, height, width, 0)
+                self.emit_particle(emitter, height, width, emitter_index)
 
         # Check for provided wells and vortices
         if 'vortices' in kwargs:
@@ -356,9 +328,12 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         if 'wells' in kwargs:
             self.initialize_gravity_wells(width, height, kwargs['wells'])
         else:
-            self.gravity_wells = []  # Initialize an empty list if no wells are provided
-        
-        self.well_strength_multiplier = kwargs['well_strength_multiplier'] #dumb
+            self.gravity_wells = []
+
+        self.well_strength_multiplier = kwargs.get('well_strength_multiplier', 1.0)
+
+        # Setup initial spring joints
+        self.setup_spring_joints()
 
     @staticmethod
     def string_to_rgb(color_string):
@@ -410,8 +385,49 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                 
                 particle.velocity = new_velocity
 
-
+    def setup_spring_joints(self):
+        for emitter_index, emitter in enumerate(self.emitters):
+            if "spring_joint_setting" in emitter:
+                setting = emitter["spring_joint_setting"]
+                particles = [p for p in self.particles if p.emitter_index == emitter_index]
                 
+                for i, particle1 in enumerate(particles):
+                    for particle2 in particles[i+1:]:
+                        distance = (particle1.position - particle2.position).length
+                        if distance <= setting["max_distance"]:
+                            spring = pymunk.DampedSpring(
+                                particle1, particle2, (0, 0), (0, 0), 
+                                rest_length=setting["rest_length"], 
+                                stiffness=setting["stiffness"], 
+                                damping=setting["damping"]
+                            )
+                            self.space.add(spring)
+                            self.spring_joints.append(spring)
+    
+    def initialize_gravity_wells(self, width, height, wells):
+        self.gravity_wells = []
+        for well in wells:
+            x = well['x'] * width
+            y = well['y'] * height
+            well_obj = {
+                'position': pymunk.Vec2d(x, y),
+                'strength': well['strength'],
+                'radius': well['radius'],
+                'type': well['type']  # 'attract' or 'repel'
+            }
+            self.gravity_wells.append(well_obj)
+
+    def apply_gravity_well_force(self, particle):
+        for well in self.gravity_wells:
+            offset = well['position'] - particle.position
+            distance = offset.length
+            if distance < well['radius']:
+                force_magnitude = well['strength'] * (1 - distance / well['radius']) * self.well_strength_multiplier
+                force_direction = offset.normalized()
+                if well['type'] == 'repel':
+                    force_direction = -force_direction
+                force = force_direction * force_magnitude
+                particle.apply_force_at_world_point(force, particle.position)           
 
     def update_particle_system(self, dt: float, current_mask: np.ndarray, respect_mask_boundary: bool):
         if respect_mask_boundary:
@@ -427,12 +443,12 @@ class ParticleSystemMaskBase(MaskBase, ABC):
             for i, emitter in enumerate(self.emitters):
                 self.particles_to_emit[i] += emitter['emission_rate'] * sub_dt
                 while self.particles_to_emit[i] >= 1 and self.total_particles_emitted < self.max_particles:
-                    self.emit_particle(emitter, height,width, i)
+                    self.emit_particle(emitter, height, width, i)
                     self.particles_to_emit[i] -= 1
             
             # Update particle positions
             for particle in self.particles:
-                self.apply_vortex_force(particle,sub_dt)
+                self.apply_vortex_force(particle, sub_dt)
                 self.apply_gravity_well_force(particle)
                 old_pos = particle.position
                 new_pos = old_pos + particle.velocity * sub_dt
@@ -441,6 +457,9 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                 particle.position = new_pos
             
             self.space.step(sub_dt)
+        
+        # Setup spring joints after emitting new particles
+        self.setup_spring_joints()
         
         current_time = self.space.current_time_step
         self.particles = [p for p in self.particles if current_time - p.creation_time < p.lifetime]
@@ -469,7 +488,6 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         return ccw(p1,p3,p4) != ccw(p2,p3,p4) and ccw(p1,p2,p3) != ccw(p1,p2,p4)
 
     def emit_particle(self, emitter, height, width, emitter_index):
-        #width, height = self.space.shape
         emitter_pos = (float(emitter['emitter_x']) * width, float(emitter['emitter_y']) * height)
         particle_direction = math.radians(float(emitter['particle_direction']))
         particle_spread = math.radians(float(emitter['particle_spread']))
@@ -490,6 +508,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         particle.lifetime = self.particle_lifetime
         particle.size = particle_size
         particle.color = emitter['color']
+        particle.emitter_index = emitter_index  # Store the emitter index
         
         shape = pymunk.Circle(particle, radius)
         shape.elasticity = 0.9
