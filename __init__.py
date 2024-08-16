@@ -23,6 +23,7 @@ from .nodes.masks.particle_system_masks import (
     GravityWell,
     ParticleEmitter,
     EmitterMovement,
+    SpringJointSetting,
     )
 
 from .nodes.masks.utility_nodes import _mfc, TextMaskNode, MovingShape
@@ -46,6 +47,7 @@ NODE_CLASS_MAPPINGS = {
     "GravityWell":GravityWell,
     "EmitterMovement":EmitterMovement,
     "ParticleEmitter":ParticleEmitter,
+    "SpringJointSetting":SpringJointSetting,
    # "AudioControlledMaskMorph": AudioControlledMaskMorph,
     
     "MovingShape": MovingShape,
@@ -71,6 +73,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "GravityWell":"Gravity Well | RyanOnTheInside",
     "ParticleEmitter": "Particle Emitter | RyanOnTheInside",
     "EmitterMovement":"Emitter Movement | RyanOnTheInside",
+    "SpringJointSetting":"Spring Joint Setting | RyanOnTheInside",
    # "AudioControlledMaskMorph": "Audio Controlled Mask Morph | RyanOnTheInside",
     
     "MovingShape": "Moving Shape | RyanOnTheInside",
