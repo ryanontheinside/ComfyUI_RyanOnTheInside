@@ -146,7 +146,7 @@ class ParticleEmitter:
                 "emitter_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "particle_direction": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
                 "particle_spread": ("FLOAT", {"default": 30.0, "min": 0.0, "max": 360.0, "step": 1.0}),
-                "particle_size": ("FLOAT", {"default": 17.4, "min": 1.0, "max": 100.0, "step": 0.1}),
+                "particle_size": ("FLOAT", {"default": 17.4, "min": 1.0, "max": 400.0, "step": 0.1}),
                 "particle_speed": ("FLOAT", {"default": 330.0, "min": 1.0, "max": 1000.0, "step": 1.0}),
                 "emission_rate": ("FLOAT", {"default": 10.0, "min": 0.1, "max": 100.0, "step": 0.1}),
                 "color": ("STRING", {"default": "(255,255,255)"}),
