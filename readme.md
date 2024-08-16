@@ -6,23 +6,25 @@ RyanOnTheInside node pack introduces the following (so far):
 - Optical Flow
 - Temporal Masks
 
-  
-<div style="max-width: 600px; margin: 0;">
-  <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-start;">
-    <img src="./assets/particle_systems.gif" style="max-width: 400px; width: calc(50% - 5px); height: auto;" alt="RyanOnTheInside particle demo header">
-    <img src="./assets/optical_flow.gif" style="max-width: 400px; width: calc(50% - 5px); height: auto;" alt="RyanOnTheInside optical flow demo">
-    <div style="display: flex; flex-direction: column; max-width: 400px; width: calc(50% - 5px);">
-      <img src="./assets/time.gif" style="width: 100%; height: auto; max-height: 200px; object-fit: contain;" alt="Time">
-      <img src="./assets/plume_examples.gif" style="width: 100%; height: auto; max-height: 200px; object-fit: contain; margin-top: 10px;" alt="Plume examples using two particle emitters">
-    </div>
-    <img src="./assets/iris.gif" style="max-width: 400px; width: calc(50% - 5px); height: auto;" alt="Plume examples using two particle emitters">
-  </div>
-</div>
-
+<table style="border-collapse: collapse; border: none;">
+  <tr>
+    <td style="border: none; padding: 0 2px 2px 0;"><img src="./assets/particle_systems.gif" width="300" alt="RyanOnTheInside particle demo header"></td>
+    <td style="border: none; padding: 0 0 2px 2px;"><img src="./assets/optical_flow.gif" width="300" alt="RyanOnTheInside optical flow demo"></td>
+  </tr>
+  <tr>
+    <td style="border: none; padding: 2px 2px 0 0;">
+      <img src="./assets/time.gif" width="300" alt="Time"><br>
+      <img src="./assets/plume_examples.gif" width="300" alt="Plume examples using two particle emitters" style="margin-top: 2px;">
+    </td>
+    <td style="border: none; padding: 2px 0 0 2px;"><img src="./assets/iris.gif" width="300" alt="Plume examples using two particle emitters"></td>
+  </tr>
+</table>
 
 *Some examples using particle emitters and vortices*
 
 ## Installation
+
+Install via the ComfyUI Manager, or...
 
 1. Navigate to your ComfyUI's `custom_nodes` directory
 2. Clone the repository:
