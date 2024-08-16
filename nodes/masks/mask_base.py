@@ -229,6 +229,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
             "optional":{
                 "vortices": ("VORTEX",),
                 "wells": ("GRAVITY_WELL",),
+                "static_bodies": ("STATIC_BODY",),
                 "well_strength_multiplier": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.1}),
             }
         }
@@ -252,6 +253,8 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         self.emitters = []
         self.gravity_wells = []
         self.spring_joints = []
+        self.static_bodies = []
+        self.vortices = []
 
     @abstractmethod
     def process_single_mask(self, mask: np.ndarray, frame_index: int, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
@@ -260,8 +263,6 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         It should return both the processed mask and the corresponding color image.
         """
         pass
-
-
 
     def process_mask(self, masks: torch.Tensor, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
         masks_np = masks.cpu().numpy() if isinstance(masks, torch.Tensor) else masks
@@ -286,6 +287,9 @@ class ParticleSystemMaskBase(MaskBase, ABC):
             else:
                 self.update_particle_system(1.0 / 30.0, masks_np[i], respect_mask_boundary)
                 processed_mask, processed_image = self.process_single_mask(masks_np[i], frame_index=i, **kwargs)
+                processed_image = self.draw_static_bodies(processed_image)
+                processed_mask, processed_image = self.draw_vortices(processed_mask, processed_image)
+                processed_mask, processed_image = self.draw_gravity_wells(processed_mask, processed_image)
                 mask_result.append(processed_mask)
                 image_result.append(processed_image)
             
@@ -324,16 +328,20 @@ class ParticleSystemMaskBase(MaskBase, ABC):
             self.initialize_vortices(width, height, kwargs['vortices'])
         else:
             self.vortices = []  
-        
         if 'wells' in kwargs:
             self.initialize_gravity_wells(width, height, kwargs['wells'])
         else:
             self.gravity_wells = []
-
+        if 'static_bodies' in kwargs:
+            static_bodies = kwargs['static_bodies'] or []
+            self.initialize_static_bodies(width, height, static_bodies)
+        else:
+            self.static_bodies = []
+        
         self.well_strength_multiplier = kwargs.get('well_strength_multiplier', 1.0)
 
-        # Setup initial spring joints
         self.setup_spring_joints()
+        
 
     @staticmethod
     def string_to_rgb(color_string):
@@ -342,6 +350,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         color_values = color_string.strip('()').split(',')
         return tuple(int(value.strip()) / 255.0 for value in color_values)
 
+###START FORCES AND SHIT
     def initialize_vortices(self, width, height, vortices):
         self.vortices = []
         for vortex in vortices:
@@ -353,6 +362,8 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                 'strength': vortex['strength'],
                 'radius': vortex['radius'],
                 'inward_factor': vortex['inward_factor'],
+                'draw': vortex['draw'],
+                'color': vortex['color'],
             }
             self.vortices.append(vortex_obj)
 
@@ -370,20 +381,19 @@ class ParticleSystemMaskBase(MaskBase, ABC):
             offset = particle.position - vortex['position']
             distance = offset.length
 
-
             if distance < vortex['radius']:
                 tangent = pymunk.Vec2d(-offset.y, offset.x).normalized()
-                
                 radial = -offset.normalized()
-                
                 strength = vortex['strength']
                 
-                tangential_velocity = tangent * strength * (distance / vortex['radius'])
-                radial_velocity = radial * strength * vortex['inward_factor']
+                tangential_force = tangent * strength * (distance / vortex['radius'])
+                radial_force = radial * strength * vortex['inward_factor']
                 
-                new_velocity = tangential_velocity + radial_velocity
+                total_force = tangential_force + radial_force
                 
-                particle.velocity = new_velocity
+                # Apply the force to the particle instead of directly modifying its velocity
+                particle.apply_force_at_local_point(total_force)
+                print(f"Applied vortex force: {total_force} to particle at {particle.position}")
 
     def setup_spring_joints(self):
         for emitter_index, emitter in enumerate(self.emitters):
@@ -413,7 +423,9 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                 'position': pymunk.Vec2d(x, y),
                 'strength': well['strength'],
                 'radius': well['radius'],
-                'type': well['type']  # 'attract' or 'repel'
+                'type': well['type'],  # 'attract' or 'repel'
+                'draw':well['draw'],
+                'color':well['color'],
             }
             self.gravity_wells.append(well_obj)
 
@@ -427,7 +439,80 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                 if well['type'] == 'repel':
                     force_direction = -force_direction
                 force = force_direction * force_magnitude
-                particle.apply_force_at_world_point(force, particle.position)           
+                particle.apply_force_at_world_point(force, particle.position)
+                print(f"Applied gravity well force: {force} to particle at {particle.position}")       
+
+    def initialize_static_bodies(self, width, height, static_bodies):
+        pass
+        for body in static_bodies:
+            shape_type = body['shape_type']
+            if shape_type == 'segment':
+                p1 = (body['x1'] * width, body['y1'] * height)
+                p2 = (body['x2'] * width, body['y2'] * height)
+                shape = pymunk.Segment(self.space.static_body, p1, p2, 1)
+            elif shape_type == 'circle':
+                position = (body['x1'] * width, body['y1'] * height)
+                shape = pymunk.Circle(self.space.static_body, body['radius'] * min(width, height), position)
+            elif shape_type == 'polygon':
+                points = [
+                    (body['x1'] * width, body['y1'] * height),
+                    (body['x2'] * width, body['y1'] * height),
+                    (body['x2'] * width, body['y2'] * height),
+                    (body['x1'] * width, body['y2'] * height)
+                ]
+                shape = pymunk.Poly(self.space.static_body, points)
+            
+            shape.elasticity = body['elasticity']
+            shape.friction = body['friction']
+            self.space.add(shape)
+            self.static_bodies.append({
+                'shape': shape,
+                'draw': body['draw'],
+                'color': self.string_to_rgb(body['color'])
+            })
+
+    def draw_static_bodies(self, image: np.ndarray) -> np.ndarray:
+        for body in self.static_bodies:
+            if body['draw']:
+                shape = body['shape']
+                color = body['color']
+                if isinstance(shape, pymunk.Segment):
+                    cv2.line(image, 
+                            (int(shape.a.x), int(shape.a.y)), 
+                            (int(shape.b.x), int(shape.b.y)), 
+                            color, 2)
+                elif isinstance(shape, pymunk.Circle):
+                    cv2.circle(image, 
+                            (int(shape.body.position.x), int(shape.body.position.y)),                            int(shape.radius), 
+                            color, -1)
+                elif isinstance(shape, pymunk.Poly):
+                    points = np.array([(int(v.x), int(v.y)) for v in shape.get_vertices()], np.int32)
+                    cv2.fillPoly(image, [points], color)
+        return image
+
+    def draw_vortices(self, mask: np.ndarray, image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        for vortex in self.vortices:
+            if vortex['draw'] > 0:
+                thickness = max(1, int(vortex['draw'] * 5))
+                color = self.string_to_rgb(vortex['color'])
+                center = (int(vortex['position'].x), int(vortex['position'].y))
+                radius = int(vortex['radius'])
+                cv2.circle(mask, center, radius, 1.0, thickness)
+                cv2.circle(image, center, radius, color, thickness)
+        return mask, image
+
+    def draw_gravity_wells(self, mask: np.ndarray, image: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        for well in self.gravity_wells:
+            if well['draw'] > 0:
+                thickness = max(1, int(well['draw'] * 5))
+                color = self.string_to_rgb(well['color'])
+                center = (int(well['position'].x), int(well['position'].y))
+                radius = int(well['radius'])
+                cv2.circle(mask, center, radius, 1.0, thickness)
+                cv2.circle(image, center, radius, color, thickness)
+        return mask, image
+    
+###END FORCES AND SHIT
 
     def update_particle_system(self, dt: float, current_mask: np.ndarray, respect_mask_boundary: bool):
         if respect_mask_boundary:
@@ -600,6 +685,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         processed_masks, processed_images = self.process_mask(masks, emitters=self.emitters, **kwargs)
         result_masks = self.apply_mask_operation(processed_masks, original_masks, strength, invert, subtract_original, grow_with_blur, **kwargs)
         return (result_masks, processed_images,)
+    
 
 class OpticalFlowMaskBase(MaskBase, ABC):
     @classmethod
