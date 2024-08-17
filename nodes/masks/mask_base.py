@@ -287,7 +287,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                 mask_result.append(masks_np[i])
                 image_result.append(np.stack([masks_np[i]] * 3, axis=-1))
             else:
-                self.update_particle_system(1.0 / 30.0, masks_np[i], respect_mask_boundary)
+                self.update_particle_system(1.0 / 30.0, masks_np[i], respect_mask_boundary, i)
                 processed_mask, processed_image = self.process_single_mask(masks_np[i], frame_index=i, **kwargs)
                 processed_image = self.draw_static_bodies(processed_image)
                 processed_mask, processed_image = self.draw_vortices(processed_mask, processed_image)
@@ -323,7 +323,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
             
             # Create initial plume of particles for this emitter
             for _ in range(initial_particle_count):
-                self.emit_particle(emitter, height, width, emitter_index)
+                self.emit_particle(emitter, height, width, emitter_index, 0)
 
         # Check for provided wells and vortices
         if 'vortices' in kwargs:
@@ -599,7 +599,15 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         target_size = modulation['target_size']
         new_size = original_size + (target_size - original_size) * progress
         print(f"Size modulation: original_size={original_size}, target_size={target_size}, progress={progress}, new_size={new_size}")
+        
+        # Update the particle's size attribute
         particle.size = new_size
+        
+        # Update the Pymunk Shape
+        new_radius = new_size / 2
+        self.space.remove(particle.shape)
+        particle.shape = pymunk.Circle(particle, new_radius)
+        self.space.add(particle.shape)
 
     def apply_speed_modulation(self, particle, modulation, progress):
         original_speed = particle.original_speed if hasattr(particle, 'original_speed') else particle.velocity.length
@@ -615,7 +623,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
 
 ###END PARTICLE MODULATION
 
-    def update_particle_system(self, dt: float, current_mask: np.ndarray, respect_mask_boundary: bool):
+    def update_particle_system(self, dt: float, current_mask: np.ndarray, respect_mask_boundary: bool, frame_index: int):
         self.total_time += dt
         current_frame = int(self.total_time * 30)  #TODO sort this
         
@@ -632,7 +640,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                 emission_rate = emitter['emission_rate'] * 10  # Increased sensitivity
                 self.particles_to_emit[i] += emission_rate * sub_dt
                 while self.particles_to_emit[i] >= 1 and self.total_particles_emitted < self.max_particles:
-                    self.emit_particle(emitter, height, width, i)
+                    self.emit_particle(emitter, height, width, i, frame_index)
                     self.particles_to_emit[i] -= 1
             
             particles_before = len(self.particles)
@@ -677,7 +685,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         
         return ccw(p1,p3,p4) != ccw(p2,p3,p4) and ccw(p1,p2,p3) != ccw(p1,p2,p4)
 
-    def emit_particle(self, emitter, height, width, emitter_index):
+    def emit_particle(self, emitter, height, width, emitter_index, frame_index):
         emitter_pos = (float(emitter['emitter_x']) * width, float(emitter['emitter_y']) * height)
         particle_direction = math.radians(float(emitter['particle_direction']))
         particle_spread = math.radians(float(emitter['particle_spread']))
@@ -699,13 +707,14 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         particle.size = particle_size
         particle.color = emitter['color']
         particle.emitter_index = emitter_index
-        particle.creation_frame = int(self.total_time * 30)  #TODO handle ths
+        particle.creation_frame = frame_index
         
         shape = pymunk.Circle(particle, radius)
         shape.elasticity = 0.9
         shape.friction = 0.5
         
         self.space.add(particle, shape)
+        particle.shape = shape  # Store the shape with the particle
         self.particles.append(particle)
         self.total_particles_emitted += 1
 
@@ -741,7 +750,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
 
     def draw_particle(self, mask: np.ndarray, image: np.ndarray, particle: pymunk.Body) -> Tuple[np.ndarray, np.ndarray]:
         x, y = int(particle.position.x), int(particle.position.y)
-        radius = int(particle.size / 2)
+        radius = int(particle.shape.radius)  # Use the shape's radius for drawing
         cv2.circle(mask, (x, y), radius, 1, -1)
         cv2.circle(image, (x, y), radius, particle.color, -1)
         return mask, image
