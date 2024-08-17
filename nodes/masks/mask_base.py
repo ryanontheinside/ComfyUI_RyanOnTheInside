@@ -207,7 +207,6 @@ class TemporalMaskBase(MaskBase, ABC):
         ret = (self.apply_mask_operation(processed_masks[0], original_masks, strength, invert, subtract_original, grow_with_blur, **kwargs),)
         return ret
 
-
 #TODO clean up the hamfisted resetting of all attributes
 class ParticleSystemMaskBase(MaskBase, ABC):
     @classmethod
@@ -342,7 +341,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
             self.static_bodies = []
         
         self.well_strength_multiplier = kwargs.get('well_strength_multiplier', 1.0)
-
+        self.prepare_emitter_particle_modulations()
         self.setup_spring_joints()
         
 
@@ -514,8 +513,112 @@ class ParticleSystemMaskBase(MaskBase, ABC):
     
 ###END FORCES AND SHIT
 
+###START PARTICLE MODULATION
+
+    def prepare_emitter_particle_modulations(self):
+        self.emitter_modulations = {}
+        for emitter_index, emitter in enumerate(self.emitters):
+            if 'particle_modulation' in emitter and emitter['particle_modulation']:
+                processed_modulations = []
+                for modulation in emitter['particle_modulation']:
+                    start_frame = max(0, modulation['start_frame'])
+                    end_frame = modulation['end_frame']
+                    
+                    if end_frame <= 0 or end_frame > self.total_frames:
+                        end_frame = self.total_frames
+                    
+                    if end_frame <= start_frame:
+                        continue  # Skip this modulation as it's invalid
+                    
+                    # Handle effect_duration
+                    if modulation['effect_duration'] <= 0:
+                        effect_duration = end_frame - start_frame
+                    else:
+                        effect_duration = min(modulation['effect_duration'], end_frame - start_frame)
+                    
+                    processed_mod = {
+                        'type': modulation['type'],
+                        'start_frame': start_frame,
+                        'end_frame': end_frame,
+                        'effect_duration': effect_duration,
+                        'temporal_easing': modulation['temporal_easing'],
+                        'palindrome': modulation['palindrome']
+                    }
+                    
+                    if modulation['type'] == 'ParticleSizeModulation':
+                        processed_mod['target_size'] = modulation['target_size']
+                    elif modulation['type'] == 'ParticleSpeedModulation':
+                        processed_mod['target_speed'] = modulation['target_speed']
+                    elif modulation['type'] == 'ParticleColorModulation':
+                        processed_mod['target_color'] = self.string_to_rgb(modulation['target_color'])
+                    
+                    processed_modulations.append(processed_mod)
+                    print(f"Prepared modulation: {processed_mod}")
+                
+                if processed_modulations:  # Only add if there are valid modulations
+                    self.emitter_modulations[emitter_index] = processed_modulations
+
+    def apply_particle_modulations(self, particle, current_frame):
+        emitter_index = particle.emitter_index
+        if emitter_index not in self.emitter_modulations:
+            return
+
+        particle_age = current_frame - particle.creation_frame
+        
+        for modulation in self.emitter_modulations[emitter_index]:
+            if modulation['start_frame'] <= current_frame < modulation['end_frame']:
+                progress = self.calculate_modulation_progress(current_frame, modulation, particle_age)
+                print(f"Applying modulation: type={modulation['type']}, current_frame={current_frame}, progress={progress}")
+                
+                if modulation['type'] == 'ParticleSizeModulation':
+                    self.apply_size_modulation(particle, modulation, progress)
+                elif modulation['type'] == 'ParticleSpeedModulation':
+                    self.apply_speed_modulation(particle, modulation, progress)
+                elif modulation['type'] == 'ParticleColorModulation':
+                    self.apply_color_modulation(particle, modulation, progress)
+
+    def calculate_modulation_progress(self, current_frame, modulation, particle_age):
+        start_frame = modulation['start_frame']
+        duration = modulation['effect_duration']
+        
+        if modulation['palindrome']:
+            duration *= 2
+        
+        progress = ((current_frame - start_frame) % duration) / duration
+        
+        if modulation['palindrome'] and progress > 0.5:
+            progress = 1 - progress
+        
+        eased_progress = apply_easing(progress, modulation['temporal_easing'])
+        print(f"Progress calculation: current_frame={current_frame}, start_frame={start_frame}, duration={duration}, raw_progress={progress}, eased_progress={eased_progress}")
+        return eased_progress
+
+    def apply_size_modulation(self, particle, modulation, progress):
+        emitter = self.emitters[particle.emitter_index]
+        original_size = emitter['particle_size']
+        target_size = modulation['target_size']
+        new_size = original_size + (target_size - original_size) * progress
+        print(f"Size modulation: original_size={original_size}, target_size={target_size}, progress={progress}, new_size={new_size}")
+        particle.size = new_size
+
+    def apply_speed_modulation(self, particle, modulation, progress):
+        original_speed = particle.original_speed if hasattr(particle, 'original_speed') else particle.velocity.length
+        target_speed = modulation['target_speed']
+        new_speed = original_speed + (target_speed - original_speed) * progress
+        if particle.velocity.length > 0:
+            particle.velocity = particle.velocity.normalized() * new_speed
+
+    def apply_color_modulation(self, particle, modulation, progress):
+        original_color = particle.original_color if hasattr(particle, 'original_color') else particle.color
+        target_color = modulation['target_color']
+        particle.color = tuple(o + (t - o) * progress for o, t in zip(original_color, target_color))
+
+###END PARTICLE MODULATION
+
     def update_particle_system(self, dt: float, current_mask: np.ndarray, respect_mask_boundary: bool):
         self.total_time += dt
+        current_frame = int(self.total_time * 30)  #TODO sort this
+        
         if respect_mask_boundary:
             self.update_mask_boundary(current_mask)
         
@@ -536,19 +639,22 @@ class ParticleSystemMaskBase(MaskBase, ABC):
             self.particles = [p for p in self.particles if self.total_time - p.creation_time < p.lifetime]
             particles_after = len(self.particles)
             particles_removed = particles_before - particles_after
- 
             
             for particle in self.particles:
                 self.apply_vortex_force(particle, sub_dt)
                 self.apply_gravity_well_force(particle)
+                
+                # Apply modulations before updating position
+                self.apply_particle_modulations(particle, current_frame)
+                
                 old_pos = particle.position
                 new_pos = old_pos + particle.velocity * sub_dt
                 if respect_mask_boundary:
                     self.check_particle_mask_collision(particle, old_pos, new_pos)
                 particle.position = new_pos
             
-
             self.space.step(sub_dt)
+        
         self.setup_spring_joints()
 
     def check_particle_mask_collision(self, particle, old_pos, new_pos):
@@ -593,6 +699,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         particle.size = particle_size
         particle.color = emitter['color']
         particle.emitter_index = emitter_index
+        particle.creation_frame = int(self.total_time * 30)  #TODO handle ths
         
         shape = pymunk.Circle(particle, radius)
         shape.elasticity = 0.9
@@ -668,9 +775,9 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                 # Update emitter position
                 emitter['position'] = (emitter['emitter_x'] * width, emitter['emitter_y'] * height)
 
-
     def main_function(self, masks, strength, invert, subtract_original, grow_with_blur, emitters, **kwargs):
         self.initialize()
+        self.total_frames = masks.shape[0]
         for emitter in emitters:
             emitter['initial_x'] = emitter['emitter_x']
             emitter['initial_y'] = emitter['emitter_y']
