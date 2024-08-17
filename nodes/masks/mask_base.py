@@ -530,7 +530,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                     if end_frame <= start_frame:
                         continue  # Skip this modulation as it's invalid
                     
-                    # Handle effect_duration
+                    
                     if modulation['effect_duration'] <= 0:
                         effect_duration = end_frame - start_frame
                     else:
@@ -553,7 +553,6 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                         processed_mod['target_color'] = self.string_to_rgb(modulation['target_color'])
                     
                     processed_modulations.append(processed_mod)
-                    print(f"Prepared modulation: {processed_mod}")
                 
                 if processed_modulations:  # Only add if there are valid modulations
                     self.emitter_modulations[emitter_index] = processed_modulations
@@ -563,12 +562,9 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         if emitter_index not in self.emitter_modulations:
             return
 
-        particle_age = current_frame - particle.creation_frame
-        
         for modulation in self.emitter_modulations[emitter_index]:
             if modulation['start_frame'] <= current_frame < modulation['end_frame']:
-                progress = self.calculate_modulation_progress(current_frame, modulation, particle_age)
-                print(f"Applying modulation: type={modulation['type']}, current_frame={current_frame}, progress={progress}")
+                progress = self.calculate_modulation_progress(current_frame, modulation, particle.creation_frame)
                 
                 if modulation['type'] == 'ParticleSizeModulation':
                     self.apply_size_modulation(particle, modulation, progress)
@@ -581,16 +577,20 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         start_frame = modulation['start_frame']
         duration = modulation['effect_duration']
         
+
+        progress = (current_frame - start_frame) / duration
+        
         if modulation['palindrome']:
-            duration *= 2
+            # For plindrome, we need to adjust the progress
+            if progress <= 0.5:
+                progress = progress * 2
+            else:
+                progress = (1 - progress) * 2
         
-        progress = ((current_frame - start_frame) % duration) / duration
-        
-        if modulation['palindrome'] and progress > 0.5:
-            progress = 1 - progress
+        # cllamp progress between 0 and 1
+        progress = max(0, min(1, progress))
         
         eased_progress = apply_easing(progress, modulation['temporal_easing'])
-        print(f"Progress calculation: current_frame={current_frame}, start_frame={start_frame}, duration={duration}, raw_progress={progress}, eased_progress={eased_progress}")
         return eased_progress
 
     def apply_size_modulation(self, particle, modulation, progress):
@@ -598,26 +598,26 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         original_size = emitter['particle_size']
         target_size = modulation['target_size']
         new_size = original_size + (target_size - original_size) * progress
-        print(f"Size modulation: original_size={original_size}, target_size={target_size}, progress={progress}, new_size={new_size}")
         
-        # Update the particle's size attribute
         particle.size = new_size
         
-        # Update the Pymunk Shape
+        # Update the Pymunk Shape so they fdont overlap when resized
         new_radius = new_size / 2
         self.space.remove(particle.shape)
         particle.shape = pymunk.Circle(particle, new_radius)
         self.space.add(particle.shape)
 
     def apply_speed_modulation(self, particle, modulation, progress):
-        original_speed = particle.original_speed if hasattr(particle, 'original_speed') else particle.velocity.length
+        emitter = self.emitters[particle.emitter_index]
+        original_speed = emitter['particle_speed']
         target_speed = modulation['target_speed']
         new_speed = original_speed + (target_speed - original_speed) * progress
         if particle.velocity.length > 0:
             particle.velocity = particle.velocity.normalized() * new_speed
 
     def apply_color_modulation(self, particle, modulation, progress):
-        original_color = particle.original_color if hasattr(particle, 'original_color') else particle.color
+        emitter = self.emitters[particle.emitter_index]
+        original_color=emitter['color']
         target_color = modulation['target_color']
         particle.color = tuple(o + (t - o) * progress for o, t in zip(original_color, target_color))
 
@@ -625,8 +625,6 @@ class ParticleSystemMaskBase(MaskBase, ABC):
 
     def update_particle_system(self, dt: float, current_mask: np.ndarray, respect_mask_boundary: bool, frame_index: int):
         self.total_time += dt
-        current_frame = int(self.total_time * 30)  #TODO sort this
-        
         if respect_mask_boundary:
             self.update_mask_boundary(current_mask)
         
@@ -644,7 +642,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                     self.particles_to_emit[i] -= 1
             
             particles_before = len(self.particles)
-            self.particles = [p for p in self.particles if self.total_time - p.creation_time < p.lifetime]
+            self.particles = [p for p in self.particles if frame_index - p.creation_frame < self.particle_lifetime * 30]  # Assuming 30 fps
             particles_after = len(self.particles)
             particles_removed = particles_before - particles_after
             
@@ -653,7 +651,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                 self.apply_gravity_well_force(particle)
                 
                 # Apply modulations before updating position
-                self.apply_particle_modulations(particle, current_frame)
+                self.apply_particle_modulations(particle, frame_index)
                 
                 old_pos = particle.position
                 new_pos = old_pos + particle.velocity * sub_dt
@@ -702,7 +700,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         particle = pymunk.Body(mass, moment)
         particle.position = emitter_pos
         particle.velocity = velocity
-        particle.creation_time = self.total_time
+        #particle.creation_time = self.total_time
         particle.lifetime = self.particle_lifetime
         particle.size = particle_size
         particle.color = emitter['color']

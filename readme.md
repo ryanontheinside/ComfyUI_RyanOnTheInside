@@ -18,6 +18,9 @@ RyanOnTheInside node pack introduces the following (so far):
     </td>
     <td style="border: none; padding: 2px 0 0 2px;"><img src="./assets/iris.gif" width="300" alt="Plume examples using two particle emitters"></td>
   </tr>
+  <tr>
+    <td colspan="2" style="border: none; padding: 2px 0 0 0;"><img src="./assets/earth.gif" width="600" alt="Earth particle collision"></td>
+  </tr>
 </table>
 
 *Some examples using particle emitters and vortices*
@@ -115,6 +118,8 @@ The Particle Emitter node...creates a particle emitter. They can be chained toge
 - `initial_plume`: Initial burst of particles (0.0 to 1.0)
 - `emitter_movement`: (optional) Movement settings for the emitter
 - `spring_joint_setting`: (optional) Spring joint configuration for particles
+- `particle_modulation`: (optional) Modulation settings for particle properties over time
+
 
 #### EmitterMovement Parameters
 These settings are encapulated in a node that can optionally be fed to particle emitters.
@@ -133,6 +138,27 @@ These parameters work together to create complex, periodic movements for particl
 By adjusting frequencies and amplitudes, you can achieve various patterns like circles, 
 figure-eights, or more chaotic motions. The direction parameters add extra dynamism by 
 altering the angle of particle emission over time.
+
+#### Particle Modulation
+These settings define how particle properties change over time:
+
+##### Common Parameters for All Modulations:
+- `start_frame`: Frame to start the modulation effect (0 to 1000)
+- `end_frame`: Frame to end the modulation effect (0 to 1000)
+- `effect_duration`: Duration of the modulation effect in frames (0 to 1000)
+- `temporal_easing`: Easing function for the modulation effect ("ease_in_out", "linear", "bounce", "elastic", "none")
+- `palindrome`: Whether to reverse the modulation effect after completion (True/False)
+
+##### ParticleSizeModulation:
+- `target_size`: Target size for particles at the end of the modulation (0.0 to 400.0)
+
+##### ParticleSpeedModulation:
+- `target_speed`: Target speed for particles at the end of the modulation (0.0 to 1000.0)
+
+##### ParticleColorModulation:
+- `target_color`: Target color for particles at the end of the modulation (RGB tuple)
+
+These modulation settings can be chained together to create complex, dynamic particle behaviors over time.
 
 #### SpringJointSetting Parameters
 These settings define the behavior of spring joints attached to particles:
