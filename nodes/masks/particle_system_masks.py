@@ -344,7 +344,7 @@ class ParticleSizeModulation(ParticleModulationBase):
         return {
             "required": {
                 **super().INPUT_TYPES()["required"],
-                "target_size": ("FLOAT", {"default": 20.0, "min": 0.0, "max": 100.0, "step": 0.1}),
+                "target_size": ("FLOAT", {"default": 20.0, "min": 0.0, "max": 400.0, "step": 0.1}),
             },
             "optional": super().INPUT_TYPES()["optional"],
         }
