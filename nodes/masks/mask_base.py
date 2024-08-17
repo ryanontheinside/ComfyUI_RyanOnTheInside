@@ -241,13 +241,15 @@ class ParticleSystemMaskBase(MaskBase, ABC):
     def __init__(self):
         super().__init__()
         self.initialize()
+        self.total_time = 0  
+        
 
     def initialize(self):
         self.space = pymunk.Space()
         self.space.gravity = pymunk.Vec2d(0, 0)
         self.particles: List[pymunk.Body] = []
         self.mask_shapes: List[pymunk.Shape] = []
-        self.particles_to_emit = []  # List of fractional particle counts for each emitter
+        self.particles_to_emit = [] 
         self.total_particles_emitted = 0
         self.max_particles = 0
         self.emitters = []
@@ -255,6 +257,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         self.spring_joints = []
         self.static_bodies = []
         self.vortices = []
+        self.total_time = 0
 
     @abstractmethod
     def process_single_mask(self, mask: np.ndarray, frame_index: int, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
@@ -391,9 +394,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                 
                 total_force = tangential_force + radial_force
                 
-                # Apply the force to the particle instead of directly modifying its velocity
                 particle.apply_force_at_local_point(total_force)
-                # print(f"Applied vortex force: {total_force} to particle at {particle.position}")
 
     def setup_spring_joints(self):
         for emitter_index, emitter in enumerate(self.emitters):
@@ -440,7 +441,6 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                     force_direction = -force_direction
                 force = force_direction * force_magnitude
                 particle.apply_force_at_world_point(force, particle.position)
-                # print(f"Applied gravity well force: {force} to particle at {particle.position}")       
 
     def initialize_static_bodies(self, width, height, static_bodies):
         pass
@@ -515,6 +515,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
 ###END FORCES AND SHIT
 
     def update_particle_system(self, dt: float, current_mask: np.ndarray, respect_mask_boundary: bool):
+        self.total_time += dt
         if respect_mask_boundary:
             self.update_mask_boundary(current_mask)
         
@@ -524,14 +525,19 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         sub_dt = dt / sub_steps
         
         for _ in range(sub_steps):
-            # Emit new particles from each emitter
             for i, emitter in enumerate(self.emitters):
-                self.particles_to_emit[i] += emitter['emission_rate'] * sub_dt
+                emission_rate = emitter['emission_rate'] * 10  # Increased sensitivity
+                self.particles_to_emit[i] += emission_rate * sub_dt
                 while self.particles_to_emit[i] >= 1 and self.total_particles_emitted < self.max_particles:
                     self.emit_particle(emitter, height, width, i)
                     self.particles_to_emit[i] -= 1
             
-            # Update particle positions
+            particles_before = len(self.particles)
+            self.particles = [p for p in self.particles if self.total_time - p.creation_time < p.lifetime]
+            particles_after = len(self.particles)
+            particles_removed = particles_before - particles_after
+ 
+            
             for particle in self.particles:
                 self.apply_vortex_force(particle, sub_dt)
                 self.apply_gravity_well_force(particle)
@@ -541,27 +547,20 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                     self.check_particle_mask_collision(particle, old_pos, new_pos)
                 particle.position = new_pos
             
+
             self.space.step(sub_dt)
-        
-        # Setup spring joints after emitting new particles
         self.setup_spring_joints()
-        
-        current_time = self.space.current_time_step
-        self.particles = [p for p in self.particles if current_time - p.creation_time < p.lifetime]
 
     def check_particle_mask_collision(self, particle, old_pos, new_pos):
         for segment in self.mask_shapes:
             if self.line_segment_intersect(old_pos, new_pos, pymunk.Vec2d(*segment.a), pymunk.Vec2d(*segment.b)):
                 segment_vec = pymunk.Vec2d(*segment.b) - pymunk.Vec2d(*segment.a)
                 normal = segment_vec.perpendicular_normal()
-                
-                # Reflect velocity
                 v = particle.velocity
                 reflection = v - 2 * v.dot(normal) * normal
                 
                 particle.velocity = reflection * 0.9  # Reduce velocity slightly on bounce
                 
-                # Move particle out of the boundary
                 penetration_depth = (new_pos - old_pos).dot(normal)
                 particle.position = old_pos + normal * (penetration_depth + particle.size / 2 + 1)
                 break
@@ -589,11 +588,11 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         particle = pymunk.Body(mass, moment)
         particle.position = emitter_pos
         particle.velocity = velocity
-        particle.creation_time = self.space.current_time_step
+        particle.creation_time = self.total_time
         particle.lifetime = self.particle_lifetime
         particle.size = particle_size
         particle.color = emitter['color']
-        particle.emitter_index = emitter_index  # Store the emitter index
+        particle.emitter_index = emitter_index
         
         shape = pymunk.Circle(particle, radius)
         shape.elasticity = 0.9
@@ -669,11 +668,9 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                 # Update emitter position
                 emitter['position'] = (emitter['emitter_x'] * width, emitter['emitter_y'] * height)
 
-            #print(f"Frame {frame_index}, t={t:.2f}s, Emitter modulated: {emitter}")
 
     def main_function(self, masks, strength, invert, subtract_original, grow_with_blur, emitters, **kwargs):
         self.initialize()
-        # Add initial x and y positions for each emitter
         for emitter in emitters:
             emitter['initial_x'] = emitter['emitter_x']
             emitter['initial_y'] = emitter['emitter_y']
