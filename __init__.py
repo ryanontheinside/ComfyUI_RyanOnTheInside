@@ -25,6 +25,9 @@ from .nodes.masks.particle_system_masks import (
     EmitterMovement,
     SpringJointSetting,
     StaticBody,
+    ParticleColorModulation,
+    ParticleSizeModulation,
+    ParticleSpeedModulation,
     )
 
 from .nodes.masks.utility_nodes import _mfc, TextMaskNode, MovingShape
@@ -50,6 +53,9 @@ NODE_CLASS_MAPPINGS = {
     "ParticleEmitter":ParticleEmitter,
     "SpringJointSetting":SpringJointSetting,
     "StaticBody":StaticBody,
+    "ParticleColorModulation":ParticleColorModulation,
+    "ParticleSizeModulation":ParticleSizeModulation,
+    "ParticleSpeedModulation":ParticleSpeedModulation,
    # "AudioControlledMaskMorph": AudioControlledMaskMorph,
     
     "MovingShape": MovingShape,
@@ -77,6 +83,10 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "EmitterMovement":"Emitter Movement | RyanOnTheInside",
     "SpringJointSetting":"Spring Joint Setting | RyanOnTheInside",
     "StaticBody":"Static Body | RyanOnTheInside",
+    "ParticleColorModulation":"Particle Color Modulation | RyanOnTheInside",
+    "ParticleSizeModulation": "Particle Size Modulation | RyanOnTheInside",
+    "ParticleSpeedModulation":"Particle Speed Modulation | RyanOnTheInside",
+
    # "AudioControlledMaskMorph": "Audio Controlled Mask Morph | RyanOnTheInside",
     
     "MovingShape": "Moving Shape | RyanOnTheInside",
