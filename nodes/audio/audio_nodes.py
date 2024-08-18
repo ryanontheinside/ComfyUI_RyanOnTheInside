@@ -14,6 +14,7 @@ class AudioSeparator:
             "required": {
                 "audio": ("AUDIO",),
                 "video_frames": ("IMAGE",),
+                "frame_rate": ("FLOAT", {"default": 30, "min": 0.1, "max": 120, "step": 0.1}),
             }
         }
 
@@ -24,7 +25,7 @@ class AudioSeparator:
     def __init__(self):
         self.separator = openunmix.umxl(targets=['drums', 'vocals', 'bass', 'other'], device='cpu')
 
-    def process_audio(self, audio, video_frames):
+    def process_audio(self, audio, video_frames, frame_rate):
         waveform = audio['waveform']
         sample_rate = audio['sample_rate']
 
@@ -41,18 +42,6 @@ class AudioSeparator:
             waveform = waveform.repeat(2, 1)  # Duplicate mono to stereo if necessary
         print(f"Waveform shape after preprocessing: {waveform.shape}")
 
-        # Calculate the expected audio length based on video frames
-        expected_audio_length = int(num_frames * sample_rate / 30)  # Assuming 30 fps
-        
-        # Trim or pad the audio to match the expected length
-        if waveform.shape[1] > expected_audio_length:
-            waveform = waveform[:, :expected_audio_length]
-        elif waveform.shape[1] < expected_audio_length:
-            pad_length = expected_audio_length - waveform.shape[1]
-            waveform = torch.nn.functional.pad(waveform, (0, pad_length))
-        
-        print(f"Waveform shape after adjusting length: {waveform.shape}")
-
         # Add a batch dimension
         waveform = waveform.unsqueeze(0)
         print(f"Waveform shape before separation: {waveform.shape}")
@@ -61,18 +50,17 @@ class AudioSeparator:
         estimates = self.separator(waveform)
         print(f"Estimates shape: {estimates.shape}")
 
-        # Create isolated audio objects and spectrograms for each target
+        # Create isolated audio objects for each target
         isolated_audio = {}
-        spectrograms = {}
         for i, target in enumerate(['drums', 'vocals', 'bass', 'other']):
             target_waveform = estimates[:, i, :, :]  # Shape: (1, 2, num_samples)
             print(f"{target} audio shape: {target_waveform.shape}")
             
             isolated_audio[target] = {
                 'waveform': target_waveform,
-                'sample_rate': sample_rate
+                'sample_rate': sample_rate,
+                'frame_rate': frame_rate
             }
-
 
         return (
             audio,
@@ -90,7 +78,15 @@ class AudioFeatureVisualizer:
             "required": {
                 "audio": ("AUDIO",),
                 "video_frames": ("IMAGE",),
-                "visualization_type": (["waveform", "spectrogram", "mfcc", "chroma", "tonnetz", "spectral_centroid"],),
+                "visualization_type": ([
+                    "waveform", 
+                    "spectrogram", 
+                    "mfcc", 
+                    "chroma", 
+                    "tonnetz", 
+                    "spectral_centroid"
+                    ],),
+                "frame_rate": ("FLOAT", {"default": 30, "min": 0.1, "max": 120, "step": 0.1}),
             },
         }
 
@@ -98,12 +94,12 @@ class AudioFeatureVisualizer:
     FUNCTION = "visualize_audio_feature"
     CATEGORY = "audio"
 
-    def visualize_audio_feature(self, audio, video_frames, visualization_type):
+    def visualize_audio_feature(self, audio, video_frames, visualization_type, frame_rate):
         # Extract dimensions from video_frames
         num_frames, height, width, _ = video_frames.shape
         print(f"Video frames shape: {video_frames.shape}")
 
-        visualizer = AudioVisualizer(audio, num_frames, height, width)
+        visualizer = AudioVisualizer(audio, num_frames, height, width, frame_rate)
         
         if visualization_type == "waveform":
             mask = visualizer.create_waveform()

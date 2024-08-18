@@ -5,12 +5,16 @@ import cv2
 import matplotlib.pyplot as plt
 
 class BaseAudioProcessor:
-    def __init__(self, audio, num_frames=None, height=None, width=None):
+    def __init__(self, audio, num_frames, height, width, frame_rate):
         self.audio = audio['waveform'].squeeze(0).mean(axis=0).cpu().numpy()  # Convert to mono and numpy array
         self.sample_rate = audio['sample_rate']
         self.num_frames = num_frames
         self.height = height
         self.width = width
+        self.frame_rate = frame_rate
+        
+        self.audio_duration = len(self.audio) / self.sample_rate
+        self.frame_duration = 1 / self.frame_rate if self.frame_rate > 0 else self.audio_duration / self.num_frames
 
     def _normalize(self, data):
         return (data - data.min()) / (data.max() - data.min())
@@ -21,164 +25,138 @@ class BaseAudioProcessor:
     def _resize(self, data, new_width, new_height):
         return cv2.resize(data, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
 
-    def _to_rgb_frames(self, data):
-        frames = []
-        for i in range(self.num_frames):
-            start = i * self.width
-            end = (i + 1) * self.width
-            frame = data[:, start:end]
-            frame_rgb = np.stack([frame] * 3, axis=-1)
-            frames.append(frame_rgb)
-        return np.stack(frames, axis=0)
+    def _get_audio_frame(self, frame_index):
+        start_time = frame_index * self.frame_duration
+        end_time = (frame_index + 1) * self.frame_duration
+        start_sample = int(start_time * self.sample_rate)
+        end_sample = int(end_time * self.sample_rate)
+        return self.audio[start_sample:end_sample]
 
 class AudioVisualizer(BaseAudioProcessor):
     def create_spectrogram(self):
         print(f"create_spectrogram input shapes: audio={self.audio.shape}, num_frames={self.num_frames}, height={self.height}, width={self.width}")
 
-        # Compute the spectrogram
-        n_fft = 2048
-        hop_length = len(self.audio) // self.num_frames
-        S = librosa.stft(self.audio, n_fft=n_fft, hop_length=hop_length)
-        S_db = librosa.amplitude_to_db(np.abs(S), ref=np.max)
+        frames = []
+        for i in range(self.num_frames):
+            audio_frame = self._get_audio_frame(i)
+            
+            n_fft = min(2048, len(audio_frame))
+            S = librosa.stft(audio_frame, n_fft=n_fft)
+            S_db = librosa.amplitude_to_db(np.abs(S), ref=np.max)
+            
+            S_db_normalized = self._normalize(S_db)
+            S_db_enhanced = self._enhance_contrast(S_db_normalized)
+            
+            S_db_resized = self._resize(S_db_enhanced, self.width, self.height)
+            frames.append(S_db_resized)
 
-        print(f"Spectrogram shape after STFT: {S_db.shape}")
-
-        # Normalize and enhance contrast
-        S_db_normalized = self._normalize(S_db)
-        S_db_enhanced = self._enhance_contrast(S_db_normalized)
-
-        # Resize and create frames
-        S_db_resized = self._resize(S_db_enhanced, self.width * self.num_frames, self.height)
-        frames = self._to_rgb_frames(S_db_resized)
-
+        frames = np.stack(frames, axis=0)
         print(f"Final reshaped spectrogram shape: {frames.shape}")
 
-        # Convert to tensor
-        tensor = torch.from_numpy(frames).float()
-
-        return tensor
+        return torch.from_numpy(frames).float()
 
     def create_waveform(self):
         print(f"create_waveform input shapes: audio={self.audio.shape}, num_frames={self.num_frames}, height={self.height}, width={self.width}")
 
-        # Compute waveform
-        plt.figure(figsize=(self.width / 100, self.height / 100), dpi=100)
-        librosa.display.waveshow(self.audio, sr=self.sample_rate)
-        plt.xlim(0, len(self.audio) / self.sample_rate)
+        frames = []
+        for i in range(self.num_frames):
+            audio_frame = self._get_audio_frame(i)
+            
+            plt.figure(figsize=(self.width / 100, self.height / 100), dpi=100)
+            plt.plot(audio_frame)
+            plt.axis('off')
+            plt.tight_layout(pad=0)
+            
+            plt.gcf().canvas.draw()
+            frame = np.frombuffer(plt.gcf().canvas.tostring_rgb(), dtype=np.uint8)
+            frame = frame.reshape(self.height, self.width, 3)
+            frames.append(frame)
+            plt.close()
 
-        # Save plot to buffer
-        plt.axis('off')
-        plt.tight_layout(pad=0)
-        plt.gcf().canvas.draw()
-        img = np.array(plt.gcf().canvas.renderer.buffer_rgba())
-        plt.close()
-
-        # Convert RGBA to RGB
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
-
-        # Normalize image data to [0, 255] and convert to uint8
-        img_rgb = np.clip(img_rgb, 0, 255).astype(np.uint8)
-
-        # Resize image to match desired width and height
-        img_resized = self._resize(img_rgb, self.width * self.num_frames, self.height)
-
-        # Create RGB frames
-        frames = self._to_rgb_frames(img_resized)
-
+        frames = np.stack(frames, axis=0)
         print(f"Final reshaped waveform shape: {frames.shape}")
 
-        # Convert to tensor
-        tensor = torch.from_numpy(frames).float()
-        tensor = tensor.permute(0, 3, 1, 2)
-        return tensor
+        return torch.from_numpy(frames).float() / 255.0
 
     def create_mfcc(self):
         print(f"create_mfcc input shapes: audio={self.audio.shape}, num_frames={self.num_frames}, height={self.height}, width={self.width}")
 
-        # Compute MFCCs
-        mfccs = librosa.feature.mfcc(y=self.audio, sr=self.sample_rate)
+        frames = []
+        for i in range(self.num_frames):
+            audio_frame = self._get_audio_frame(i)
+            
+            mfccs = librosa.feature.mfcc(y=audio_frame, sr=self.sample_rate, n_mfcc=self.height)
+            mfccs_normalized = self._normalize(mfccs)
+            mfccs_enhanced = self._enhance_contrast(mfccs_normalized)
+            
+            mfccs_resized = self._resize(mfccs_enhanced, self.width, self.height)
+            frames.append(mfccs_resized)
 
-        # Normalize and enhance contrast
-        mfccs_normalized = self._normalize(mfccs)
-        mfccs_enhanced = self._enhance_contrast(mfccs_normalized)
-
-        # Resize and create frames
-        mfccs_resized = self._resize(mfccs_enhanced, self.width * self.num_frames, self.height)
-        frames = self._to_rgb_frames(mfccs_resized)
-
+        frames = np.stack(frames, axis=0)
         print(f"Final reshaped MFCCs shape: {frames.shape}")
 
-        # Convert to tensor
-        tensor = torch.from_numpy(frames).float()
-
-        return tensor
+        return torch.from_numpy(frames).float()
 
     def create_chroma(self):
         print(f"create_chroma input shapes: audio={self.audio.shape}, num_frames={self.num_frames}, height={self.height}, width={self.width}")
 
-        # Compute Chroma features
-        chroma = librosa.feature.chroma_stft(y=self.audio, sr=self.sample_rate)
+        frames = []
+        for i in range(self.num_frames):
+            audio_frame = self._get_audio_frame(i)
+            
+            chroma = librosa.feature.chroma_stft(y=audio_frame, sr=self.sample_rate)
+            chroma_normalized = self._normalize(chroma)
+            chroma_enhanced = self._enhance_contrast(chroma_normalized)
+            
+            chroma_resized = self._resize(chroma_enhanced, self.width, self.height)
+            frames.append(chroma_resized)
 
-        # Normalize and enhance contrast
-        chroma_normalized = self._normalize(chroma)
-        chroma_enhanced = self._enhance_contrast(chroma_normalized)
-
-        # Resize and create frames
-        chroma_resized = self._resize(chroma_enhanced, self.width * self.num_frames, self.height)
-        frames = self._to_rgb_frames(chroma_resized)
-
+        frames = np.stack(frames, axis=0)
         print(f"Final reshaped Chroma shape: {frames.shape}")
 
-        # Convert to tensor
-        tensor = torch.from_numpy(frames).float()
-
-        return tensor
+        return torch.from_numpy(frames).float()
 
     def create_tonnetz(self):
         print(f"create_tonnetz input shapes: audio={self.audio.shape}, num_frames={self.num_frames}, height={self.height}, width={self.width}")
 
-        # Compute Tonnetz features
-        tonnetz = librosa.feature.tonnetz(y=self.audio, sr=self.sample_rate)
+        frames = []
+        for i in range(self.num_frames):
+            audio_frame = self._get_audio_frame(i)
+            
+            tonnetz = librosa.feature.tonnetz(y=audio_frame, sr=self.sample_rate)
+            tonnetz_normalized = self._normalize(tonnetz)
+            tonnetz_enhanced = self._enhance_contrast(tonnetz_normalized)
+            
+            tonnetz_resized = self._resize(tonnetz_enhanced, self.width, self.height)
+            frames.append(tonnetz_resized)
 
-        # Normalize and enhance contrast
-        tonnetz_normalized = self._normalize(tonnetz)
-        tonnetz_enhanced = self._enhance_contrast(tonnetz_normalized)
-
-        # Resize and create frames
-        tonnetz_resized = self._resize(tonnetz_enhanced, self.width * self.num_frames, self.height)
-        frames = self._to_rgb_frames(tonnetz_resized)
-
+        frames = np.stack(frames, axis=0)
         print(f"Final reshaped Tonnetz shape: {frames.shape}")
 
-        # Convert to tensor
-        tensor = torch.from_numpy(frames).float()
-
-        return tensor
+        return torch.from_numpy(frames).float()
 
     def create_spectral_centroid(self):
         print(f"create_spectral_centroid input shapes: audio={self.audio.shape}, num_frames={self.num_frames}, height={self.height}, width={self.width}")
 
-        # Compute Spectral Centroid
-        spectral_centroid = librosa.feature.spectral_centroid(y=self.audio, sr=self.sample_rate)
+        frames = []
+        for i in range(self.num_frames):
+            audio_frame = self._get_audio_frame(i)
+            
+            centroid = librosa.feature.spectral_centroid(y=audio_frame, sr=self.sample_rate)
+            centroid_normalized = self._normalize(centroid)
+            centroid_enhanced = self._enhance_contrast(centroid_normalized)
+            
+            centroid_resized = self._resize(centroid_enhanced, self.width, self.height)
+            frames.append(centroid_resized)
 
-        # Normalize and enhance contrast
-        spectral_centroid_normalized = self._normalize(spectral_centroid)
-        spectral_centroid_enhanced = self._enhance_contrast(spectral_centroid_normalized)
-
-        # Resize and create frames
-        spectral_centroid_resized = self._resize(spectral_centroid_enhanced, self.width * self.num_frames, self.height)
-        frames = self._to_rgb_frames(spectral_centroid_resized)
-
+        frames = np.stack(frames, axis=0)
         print(f"Final reshaped Spectral Centroid shape: {frames.shape}")
 
-        # Convert to tensor
-        tensor = torch.from_numpy(frames).float()
-
-        return tensor
+        return torch.from_numpy(frames).float()
 
 class AudioFeatureExtractor(BaseAudioProcessor):
-    def __init__(self, audio, feature_type='amplitude_envelope'):
-        super().__init__(audio)
+    def __init__(self, audio, num_frames, frame_rate, feature_type='amplitude_envelope'):
+        super().__init__(audio, num_frames, None, None, frame_rate)
         self.feature_type = feature_type
 
     def extract(self):
@@ -196,18 +174,16 @@ class AudioFeatureExtractor(BaseAudioProcessor):
             raise ValueError("Unsupported feature type")
 
     def _amplitude_envelope(self):
-        return np.abs(self.audio)
+        return np.array([np.max(np.abs(self._get_audio_frame(i))) for i in range(self.num_frames)])
 
     def _rms_energy(self):
-        return np.sqrt(np.mean(self.audio**2))
+        return np.array([np.sqrt(np.mean(self._get_audio_frame(i)**2)) for i in range(self.num_frames)])
 
     def _spectral_centroid(self):
-        S, _ = librosa.magphase(librosa.stft(self.audio))
-        return librosa.feature.spectral_centroid(S=S, sr=self.sample_rate)[0]
+        return np.array([np.mean(librosa.feature.spectral_centroid(y=self._get_audio_frame(i), sr=self.sample_rate)[0]) for i in range(self.num_frames)])
 
     def _onset_detection(self):
-        return librosa.onset.onset_strength(y=self.audio, sr=self.sample_rate)
+        return np.array([np.mean(librosa.onset.onset_strength(y=self._get_audio_frame(i), sr=self.sample_rate)) for i in range(self.num_frames)])
 
     def _chroma_features(self):
-        return librosa.feature.chroma_stft(y=self.audio, sr=self.sample_rate)
-
+        return np.array([np.mean(librosa.feature.chroma_stft(y=self._get_audio_frame(i), sr=self.sample_rate), axis=1) for i in range(self.num_frames)])
