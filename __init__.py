@@ -4,21 +4,25 @@ from .nodes.masks.temporal_masks import (
     MaskMath,
     MaskRings,
     MaskWarp,
-    #, MaskBlur, MaskThreshold, MaskTransform
     ) 
-from .nodes.masks.audio_masks import AudioControlledMaskMorph
-
+from .nodes.audio.audio_nodes import (
+    AudioSeparator, 
+    AudioFeatureVisualizer,
+)
+from .nodes.masks.audio_masks import (
+    AudioMaskMorph,
+    AudioMaskWarp,
+    AudioMaskTransform,
+    AudioMaskMath
+)
 from .nodes.masks.optical_flow_masks import (
     OpticalFlowMaskModulation,
     OpticalFlowDirectionMask,
     OpticalFlowParticleSystem
     )
 
-
-
 from .nodes.masks.particle_system_masks import (
     ParticleEmissionMask,
-    #PulsatingParticleSystemMask,
     Vortex,
     GravityWell,
     ParticleEmitter,
@@ -44,9 +48,8 @@ NODE_CLASS_MAPPINGS = {
     "OpticalFlowParticleSystem":OpticalFlowParticleSystem,
     #"OpticalFlowDirectionMask":OpticalFlowDirectionMask,
 
-    
+
     "ParticleEmissionMask":ParticleEmissionMask,
-    #"PulsatingParticleSystemMask":PulsatingParticleSystemMask,
     "Vortex":Vortex,
     "GravityWell":GravityWell,
     "EmitterMovement":EmitterMovement,
@@ -56,8 +59,16 @@ NODE_CLASS_MAPPINGS = {
     "ParticleColorModulation":ParticleColorModulation,
     "ParticleSizeModulation":ParticleSizeModulation,
     "ParticleSpeedModulation":ParticleSpeedModulation,
-   # "AudioControlledMaskMorph": AudioControlledMaskMorph,
-    
+
+
+    "AudioMaskMorph":AudioMaskMorph,
+    "AudioMaskWarp": AudioMaskWarp,
+    "AudioMaskTransform":AudioMaskTransform,
+    "AudioMaskMath": AudioMaskMath,
+    "AudioSeparator": AudioSeparator,
+    "AudioFeatureVisualizer":AudioFeatureVisualizer,
+
+
     "MovingShape": MovingShape,
     "_mfc":_mfc,
     "TextMaskNode":TextMaskNode,
@@ -75,7 +86,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "OpticalFlowParticleSystem":"Optical Flow Particle System | RyanOnTheInside",
     #"OpticalFlowDirectionMask":"Optical Flow Direction Mask | RyanOnTheInside",
     
-    # "PulsatingParticleSystemMask":"Pulsating Particle System Mask | RyanOnTheInside",
     "ParticleEmissionMask":"Particle Emission Mask | RyanOnTheInside",
     "Vortex": "Vortex | RyanOnTheInside",
     "GravityWell":"Gravity Well | RyanOnTheInside",
@@ -87,8 +97,13 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ParticleSizeModulation": "Particle Size Modulation | RyanOnTheInside",
     "ParticleSpeedModulation":"Particle Speed Modulation | RyanOnTheInside",
 
-   # "AudioControlledMaskMorph": "Audio Controlled Mask Morph | RyanOnTheInside",
-    
+    "AudioMaskMorph":"Audio Mask Morph | RyanOnTheInside",
+    "AudioMaskWarp": "Audio Mask Warp | RyanOnTheInside",
+    "AudioMaskTransform":"Audio Mask Transform | RyanOnTheInside",
+    "AudioMaskMath": "Audio Mask Math | RyanOnTheInside",
+    "AudioSeparator": "Audio Separator | RyanOnTheInside",
+    "AudioFeatureVisualizer": "Audio Feature Visualizer | RyanOnTheInside" ,
+
     "MovingShape": "Moving Shape | RyanOnTheInside",
     "TextMaskNode":"Text Mask Node | RyanOnTheInside"
 }

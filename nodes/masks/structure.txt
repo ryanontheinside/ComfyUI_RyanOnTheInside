@@ -74,3 +74,35 @@ When creating a new mask operation:
 - Add any operation-specific inputs and logic
 
 """
+
+
+
+# Summary of the incoming audio object
+
+audio = {
+    'waveform': torch.Tensor,  # Shape: (1, 2, num_samples)
+    'sample_rate': int  # Typically 44100 Hz
+}
+
+# Detailed breakdown:
+
+# 1. 'waveform' key:
+#    - Contains the audio data as a PyTorch tensor
+#    - Shape: (1, 2, num_samples)
+#      - 1: Batch dimension (always 1 in this case)
+#      - 2: Number of channels (stereo audio)
+#      - num_samples: Number of audio samples (e.g., 38220 in the previous example)
+#    - Data type: torch.float32
+#    - Value range: Typically between -1.0 and 1.0
+
+# 2. 'sample_rate' key:
+#    - Integer representing the number of samples per second
+#    - Typically 44100 Hz (CD-quality audio)
+
+# Example usage:
+audio_np = audio['waveform'].cpu().numpy()  # Convert to numpy array
+sample_rate = audio['sample_rate']
+
+# Converting to mono:
+audio_mono = audio_np.squeeze(0).mean(axis=0)
+# Result: 1D numpy array with shape (num_samples,)
