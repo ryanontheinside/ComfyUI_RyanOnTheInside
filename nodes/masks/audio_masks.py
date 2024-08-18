@@ -12,11 +12,10 @@ class AudioMaskBase(MaskBase):
             "required": {
                 **super().INPUT_TYPES()["required"],
                 "audio": ("AUDIO",),
+                "video_frames": ("IMAGE",),
                 "audio_feature": (["amplitude_envelope", "rms_energy", "spectral_centroid", "onset_detection", "chroma_features"],),
                 "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-            },
-            "optional":{
-                "video_frames": ("IMAGE",),
+                "frame_rate": ("FLOAT", {"default": 30, "min": 0.1, "max": 120, "step": 0.1}),
             }
         }
 
@@ -25,12 +24,11 @@ class AudioMaskBase(MaskBase):
 
     def __init__(self):
         super().__init__()
-        
 
-    def initialize(self, audio, audio_feature):
-        self.audio_feature_extractor = AudioFeatureExtractor(audio=audio, feature_type=audio_feature)
+    def initialize(self, audio, audio_feature, num_frames, frame_rate):
+        self.audio_feature_extractor = AudioFeatureExtractor(audio, num_frames, frame_rate, feature_type=audio_feature)
 
-    def process_mask(self, mask: np.ndarray, strength: float, audio: dict, video_frames: torch.Tensor, audio_feature: str, feature_threshold: float, **kwargs) -> np.ndarray:
+    def process_mask(self, mask: np.ndarray, strength: float, audio: dict, video_frames: torch.Tensor, audio_feature: str, feature_threshold: float, frame_rate: float, **kwargs) -> np.ndarray:
         # Extract audio feature
         feature = self.audio_feature_extractor.extract()
         
@@ -38,7 +36,7 @@ class AudioMaskBase(MaskBase):
         normalized_feature = normalize_array(feature)
         
         # Ensure the feature length matches the number of video frames
-        num_frames = video_frames.shape[0]
+        num_frames = mask.shape[0]
         if len(normalized_feature) != num_frames:
             normalized_feature = np.interp(np.linspace(0, 1, num_frames), np.linspace(0, 1, len(normalized_feature)), normalized_feature)
         
@@ -61,15 +59,15 @@ class AudioMaskBase(MaskBase):
         """
         raise NotImplementedError("Subclasses must implement process_single_frame method")
 
-    def apply_audio_driven_mask(self, masks, audio, video_frames, strength, audio_feature, feature_threshold, **kwargs):
-        processed_masks = self.process_mask(masks.numpy(), strength, audio, video_frames, audio_feature, feature_threshold, **kwargs)
+    def apply_audio_driven_mask(self, masks, audio, video_frames, strength, audio_feature, feature_threshold, frame_rate, **kwargs):
+        processed_masks = self.process_mask(masks.numpy(), strength, audio, video_frames, audio_feature, feature_threshold, frame_rate, **kwargs)
         return self.apply_mask_operation(torch.from_numpy(processed_masks), masks, strength, **kwargs)
 
-    def main_function(self, masks, audio, video_frames, strength, audio_feature, feature_threshold, **kwargs):
-        self.initialize(audio, audio_feature)
+    def main_function(self, masks, audio, video_frames, strength, audio_feature, feature_threshold, frame_rate, **kwargs):
+        num_frames = masks.shape[0]
+        self.initialize(audio, audio_feature, num_frames, frame_rate)
         
-        return self.apply_audio_driven_mask(masks, audio, video_frames, strength, audio_feature, feature_threshold, **kwargs), audio
-
+        return self.apply_audio_driven_mask(masks, audio, video_frames, strength, audio_feature, feature_threshold, frame_rate, **kwargs), audio
 
 class AudioMaskMorph(AudioMaskBase):
     @classmethod
@@ -90,10 +88,9 @@ class AudioMaskMorph(AudioMaskBase):
         
         return morph_mask(mask, morph_type, kernel_size, iterations)
 
-    def main_function(self, masks, audio, video_frames, strength, audio_feature, feature_threshold, morph_type, max_kernel_size, max_iterations, **kwargs):
-        proc_masks, proc_audio = super().main_function(masks, audio, video_frames, strength, audio_feature, feature_threshold, 
+    def main_function(self, masks, audio, video_frames, strength, audio_feature, feature_threshold, frame_rate, morph_type, max_kernel_size, max_iterations, **kwargs):
+        return super().main_function(masks, audio, video_frames, strength, audio_feature, feature_threshold, frame_rate, 
                                      morph_type=morph_type, max_kernel_size=max_kernel_size, max_iterations=max_iterations, **kwargs)
-        return (proc_masks, proc_audio)
 
 class AudioMaskWarp(AudioMaskBase):
     @classmethod
@@ -113,10 +110,9 @@ class AudioMaskWarp(AudioMaskBase):
         amplitude = max_amplitude * strength
         return warp_mask(mask, warp_type, frequency, amplitude, octaves)
 
-    def main_function(self, masks, audio, video_frames, strength, audio_feature, feature_threshold, warp_type, frequency, max_amplitude, octaves, **kwargs):
-        proc_masks, proc_audio = super().main_function(masks, audio, video_frames, strength, audio_feature, feature_threshold, 
+    def main_function(self, masks, audio, video_frames, strength, audio_feature, feature_threshold, frame_rate, warp_type, frequency, max_amplitude, octaves, **kwargs):
+        return super().main_function(masks, audio, video_frames, strength, audio_feature, feature_threshold, frame_rate, 
                                      warp_type=warp_type, frequency=frequency, max_amplitude=max_amplitude, octaves=octaves, **kwargs)
-        return (proc_masks, proc_audio)
     
 class AudioMaskTransform(AudioMaskBase):
     @classmethod
@@ -136,10 +132,9 @@ class AudioMaskTransform(AudioMaskBase):
         y_value = max_y_value * strength
         return transform_mask(mask, transform_type, x_value, y_value)
 
-    def main_function(self, masks, audio, video_frames, strength, audio_feature, feature_threshold, transform_type, max_x_value, max_y_value, **kwargs):
-        proc_masks, proc_audio = super().main_function(masks, audio, video_frames, strength, audio_feature, feature_threshold, 
+    def main_function(self, masks, audio, video_frames, strength, audio_feature, feature_threshold, frame_rate, transform_type, max_x_value, max_y_value, **kwargs):
+        return super().main_function(masks, audio, video_frames, strength, audio_feature, feature_threshold, frame_rate, 
                                      transform_type=transform_type, max_x_value=max_x_value, max_y_value=max_y_value, **kwargs)
-        return (proc_masks, proc_audio)
 
 class AudioMaskMath(AudioMaskBase):
     @classmethod
@@ -160,8 +155,7 @@ class AudioMaskMath(AudioMaskBase):
             mask_b_frame = mask_b
         return combine_masks(mask, mask_b_frame, combination_method, strength)
 
-    def main_function(self, masks, audio, video_frames, strength, audio_feature, feature_threshold, mask_b, combination_method, **kwargs):
+    def main_function(self, masks, audio, video_frames, strength, audio_feature, feature_threshold, frame_rate, mask_b, combination_method, **kwargs):
         mask_b_np = mask_b.cpu().numpy() if isinstance(mask_b, torch.Tensor) else mask_b
-        proc_masks, proc_audio = super().main_function(masks, audio, video_frames, strength, audio_feature, feature_threshold, 
+        return super().main_function(masks, audio, video_frames, strength, audio_feature, feature_threshold, frame_rate, 
                                      mask_b=mask_b_np, combination_method=combination_method, **kwargs)
-        return (proc_masks, proc_audio)
