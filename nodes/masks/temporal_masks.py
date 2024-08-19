@@ -77,6 +77,7 @@ class MaskMath(TemporalMaskBase):
         mask_b_np = mask_b.cpu().numpy() if isinstance(mask_b, torch.Tensor) else mask_b
         return super().main_function(masks, strength, mask_b=mask_b_np, combination_method=combination_method, **kwargs)
     
+    #TODO CONFIRM THAT NOTHING HAPPENS WITH EMPTY MASK
 class MaskRings(TemporalMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
