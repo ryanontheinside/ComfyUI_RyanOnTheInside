@@ -22,7 +22,6 @@ class ParticleEmissionMask(ParticleSystemMaskBase):
 
     RETURN_TYPES = ("MASK","IMAGE")
     FUNCTION = "main_function"
-    CATEGORY = "Masks/Particle Systems"
 
     def process_single_mask(self, mask: np.ndarray, frame_index: int, emission_strength: float, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         
@@ -78,7 +77,6 @@ class Vortex:
 
     RETURN_TYPES = ("VORTEX",)
     FUNCTION = "create_vortex"
-    CATEGORY = "RyanOnTheInside/ParticleSystems"
 
     def create_vortex(self, x, y, strength, radius, inward_factor, movement_speed, color, draw, previous_vortex=None):
         vortex = {
@@ -119,7 +117,6 @@ class GravityWell:
 
     RETURN_TYPES = ("GRAVITY_WELL",)
     FUNCTION = "create_gravity_well"
-    CATEGORY = "RyanOnTheInside/ParticleSystems"
 
     def create_gravity_well(self, x, y, strength, radius, type, color, draw, previous_well=None):
         well = {
@@ -164,7 +161,6 @@ class ParticleEmitter:
 
     RETURN_TYPES = ("PARTICLE_EMITTER",)
     FUNCTION = "create_emitter"
-    CATEGORY = "RyanOnTheInside/ParticleSystems"
 
     def create_emitter(self, emitter_x, emitter_y, particle_direction, particle_spread, 
                        particle_size, particle_speed, emission_rate, color, initial_plume,
@@ -211,7 +207,6 @@ class SpringJointSetting:
 
     RETURN_TYPES = ("SPRING_JOINT_SETTING",)
     FUNCTION = "create_setting"
-    CATEGORY = "RyanOnTheInside/ParticleSystems"
 
     def create_setting(self, stiffness, damping, rest_length, max_distance):
         return ({
@@ -237,7 +232,6 @@ class EmitterMovement:
 
     RETURN_TYPES = ("EMITTER_MOVEMENT",)
     FUNCTION = "create_movement"
-    CATEGORY = "RyanOnTheInside/ParticleSystems"
 
     def create_movement(self, emitter_x_frequency, emitter_y_frequency, direction_frequency,
                         emitter_x_amplitude, emitter_y_amplitude, direction_amplitude):
@@ -274,7 +268,6 @@ class StaticBody:
 
     RETURN_TYPES = ("STATIC_BODY",)
     FUNCTION = "create_static_body"
-    CATEGORY = "RyanOnTheInside/ParticleSystems"
 
     def create_static_body(self, shape_type, x1, y1, x2, y2, elasticity, friction, draw, color, previous_body=None):
         body = {
@@ -313,7 +306,6 @@ class ParticleModulationBase:
             }
         }
 
-    CATEGORY = "RyanOnTheInside/ParticleSystems"
 
     def create_modulation(self, start_frame, end_frame, effect_duration, temporal_easing, palindrome, previous_modulation=None):
         modulation = {

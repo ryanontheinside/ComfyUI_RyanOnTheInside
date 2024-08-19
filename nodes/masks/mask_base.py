@@ -18,7 +18,7 @@ import random
 from typing import List, Tuple
 import pymunk
 import cv2
-
+from ..audio.audio_utils import AudioFeatureExtractor
 
 class MaskBase(ABC):
     @classmethod
@@ -33,7 +33,7 @@ class MaskBase(ABC):
             }
         }
 
-    CATEGORY = "/RyanOnTheInside/masks/"
+    CATEGORY="RyanOnTheInside/Masks"
 
     def __init__(self):
         self.pre_processors = []
@@ -150,7 +150,9 @@ class TemporalMaskBase(MaskBase, ABC):
                 "palindrome": ("BOOLEAN", {"default": False}),
             }
         }
-
+    
+    CATEGORY="RyanOnTheInside/TemporalMasks"
+    
     def __init__(self):
         super().__init__()
 
@@ -235,7 +237,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
 
     RETURN_TYPES = ("MASK", "IMAGE")
     FUNCTION = "main_function"
-    CATEGORY = "/RyanOnTheInside/masks/"
+    CATEGORY="RyanOnTheInside/ParticleSystemMasks"
 
     def __init__(self):
         super().__init__()
@@ -812,7 +814,7 @@ class OpticalFlowMaskBase(MaskBase, ABC):
             }
         }
 
-    CATEGORY = "/RyanOnTheInside/masks/"
+    CATEGORY="RyanOnTheInside/OpticalFlowMasks"
 
     def __init__(self):
         super().__init__()
@@ -860,5 +862,67 @@ class OpticalFlowMaskBase(MaskBase, ABC):
         processed_masks = np.stack(result)
         return self.apply_mask_operation(processed_masks, masks, strength, **kwargs)
 
+class AudioMaskBase(MaskBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                "frame_rate": ("FLOAT", {"default": 30, "min": 0.1, "max": 120, "step": 0.1}),
+                **super().INPUT_TYPES()["required"],
+                "audio": ("AUDIO",),
+                "video_frames": ("IMAGE",),
+                "audio_feature": (["amplitude_envelope", "rms_energy", "spectral_centroid", "onset_detection", "chroma_features"],),
+                "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                
+            }
+        }
+
+    RETURN_TYPES = ("MASK","AUDIO")
+    FUNCTION = "main_function"
+    CATEGORY="RyanOnTheInside/AudioMasks"
+    
+    def __init__(self):
+        super().__init__()
+
+    def initialize(self, audio, audio_feature, num_frames, frame_rate):
+        self.audio_feature_extractor = AudioFeatureExtractor(audio, num_frames, frame_rate, feature_type=audio_feature)
+
+    def process_mask(self, mask: np.ndarray, strength: float, audio: dict, video_frames: torch.Tensor, audio_feature: str, feature_threshold: float, frame_rate: float, **kwargs) -> np.ndarray:
+        feature = self.audio_feature_extractor.extract()
+        
+        normalized_feature = normalize_array(feature)
+        
+        num_frames = mask.shape[0]
+        if len(normalized_feature) != num_frames:
+            normalized_feature = np.interp(np.linspace(0, 1, num_frames), np.linspace(0, 1, len(normalized_feature)), normalized_feature)
+        
+        processed_masks = []
+        for i in range(num_frames):
+            if normalized_feature[i] < feature_threshold:
+                processed_masks.append(mask[i])
+            else:
+                frame_strength = strength * (1 + normalized_feature[i])
+                processed_mask = self.process_single_frame(mask[i], frame_strength, frame_index=i, **kwargs)
+                processed_masks.append(processed_mask)
+        
+        return np.stack(processed_masks)
+
+    def process_single_frame(self, mask: np.ndarray, strength: float, frame_index: int = None, **kwargs) -> np.ndarray:
+        """
+        Process a single frame of the mask.
+        This method should be implemented by subclasses.
+        """
+        raise NotImplementedError("Subclasses must implement process_single_frame method")
+
+    def apply_audio_driven_mask(self, masks, audio, video_frames, strength, audio_feature, feature_threshold, frame_rate, **kwargs):
+        processed_masks = self.process_mask(masks.numpy(), strength, audio, video_frames, audio_feature, feature_threshold, frame_rate, **kwargs)
+        return self.apply_mask_operation(torch.from_numpy(processed_masks), masks, strength, **kwargs)
+
+    def main_function(self, masks, audio, video_frames, strength, audio_feature, feature_threshold, frame_rate, **kwargs):
+        num_frames = masks.shape[0]
+        self.initialize(audio, audio_feature, num_frames, frame_rate)
+        
+        return self.apply_audio_driven_mask(masks, audio, video_frames, strength, audio_feature, feature_threshold, frame_rate, **kwargs), audio
 
 

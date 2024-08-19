@@ -1,9 +1,9 @@
 [project]
 name = "comfyui_ryanonyheinside"
-description = "Custom nodes introducing particle simulations, optical flow, and temporal masks"
-version = "1.1.0"
+description = "Custom nodes introducing particle simulations, optical flow, audio manipulation & reactivity, and temporal masks"
+version = "1.2.0"
 license = {file = "LICENSE"}
-dependencies = ["opencv-python==4.10.0","scipy","pillow","librosa","pymunk==6.8.1","matplotlib"]
+dependencies = ["opencv-python==4.10.0","scipy","pillow","librosa","pymunk==6.8.1","matplotlib","openunmix"]
 
 [project.urls]
 Repository = "https://github.com/ryanontheinside/ComfyUI_RyanOnTheInside"
