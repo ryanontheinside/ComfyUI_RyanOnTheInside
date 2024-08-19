@@ -8,6 +8,9 @@ from .nodes.masks.temporal_masks import (
 from .nodes.audio.audio_nodes import (
     AudioSeparator, 
     AudioFeatureVisualizer,
+    FrequencyFilterCustom,
+    FrequencyFilterPreset,
+    AudioFilter,
 )
 from .nodes.masks.audio_masks import (
     AudioMaskMorph,
@@ -66,7 +69,10 @@ NODE_CLASS_MAPPINGS = {
     "AudioMaskTransform":AudioMaskTransform,
     "AudioMaskMath": AudioMaskMath,
     "AudioSeparator": AudioSeparator,
-    "AudioFeatureVisualizer":AudioFeatureVisualizer,
+    #"AudioFeatureVisualizer":AudioFeatureVisualizer,
+    "FrequencyFilterCustom": FrequencyFilterCustom,
+    "FrequencyFilterPreset": FrequencyFilterPreset,
+    "AudioFilter":AudioFilter,
 
 
     "MovingShape": MovingShape,
@@ -79,7 +85,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "MaskTransform":"Temporal Mask Transform | RyanOnTheInside",
     "MaskMath":"Temporal Mask Math | RyanOnTheInside",
     "MaskRings":"Temporal Mask Rings | RyanOnTheInside",
-    "MaskWarp":"Mask Warp | RyanOnTheInside",
+    "MaskWarp":"Temporal Mask Warp | RyanOnTheInside",
 
     
     "OpticalFlowMaskModulation": "Optical Flow Mask Modulation | RyanOnTheInside",
@@ -102,7 +108,10 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "AudioMaskTransform":"Audio Mask Transform | RyanOnTheInside",
     "AudioMaskMath": "Audio Mask Math | RyanOnTheInside",
     "AudioSeparator": "Audio Separator | RyanOnTheInside",
-    "AudioFeatureVisualizer": "Audio Feature Visualizer | RyanOnTheInside" ,
+    #"AudioFeatureVisualizer": "Audio Feature Visualizer | RyanOnTheInside" ,
+    "Frequency Filter Custom": "Frequency Filter Custom | RyanOnTheInside",
+    "Frequency Filter Preset": "Frequency Filter Preset | RyanOnTheInside",
+    "AudioFilter": "Audio Filter | RyanOnTheInside",
 
     "MovingShape": "Moving Shape | RyanOnTheInside",
     "TextMaskNode":"Text Mask Node | RyanOnTheInside"

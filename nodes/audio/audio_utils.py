@@ -32,7 +32,7 @@ class BaseAudioProcessor:
         end_sample = int(end_time * self.sample_rate)
         return self.audio[start_sample:end_sample]
 
-class AudioVisualizer(BaseAudioProcessor):
+class AudioVisualizer(BaseAudioProcessor):  
     def create_spectrogram(self):
         print(f"create_spectrogram input shapes: audio={self.audio.shape}, num_frames={self.num_frames}, height={self.height}, width={self.width}")
 
