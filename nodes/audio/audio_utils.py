@@ -173,6 +173,8 @@ class AudioFeatureExtractor(BaseAudioProcessor):
         else:
             raise ValueError("Unsupported feature type")
 
+#TODO HANDLE NO MASKS
+#TODO HANDLE FRAME MASK COUNT MISMATCH OR      GET   RID   OF    FRAMES
     def _amplitude_envelope(self):
         return np.array([np.max(np.abs(self._get_audio_frame(i))) for i in range(self.num_frames)])
 
