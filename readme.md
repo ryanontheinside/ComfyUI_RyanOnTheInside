@@ -25,21 +25,23 @@ RyanOnTheInside node pack introduces the following:
 </table>
 
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
-
+<!-- 
 ## Table of Contents
 - [Installation](#installation)
 - [Requirements](#requirements)
 - [Features](#features)
   - [Particle System Masks](#particle-system-masks)
-  - [Audio Masks](#audio-masks)
+  - [Flex Masks](#flex-masks)
+  - [Audio and MIDI Masks](#audio-and-midi-masks)
   - [Optical Flow Masks](#optical-flow-masks)
   - [Temporal Masks](#temporal-masks)
   - [Miscellaneous Nodes](#miscellaneous-nodes)
 - [Contributing](#contributing)
 - [License](#license)
-- [Support](#support)
+- [Support](#support) -->
 
-## Installation
+<details>
+<summary><h2>Installation</h2></summary>
 
 Install via the ComfyUI Manager by searching for RyanOnTheInside, or...
 
@@ -58,428 +60,127 @@ Install via the ComfyUI Manager by searching for RyanOnTheInside, or...
    ```
 5. Restart ComfyUI if it's currently running and refresh your browser
 
-## Requirements
+### Requirements
 
 See `requirements.txt` for a list of dependencies.
 
+</details>
+
 ## Features
 
-### Common Parameters for All Mask Nodes
-All mask nodes in this system share the following parameters:
-
-- `Masks`: Input mask or sequence of masks to be processed. (you can pass in a blank mask if you want)
-- `Strength`: Overall strength of the effect (0.0 to 1.0). Higher values usually intensify the mask operation.
-- `Invert`: When enabled, the node performs operations on the inverse of the input mask.
-- `Subtract Original`: Amount of the original mask to subtract from the result (0.0 to 1.0). Useful for creating edge effects or isolating changes.
-- `Grow with Blur`: Expands the mask edges using a blur effect (0.0 to 10.0). Higher values create softer, more expanded edges. 
-
-These parameters provide a consistent base for all mask operations, allowing for consistent control over the mask processing across various node types.
-
 <details>
-<summary><h3>Particle System Masks</h3></summary>
+<summary><h3>🎆 Particle System Masks</h3></summary>
 
-Create dynamic, fluid-like effects through particle simulation. This section includes nodes for particle emission, force fields, and complex particle behaviors.
+Create mesmerizing, fluid-like effects through advanced particle simulation. Bring your masks to life with dynamic, interactive elements.
 
-- Supports N particle emitters, each with independent settings including movement, particle (spread, speed, size, COLOR, etc)
-- Supports N force fields (Gravity Well (repel and attract), and Vortex), each with independent settings
-- Each simulation space has basic gravity and wind settings
-- Boundary-respecting particle behavior, where the particles try to respect the boundary of a mask
-- Static bodies for particle interactions
-- Spring joint settings for more complex particle behaviors
+- Multiple particle emitters with independent settings (spread, speed, size, color, etc.)
+- Customizable force fields (Gravity Wells and Vortices) for complex particle interactions
+- Adjustable global gravity and wind settings for each simulation space
+- Boundary-respecting particles that interact with mask shapes
+- Static bodies for intricate particle collisions and interactions
+- Spring joint settings for creating interconnected particle systems
+- Particle modulation over time (size, speed, color)
 
 <img src="./assets/particle_examples.gif" width="400" alt="Particle System Demo showing various effects like object-aware particles, plume effects, and vortex interactions">
 
 *Examples showcasing object-aware particles, initial plume effects, vortex interactions, gravity wells, and directional emitters.*
 
-#### General Parameters for particle system
-These settings apply to all particle system mask nodes, and generally affect the simulation space level.
-- `particle_count`: Total number of particles in the system (1 to 10000)
-- `particle_lifetime`: Lifetime of each particle in seconds (0.1 to 10.0)
-- `wind_strength`: Strength of the wind effect (-100.0 to 100.0)
-- `wind_direction`: Direction of the wind in degrees (0.0 to 360.0)
-- `gravity`: Strength of gravity (-1000.0 to 1000.0)
-- `start_frame`: Frame to start the effect (0 to 1000)
-- `end_frame`: Frame to end the effect (0 to 1000)
-- `respect_mask_boundary`: Whether particles should respect the mask boundary
-- `emitters`: Particle emitter configurations (PARTICLE_EMITTER type)
-- `vortices`: Optional vortex configurations (VORTEX type)
-- `wells`: Optional gravity well configurations (GRAVITY_WELL type)
-- `well_strength_multiplier`: Multiplier for gravity well strength (0.0 to 10.0)
+</details>
 
-#### Particle Emission Mask
-This is the main node for particle simulations. 
-This node is particularly useful for creating complex, animated mask effects that can simulate natural phenomena like smoke, water, or energy fields...bowling balls, planets, whatever. The resulting masks can be used in various image processing and generation tasks within ComfyUI workflows.
+<details>
+<summary><h3>🎨 Flex Masks</h3></summary>
 
-##### Parameters:
-- `masks`: Input mask(s). Optionally interact with the particle system
-- `emission_strength`: Strength of particle emission effect (0.0 to 1.0), basically opacity
-- `draw_modifiers`: Visibility of vortices and gravity wells (0.0 to 1.0)
+Create dynamic, feature-driven mask effects that adapt to various inputs such as time, audio, MIDI, or depth information.
 
-##### Outputs:
-- `MASK`: The resulting particle system binary mask
-- `IMAGE`: A visualization of the particle system - useful for masking different colors for different particle systems
+- Modulate mask operations based on extracted features
+- Apply morphological operations (erode, dilate, open, close) with feature-based intensity
+- Create warping effects (perlin, radial, swirl) modulated by features
+- Perform geometric transformations (translate, rotate, scale) driven by feature values
+- Combine masks using mathematical operations with feature-based strength
 
+Features can be extracted from:
+- Time-based patterns (smooth, accelerate, pulse, sawtooth, bounce)
+- Audio characteristics (amplitude, energy, spectral centroid, onset detection, chroma)
+- MIDI data (note velocity, pitch, control changes)
+- Depth information (mean depth, variance, range, gradient, foreground/midground/background ratios)
 
-#### ParticleEmitter Parameters
-The Particle Emitter node...creates a particle emitter. They can be chained together to feed N to a particle based node.
-- `emitter_x`: X-coordinate of the emitter (0.0 to 1.0)
-- `emitter_y`: Y-coordinate of the emitter (0.0 to 1.0)
-- `particle_direction`: Direction of particle emission in degrees
-- `particle_spread`: Spread angle of particle emission in degrees
-- `particle_speed`: Speed of emitted particles
-- `particle_size`: Size of emitted particles
-- `color`: Color of emitted particles (RGB tuple)
-- `emission_rate`: Rate of particle emission
-- `initial_plume`: Initial burst of particles (0.0 to 1.0)
-- `emitter_movement`: (optional) Movement settings for the emitter
-- `spring_joint_setting`: (optional) Spring joint configuration for particles
-- `particle_modulation`: (optional) Modulation settings for particle properties over time
+Example applications:
+- Create masks that pulse with the beat of music
+- Generate depth-aware mask effects that respond to scene geometry
+- Produce complex animations driven by MIDI sequences
+- Combine multiple features for intricate, multi-dimensional mask modulations
 
-
-#### EmitterMovement Parameters
-These settings are encapulated in a node that can optionally be fed to particle emitters.
-
-Position Control:
-- `emitter_y_frequency`: Rate of vertical oscillation (higher values = faster up-down movement)
-- `emitter_y_amplitude`: Maximum vertical distance from center (larger values = taller movement)
-- `emitter_x_frequency`: Rate of horizontal oscillation (higher values = faster left-right movement)
-- `emitter_x_amplitude`: Maximum horizontal distance from center (larger values = wider movement)
-
-Direction Control:
-- `direction_frequency`: Rate of emission angle change (higher values = faster direction shifts)
-- `direction_amplitude`: Maximum angle change in degrees (up to 180° in either direction)
-
-These parameters work together to create complex, periodic movements for particle emitters. 
-By adjusting frequencies and amplitudes, you can achieve various patterns like circles, 
-figure-eights, or more chaotic motions. The direction parameters add extra dynamism by 
-altering the angle of particle emission over time.
-
-#### Particle Modulation
-These settings define how particle properties change over time:
-
-##### Common Parameters for All Modulations:
-- `start_frame`: Frame to start the modulation effect (0 to 1000)
-- `end_frame`: Frame to end the modulation effect (0 to 1000)
-- `effect_duration`: Duration of the modulation effect in frames (0 to 1000)
-- `temporal_easing`: Easing function for the modulation effect ("ease_in_out", "linear", "bounce", "elastic", "none")
-- `palindrome`: Whether to reverse the modulation effect after completion (True/False)
-
-##### ParticleSizeModulation:
-- `target_size`: Target size for particles at the end of the modulation (0.0 to 400.0)
-
-##### ParticleSpeedModulation:
-- `target_speed`: Target speed for particles at the end of the modulation (0.0 to 1000.0)
-
-##### ParticleColorModulation:
-- `target_color`: Target color for particles at the end of the modulation (RGB tuple)
-
-These modulation settings can be chained together to create complex, dynamic particle behaviors over time.
-
-#### SpringJointSetting Parameters
-These settings define the behavior of spring joints attached to particles:
-- `stiffness`: Stiffness of the spring (0.0 to 1000.0)
-- `damping`: Damping factor of the spring (0.0 to 100.0)
-- `rest_length`: Rest length of the spring (0.0 to 100.0)
-- `max_distance`: Maximum distance the spring can stretch (0.0 to 500.0)
-
-#### StaticBody Parameters
-These settings define static bodies in the simulation that particles can interact with. It allows you to draw solid objects, like walls for instance. You can chain them together to add N to a given simulation:
-- `shape_type`: Type of shape ("segment" or "polygon")
-- `x1`, `y1`, `x2`, `y2`: Coordinates defining the shape
-- `elasticity`: Bounciness of the static body (0.0 to 1.0)
-- `friction`: Friction of the static body (0.0 to 1.0)
-- `draw`: Whether to visualize the static body and how thick
-- `color`: Color of the static body (RGB tuple)
-
-#### GravityWell Parameters
-These are optional inputs for a simulation space. They can be chained together to have N in a given simulation.
-- `x`: X-coordinate of the gravity well (0.0 to 1.0)
-- `y`: Y-coordinate of the gravity well (0.0 to 1.0)
-- `strength`: Strength of the gravity well
-- `radius`: Radius of effect for the gravity well
-- `type`: Type of gravity well ('attract' or 'repel')
-- `color`: Color of the gravity well visualization (RGB tuple)
-- `draw`: Visibility of the gravity well (0.0 to 1.0)
-
-#### Vortex Parameters
-These are optional inputs for a simulation space. They can be chained together to have N in a given simulation.
-- `x`: X-coordinate of the vortex center (0.0 to 1.0)
-- `y`: Y-coordinate of the vortex center (0.0 to 1.0)
-- `strength`: Strength of the vortex effect (0.0 to 1000.0)
-- `radius`: Radius of effect for the vortex (10.0 to 500.0)
-- `inward_factor`: Factor controlling how quickly particles are pulled towards the center (0.0 to 1.0)
-- `movement_speed`: Speed of movement of the vortex object (0.0 to 10.0)
-- `color`: Color of the vortex visualization (RGB tuple)
-- `draw`: Visibility of the vortex (0.0 to 1.0)
+These flexible mask nodes allow for complex, adaptive effects that respond dynamically to various inputs, enabling unprecedented levels of creative control and expressiveness in mask generation.
 
 </details>
 
 <details>
-<summary><h3>Audio Masks</h3></summary>
+<summary><h3>🎵 Audio and MIDI Masks</h3></summary>
 
-Create dynamic, audio-reactive mask effects. This section covers nodes for audio-driven mask generation and manipulation.
+Transform your masks with the power of sound and musical data. Create dynamic, audio-reactive effects that pulse and morph to the rhythm of your chosen audio or MIDI input.
 
-- Create separate masks for vocals, bass, drums, other!
-- Audio-driven morphological operations (erosion, dilation, opening, closing)
-- Audio-reactive warping effects (perlin noise, radial, swirl)
-- Audio-based mask transformations (translation, rotation, scaling)
-- Mathematical operations between masks driven by audio features
-- Supports various audio features for mask modulation
+Audio Features:
+- Separate audio into individual tracks (vocals, drums, bass, other instruments)
+- Apply audio-driven effects to masks based on various audio features
+- Create complex audio visualizations and mask modulations
+- Utilize frequency filtering for targeted audio processing
+- Generate audio-reactive animations and transformations
 
-<img src="./assets/audio_mask_examples.gif" width="400" alt="Audio Mask Examples demonstrating morphing, warping, transformation, and mathematical operations">
+MIDI Features:
+- Extract features from MIDI files or real-time MIDI input
+- Use note velocity, pitch, and control changes (expression, aftertouch, anything) to modulate mask properties
+- Create rhythmic mask patterns based on MIDI note timing
+- Apply complex mask transformations driven by MIDI sequences
 
-*Examples of audio-driven mask effects: morphing, warping, transformation, and mathematical operations*
-
-### Common Parameters for all AudioMask nodes
-- `masks`: Input mask sequence to be processed
-- `audio`: Input audio for driving the mask generation
-- `video_frames`: Corresponding video frames
-- `strength`: Overall strength of the effect (0.0 to 1.0)
-- `audio_feature`: Audio feature to use for mask modulation (amplitude_envelope, rms_energy, spectral_centroid, onset_detection, chroma_features)
-- `feature_threshold`: Threshold for audio feature detection (0.0 to 1.0)
-- `frame_rate`: Frame rate of the video (0.1 to 120.0 fps)
-
-### Audio Mask Nodes
-
-#### AudioMaskMorph
-Applies morphological operations to masks based on audio features:
-- `morph_type`: Type of morphological operation ("erode", "dilate", "open", "close")
-- `max_kernel_size`: Maximum size of the morphological kernel (3 to 21, odd numbers only)
-- `max_iterations`: Maximum number of times to apply the operation (1 to 50)
-
-#### AudioMaskWarp
-Applies warping effects to masks driven by audio:
-- `warp_type`: Type of warping effect ("perlin", "radial", "swirl")
-- `frequency`: Frequency of the warping effect (0.01 to 1.0)
-- `max_amplitude`: Maximum amplitude of the warping effect (0.1 to 500.0)
-- `octaves`: Number of octaves for noise-based warps (1 to 8)
-
-#### AudioMaskTransform
-Applies geometric transformations to masks based on audio features:
-- `transform_type`: Type of transformation ("translate", "rotate", "scale")
-- `max_x_value`: Maximum X-axis transformation value (-1000.0 to 1000.0)
-- `max_y_value`: Maximum Y-axis transformation value (-1000.0 to 1000.0)
-
-#### AudioMaskMath
-Performs mathematical operations between two masks, modulated by audio:
-- `mask_b`: Second mask to combine with the input mask
-- `combination_method`: Mathematical operation to apply ("add", "subtract", "multiply", "minimum", "maximum")
-
-### Audio Processing and Visualization Nodes
-
-#### AudioSeparator
-Separates audio into different components:
-- `audio`: Input audio to be processed
-- `video_frames`: Corresponding video frames
-- `frame_rate`: Frame rate of the video
-
-Outputs: original audio, video frames, drums audio, vocals audio, bass audio, other audio
-
-#### AudioFilter
-Applies frequency filters to audio:
-- `audio`: Input audio to be filtered
-- `filters`: Frequency filters to be applied (FREQUENCY_FILTER type)
-
-#### FrequencyFilterPreset
-Creates preset filter chains for common audio processing tasks:
-- `preset`: Preset to use (e.g., "isolate_kick_drum", "isolate_vocals", "remove_rumble")
-- `previous_filter`: (Optional) Previous filter chain to append to
-
-#### FrequencyFilterCustom
-Creates custom frequency filters:
-- `filter_type`: Type of filter ("lowpass", "highpass", "bandpass")
-- `order`: Filter order (1 to 10)
-- `cutoff`: Cutoff frequency (20 to 20000 Hz)
-- `previous_filter`: (Optional) Previous filter chain to append to
-
-#### AudioFeatureVisualizer
-Visualizes various audio features:
-- `audio`: Input audio to visualize
-- `video_frames`: Corresponding video frames
-- `visualization_type`: Type of visualization ("waveform", "spectrogram", "mfcc", "chroma", "tonnetz", "spectral_centroid")
-- `frame_rate`: Frame rate of the video
-
-These audio processing and visualization nodes enable complex audio analysis, filtering, and feature extraction, allowing for creative audio-driven effects and visualizations within the ComfyUI environment.
+These audio and MIDI processing nodes enable analysis, filtering, and feature extraction, allowing for creative audio-driven and musically-responsive effects and visualizations within the ComfyUI environment.
 
 </details>
 
 <details>
-<summary><h3>Optical Flow Masks</h3></summary>
+<summary><h3>🌊 Optical Flow Masks</h3></summary>
 
-Create motion-based effects using optical flow analysis. This section includes nodes for generating masks based on movement in video sequences.
+Harness the power of motion to create stunning visual effects. Generate masks based on movement in video sequences for dynamic, flow-based animations.
 
-- Multiple optical flow algorithms (Farneback, Lucas-Kanade, Pyramidal Lucas-Kanade)
-- Particle simulations reactive to optical flow - work in progress
-- Directional flow isolation and emphasis  - in progress
-- Advanced blending and modulation options
+- Choose from multiple optical flow algorithms (Farneback, Lucas-Kanade, Pyramidal Lucas-Kanade)
+- Create particle simulations reactive to optical flow (work in progress)
+- Isolate and emphasize directional flow for targeted effects (in progress)
+- Apply advanced blending and modulation options for seamless integration
 
 <img src="./assets/opticalflow_examples.gif" width="400" alt="Optical Flow Demo showing motion-generated trails and effects">
 
 *Motion generated trails using optical flow analysis*
 
-### Optical Flow Mask Nodes
-
-#### General optical mask settings
-These settings apply across the different optical flow masks, and modulate the input mask based on optical flow, creating dynamic mask animations.
-
-- `Images`: Input image sequence for optical flow calculation
-- `Masks`: Input mask sequence to be processed
-- `Strength`: Overall strength of the effect (0.0 to 1.0)
-- `Flow Method`: Technique used for optical flow calculation
-  - Options: "Farneback", "LucasKanade", "PyramidalLK"
-- `Flow Threshold`: Minimum flow magnitude to consider (0.0 to 1.0)
-- `Magnitude Threshold`: Relative threshold for flow magnitude (0.0 to 1.0)
-
-
-#### OpticalFlowMaskModulation
-This is currently the main Optical Flow node. Use it to make motion based effects.
-
-- `Modulation Strength`: Intensity of the modulation effect (0.0 to 5.0)
-- `Blur Radius`: Smoothing applied to the flow magnitude (0 to 20 pixels)
-- `Trail Length`: Number of frames for the trail effect (1 to 20)
-- `Decay Factor`: Rate of trail decay over time (0.1 to 1.0)
-- `Decay Style`: Method of trail decay
-  - Options: "fade" (opacity reduction), "thickness" (width reduction)
-- `Max Thickness`: Maximum trail thickness for thickness-based decay (1 to 50 pixels)
-
-#### Optical Flow Direction Mask - work in progress
-This node will create masks based on the direction of optical flow, allowing for selective masking of moving areas.
-<!--
-- Inherits all parameters from Optical Flow Mask Base
-- `Direction`: Flow direction to mask
-  - Options: "horizontal", "vertical", "radial_in", "radial_out", "clockwise", "counterclockwise"
-- `Angle Threshold`: Tolerance for direction matching (0.0 to 180.0 degrees)
-- `Blur Radius`: Smoothing applied to the resulting mask (0 to 20 pixels)
-- `Invert`: Option to invert the output mask
--->
-#### Optical Flow Particle System - work in progess
-This node will generate a particle system animation driven by optical flow, creating dynamic visual effects.
-<!--
-- Inherits all parameters from Optical Flow Mask Base
-- `Particle Count`: Number of particles in the system (100 to 10000)
-- `Particle Size`: Diameter of each particle (1 to 50 pixels)
-- `Particle Color`: Color of the particles (hex color code)
-- `Particle Opacity`: Transparency of particles (0.0 to 1.0)
-- `Flow Multiplier`: Influence of optical flow on particle movement (0.1 to 5.0)
-- `Particle Lifetime`: Duration of each particle's existence (1 to 100 frames)
-- `Initial Velocity`: Starting speed of newly emitted particles (0.1 to 5.0)
--->
-
 </details>
 
 <details>
-<summary><h3>Temporal Masks</h3></summary>
+<summary><h3>⏳ Temporal Masks</h3></summary>
 
-Implement time-based transformations and animations on masks. This section covers nodes for creating dynamic mask effects over time.
+Add the dimension of time to your mask effects. Create evolving, dynamic animations that transform your masks over the course of your video.
 
-- Morphing and transformation effects (erosion, dilation, translation, rotation, scaling)
-- Various mask combination methods
-- Radial and pulsating effects
-- Warp effects using Perlin noise, radial distortion, and swirling patterns
-- Customizable easing functions and palindrome support
+- Apply time-based morphing and transformation effects (erosion, dilation, translation, rotation, scaling)
+- Utilize various mask combination methods for complex temporal interactions
+- Create radial and pulsating effects for eye-catching animations
+- Generate warp effects using Perlin noise, radial distortion, and swirling patterns
+- Customize with various easing functions and palindrome support for smooth transitions
 
 <img src="./assets/temporal_examples.gif" width="400" alt="Temporal Masks Examples showing various time-based effects">
 
 *Examples of various combinations of temporal mask effects including morphing, transformations, math, and warping.*
 
-
-- `Start Frame`: The frame number where the effect begins (0 to 1000).
-- `End Frame`: The frame number where the effect ends (0 to 1000). If set to 0, processes until the last frame.
-- `Effect Duration`: Number of frames over which the effect is applied (0 to 1000). If 0, uses (End Frame - Start Frame).
-- `Temporal Easing`: Determines how the effect strength changes over time.
-  - Options: "ease_in_out", "linear", "bounce", "elastic", "none"
-- `Palindrome`: When enabled, the effect plays forward then backward within the specified duration.
-
-
-#### Mask Morph
-Applies morphological operations to the mask, changing its shape over time.
-
-- `Morph Type`: The type of morphological operation to apply.
-  - Options: "erode", "dilate", "open", "close"
-- `Max Kernel Size`: Maximum size of the morphological kernel (3 to 21, odd numbers only).
-- `Max Iterations`: Maximum number of times to apply the operation (1 to 50).
-
-#### Mask Transform
-Applies geometric transformations to the mask over time.
-
-- `Transform Type`: The type of transformation to apply.
-  - Options: "translate", "rotate", "scale"
-- `X Value`: Horizontal component of the transformation (-1000 to 1000).
-- `Y Value`: Vertical component of the transformation (-1000 to 1000).
-
-#### Mask Math
-Combines two masks using various mathematical operations.
-
-- `Mask B`: Second mask to combine with the input mask.
-- `Combination Method`: Mathematical operation to apply.
-  - Options: "add", "subtract", "multiply", "minimum", "maximum"
-
-#### Mask Rings
-Creates concentric ring patterns based on the distance from the mask edges.
-
-- `Num Rings`: Number of rings to generate (1 to 50).
-- `Max Ring Width`: Maximum width of each ring as a fraction of the total distance (0.01 to 0.5).
-
-#### Mask Warp
-Applies various warping effects to the mask.
-
-- `Warp Type`: The type of warping effect to apply.
-  - Options: "perlin", "radial", "swirl"
-- `Frequency`: Frequency of the warping effect (0.01 to 1.0).
-- `Amplitude`: Intensity of the warping effect (0.1 to 500.0).
-- `Octaves`: Number of octaves for noise-based warps (1 to 8).
-
-All these nodes inherit the common parameters from MaskBase and TemporalMaskBase, allowing for precise control over the timing and strength of the effects across multiple frames.
-
 </details>
 
 <details>
-<summary><h3>Miscellaneous Nodes</h3></summary>
+<summary><h3>🛠️ Miscellaneous Nodes</h3></summary>
 
-Additional utility nodes for creating specific mask effects and animations.
+Enhance your mask creation toolkit with additional utility nodes for specific effects and animations.
 
-#### MovingShape
+- Generate masks and images with customizable text
+- Create moving shape masks with adjustable parameters (size, position, color, movement type)
+- Combine multiple mask types for unique, hybrid effects
+- Apply advanced blending modes between different mask types
+- Create custom mask patterns using mathematical functions
 
-Generate animated mask sequences featuring a moving shape with customizable parameters.
-
-Parameters:
-- `frame_width`: Width of each frame (1-3840 pixels)
-- `frame_height`: Height of each frame (1-2160 pixels)
-- `num_frames`: Number of frames in the sequence (1-120)
-- `rgb`: Color of the shape in RGB format, e.g., "(255,255,255)"
-- `shape`: Shape type ("square", "circle", or "triangle")
-- `shape_width_percent`: Width of the shape as a percentage of frame width (0-100%)
-- `shape_height_percent`: Height of the shape as a percentage of frame height (0-100%)
-- `shape_start_position_x`: Starting X position of the shape (-100 to 100)
-- `shape_start_position_y`: Starting Y position of the shape (-100 to 100)
-- `shape_end_position_x`: Ending X position of the shape (-100 to 100)
-- `shape_end_position_y`: Ending Y position of the shape (-100 to 100)
-- `movement_type`: Type of movement ("linear", "ease_in_out", "bounce", or "elastic")
-- `grow`: Growth factor of the shape during animation (0-100)
-- `palindrome`: Whether to reverse the animation sequence (True/False)
-- `delay`: Number of static frames at the start (0-60)
-
-This node creates a mask sequence with a moving shape, allowing for various animations and transformations.
-
-#### TextMaskNode
-
-Generate mask and image sequences featuring customizable text.
-
-Parameters:
-- `width`: Width of the output image (1-8192 pixels)
-- `height`: Height of the output image (1-8192 pixels)
-- `text`: The text to be rendered
-- `font`: Font to be used (selectable from system fonts)
-- `font_size`: Size of the font (1-1000)
-- `font_color`: Color of the text in RGB format, e.g., "(255,255,255)"
-- `background_color`: Color of the background in RGB format, e.g., "(0,0,0)"
-- `x_position`: Horizontal position of the text (0.0-1.0, where 0.5 is center)
-- `y_position`: Vertical position of the text (0.0-1.0, where 0.5 is center)
-- `rotation`: Rotation angle of the text (0-360 degrees)
-- `max_width_ratio`: Maximum width of text as a ratio of image width (0.1-1.0)
-- `batch_size`: Number of images to generate in the batch (1-10000)
-
-This node creates both a mask and an image with the specified text, allowing for various text-based effects and animations. The text automatically wraps to fit within the specified maximum width.
+These versatile nodes allow for endless creativity in mask generation and manipulation, enabling you to achieve precise control over your visual effects.
 
 </details>
 

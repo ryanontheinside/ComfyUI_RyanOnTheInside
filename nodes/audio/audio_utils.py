@@ -4,6 +4,15 @@ import librosa
 import cv2
 import matplotlib.pyplot as plt
 
+import numpy as np
+import librosa
+import torch
+import cv2
+import matplotlib.pyplot as plt
+
+
+
+
 class BaseAudioProcessor:
     def __init__(self, audio, num_frames, height, width, frame_rate):
         self.audio = audio['waveform'].squeeze(0).mean(axis=0).cpu().numpy()  # Convert to mono and numpy array
@@ -174,7 +183,7 @@ class AudioFeatureExtractor(BaseAudioProcessor):
             raise ValueError("Unsupported feature type")
 
 #TODO HANDLE NO MASKS
-#TODO HANDLE FRAME MASK COUNT MISMATCH OR      GET   RID   OF    FRAMES
+#TODO HANDLE FRAME MASK COUNT MISMATCH
     def _amplitude_envelope(self):
         return np.array([np.max(np.abs(self._get_audio_frame(i))) for i in range(self.num_frames)])
 

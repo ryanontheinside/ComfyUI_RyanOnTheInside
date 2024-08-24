@@ -9,8 +9,16 @@ from .audio_utils import AudioVisualizer
 from scipy import signal
 import logging
 
+from ... import RyanOnTheInside
+from ..flex.feature_pipe import FeaturePipe
+from ... import RyanOnTheInside
 
-class AudioSeparator:
+
+
+class AudioNodeBase(RyanOnTheInside):
+    CATEGORY= "RyanOnTheInside/Audio"
+
+class AudioSeparator(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -21,10 +29,9 @@ class AudioSeparator:
             }
         }
 
-    RETURN_TYPES = ("AUDIO", "IMAGE", "AUDIO", "AUDIO", "AUDIO","AUDIO")
-    RETURN_NAMES = ("audio", "video_frames","drums_audio", "vocals_audio", "bass_audio", "other_audio")
+    RETURN_TYPES = ("AUDIO", "AUDIO", "AUDIO", "AUDIO", "AUDIO", "FEATURE_PIPE")
+    RETURN_NAMES = ("audio", "drums_audio", "vocals_audio", "bass_audio", "other_audio", "feature_pipe")
     FUNCTION = "process_audio"
-
 
     def __init__(self):
         self.separator = openunmix.umxl(targets=['drums', 'vocals', 'bass', 'other'], device='cpu')
@@ -58,27 +65,34 @@ class AudioSeparator:
                 'frame_rate': frame_rate
             }
 
+        # Create FeaturePipe
+        feature_pipe = FeaturePipe(frame_rate, video_frames)
+
         return (
             audio,
-            video_frames,
             isolated_audio['drums'],
             isolated_audio['vocals'],
             isolated_audio['bass'],
             isolated_audio['other'],
+            feature_pipe,
         )
 
-class AudioFilter:
+class AudioFilter(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
                 "audio": ("AUDIO",),
                 "filters": ("FREQUENCY_FILTER",),
+                "descrip": ("STRING", {"default":cls.DESCRIPTION})
             },
         }
 
     RETURN_TYPES = ("AUDIO",)
     FUNCTION = "apply_filters"
+    DESCRIPTION = """Applies frequency filters to audio:
+- `audio`: Input audio to be filtered
+- `filters`: Frequency filters to be applied (FREQUENCY_FILTER type)"""
 
     def apply_filters(self, audio, filters):
         audio_np = audio['waveform'].cpu().numpy().squeeze(0)
@@ -119,7 +133,7 @@ class AudioFilter:
 
         return signal.lfilter(b, a, audio)
 
-class FrequencyFilterPreset:
+class FrequencyFilterPreset(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -193,7 +207,7 @@ class FrequencyFilterPreset:
         else:
             raise ValueError(f"Unknown preset: {preset}")
         
-class FrequencyFilterCustom:
+class FrequencyFilterCustom(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -226,8 +240,7 @@ class FrequencyFilterCustom:
         else:
             return ([filter_params],)
 
-
-class AudioFeatureVisualizer:
+class AudioFeatureVisualizer(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {

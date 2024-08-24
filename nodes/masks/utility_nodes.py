@@ -19,8 +19,8 @@ class MovingShape:
                 "num_frames": ("INT", {"default": 30, "min": 1, "max": 120, "step": 1}),
                 "rgb": ("STRING", {"default": "(255,255,255)"}),
                 "shape": (["square", "circle", "triangle"],),
-                "shape_width_percent": ("FLOAT", {"default": 100, "min": 0, "max": 100, "step": 0.1}),
-                "shape_height_percent": ("FLOAT", {"default": 100, "min": 0, "max": 100, "step": 0.1}),
+                "shape_width_percent": ("FLOAT", {"default": 50, "min": 0, "max": 100, "step": 0.1}),
+                "shape_height_percent": ("FLOAT", {"default": 50, "min": 0, "max": 100, "step": 0.1}),
                 "shape_start_position_x": ("FLOAT", {"default": 0, "min": -100, "max": 100, "step": 0.1}),
                 "shape_start_position_y": ("FLOAT", {"default": 0, "min": -100, "max": 100, "step": 0.1}),
                 "shape_end_position_x": ("FLOAT", {"default": 0, "min": -100, "max": 100, "step": 0.1}),
@@ -247,7 +247,7 @@ class _mfc:
                 "threshold": ("INT", { "default": 0, "min": 0, "max": 127, "step": 1, }),
             }
         }
-
+    #TODO add image
     RETURN_TYPES = ("MASK",)
     FUNCTION = "execute"
     CATEGORY = "/RyanOnTheInside/masks/"

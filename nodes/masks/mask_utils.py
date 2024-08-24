@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from scipy import ndimage
 from scipy.ndimage import gaussian_filter
-
+from ..node_utilities import string_to_rgb
 
 def apply_easing(t, easing_type):
     if easing_type == 'linear':
@@ -55,9 +55,23 @@ def translate_mask(mask: np.ndarray, x_value: float, y_value: float) -> np.ndarr
 
 def rotate_mask(mask: np.ndarray, angle: float) -> np.ndarray:
     height, width = mask.shape[:2]
-    center = (width // 2, height // 2)
-    M = cv2.getRotationMatrix2D(center, angle, 1)
-    return warp_affine(mask, M)
+    
+    rows = np.any(mask, axis=1)
+    cols = np.any(mask, axis=0)
+    ymin, ymax = np.where(rows)[0][[0, -1]] if np.any(rows) else (0, height-1)
+    xmin, xmax = np.where(cols)[0][[0, -1]] if np.any(cols) else (0, width-1)
+    
+    center_y = int((ymin + ymax) / 2)
+    center_x = int((xmin + xmax) / 2)
+    
+    M = cv2.getRotationMatrix2D((center_x, center_y), angle, 1.0)
+    
+    rotated = np.zeros_like(mask)
+    
+    mask_rotated = cv2.warpAffine(mask, M, (width, height), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+    rotated = np.maximum(rotated, mask_rotated)
+    
+    return rotated
 
 def scale_mask(mask: np.ndarray, scale_x: float, scale_y: float) -> np.ndarray:
     height, width = mask.shape[:2]
@@ -215,9 +229,3 @@ def calculate_optical_flow(frame1, frame2, flow_method):
     else:
         raise ValueError(f"Unknown flow method: {flow_method}")
     
-
-def string_to_rgb(color_string):
-    if isinstance(color_string, tuple):
-        return color_string
-    color_values = color_string.strip('()').split(',')
-    return tuple(int(value.strip()) / 255.0 for value in color_values)
