@@ -57,8 +57,6 @@ class ParticleEmissionMask(ParticleSystemMaskBase):
                                      emission_strength=emission_strength, 
                                      static_bodies=static_bodies, **kwargs)    
 
-
-
 class ParticleSystemModulatorBase(RyanOnTheInside):
     CATEGORY="RyanOnTheInside/ParticleSystemMasks"
 

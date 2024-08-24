@@ -1,13 +1,13 @@
 from .node_configs import CombinedMeta
 from collections import OrderedDict
+
+#allows for central management and inheritance of class variables for help documentation
 class RyanOnTheInside(metaclass=CombinedMeta):
     @classmethod
     def get_description(cls):
         
-        # Get the display name from NODE_DISPLAY_NAME_MAPPINGS, fallback to cls.__name__ if not found
         display_name = NODE_DISPLAY_NAME_MAPPINGS.get(cls.__name__, cls.__name__)
         footer = "For more information, visit [RyanOnTheInside GitHub](https://github.com/ryanontheinside)."
-        # Remove the " | RyanOnTheInside" suffix if present
         display_name = display_name.replace(" | RyanOnTheInside", "")
         
         desc = f"# {display_name}\n\n"
@@ -22,15 +22,13 @@ class RyanOnTheInside(metaclass=CombinedMeta):
         if hasattr(cls, "BASE_DESCRIPTION"):
             desc += cls.BASE_DESCRIPTION + "\n\n"
         
-        # Use OrderedDict to maintain order and avoid duplication
         additional_info = OrderedDict()
-        for c in cls.mro()[::-1]:  # Reverse method resolution order
+        for c in cls.mro()[::-1]:  
             if hasattr(c, 'ADDITIONAL_INFO'):
                 info = c.ADDITIONAL_INFO.strip()
-                # Use the class name as a key to avoid duplication
+                
                 additional_info[c.__name__] = info
         
-        # Join all unique ADDITIONAL_INFO entries
         if additional_info:
             desc += "\n\n".join(additional_info.values()) + "\n\n"
         
@@ -50,19 +48,26 @@ from .nodes.masks.temporal_masks import (
 
 from .nodes.audio.audio_nodes import (
     AudioSeparator, 
+    DownloadOpenUnmixModel,
     AudioFeatureVisualizer,
     FrequencyFilterCustom,
     FrequencyFilterPreset,
     AudioFilter,
     
-    
 )
 
 from .nodes.flex.feature_extractors import(
-    MIDILoadAndExtract,
+    
     AudioFeatureExtractor,
     TimeFeatureNode,
     DepthFeatureNode,
+    ColorFeatureNode,
+    BrightnessFeatureNode,
+    MotionFeatureNode,
+)
+
+from .nodes.flex.midi_feature_extractor import(
+    MIDILoadAndExtract,
 )
 
 from .nodes.masks.flex_masks import (
@@ -90,9 +95,16 @@ from .nodes.masks.particle_system_masks import (
     ParticleSpeedModulation,
     )
 
-from .nodes.images.image_utility_nodes import DyeImage, ColorPicker
+from .nodes.images.image_utility_nodes import (
+    DyeImage,
+)
 
-from .nodes.masks.utility_nodes import _mfc, TextMaskNode, MovingShape
+from .nodes.masks.utility_nodes import (
+    _mfc, 
+    TextMaskNode, 
+    MovingShape,
+)
+
 import os
 import folder_paths
 
@@ -116,7 +128,7 @@ NODE_CLASS_MAPPINGS = {
     
     "OpticalFlowMaskModulation": OpticalFlowMaskModulation,
     "OpticalFlowParticleSystem":OpticalFlowParticleSystem,
-    #"OpticalFlowDirectionMask":OpticalFlowDirectionMask,
+    "OpticalFlowDirectionMask":OpticalFlowDirectionMask,
 
 
     "ParticleEmissionMask":ParticleEmissionMask,
@@ -135,9 +147,11 @@ NODE_CLASS_MAPPINGS = {
     "FlexMaskWarp":        FlexMaskWarp,
     "FlexMaskTransform":   FlexMaskTransform,
     "FlexMaskMath":        FlexMaskMath,
+
     "AudioSeparator": AudioSeparator,
+    "DownloadOpenUnmixModel":DownloadOpenUnmixModel,
     "AudioFeatureExtractor":AudioFeatureExtractor,
-    #"AudioFeatureVisualizer":AudioFeatureVisualizer,
+    "AudioFeatureVisualizer":AudioFeatureVisualizer,
     "FrequencyFilterCustom": FrequencyFilterCustom,
     "FrequencyFilterPreset": FrequencyFilterPreset,
     "AudioFilter":AudioFilter,
@@ -146,11 +160,12 @@ NODE_CLASS_MAPPINGS = {
     "MIDILoadAndExtract":MIDILoadAndExtract,
     "TimeFeatureNode":TimeFeatureNode,
     "DepthFeatureNode": DepthFeatureNode    ,
-
+    "ColorFeatureNode":ColorFeatureNode,
+    "BrightnessFeatureNode":BrightnessFeatureNode,
+    "MotionFeatureNode":MotionFeatureNode,
     "MovingShape": MovingShape,
     "_mfc":_mfc,
     "TextMaskNode":TextMaskNode,
-    "ColorPicker": ColorPicker,
     "DyeImage": DyeImage,
 }
 
@@ -185,15 +200,18 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "AudioMaskMath": "Audio Mask Math",
     "AudioSeparator": "Audio Separator",
 
-    #"AudioFeatureVisualizer": "Audio Feature Visualizer" ,
+    "AudioFeatureVisualizer": "Audio Feature Visualizer" ,
     "Frequency Filter Custom": "Frequency Filter Custom",
     "Frequency Filter Preset": "Frequency Filter Preset",
     "AudioFilter": "Audio Filter",
     
-    "MIDILoadAndExtract":   "MIDI Load And Feature Extract",
-    "AudioFeatureExtractor": "Audio Feature Extractor",
-    "TimeFeatureNode":          "Time Feature Node ",
-    "DepthFeatureNode":"Depth Feature Node",
+    "MIDILoadAndExtract":   "MIDI Load & Feature Extract",
+    "AudioFeatureExtractor": "Audio Feature & Extractor",
+    "TimeFeatureNode":          "Time Feature",
+    "DepthFeatureNode":"Depth Feature",
+    "BrightnessFeatureNode":"Brightness Feature",
+    "MotionFeatureNode":"Motion Feature",
+
     "MovingShape": "Moving Shape",
     "TextMaskNode":"Text Mask Node",
     "DyeImage" : "Dye Image"
@@ -213,7 +231,10 @@ from pathlib import Path
 if hasattr(PromptServer, "instance"):
 
     # NOTE: we add an extra static path to avoid comfy mechanism
-    # that loads every script in web. KJNodes
+    # that loads every script in web. 
+    # 
+    # Again credit to KJNodes and MTB nodes
+
     PromptServer.instance.app.add_routes(
         [web.static("/ryanontheinside_web_async", (Path(__file__).parent.absolute() / "ryanontheinside_web_async").as_posix())]
     )

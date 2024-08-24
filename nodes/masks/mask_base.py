@@ -822,8 +822,6 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         
         return (result_masks, processed_images,)
     
-
-
 class OpticalFlowMaskBase(MaskBase, ABC):
     @classmethod
     def INPUT_TYPES(cls):
@@ -886,8 +884,7 @@ class OpticalFlowMaskBase(MaskBase, ABC):
         processed_masks = np.stack(result)
         return self.apply_mask_operation(processed_masks, masks, strength, **kwargs)
 
-
-#TODO  check if input mask is blank and just skip
+#TODO  check if input mask is blank and just skip, then check children
 class FlexMaskBase(MaskBase):
     @classmethod
     def INPUT_TYPES(cls):

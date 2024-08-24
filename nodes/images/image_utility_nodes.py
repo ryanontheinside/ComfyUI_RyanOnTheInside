@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 from ..node_utilities import string_to_rgb 
 
 class DyeImage:
@@ -30,29 +29,3 @@ class DyeImage:
         result[mask] = target.view(1, 1, 1, 3).expand_as(result)[mask]
 
         return (result,)
-    
-
-class ColorPicker:
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "color": ("COLOR", {"default": "#FF0000"}),
-            }
-        }
-
-    RETURN_TYPES = ("IMAGE", "STRING")
-    FUNCTION = "pick_color"
-    CATEGORY = "image/color"
-
-    def pick_color(self, color):
-        # Convert hex color to RGB
-        r, g, b = tuple(int(color[1:][i:i+2], 16) for i in (0, 2, 4))
-        
-        # Create a 1x1x3 image tensor with the selected color
-        color_tensor = torch.tensor([[[r, g, b]]], dtype=torch.float32) / 255.0
-        
-        # Create the RGB string
-        rgb_string = f"{r},{g},{b}"
-        
-        return (color_tensor, rgb_string)

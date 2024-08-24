@@ -1,14 +1,11 @@
 import torch
 import numpy as np
-import librosa
-import openunmix
-import matplotlib.pyplot as plt
 from scipy.ndimage import zoom
-import cv2
 from .audio_utils import AudioVisualizer
 from scipy import signal
-import logging
-
+import comfy.model_management as mm
+import folder_paths
+import os
 from ... import RyanOnTheInside
 from ..flex.feature_pipe import FeaturePipe
 from ... import RyanOnTheInside
@@ -18,11 +15,48 @@ from ... import RyanOnTheInside
 class AudioNodeBase(RyanOnTheInside):
     CATEGORY= "RyanOnTheInside/Audio"
 
+class DownloadOpenUnmixModel(AudioNodeBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "model_name": (["umxl", "umxhq"], {"default": "umxl"}),
+            }
+        }
+
+    RETURN_TYPES = ("OPEN_UNMIX_MODEL",)
+    FUNCTION = "download_and_load_model"
+    CATEGORY = "RyanOnTheInside/Audio"
+
+    def download_and_load_model(self, model_name):
+        device = mm.get_torch_device()
+        download_path = os.path.join(folder_paths.models_dir, "openunmix")
+        os.makedirs(download_path, exist_ok=True)
+
+        model_file = f"{model_name}.pth"
+        model_path = os.path.join(download_path, model_file)
+
+        if not os.path.exists(model_path):
+            print(f"Downloading {model_name} model...")
+            separator = torch.hub.load('sigsep/open-unmix-pytorch', model_name, device='cpu')
+            torch.save(separator.state_dict(), model_path)
+            print(f"Model saved to: {model_path}")
+        else:
+            print(f"Loading model from: {model_path}")
+            separator = torch.hub.load('sigsep/open-unmix-pytorch', model_name, device='cpu')
+            separator.load_state_dict(torch.load(model_path, map_location='cpu'))
+
+        separator = separator.to(device)
+        separator.eval()
+
+        return (separator,)
+
 class AudioSeparator(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
+                "model": ("OPEN_UNMIX_MODEL",),
                 "audio": ("AUDIO",),
                 "video_frames": ("IMAGE",),
                 "frame_rate": ("FLOAT", {"default": 30, "min": 0.1, "max": 120, "step": 0.1}),
@@ -33,17 +67,14 @@ class AudioSeparator(AudioNodeBase):
     RETURN_NAMES = ("audio", "drums_audio", "vocals_audio", "bass_audio", "other_audio", "feature_pipe")
     FUNCTION = "process_audio"
 
-    def __init__(self):
-        self.separator = openunmix.umxl(targets=['drums', 'vocals', 'bass', 'other'], device='cpu')
-
-    def process_audio(self, audio, video_frames, frame_rate):
+    def process_audio(self, model, audio, video_frames, frame_rate):
         waveform = audio['waveform']
         sample_rate = audio['sample_rate']
 
         num_frames, height, width, _ = video_frames.shape
 
         if waveform.dim() == 3:
-            waveform = waveform.squeeze(0)  # Remove batch dimension if present
+            waveform = waveform.squeeze(0) 
         if waveform.dim() == 1:
             waveform = waveform.unsqueeze(0)  # Add channel dimension if mono
         if waveform.shape[0] != 2:
@@ -51,8 +82,11 @@ class AudioSeparator(AudioNodeBase):
             
         waveform = waveform.unsqueeze(0)
 
-        # Separate the audio using Open-Unmix
-        estimates = self.separator(waveform)
+        # Determine the device
+        device = next(model.parameters()).device
+        waveform = waveform.to(device)
+
+        estimates = model(waveform)
 
         # Create isolated audio objects for each target
         isolated_audio = {}
@@ -60,7 +94,7 @@ class AudioSeparator(AudioNodeBase):
             target_waveform = estimates[:, i, :, :]  # Shape: (1, 2, num_samples)
             
             isolated_audio[target] = {
-                'waveform': target_waveform,
+                'waveform': target_waveform.cpu(),  # Move back to CPU
                 'sample_rate': sample_rate,
                 'frame_rate': frame_rate
             }
@@ -83,8 +117,7 @@ class AudioFilter(AudioNodeBase):
         return {
             "required": {
                 "audio": ("AUDIO",),
-                "filters": ("FREQUENCY_FILTER",),
-                "descrip": ("STRING", {"default":cls.DESCRIPTION})
+                "filters": ("FREQUENCY_FILTER",)
             },
         }
 
