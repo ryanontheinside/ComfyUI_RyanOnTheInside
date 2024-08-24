@@ -78,11 +78,11 @@ Optional inputs:
          },
 
     "OpticalFlowDirectionMask":{
-        "TOP_DESCRIPTION":"Work in progress"
+        "TOP_DESCRIPTION":"***WORK IN PROGRESS***"
     },
     
     "OpticalFlowParticleSystem":{
-        "TOP_DESCRIPTION":"Work in progress"
+        "TOP_DESCRIPTION":"***WORK IN PROGRESS***"
     },
 
     "MaskTransform":{
@@ -130,7 +130,9 @@ Optional inputs:
     },
 
     "MIDILoadAndExtract":{
-        "TOP_DESCRIPTION": "Loads a MIDI file and extracts specified features for mask modulation. To use this, select the notes on the piano that you want to use to control modulations. Many of the different types of information in the notes can be chosen as the driving feature.",
+        "TOP_DESCRIPTION": """
+        Loads a MIDI file and extracts specified features for mask modulation. To use this, select the notes on the piano that you want to use to control modulations. 
+        Many of the different types of information in the notes can be chosen as the driving feature.""",
         "ADDITIONAL_INFO": """
 - `midi_file`: Path to the MIDI file to load and analyze
 - `track_selection`: Which track(s) to analyze ("all" or specific track number)
@@ -173,7 +175,7 @@ Optional inputs:
     },
 
     "AudioFeatureVisualizer": {
-        "TOP_DESCRIPTION": "Visualizes various audio features, creating visual representations of sound characteristics.",
+        "TOP_DESCRIPTION": "***WORK IN PROGESS*** Visualizes various audio features, creating visual representations of sound characteristics.",
         "ADDITIONAL_INFO": """
 - `audio`: Input audio to visualize (AUDIO type)
 - `video_frames`: Corresponding video frames to overlay visualizations on (IMAGE type)
@@ -392,11 +394,39 @@ The strength of the combination is determined by the selected feature's value at
 
 """
     },
-#         "FeatureExtractorBase": {
-#         "BASE_DESCRIPTION": """
-#    These nodes are responsible for extracting or generating features that can be used to modulate masks in FlexMask nodes.
-# """
-#     },
+    "ColorFeatureNode": {
+        "TOP_DESCRIPTION": "Extracts color-related features from video frames for mask modulation.",
+        "ADDITIONAL_INFO": """
+- `feature_type`: Type of color feature to extract
+  - Options: "dominant_color" (most prevalent color), "color_variance" (variation in colors), "saturation" (color intensity), "red_ratio" (proportion of red), "green_ratio" (proportion of green), "blue_ratio" (proportion of blue)
+
+Analyzes the input video frames to extract the specified color-related feature. This feature can be used to modulate masks based on color information in the scene, creating effects that respond to color changes over time.
+"""
+    },
+
+    "BrightnessFeatureNode": {
+        "TOP_DESCRIPTION": "Extracts brightness-related features from video frames for mask modulation.",
+        "ADDITIONAL_INFO": """
+- `feature_type`: Type of brightness feature to extract
+  - Options: "mean_brightness" (average brightness), "brightness_variance" (variation in brightness), "dark_ratio" (proportion of dark areas), "mid_ratio" (proportion of mid-tone areas), "bright_ratio" (proportion of bright areas)
+
+Analyzes the input video frames to extract the specified brightness-related feature. This feature can be used to modulate masks based on lighting changes in the scene, allowing for effects that respond to overall brightness or specific tonal ranges.
+"""
+    },
+
+    "MotionFeatureNode": {
+        "TOP_DESCRIPTION": "Extracts motion-related features from video frames for mask modulation.",
+        "ADDITIONAL_INFO": """
+- `feature_type`: Type of motion feature to extract
+  - Options: "mean_motion" (average motion), "max_motion" (peak motion), "motion_direction" (overall direction), "horizontal_motion" (left-right movement), "vertical_motion" (up-down movement), "motion_complexity" (intricacy of motion)
+- `flow_method`: Technique used for optical flow calculation
+  - Options: "Farneback" (dense flow), "LucasKanade" (sparse flow), "PyramidalLK" (multi-scale sparse flow)
+- `flow_threshold`: Minimum motion magnitude to consider (0.0 to 10.0). Higher values ignore subtle movements.
+- `magnitude_threshold`: Relative threshold for motion magnitude (0.0 to 1.0). Higher values focus on areas of stronger motion.
+
+Analyzes the input video frames to extract the specified motion-related feature using optical flow techniques. This feature can be used to modulate masks based on movement in the scene, creating effects that respond to motion intensity, direction, or complexity.
+"""
+    },
 
     "AudioFeatureExtractor": {
         "TOP_DESCRIPTION": "Analyzes the input audio to extract the specified feature. The resulting feature can be used to modulate masks based on audio characteristics.",
@@ -527,7 +557,19 @@ Key features:
 - Implements common methods for mask operations
 - Provides a structure for derived classes to follow
 - Ensures consistency across different mask function components
-"""}
+"""},
+
+"DownloadOpenUnmixModel":{
+"TOP_DESCRIPTION": "Downloads and loads Open Unmix models for audio classification",
+"ADDITIONAL_INFO":"""
+-umxl (default) trained on private stems dataset of compressed stems. Note, that the weights are only licensed for non-commercial use (CC BY-NC-SA 4.0).
+
+-umxhq trained on MUSDB18-HQ which comprises the same tracks as in MUSDB18 but un-compressed which yield in a full bandwidth of 22050 Hz.
+
+
+"""
+},
+
 }
 
 from abc import ABCMeta

@@ -43,7 +43,6 @@ class BaseAudioProcessor:
 
 class AudioVisualizer(BaseAudioProcessor):  
     def create_spectrogram(self):
-        print(f"create_spectrogram input shapes: audio={self.audio.shape}, num_frames={self.num_frames}, height={self.height}, width={self.width}")
 
         frames = []
         for i in range(self.num_frames):
@@ -60,12 +59,10 @@ class AudioVisualizer(BaseAudioProcessor):
             frames.append(S_db_resized)
 
         frames = np.stack(frames, axis=0)
-        print(f"Final reshaped spectrogram shape: {frames.shape}")
 
         return torch.from_numpy(frames).float()
 
     def create_waveform(self):
-        print(f"create_waveform input shapes: audio={self.audio.shape}, num_frames={self.num_frames}, height={self.height}, width={self.width}")
 
         frames = []
         for i in range(self.num_frames):
@@ -83,12 +80,10 @@ class AudioVisualizer(BaseAudioProcessor):
             plt.close()
 
         frames = np.stack(frames, axis=0)
-        print(f"Final reshaped waveform shape: {frames.shape}")
 
         return torch.from_numpy(frames).float() / 255.0
 
     def create_mfcc(self):
-        print(f"create_mfcc input shapes: audio={self.audio.shape}, num_frames={self.num_frames}, height={self.height}, width={self.width}")
 
         frames = []
         for i in range(self.num_frames):
@@ -102,12 +97,10 @@ class AudioVisualizer(BaseAudioProcessor):
             frames.append(mfccs_resized)
 
         frames = np.stack(frames, axis=0)
-        print(f"Final reshaped MFCCs shape: {frames.shape}")
 
         return torch.from_numpy(frames).float()
 
     def create_chroma(self):
-        print(f"create_chroma input shapes: audio={self.audio.shape}, num_frames={self.num_frames}, height={self.height}, width={self.width}")
 
         frames = []
         for i in range(self.num_frames):
@@ -121,12 +114,10 @@ class AudioVisualizer(BaseAudioProcessor):
             frames.append(chroma_resized)
 
         frames = np.stack(frames, axis=0)
-        print(f"Final reshaped Chroma shape: {frames.shape}")
 
         return torch.from_numpy(frames).float()
 
     def create_tonnetz(self):
-        print(f"create_tonnetz input shapes: audio={self.audio.shape}, num_frames={self.num_frames}, height={self.height}, width={self.width}")
 
         frames = []
         for i in range(self.num_frames):
@@ -140,12 +131,10 @@ class AudioVisualizer(BaseAudioProcessor):
             frames.append(tonnetz_resized)
 
         frames = np.stack(frames, axis=0)
-        print(f"Final reshaped Tonnetz shape: {frames.shape}")
 
         return torch.from_numpy(frames).float()
 
     def create_spectral_centroid(self):
-        print(f"create_spectral_centroid input shapes: audio={self.audio.shape}, num_frames={self.num_frames}, height={self.height}, width={self.width}")
 
         frames = []
         for i in range(self.num_frames):
@@ -159,7 +148,6 @@ class AudioVisualizer(BaseAudioProcessor):
             frames.append(centroid_resized)
 
         frames = np.stack(frames, axis=0)
-        print(f"Final reshaped Spectral Centroid shape: {frames.shape}")
 
         return torch.from_numpy(frames).float()
 
