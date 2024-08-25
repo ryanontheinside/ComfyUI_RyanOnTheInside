@@ -90,8 +90,9 @@ class AudioSeparator(AudioNodeBase):
 
         # Create isolated audio objects for each target
         isolated_audio = {}
-        for i, target in enumerate(['drums', 'vocals', 'bass', 'other']):
-            target_waveform = estimates[:, i, :, :]  # Shape: (1, 2, num_samples)
+        target_indices = {'drums': 1, 'vocals': 0, 'bass': 2, 'other': 3}  # Corrected indices
+        for target, index in target_indices.items():
+            target_waveform = estimates[:, index, :, :]  # Shape: (1, 2, num_samples)
             
             isolated_audio[target] = {
                 'waveform': target_waveform.cpu(),  # Move back to CPU
