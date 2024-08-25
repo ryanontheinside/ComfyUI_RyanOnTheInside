@@ -128,7 +128,7 @@ from .nodes.flex.feature_externals import (
 )
 
 from .nodes.flex.feature_modulation import (
-    FeatureStudio
+    FeatureMixer
 )
 
 
@@ -196,7 +196,7 @@ NODE_CLASS_MAPPINGS = {
     "BrightnessFeatureNode":BrightnessFeatureNode,
     "MotionFeatureNode":MotionFeatureNode,
     "FeatureToWeightsStrategy": FeatureToWeightsStrategy,
-    "FeatureStudio":FeatureStudio,
+    "FeatureMixer":FeatureMixer,
     
     'FlexImageEdgeDetect':FlexImageEdgeDetect,
     "FlexImagePosterize":FlexImagePosterize,

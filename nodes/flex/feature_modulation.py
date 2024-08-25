@@ -66,7 +66,7 @@ class FeatureModulationBase(RyanOnTheInside):
         
         return img_tensor
 
-class FeatureStudio(FeatureModulationBase):
+class FeatureMixer(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -128,11 +128,21 @@ class FeatureStudio(FeatureModulationBase):
         # Create a new feature with the processed values
         class ProcessedFeature(type(feature)):
             def __init__(self, original_feature, processed_values):
-                super().__init__(original_feature.name, original_feature.frame_rate, original_feature.frame_count)
-                self.processed_values = processed_values
+                # Copy all attributes from the original feature
+                self.__dict__.update(original_feature.__dict__)
+                
+                # Override specific attributes
+                self.name = original_feature.name
+                self.frame_rate = original_feature.frame_rate
+                self.frame_count = original_feature.frame_count
+                self.data = processed_values
+
+            def extract(self):
+                # The data is already processed, so we just return self
+                return self
 
             def get_value_at_frame(self, frame_index):
-                return self.processed_values[frame_index]
+                return self.data[frame_index]
 
         processed_feature = ProcessedFeature(feature, final_values)
         return (processed_feature, self.visualize(processed_feature))
