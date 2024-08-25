@@ -594,7 +594,7 @@ add_node_config("DownloadOpenUnmixModel", {
 """
 })
 
-add_node_config("FeatureStudio", {
+add_node_config("FeatureMixer", {
     "TOP_DESCRIPTION": "Advanced feature modulation node for fine-tuning and shaping feature values.",
     "ADDITIONAL_INFO": """
 - `feature`: Input feature to be processed (FEATURE type)
