@@ -22,7 +22,6 @@ class MIDIFeature(BaseFeature):
     }
 
     def __init__(self, name, midi_data, attribute, frame_rate, frame_count, notes=None, chord_only=False):
-        super().__init__(name, "midi", frame_rate, frame_count)
         self.midi_data = midi_data
         self.attribute = attribute
         self.notes = set(notes) if notes is not None else set()
@@ -34,6 +33,7 @@ class MIDIFeature(BaseFeature):
         self.pitchbend_data = []
         self.aftertouch_data = []
         self.poly_pressure_data = []
+        super().__init__(name, "midi", frame_rate, frame_count)
 
     def extract(self):
         try:
@@ -42,11 +42,6 @@ class MIDIFeature(BaseFeature):
             print(f"Warning: {str(e)}. Using default values.")
             self.data = np.zeros(self.frame_count)
         return self.normalize()
-
-    def get_value_at_frame(self, frame_index):
-        if self.data is None:
-            self.extract()
-        return self.data[frame_index] if len(self.data) > 0 else 0
 
     def calculate_total_time(self):
         total_time = sum(msg.time for msg in self.midi_data if not msg.is_meta)

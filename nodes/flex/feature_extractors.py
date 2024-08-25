@@ -22,7 +22,9 @@ class AudioFeatureExtractor(FeatureExtractorBase):
 
     def extract_feature(self, audio, feature_pipe, feature_type):
         feature = AudioFeature(feature_type, audio, feature_pipe.frame_count, feature_pipe.frame_rate, feature_type)
+        feature.extract()
         return (feature, feature_pipe)
+
 
 class FirstFeature(FeatureExtractorBase):
     @classmethod
@@ -56,6 +58,7 @@ class TimeFeatureNode(FirstFeature):
         feature_pipe = FeaturePipe(frame_rate, video_frames)
         time_feature = TimeFeature("time_effect", feature_pipe.frame_rate, feature_pipe.frame_count, 
                                    effect_type=effect_type, speed=speed, offset=offset)
+        time_feature.extract()
         return (time_feature, feature_pipe)
     
 class DepthFeatureNode(FirstFeature):
@@ -73,6 +76,7 @@ class DepthFeatureNode(FirstFeature):
     def create_feature(self, depth_maps, frame_rate, video_frames, feature_type):
         feature_pipe = FeaturePipe(frame_rate, video_frames)
         depth_feature = DepthFeature("depth_feature", feature_pipe.frame_rate, feature_pipe.frame_count, depth_maps, feature_type)
+        depth_feature.extract()
         return (depth_feature, feature_pipe)
 
 class ColorFeatureNode(FirstFeature):
@@ -89,6 +93,7 @@ class ColorFeatureNode(FirstFeature):
     def create_feature(self, video_frames, frame_rate, feature_type):
         feature_pipe = FeaturePipe(frame_rate, video_frames)
         color_feature = ColorFeature("color_feature", feature_pipe.frame_rate, feature_pipe.frame_count, video_frames, feature_type)
+        color_feature.extract()
         return (color_feature, feature_pipe)
 
 class BrightnessFeatureNode(FirstFeature):
@@ -105,6 +110,7 @@ class BrightnessFeatureNode(FirstFeature):
     def create_feature(self, video_frames, frame_rate, feature_type):
         feature_pipe = FeaturePipe(frame_rate, video_frames)
         brightness_feature = BrightnessFeature("brightness_feature", feature_pipe.frame_rate, feature_pipe.frame_count, video_frames, feature_type)
+        brightness_feature.extract()
         return (brightness_feature, feature_pipe)
     
 class MotionFeatureNode(FirstFeature):
@@ -136,4 +142,5 @@ class MotionFeatureNode(FirstFeature):
             flow_threshold,
             magnitude_threshold
         )
+        motion_feature.extract()
         return (motion_feature, feature_pipe)

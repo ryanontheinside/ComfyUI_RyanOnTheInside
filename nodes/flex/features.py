@@ -12,26 +12,46 @@ class BaseFeature(ABC):
         self.frame_rate = frame_rate
         self.frame_count = frame_count
         self.data = None
+        self.features = None
+        self.inverted = False
 
     @abstractmethod
     def extract(self):
         pass
 
-    @abstractmethod
     def get_value_at_frame(self, frame_index):
-        pass
+        if self.data is not None:
+            return self.data[frame_index]
+        elif self.features is not None and hasattr(self, 'feature_name'):
+            return self.features[self.feature_name][frame_index]
+        else:
+            raise ValueError("No data or features available")
 
     def normalize(self):
         if self.data is not None:
             self.data = (self.data - np.min(self.data)) / (np.max(self.data) - np.min(self.data))
         return self
 
+    def invert(self):
+        if self.data is not None:
+            self.data = 1 - self.data
+        if self.features is not None:
+            for key in self.features:
+                if isinstance(self.features[key], list):
+                    self.features[key] = [1 - value for value in self.features[key]]
+                elif isinstance(self.features[key], np.ndarray):
+                    self.features[key] = 1 - self.features[key]
+                elif isinstance(self.features[key], torch.Tensor):
+                    self.features[key] = 1 - self.features[key]
+        self.inverted = not self.inverted
+        return self
+
 class TimeFeature(BaseFeature):
     def __init__(self, name, frame_rate, frame_count, effect_type='smooth', speed=1.0, offset=0.0):
-        super().__init__(name, "time", frame_rate, frame_count)
         self.effect_type = effect_type
         self.speed = speed
         self.offset = offset
+        super().__init__(name, "time", frame_rate, frame_count)
 
     def extract(self):
         t = np.linspace(0, self.frame_count / self.frame_rate, self.frame_count)
@@ -52,18 +72,13 @@ class TimeFeature(BaseFeature):
         
         return self.normalize()
 
-    def get_value_at_frame(self, frame_index):
-        if self.data is None:
-            self.extract()
-        return self.data[frame_index]  
-    
 class AudioFeature(BaseFeature):
     def __init__(self, name, audio, num_frames, frame_rate, feature_type='amplitude_envelope'):
-        super().__init__(name, "audio", frame_rate,num_frames)
         self.audio = audio['waveform'].squeeze(0).mean(axis=0).cpu().numpy()
         self.sample_rate = audio['sample_rate']
         self.num_frames = num_frames
         self.feature_type = feature_type
+        super().__init__(name, "audio", frame_rate, num_frames)
         self.frame_duration = 1 / self.frame_rate if self.frame_rate > 0 else len(self.audio) / (self.sample_rate * self.num_frames)
 
     def extract(self):
@@ -80,11 +95,6 @@ class AudioFeature(BaseFeature):
         else:
             raise ValueError("Unsupported feature type")
         return self.normalize()
-
-    def get_value_at_frame(self, frame_index):
-        if self.data is None:
-            self.extract()
-        return self.data[frame_index]
 
     def _get_audio_frame(self, frame_index):
         start_time = frame_index * self.frame_duration
@@ -110,7 +120,6 @@ class AudioFeature(BaseFeature):
 
 class DepthFeature(BaseFeature):
     def __init__(self, name, frame_rate, frame_count, depth_maps, feature_name='mean_depth'):
-        super().__init__(name, "depth", frame_rate, frame_count)
         self.depth_maps = depth_maps
         self.features = None
         self.feature_name = feature_name
@@ -118,9 +127,10 @@ class DepthFeature(BaseFeature):
             "mean_depth", "depth_variance", "depth_range", "gradient_magnitude",
             "foreground_ratio", "midground_ratio", "background_ratio"
         ]
+        super().__init__(name, "depth", frame_rate, frame_count)
 
     def extract(self):
-        self.features = {feature: [] for feature in self.available_features}
+        self.features = {self.feature_name: []}
 
         combined_depth = torch.mean(self.depth_maps, dim=-1)  
 
@@ -132,37 +142,37 @@ class DepthFeature(BaseFeature):
             else:
                 normalized_depth = torch.zeros_like(depth_map)
             
-            self.features['mean_depth'].append(torch.mean(normalized_depth).item())
-            self.features['depth_variance'].append(torch.var(normalized_depth).item())
-            self.features['depth_range'].append((depth_max - depth_min).item())
-            
-            grad_y, grad_x = torch.gradient(normalized_depth)
-            gradient_magnitude = torch.sqrt(grad_x**2 + grad_y**2)
-            self.features['gradient_magnitude'].append(torch.mean(gradient_magnitude).item())
-            
-            total_pixels = normalized_depth.numel()
-            foreground = torch.sum(normalized_depth < 0.33).item() / total_pixels
-            midground = torch.sum((normalized_depth >= 0.33) & (normalized_depth < 0.66)).item() / total_pixels
-            background = torch.sum(normalized_depth >= 0.66).item() / total_pixels
-            self.features['foreground_ratio'].append(foreground)
-            self.features['midground_ratio'].append(midground)
-            self.features['background_ratio'].append(background)
+            if self.feature_name == 'mean_depth':
+                self.features[self.feature_name].append(torch.mean(normalized_depth).item())
+            elif self.feature_name == 'depth_variance':
+                self.features[self.feature_name].append(torch.var(normalized_depth).item())
+            elif self.feature_name == 'depth_range':
+                self.features[self.feature_name].append((depth_max - depth_min).item())
+            elif self.feature_name == 'gradient_magnitude':
+                grad_y, grad_x = torch.gradient(normalized_depth)
+                gradient_magnitude = torch.sqrt(grad_x**2 + grad_y**2)
+                self.features[self.feature_name].append(torch.mean(gradient_magnitude).item())
+            elif self.feature_name in ['foreground_ratio', 'midground_ratio', 'background_ratio']:
+                total_pixels = normalized_depth.numel()
+                foreground = torch.sum(normalized_depth < 0.33).item() / total_pixels
+                midground = torch.sum((normalized_depth >= 0.33) & (normalized_depth < 0.66)).item() / total_pixels
+                background = torch.sum(normalized_depth >= 0.66).item() / total_pixels
+                if self.feature_name == 'foreground_ratio':
+                    self.features[self.feature_name].append(foreground)
+                elif self.feature_name == 'midground_ratio':
+                    self.features[self.feature_name].append(midground)
+                elif self.feature_name == 'background_ratio':
+                    self.features[self.feature_name].append(background)
 
-        for key in self.features:
-            feature_tensor = torch.tensor(self.features[key])
-            feature_min = torch.min(feature_tensor)
-            feature_max = torch.max(feature_tensor)
-            if feature_max > feature_min:
-                self.features[key] = ((feature_tensor - feature_min) / (feature_max - feature_min)).tolist()
-            else:
-                self.features[key] = torch.zeros_like(feature_tensor).tolist()
+        feature_tensor = torch.tensor(self.features[self.feature_name])
+        feature_min = torch.min(feature_tensor)
+        feature_max = torch.max(feature_tensor)
+        if feature_max > feature_min:
+            self.features[self.feature_name] = ((feature_tensor - feature_min) / (feature_max - feature_min)).tolist()
+        else:
+            self.features[self.feature_name] = torch.zeros_like(feature_tensor).tolist()
 
         return self
-
-    def get_value_at_frame(self, frame_index):
-        if self.features is None:
-            self.extract()
-        return self.features[self.feature_name][frame_index]
 
     def get_feature_sequence(self, feature_name=None):
         if self.features is None:
@@ -176,28 +186,63 @@ class DepthFeature(BaseFeature):
             self.feature_name = feature_name
         else:
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
-        
 
-class ImageFeature(BaseFeature):
-    def __init__(self, name, feature_type, frame_rate, frame_count, images):
-        super().__init__(name, feature_type, frame_rate, frame_count)
-        self.images = images  
-        self.features = None
-        self.feature_name = None
-        self.available_features = []
+class ColorFeature(BaseFeature):
+    def __init__(self, name, frame_rate, frame_count, images, feature_name='dominant_color'):
+        if images.dim() != 4 or images.shape[-1] != 3:
+            raise ValueError(f"Expected images in BHWC format, but got shape {images.shape}")
+        self.images = images
+        self.feature_name = feature_name
+        self.available_features = [
+            "dominant_color", "color_variance", "saturation",
+            "red_ratio", "green_ratio", "blue_ratio"
+        ]
+        super().__init__(name, "color", frame_rate, frame_count)
 
     def extract(self):
-        self.features = {feature: [] for feature in self.available_features}
+        self.features = {self.feature_name: []}
         
-        for image in self.images: 
-            image = image.float() / 255.0 if image.dtype == torch.uint8 else image
-            self._extract_features(image)
+        images = self.images.float() / 255.0 if self.images.dtype == torch.uint8 else self.images
+        
+        if self.feature_name in ['red_ratio', 'green_ratio', 'blue_ratio']:
+            color_sums = torch.sum(images, dim=(1, 2))
+            totals = torch.sum(color_sums, dim=1, keepdim=True)
+            ratios = color_sums / totals
+            
+            if self.feature_name == 'red_ratio':
+                self.features[self.feature_name] = ratios[:, 0].tolist()
+            elif self.feature_name == 'green_ratio':
+                self.features[self.feature_name] = ratios[:, 1].tolist()
+            elif self.feature_name == 'blue_ratio':
+                self.features[self.feature_name] = ratios[:, 2].tolist()
+        else:
+            for image in images:
+                self._extract_features(image)
 
         self._normalize_features()
+        print("ColorFeature extraction completed")
         return self
 
     def _extract_features(self, image):
-        raise NotImplementedError("Subclasses must implement this method")
+        if self.feature_name == 'dominant_color':
+            self.features[self.feature_name].append(self._get_dominant_color(image))
+        elif self.feature_name == 'color_variance':
+            self.features[self.feature_name].append(torch.var(image.reshape(-1, 3), dim=0).mean().item())
+        elif self.feature_name == 'saturation':
+            self.features[self.feature_name].append(self._calculate_saturation(image).item())
+
+    def _get_dominant_color(self, image):
+        print("Calculating dominant color")
+        quantized = (image * 31).long().reshape(-1, 3)
+        unique, counts = np.unique(quantized.cpu().numpy(), axis=0, return_counts=True)
+        dominant = unique[np.argmax(counts)]
+        return np.mean(dominant / 31)
+
+    def _calculate_saturation(self, image):
+        print("Calculating saturation")
+        max_val, _ = torch.max(image, dim=-1)
+        min_val, _ = torch.min(image, dim=-1)
+        return torch.mean(max_val - min_val)
 
     def _normalize_features(self):
         for key in self.features:
@@ -209,10 +254,69 @@ class ImageFeature(BaseFeature):
             else:
                 self.features[key] = torch.zeros_like(feature_tensor).tolist()
 
-    def get_value_at_frame(self, frame_index):
+    def get_feature_sequence(self, feature_name=None):
         if self.features is None:
             self.extract()
-        return self.features[self.feature_name][frame_index]
+        if feature_name is None:
+            feature_name = self.feature_name
+        return self.features.get(feature_name, None)
+
+    def set_active_feature(self, feature_name):
+        if feature_name in self.available_features:
+            self.feature_name = feature_name
+        else:
+            raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
+
+class BrightnessFeature(BaseFeature):
+    def __init__(self, name, frame_rate, frame_count, images, feature_name='mean_brightness'):
+        self.images = images
+        self.feature_name = feature_name
+        self.available_features = [
+            "mean_brightness", "brightness_variance", "brightness_histogram",
+            "dark_ratio", "mid_ratio", "bright_ratio"
+        ]
+        super().__init__(name, "brightness", frame_rate, frame_count)
+
+    def extract(self):
+        self.features = {self.feature_name: []}
+        
+        images = self.images.float() / 255.0 if self.images.dtype == torch.uint8 else self.images
+        
+        for image in images:
+            self._extract_features(image)
+
+        self._normalize_features()
+        return self
+
+    def _extract_features(self, image):
+        grayscale = 0.2989 * image[..., 0] + 0.5870 * image[..., 1] + 0.1140 * image[..., 2]
+        
+        if self.feature_name == 'mean_brightness':
+            self.features[self.feature_name].append(torch.mean(grayscale).item())
+        elif self.feature_name == 'brightness_variance':
+            self.features[self.feature_name].append(torch.var(grayscale).item())
+        elif self.feature_name == 'brightness_histogram':
+            histogram = torch.histc(grayscale, bins=10, min=0, max=1)
+            self.features[self.feature_name].append(histogram.tolist())
+        else:
+            total_pixels = grayscale.numel()
+            if self.feature_name == 'dark_ratio':
+                self.features[self.feature_name].append((torch.sum(grayscale < 0.3) / total_pixels).item())
+            elif self.feature_name == 'mid_ratio':
+                self.features[self.feature_name].append((torch.sum((grayscale >= 0.3) & (grayscale < 0.7)) / total_pixels).item())
+            elif self.feature_name == 'bright_ratio':
+                self.features[self.feature_name].append((torch.sum(grayscale >= 0.7) / total_pixels).item())
+
+    def _normalize_features(self):
+        for key in self.features:
+            if key != 'brightness_histogram':
+                feature_tensor = torch.tensor(self.features[key])
+                feature_min = torch.min(feature_tensor)
+                feature_max = torch.max(feature_tensor)
+                if feature_max > feature_min:
+                    self.features[key] = ((feature_tensor - feature_min) / (feature_max - feature_min)).tolist()
+                else:
+                    self.features[key] = torch.zeros_like(feature_tensor).tolist()
 
     def get_feature_sequence(self, feature_name=None):
         if self.features is None:
@@ -227,85 +331,9 @@ class ImageFeature(BaseFeature):
         else:
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 
-class ColorFeature(ImageFeature):
-    def __init__(self, name, frame_rate, frame_count, images, feature_name='dominant_color'):
-        super().__init__(name, "color", frame_rate, frame_count, images)
-        if images.dim() != 4 or images.shape[-1] != 3:
-            raise ValueError(f"Expected images in BHWC format, but got shape {images.shape}")
-        self.feature_name = feature_name
-        self.available_features = [
-            "dominant_color", "color_variance", "saturation",
-            "red_ratio", "green_ratio", "blue_ratio"
-        ]
-
-    def extract(self):
-        self.features = {feature: [] for feature in self.available_features}
-        
-        images = self.images.float() / 255.0 if self.images.dtype == torch.uint8 else self.images
-        
-        color_sums = torch.sum(images, dim=(1, 2))
-        totals = torch.sum(color_sums, dim=1, keepdim=True)
-        ratios = color_sums / totals
-        
-        self.features['red_ratio'] = ratios[:, 0].tolist()
-        self.features['green_ratio'] = ratios[:, 1].tolist()
-        self.features['blue_ratio'] = ratios[:, 2].tolist()
-        
-        # Process other features frame by frame
-        for i, image in enumerate(images):
-            self._extract_features(image)
-
-        self._normalize_features()
-        print("ColorFeature extraction completed")
-        return self
-
-    def _extract_features(self, image):
-        print(f"Extracting features from image with shape: {image.shape}")
-        self.features['dominant_color'].append(self._get_dominant_color(image))
-        self.features['color_variance'].append(torch.var(image.reshape(-1, 3), dim=0).mean().item())
-        self.features['saturation'].append(self._calculate_saturation(image).item())
-
-    def _get_dominant_color(self, image):
-        print("Calculating dominant color")
-        # Simplify to 5 bits per channel and flatten
-        quantized = (image * 31).long().reshape(-1, 3)
-        # Use numpy for faster unique operation
-        unique, counts = np.unique(quantized.cpu().numpy(), axis=0, return_counts=True)
-        dominant = unique[np.argmax(counts)]
-        return np.mean(dominant / 31)
-
-    def _calculate_saturation(self, image):
-        print("Calculating saturation")
-        max_val, _ = torch.max(image, dim=-1)
-        min_val, _ = torch.min(image, dim=-1)
-        return torch.mean(max_val - min_val)
-
-class BrightnessFeature(ImageFeature):
-    def __init__(self, name, frame_rate, frame_count, images, feature_name='mean_brightness'):
-        super().__init__(name, "brightness", frame_rate, frame_count, images)
-        self.feature_name = feature_name
-        self.available_features = [
-            "mean_brightness", "brightness_variance", "brightness_histogram",
-            "dark_ratio", "mid_ratio", "bright_ratio"
-        ]
-
-    def _extract_features(self, image):
-        grayscale = 0.2989 * image[..., 0] + 0.5870 * image[..., 1] + 0.1140 * image[..., 2]
-        
-        self.features['mean_brightness'].append(torch.mean(grayscale).item())
-        self.features['brightness_variance'].append(torch.var(grayscale).item())
-        
-        histogram = torch.histc(grayscale, bins=10, min=0, max=1)
-        self.features['brightness_histogram'].append(histogram.tolist())
-        
-        total_pixels = grayscale.numel()
-        self.features['dark_ratio'].append((torch.sum(grayscale < 0.3) / total_pixels).item())
-        self.features['mid_ratio'].append((torch.sum((grayscale >= 0.3) & (grayscale < 0.7)) / total_pixels).item())
-        self.features['bright_ratio'].append((torch.sum(grayscale >= 0.7) / total_pixels).item())
-
-class MotionFeature(ImageFeature):
+class MotionFeature(BaseFeature):
     def __init__(self, name, frame_rate, frame_count, images, feature_name='mean_motion', flow_method='Farneback', flow_threshold=0.0, magnitude_threshold=0.0):
-        super().__init__(name, "motion", frame_rate, frame_count, images)
+        self.images = images
         self.feature_name = feature_name
         self.flow_method = flow_method
         self.flow_threshold = flow_threshold
@@ -314,13 +342,12 @@ class MotionFeature(ImageFeature):
             "mean_motion", "max_motion", "motion_direction",
             "horizontal_motion", "vertical_motion", "motion_complexity"
         ]
-        print(f"MotionFeature initialized with images shape: {images.shape}")
+        super().__init__(name, "motion", frame_rate, frame_count)
 
     def extract(self):
         print("Starting MotionFeature extraction")
-        self.features = {feature: [] for feature in self.available_features}
+        self.features = {self.feature_name: []}
         
-        # Convert tensor to numpy array and ensure it's in uint8 format
         images_np = (self.images.cpu().numpy() * 255).astype(np.uint8)
         
         for i in range(len(images_np) - 1):
@@ -331,9 +358,7 @@ class MotionFeature(ImageFeature):
             flow = calculate_optical_flow(frame1, frame2, self.flow_method)
             self._extract_features(flow)
 
-        # Pad the last frame's features
         self._pad_last_frame()
-
         self._normalize_features()
         print("MotionFeature extraction completed")
         return self
@@ -341,18 +366,23 @@ class MotionFeature(ImageFeature):
     def _extract_features(self, flow):
         flow_magnitude = np.sqrt(flow[..., 0]**2 + flow[..., 1]**2)
         
-        # Apply thresholds
         if self.flow_threshold > 0:
             flow_magnitude[flow_magnitude < self.flow_threshold] = 0
         if self.magnitude_threshold > 0:
             flow_magnitude[flow_magnitude < self.magnitude_threshold * np.max(flow_magnitude)] = 0
         
-        self.features['mean_motion'].append(np.mean(flow_magnitude))
-        self.features['max_motion'].append(np.max(flow_magnitude))
-        self.features['motion_direction'].append(np.mean(np.arctan2(flow[..., 1], flow[..., 0])))
-        self.features['horizontal_motion'].append(np.mean(np.abs(flow[..., 0])))
-        self.features['vertical_motion'].append(np.mean(np.abs(flow[..., 1])))
-        self.features['motion_complexity'].append(np.std(flow_magnitude))
+        if self.feature_name == 'mean_motion':
+            self.features[self.feature_name].append(np.mean(flow_magnitude))
+        elif self.feature_name == 'max_motion':
+            self.features[self.feature_name].append(np.max(flow_magnitude))
+        elif self.feature_name == 'motion_direction':
+            self.features[self.feature_name].append(np.mean(np.arctan2(flow[..., 1], flow[..., 0])))
+        elif self.feature_name == 'horizontal_motion':
+            self.features[self.feature_name].append(np.mean(np.abs(flow[..., 0])))
+        elif self.feature_name == 'vertical_motion':
+            self.features[self.feature_name].append(np.mean(np.abs(flow[..., 1])))
+        elif self.feature_name == 'motion_complexity':
+            self.features[self.feature_name].append(np.std(flow_magnitude))
 
     def _pad_last_frame(self):
         for feature in self.features:
@@ -372,13 +402,7 @@ class MotionFeature(ImageFeature):
                 else:
                     self.features[key] = np.zeros_like(feature_array).tolist()
             else:
-                # Normalize angles to [0, 1]
                 self.features[key] = (np.array(self.features[key]) / (2 * np.pi)).tolist()
-
-    def get_value_at_frame(self, frame_index):
-        if self.features is None:
-            self.extract()
-        return self.features[self.feature_name][frame_index]
 
     def get_feature_sequence(self, feature_name=None):
         if self.features is None:

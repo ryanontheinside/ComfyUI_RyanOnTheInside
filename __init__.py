@@ -76,6 +76,9 @@ from .nodes.masks.flex_masks import (
     FlexMaskTransform,
     FlexMaskMath
 )
+
+
+
 from .nodes.masks.optical_flow_masks import (
     OpticalFlowMaskModulation,
     OpticalFlowDirectionMask,
@@ -95,15 +98,39 @@ from .nodes.masks.particle_system_masks import (
     ParticleSpeedModulation,
     )
 
-from .nodes.images.image_utility_nodes import (
-    DyeImage,
-)
+
 
 from .nodes.masks.utility_nodes import (
     _mfc, 
     TextMaskNode, 
     MovingShape,
 )
+
+###images
+
+from .nodes.images.image_utility_nodes import (
+    DyeImage,
+)
+from .nodes.images.flex_images import (
+    FlexImageEdgeDetect,
+    FlexImagePosterize,
+    FlexImageKaleidoscope,
+    FlexImageBloom,
+    FlexImageChromaticAberration,
+    FlexImageGlitch,
+    FlexImagePixelate,
+    FlexImageColorGrade,
+    FlexImageTiltShift,
+)
+
+from .nodes.flex.feature_externals import (
+    FeatureToWeightsStrategy,
+)
+
+from .nodes.flex.feature_modulation import (
+    FeatureStudio
+)
+
 
 import os
 import folder_paths
@@ -119,6 +146,8 @@ folder_paths.add_model_folder_path("midi_files", midi_path)
 os.makedirs(midi_path, exist_ok=True)
 
 NODE_CLASS_MAPPINGS = {
+    
+    ###temporal
     "MaskMorph": MaskMorph,
     "MaskTransform":MaskTransform,
     "MaskMath":MaskMath,
@@ -126,11 +155,12 @@ NODE_CLASS_MAPPINGS = {
     "MaskWarp":MaskWarp,
 
     
+    #optical flow
     "OpticalFlowMaskModulation": OpticalFlowMaskModulation,
     "OpticalFlowParticleSystem":OpticalFlowParticleSystem,
     "OpticalFlowDirectionMask":OpticalFlowDirectionMask,
 
-
+    #particle simulation
     "ParticleEmissionMask":ParticleEmissionMask,
     "Vortex":Vortex,
     "GravityWell":GravityWell,
@@ -143,30 +173,53 @@ NODE_CLASS_MAPPINGS = {
     "ParticleSpeedModulation":ParticleSpeedModulation,
 
 
+    #flex masks
     "FlexMaskMorph":       FlexMaskMorph,
     "FlexMaskWarp":        FlexMaskWarp,
     "FlexMaskTransform":   FlexMaskTransform,
     "FlexMaskMath":        FlexMaskMath,
 
+    #audio
     "AudioSeparator": AudioSeparator,
     "DownloadOpenUnmixModel":DownloadOpenUnmixModel,
-    "AudioFeatureExtractor":AudioFeatureExtractor,
     "AudioFeatureVisualizer":AudioFeatureVisualizer,
     "FrequencyFilterCustom": FrequencyFilterCustom,
     "FrequencyFilterPreset": FrequencyFilterPreset,
     "AudioFilter":AudioFilter,
 
-
+    #features
+    "AudioFeatureExtractor":AudioFeatureExtractor,
     "MIDILoadAndExtract":MIDILoadAndExtract,
     "TimeFeatureNode":TimeFeatureNode,
-    "DepthFeatureNode": DepthFeatureNode    ,
+    "DepthFeatureNode": DepthFeatureNode,
     "ColorFeatureNode":ColorFeatureNode,
     "BrightnessFeatureNode":BrightnessFeatureNode,
     "MotionFeatureNode":MotionFeatureNode,
+    "FeatureToWeightsStrategy": FeatureToWeightsStrategy,
+    "FeatureStudio":FeatureStudio,
+    
+    'FlexImageEdgeDetect':FlexImageEdgeDetect,
+    "FlexImagePosterize":FlexImagePosterize,
+    "FlexImageKaleidoscope":FlexImageKaleidoscope,
+    "FlexImageBloom":FlexImageBloom,
+    "FlexImageChromaticAberration":FlexImageChromaticAberration,
+    "FlexImageGlitch":FlexImageGlitch,
+    "FlexImagePixelate":FlexImagePixelate,
+    "FlexImageColorGrade":FlexImageColorGrade,
+    "FlexImageTiltShift":FlexImageTiltShift,
+
+
+    #garb
+    "DyeImage": DyeImage,
     "MovingShape": MovingShape,
     "_mfc":_mfc,
     "TextMaskNode":TextMaskNode,
-    "DyeImage": DyeImage,
+    
+
+
+
+
+
 }
 
 WEB_DIRECTORY = "./web/js"
@@ -214,14 +267,33 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
     "MovingShape": "Moving Shape",
     "TextMaskNode":"Text Mask Node",
-    "DyeImage" : "Dye Image"
+
+
+    "DyeImage" : "Dye Image",
+    # "FlexImageAdjustment":"Flex Image Adjustment",
+    # "FlexImageFilter":"Flex Image Filter",
+    # "FlexImageBlend":"Flex Image Blend",
 }
 
+
+
+
+import re
+
 suffix = " | RyanOnTheInside"
-NODE_DISPLAY_NAME_MAPPINGS = {
-    key: value if value.endswith(suffix) else value + suffix
-    for key, value in NODE_DISPLAY_NAME_MAPPINGS.items()
-}
+
+for node_name in NODE_CLASS_MAPPINGS.keys():
+    if node_name not in NODE_DISPLAY_NAME_MAPPINGS:
+        # Convert camelCase or snake_case to Title Case
+        display_name = ' '.join(word.capitalize() for word in re.findall(r'[A-Z]?[a-z]+|[A-Z]+(?=[A-Z][a-z]|\d|\W|$)|\d+', node_name))
+    else:
+        display_name = NODE_DISPLAY_NAME_MAPPINGS[node_name]
+    
+    # Add the suffix if it's not already present
+    if not display_name.endswith(suffix):
+        display_name += suffix
+    
+    NODE_DISPLAY_NAME_MAPPINGS[node_name] = display_name
 
 
 from aiohttp import web
@@ -238,6 +310,7 @@ if hasattr(PromptServer, "instance"):
     PromptServer.instance.app.add_routes(
         [web.static("/ryanontheinside_web_async", (Path(__file__).parent.absolute() / "ryanontheinside_web_async").as_posix())]
     )
+
 
 
 for node_name, node_class in NODE_CLASS_MAPPINGS.items():
