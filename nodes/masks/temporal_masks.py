@@ -5,6 +5,7 @@ import torch
 import cv2
 from scipy.ndimage import distance_transform_edt
 
+
 class MaskMorph(TemporalMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -20,6 +21,7 @@ class MaskMorph(TemporalMaskBase):
 
     RETURN_TYPES = ("MASK",)
     FUNCTION = "apply_mask_morph"
+
 
     def process_single_mask(self, mask: np.ndarray, strength: float, morph_type: str, max_kernel_size: int, max_iterations: int, **kwargs) -> np.ndarray:
         # Scale kernel size and iterations based on strength
@@ -47,6 +49,7 @@ class MaskTransform(TemporalMaskBase):
     RETURN_TYPES = ("MASK",)
     FUNCTION = "apply_mask_transform"
 
+
     def process_single_mask(self, mask: np.ndarray, strength: float, transform_type: str, x_value: float, y_value: float, **kwargs) -> np.ndarray:
         transformed_mask = transform_mask(mask, transform_type, x_value * strength, y_value * strength)
         return transformed_mask
@@ -69,6 +72,7 @@ class MaskMath(TemporalMaskBase):
     RETURN_TYPES = ("MASK",)
     FUNCTION = "apply_mask_math"
 
+    
     def process_single_mask(self, mask: np.ndarray, strength: float, mask_b: np.ndarray, combination_method: str, frame_index: int, **kwargs) -> np.ndarray:
         mask_b_frame = mask_b[frame_index]
         return combine_masks(mask, mask_b_frame, combination_method, strength)
@@ -77,6 +81,7 @@ class MaskMath(TemporalMaskBase):
         mask_b_np = mask_b.cpu().numpy() if isinstance(mask_b, torch.Tensor) else mask_b
         return super().main_function(masks, strength, mask_b=mask_b_np, combination_method=combination_method, **kwargs)
     
+    #TODO CONFIRM THAT NOTHING HAPPENS WITH EMPTY MASK
 class MaskRings(TemporalMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -91,6 +96,7 @@ class MaskRings(TemporalMaskBase):
 
     RETURN_TYPES = ("MASK",)
     FUNCTION = "apply_mask_rings"
+
 
     def process_single_mask(self, mask: np.ndarray, strength: float, num_rings: int, max_ring_width: float, **kwargs) -> np.ndarray:
         distance = distance_transform_edt(1 - mask)

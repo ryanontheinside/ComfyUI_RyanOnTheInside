@@ -18,9 +18,11 @@ import random
 from typing import List, Tuple
 import pymunk
 import cv2
+from ..audio.audio_utils import AudioFeatureExtractor
+from ... import RyanOnTheInside
 
 
-class MaskBase(ABC):
+class MaskBase(RyanOnTheInside, ABC):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -33,8 +35,9 @@ class MaskBase(ABC):
             }
         }
 
-    CATEGORY = "/RyanOnTheInside/masks/"
+    CATEGORY = "RyanOnTheInside/Masks"
 
+    
     def __init__(self):
         self.pre_processors = []
         self.post_processors = []
@@ -150,6 +153,8 @@ class TemporalMaskBase(MaskBase, ABC):
                 "palindrome": ("BOOLEAN", {"default": False}),
             }
         }
+    
+    CATEGORY="RyanOnTheInside/TemporalMasks"
 
     def __init__(self):
         super().__init__()
@@ -221,6 +226,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                 "wind_strength": ("FLOAT", {"default": 0.0, "min": -100.0, "max": 100.0, "step": 1.0}),
                 "wind_direction": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
                 "gravity": ("FLOAT", {"default": 0.0, "min": -1000.0, "max": 1000.0, "step": 1.0}),
+                "warmup_period": ("INT", {"default": 0, "min": 0, "max": 1000, "step": 1}),
                 "start_frame": ("INT", {"default": 0, "min": 0, "max": 1000, "step": 1}),
                 "end_frame": ("INT", {"default": 0, "min": 0, "max": 1000, "step": 1}),
                 "respect_mask_boundary": ("BOOLEAN", {"default": False}),
@@ -235,7 +241,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
 
     RETURN_TYPES = ("MASK", "IMAGE")
     FUNCTION = "main_function"
-    CATEGORY = "/RyanOnTheInside/masks/"
+    CATEGORY="RyanOnTheInside/ParticleSystemMasks"
 
     def __init__(self):
         super().__init__()
@@ -273,12 +279,18 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         start_frame = kwargs.get('start_frame', 0)
         end_frame = kwargs.get('end_frame', num_frames)
         end_frame = end_frame if end_frame > 0 else num_frames
+        warmup_period = kwargs.get('warmup_period', 0)
         
         self.setup_particle_system(width, height, **kwargs)
         
         respect_mask_boundary = kwargs.get('respect_mask_boundary', False)
         
-        self.start_progress(num_frames, desc="Processing particle system mask")
+        self.start_progress(num_frames + warmup_period, desc="Processing particle system mask")
+        
+        # Run warmup period
+        for _ in range(warmup_period):
+            self.update_particle_system(1.0 / 30.0, masks_np[0], respect_mask_boundary, -1)
+            self.update_progress()
         
         mask_result = []
         image_result = []
@@ -300,6 +312,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         self.end_progress()
         
         return torch.from_numpy(np.stack(mask_result)).float(), torch.from_numpy(np.stack(image_result)).float()
+
 
     def setup_particle_system(self, width: int, height: int, **kwargs):
         self.space.gravity = pymunk.Vec2d(float(kwargs['wind_strength']), float(kwargs['gravity']))
@@ -573,15 +586,13 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                 elif modulation['type'] == 'ParticleColorModulation':
                     self.apply_color_modulation(particle, modulation, progress)
 
-    def calculate_modulation_progress(self, current_frame, modulation, particle_age):
+    def calculate_modulation_progress(self, current_frame, modulation, particle_creation_frame):
         start_frame = modulation['start_frame']
         duration = modulation['effect_duration']
         
-
-        progress = (current_frame - start_frame) / duration
+        progress = (max(0, current_frame) - start_frame) / duration
         
         if modulation['palindrome']:
-            # For plindrome, we need to adjust the progress
             if progress <= 0.5:
                 progress = progress * 2
             else:
@@ -635,14 +646,16 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         
         for _ in range(sub_steps):
             for i, emitter in enumerate(self.emitters):
-                emission_rate = emitter['emission_rate'] * 10  # Increased sensitivity
-                self.particles_to_emit[i] += emission_rate * sub_dt
-                while self.particles_to_emit[i] >= 1 and self.total_particles_emitted < self.max_particles:
-                    self.emit_particle(emitter, height, width, i, frame_index)
-                    self.particles_to_emit[i] -= 1
+                # Check if the emitter is active in the current frame
+                if emitter['start_frame'] <= max(0, frame_index) and (emitter['end_frame'] == 0 or max(0, frame_index) < emitter['end_frame']):
+                    emission_rate = emitter['emission_rate'] * 10  # Increased sensitivity
+                    self.particles_to_emit[i] += emission_rate * sub_dt
+                    while self.particles_to_emit[i] >= 1 and self.total_particles_emitted < self.max_particles:
+                        self.emit_particle(emitter, height, width, i, frame_index)
+                        self.particles_to_emit[i] -= 1
             
             particles_before = len(self.particles)
-            self.particles = [p for p in self.particles if frame_index - p.creation_frame < self.particle_lifetime * 30]  # Assuming 30 fps
+            self.particles = [p for p in self.particles if max(0, frame_index) - p.creation_frame < self.particle_lifetime * 30]  # Assuming 30 fps
             particles_after = len(self.particles)
             particles_removed = particles_before - particles_after
             
@@ -651,7 +664,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                 self.apply_gravity_well_force(particle)
                 
                 # Apply modulations before updating position
-                self.apply_particle_modulations(particle, frame_index)
+                self.apply_particle_modulations(particle, max(0, frame_index))
                 
                 old_pos = particle.position
                 new_pos = old_pos + particle.velocity * sub_dt
@@ -700,12 +713,11 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         particle = pymunk.Body(mass, moment)
         particle.position = emitter_pos
         particle.velocity = velocity
-        #particle.creation_time = self.total_time
         particle.lifetime = self.particle_lifetime
         particle.size = particle_size
         particle.color = emitter['color']
         particle.emitter_index = emitter_index
-        particle.creation_frame = frame_index
+        particle.creation_frame = max(0, frame_index)  # Ensure non-negative creation frame
         
         shape = pymunk.Circle(particle, radius)
         shape.elasticity = 0.9
@@ -784,7 +796,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
 
     def main_function(self, masks, strength, invert, subtract_original, grow_with_blur, emitters, **kwargs):
         self.initialize()
-        self.total_frames = masks.shape[0]
+        self.total_frames = masks.shape[0] + kwargs.get('warmup_period', 0)  # Include warmup period in total frames
         for emitter in emitters:
             emitter['initial_x'] = emitter['emitter_x']
             emitter['initial_y'] = emitter['emitter_y']
@@ -794,10 +806,22 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         
         original_masks = masks
         processed_masks, processed_images = self.process_mask(masks, emitters=self.emitters, **kwargs)
+        
+        if subtract_original > 0:
+            original_masks_np = original_masks.cpu().numpy()
+            for i in range(self.total_frames):
+                mask_8bit = (original_masks_np[i] * 255).astype(np.uint8)
+                dist_transform = create_distance_transform(mask_8bit)
+                dist_transform = normalize_array(dist_transform)
+                threshold = 1 - subtract_original
+                subtraction_mask = dist_transform > threshold
+                
+                processed_images[i][subtraction_mask] = 0
+
         result_masks = self.apply_mask_operation(processed_masks, original_masks, strength, invert, subtract_original, grow_with_blur, **kwargs)
+        
         return (result_masks, processed_images,)
     
-
 class OpticalFlowMaskBase(MaskBase, ABC):
     @classmethod
     def INPUT_TYPES(cls):
@@ -812,7 +836,7 @@ class OpticalFlowMaskBase(MaskBase, ABC):
             }
         }
 
-    CATEGORY = "/RyanOnTheInside/masks/"
+    CATEGORY="RyanOnTheInside/OpticalFlowMasks"
 
     def __init__(self):
         super().__init__()
@@ -860,5 +884,52 @@ class OpticalFlowMaskBase(MaskBase, ABC):
         processed_masks = np.stack(result)
         return self.apply_mask_operation(processed_masks, masks, strength, **kwargs)
 
+#TODO  check if input mask is blank and just skip, then check children
+class FlexMaskBase(MaskBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "feature": ("FEATURE",),
+                "feature_pipe": ("FEATURE_PIPE",),
+                "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+            }
+        }
 
+    CATEGORY = "RyanOnTheInside/AudioMasks"
+    RETURN_TYPES = ("MASK",)
+    FUNCTION = "main_function"
+
+    @abstractmethod
+    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
+        pass
+
+    def apply_mask_operation(self, masks, feature, feature_pipe, strength, feature_threshold, invert, subtract_original, grow_with_blur, **kwargs):
+        num_frames = feature_pipe.frame_count
+        original_masks = masks.clone()
+
+        self.start_progress(num_frames, desc="Applying flex mask operation")
+
+        result = []
+        for i in range(num_frames):
+            mask = masks[i].numpy()
+            feature_value = feature.get_value_at_frame(i)
+            
+            if feature_value >= feature_threshold:
+                processed_mask = self.process_mask(mask, feature_value, strength, **kwargs)
+            else:
+                processed_mask = mask
+
+            result.append(processed_mask)
+            self.update_progress()
+
+        self.end_progress()
+
+        processed_masks = torch.from_numpy(np.stack(result)).float()
+        return super().apply_mask_operation(processed_masks, original_masks, strength, invert, subtract_original, grow_with_blur, **kwargs)
+
+    @abstractmethod
+    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, invert, subtract_original, grow_with_blur, **kwargs):
+        pass
 
