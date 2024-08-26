@@ -43,32 +43,24 @@ class FeatureModulationBase(RyanOnTheInside):
         
         plt.tight_layout(pad=0.5)
         
-        # Use BytesIO to store the image data
         buf = BytesIO()
         plt.savefig(buf, format='png', facecolor='black', edgecolor='none')
         buf.seek(0)
         
-        # Open the image with PIL
         img = Image.open(buf)
-        
-        # Convert PIL Image to numpy array
         img_array = np.array(img)
-        
-        # Convert to torch tensor and normalize
         img_tensor = torch.from_numpy(img_array).float() / 255.0
-        
-        # Add batch dimension if not present
         if img_tensor.dim() == 3:
             img_tensor = img_tensor.unsqueeze(0)
         
-        plt.close()  # Close the plot to free up memory
-        buf.close()  # Close the BytesIO buffer
+        plt.close()  
+        buf.close()  
         
         return img_tensor
 
 class FeatureMixer(FeatureModulationBase):
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {
             "required": {
                 "feature": ("FEATURE",),
@@ -80,28 +72,38 @@ class FeatureMixer(FeatureModulationBase):
                 "attack": ("FLOAT", {"default": 1.0, "min": 0.01, "max": 1.0, "step": 0.01}),
                 "release": ("FLOAT", {"default": 1.0, "min": 0.01, "max": 1.0, "step": 0.01}),
                 "smoothing": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "rise_detection_threshold": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 1.0, "step": 0.05}),
+                "rise_smoothing_factor": ("FLOAT", {"default": 0.5, "min": 0.1, "max": 2.0, "step": 0.05}),
             }
         }
 
     RETURN_TYPES = ("FEATURE", "IMAGE")
     RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    FUNCTION = "modulate"
 
-    def modulate(self, feature, base_gain, floor, ceiling, peak_sharpness, valley_sharpness, attack, release, smoothing):
+    def modulate(self, feature, base_gain, floor, ceiling, peak_sharpness, valley_sharpness, attack, release, smoothing, feature_threshold, rise_detection_threshold, rise_smoothing_factor):
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
         
-        # Normalize values to 0-1 range
-        min_val, max_val = min(values), max(values)
-        normalized = [(v - min_val) / (max_val - min_val) for v in values]
+        # feature threshold
+        values = [v if v >= feature_threshold else 0 for v in values]
         
-        # Apply base gain
+        # 0-1 range
+        min_val, max_val = min(values), max(values)
+        if min_val == max_val:
+            normalized = [0 for _ in values]  # All values are the same, normalize to 0
+        else:
+            normalized = [(v - min_val) / (max_val - min_val) for v in values]
+        
+        # multiply gain
         gained = [v * base_gain for v in normalized]
         
-        # Apply waveshaping (asymmetric sharpness)
+        
         def waveshape(v):
             return v**peak_sharpness if v > 0.5 else 1 - (1-v)**valley_sharpness
         waveshaped = [waveshape(v) for v in gained]
         
-        # Apply envelope follower
+       
         def apply_envelope(values, attack, release):
             envelope = []
             current = values[0]
@@ -113,8 +115,8 @@ class FeatureMixer(FeatureModulationBase):
                 envelope.append(current)
             return envelope
         enveloped = apply_envelope(waveshaped, attack, release)
-        
-        # Apply smoothing
+       
+       
         def smooth_values(values, smoothing_factor):
             smoothed = values.copy()
             for i in range(1, len(values)):
@@ -122,23 +124,23 @@ class FeatureMixer(FeatureModulationBase):
             return smoothed
         smoothed = smooth_values(enveloped, smoothing)
         
-        # Apply floor and ceiling
-        final_values = [max(floor, min(ceiling, v)) for v in smoothed]
+        # try to do look ahead
+        adjusted = self.apply_rise_time_adjustment(smoothed, rise_detection_threshold, rise_smoothing_factor)
         
-        # Create a new feature with the processed values
+        # chop
+        final_values = [max(floor, min(ceiling, v)) for v in adjusted]
+        
+        #we create a new feature with our values and override extract method
+        # NOTE: tested with several feature type, but not all
         class ProcessedFeature(type(feature)):
             def __init__(self, original_feature, processed_values):
-                # Copy all attributes from the original feature
                 self.__dict__.update(original_feature.__dict__)
-                
-                # Override specific attributes
-                self.name = original_feature.name
+                self.name = f"Processed_{original_feature.name}"
                 self.frame_rate = original_feature.frame_rate
                 self.frame_count = original_feature.frame_count
                 self.data = processed_values
 
             def extract(self):
-                # The data is already processed, so we just return self
                 return self
 
             def get_value_at_frame(self, frame_index):
@@ -146,3 +148,26 @@ class FeatureMixer(FeatureModulationBase):
 
         processed_feature = ProcessedFeature(feature, final_values)
         return (processed_feature, self.visualize(processed_feature))
+
+    def apply_rise_time_adjustment(self, values, rise_detection_threshold, rise_smoothing_factor):
+        if all(v == 0 for v in values):
+            return values
+        
+        adjusted = values.copy()
+        window_size = 5
+
+        for i in range(len(values) - window_size):
+            if values[i + window_size] - values[i] > rise_detection_threshold:
+                
+                start_index = i
+                end_index = min(len(values), i + 2*window_size)
+                peak_index = start_index + np.argmax(values[start_index:end_index])
+                peak_value = values[peak_index]
+
+               
+                for j in range(start_index, peak_index):
+                    progress = (j - start_index) / (peak_index - start_index)
+                    smoothed_value = values[start_index] + (peak_value - values[start_index]) * (progress ** (1/rise_smoothing_factor))
+                    adjusted[j] = max(adjusted[j], smoothed_value)  # Take the max to prevent lowering existing higher values
+
+        return adjusted
