@@ -2,7 +2,7 @@ import numpy as np
 from .mask_base import ParticleSystemMaskBase
 from typing import List, Tuple
 import cv2
-import inspect
+from ... import RyanOnTheInside
 
 class ParticleEmissionMask(ParticleSystemMaskBase):
     @classmethod
@@ -22,8 +22,8 @@ class ParticleEmissionMask(ParticleSystemMaskBase):
 
     RETURN_TYPES = ("MASK","IMAGE")
     FUNCTION = "main_function"
-    CATEGORY = "Masks/Particle Systems"
 
+    
     def process_single_mask(self, mask: np.ndarray, frame_index: int, emission_strength: float, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         
         self.modulate_parameters(frame_index, mask)
@@ -57,7 +57,10 @@ class ParticleEmissionMask(ParticleSystemMaskBase):
                                      emission_strength=emission_strength, 
                                      static_bodies=static_bodies, **kwargs)    
 
-class Vortex:
+class ParticleSystemModulatorBase(RyanOnTheInside):
+    CATEGORY="RyanOnTheInside/ParticleSystemMasks"
+
+class Vortex(ParticleSystemModulatorBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -78,7 +81,6 @@ class Vortex:
 
     RETURN_TYPES = ("VORTEX",)
     FUNCTION = "create_vortex"
-    CATEGORY = "RyanOnTheInside/ParticleSystems"
 
     def create_vortex(self, x, y, strength, radius, inward_factor, movement_speed, color, draw, previous_vortex=None):
         vortex = {
@@ -99,7 +101,7 @@ class Vortex:
         
         return (vortex_list,)
 
-class GravityWell:
+class GravityWell(ParticleSystemModulatorBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -119,7 +121,6 @@ class GravityWell:
 
     RETURN_TYPES = ("GRAVITY_WELL",)
     FUNCTION = "create_gravity_well"
-    CATEGORY = "RyanOnTheInside/ParticleSystems"
 
     def create_gravity_well(self, x, y, strength, radius, type, color, draw, previous_well=None):
         well = {
@@ -139,7 +140,7 @@ class GravityWell:
         
         return (well_list,)
 
-class ParticleEmitter:
+class ParticleEmitter(ParticleSystemModulatorBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -153,6 +154,8 @@ class ParticleEmitter:
                 "emission_rate": ("FLOAT", {"default": 10.0, "min": 0.1, "max": 100.0, "step": 0.1}),
                 "color": ("STRING", {"default": "(255,255,255)"}),
                 "initial_plume": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "start_frame": ("INT", {"default": 0, "min": 0, "max": 10000, "step": 1}),
+                "end_frame": ("INT", {"default": 0, "min": 0, "max": 10000, "step": 1}),
             },
             "optional": {
                 "previous_emitter": ("PARTICLE_EMITTER",),
@@ -164,11 +167,11 @@ class ParticleEmitter:
 
     RETURN_TYPES = ("PARTICLE_EMITTER",)
     FUNCTION = "create_emitter"
-    CATEGORY = "RyanOnTheInside/ParticleSystems"
 
     def create_emitter(self, emitter_x, emitter_y, particle_direction, particle_spread, 
                        particle_size, particle_speed, emission_rate, color, initial_plume,
-                       previous_emitter=None, emitter_movement=None, spring_joint_setting=None, particle_modulation=None):
+                       start_frame, end_frame, previous_emitter=None, emitter_movement=None, 
+                       spring_joint_setting=None, particle_modulation=None):
         emitter = {
             "emitter_x": emitter_x,
             "emitter_y": emitter_y,
@@ -179,6 +182,8 @@ class ParticleEmitter:
             "emission_rate": emission_rate,
             "color": color,
             "initial_plume": initial_plume,
+            "start_frame": start_frame,
+            "end_frame": end_frame,
         }
         
         if emitter_movement:
@@ -197,7 +202,7 @@ class ParticleEmitter:
         
         return (emitter_list,)
 
-class SpringJointSetting:
+class SpringJointSetting(ParticleSystemModulatorBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -211,7 +216,6 @@ class SpringJointSetting:
 
     RETURN_TYPES = ("SPRING_JOINT_SETTING",)
     FUNCTION = "create_setting"
-    CATEGORY = "RyanOnTheInside/ParticleSystems"
 
     def create_setting(self, stiffness, damping, rest_length, max_distance):
         return ({
@@ -221,7 +225,7 @@ class SpringJointSetting:
             "max_distance": max_distance,
         },)
     
-class EmitterMovement:
+class EmitterMovement(ParticleSystemModulatorBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -237,7 +241,6 @@ class EmitterMovement:
 
     RETURN_TYPES = ("EMITTER_MOVEMENT",)
     FUNCTION = "create_movement"
-    CATEGORY = "RyanOnTheInside/ParticleSystems"
 
     def create_movement(self, emitter_x_frequency, emitter_y_frequency, direction_frequency,
                         emitter_x_amplitude, emitter_y_amplitude, direction_amplitude):
@@ -251,7 +254,7 @@ class EmitterMovement:
         }
         return (movement,)
 
-class StaticBody:
+class StaticBody(ParticleSystemModulatorBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -274,7 +277,6 @@ class StaticBody:
 
     RETURN_TYPES = ("STATIC_BODY",)
     FUNCTION = "create_static_body"
-    CATEGORY = "RyanOnTheInside/ParticleSystems"
 
     def create_static_body(self, shape_type, x1, y1, x2, y2, elasticity, friction, draw, color, previous_body=None):
         body = {
@@ -297,7 +299,7 @@ class StaticBody:
         
         return (body_list,)
 
-class ParticleModulationBase:
+class ParticleModulationBase(ParticleSystemModulatorBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -312,8 +314,7 @@ class ParticleModulationBase:
                 "previous_modulation": ("PARTICLE_MODULATION",),
             }
         }
-
-    CATEGORY = "RyanOnTheInside/ParticleSystems"
+    
 
     def create_modulation(self, start_frame, end_frame, effect_duration, temporal_easing, palindrome, previous_modulation=None):
         modulation = {
