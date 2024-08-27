@@ -100,10 +100,10 @@ from .nodes.masks.particle_system_masks import (
     ParticleSpeedModulation,
     )
 
-from .nodes.masks.opacity_masks import(
-    DepthBasedMaskOpacity,
-    FlexDepthBasedMaskOpacity,
-)
+# from .nodes.masks.opacity_masks import(
+#     DepthBasedMaskOpacity,
+#     FlexDepthBasedMaskOpacity,
+# )
 
 from .nodes.masks.utility_nodes import (
     _mfc, 
