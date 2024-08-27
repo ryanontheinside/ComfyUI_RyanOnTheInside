@@ -235,6 +235,8 @@ See `requirements.txt` for a list of dependencies.
 
 ## Contributing
 
+*Credit to https://github.com/alanhuang67/ComfyUI-FAI-Node for Voronoi implementation
+
 Contributions are welcome! Both to the code and EXAMPLE WORKFLOWS!!! If you'd like to contribute:
 
 1. Fork the repository

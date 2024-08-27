@@ -1,8 +1,12 @@
 import numpy as np
 import cv2
 from scipy import ndimage
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter,distance_transform_edt
 from ..node_utilities import string_to_rgb
+from scipy.spatial import Voronoi
+from .shape_utils import get_available_shapes,create_shape_mask
+from scipy.spatial import Voronoi
+from skimage import draw
 
 def apply_easing(t, easing_type):
     if easing_type == 'linear':
@@ -42,6 +46,121 @@ def morph_mask(mask, morph_type, kernel_size, iterations, progress_callback=None
             progress_callback()
     
     return mask
+
+def generate_shape(shape_type, size, center):
+    x, y = center
+    if shape_type == "circle":
+        return cv2.circle(np.zeros(size, dtype=np.float32), (int(x), int(y)), int(size[0]/20), 1, -1)
+    elif shape_type == "star":
+        points = np.array([[x, y-30], [x+10, y-10], [x+30, y-10], [x+15, y+5],
+                           [x+20, y+30], [x, y+15], [x-20, y+30], [x-15, y+5],
+                           [x-30, y-10], [x-10, y-10]], dtype=np.int32)
+        return cv2.fillPoly(np.zeros(size, dtype=np.float32), [points], 1)
+    elif shape_type == "oval":
+        return cv2.ellipse(np.zeros(size, dtype=np.float32), (int(x), int(y)), (int(size[0]/15), int(size[0]/30)), 0, 0, 360, 1, -1)
+    elif shape_type == "parallelogram":
+        points = np.array([[x-20, y-10], [x+20, y-10], [x+30, y+10], [x-10, y+10]], dtype=np.int32)
+        return cv2.fillPoly(np.zeros(size, dtype=np.float32), [points], 1)
+    elif shape_type == "dodecagon":
+        radius = size[0] // 40
+        angle = np.linspace(0, 2*np.pi, 13)[:-1]
+        points = np.array([np.column_stack([x + radius * np.cos(angle), y + radius * np.sin(angle)])], dtype=np.int32)
+        return cv2.fillPoly(np.zeros(size, dtype=np.float32), points, 1)
+    else:  # default to point
+        return cv2.circle(np.zeros(size, dtype=np.float32), (int(x), int(y)), 1, 1, -1)
+
+
+def generate_voronoi_mask(shape, num_points, point_jitter, edge_width):
+    height, width = shape
+    
+    # Ensure at least 4 points
+    num_points = max(4, num_points)
+    
+    # Generate base grid of points
+    x = np.linspace(0, width, int(np.sqrt(num_points)))
+    y = np.linspace(0, height, int(np.sqrt(num_points)))
+    xx, yy = np.meshgrid(x, y)
+    points = np.column_stack((xx.ravel(), yy.ravel()))
+    
+    # Add jitter to points
+    jitter = np.random.uniform(-point_jitter, point_jitter, points.shape) * np.array([width, height])
+    points += jitter
+    
+    # Ensure points are within the image bounds and unique
+    points = np.clip(points, [0, 0], [width - 1, height - 1])
+    points = np.unique(points, axis=0)
+    
+    # If we have less than 4 unique points, add some random points
+    while len(points) < 4:
+        new_point = np.random.rand(2) * [width, height]
+        points = np.vstack((points, new_point))
+        points = np.unique(points, axis=0)
+    
+    # Generate Voronoi diagram
+    vor = Voronoi(points)
+    
+    # Create mask
+    mask = np.zeros(shape, dtype=np.float32)
+    
+    # Draw Voronoi edges
+    for simplex in vor.ridge_vertices:
+        if -1 not in simplex:
+            p1, p2 = vor.vertices[simplex]
+            rr, cc = draw.line(int(p1[1]), int(p1[0]), int(p2[1]), int(p2[0]))
+            valid = (rr >= 0) & (rr < height) & (cc >= 0) & (cc < width)
+            mask[rr[valid], cc[valid]] = 1
+    
+    # Apply edge width
+    if edge_width > 0:
+        distance = distance_transform_edt(1 - mask)
+        mask = np.where(distance < edge_width * min(height, width), 1, 0)
+    
+    return mask.astype(np.float32)
+
+def generate_voronoi_shapes_mask(shape, num_points, point_jitter, shape_type, shape_size, shape_params=None):
+    height, width = shape
+    
+    # Generate points
+    x = np.linspace(0, width, int(np.sqrt(num_points)))
+    y = np.linspace(0, height, int(np.sqrt(num_points)))
+    xx, yy = np.meshgrid(x, y)
+    points = np.column_stack((xx.ravel(), yy.ravel()))
+    
+    # Add jitter to points
+    jitter = np.random.uniform(-point_jitter, point_jitter, points.shape) * np.array([width, height])
+    points += jitter
+    
+    # Ensure points are within the image bounds and unique
+    points = np.clip(points, [0, 0], [width - 1, height - 1])
+    points = np.unique(points, axis=0)
+    
+    # If we have less than 4 unique points, add some random points
+    while len(points) < 4:
+        new_point = np.random.rand(2) * [width, height]
+        points = np.vstack((points, new_point))
+        points = np.unique(points, axis=0)
+    
+    # Generate Voronoi diagram
+    vor = Voronoi(points)
+    
+    # Create mask
+    mask = np.zeros(shape, dtype=np.float32)
+    
+    # Generate shapes at Voronoi points
+    for point in vor.points:
+        x, y = point.astype(int)
+        size = int(shape_size * min(height, width))
+        
+        if shape_type == "random":
+            current_shape_type = np.random.choice(get_available_shapes())
+        else:
+            current_shape_type = shape_type
+        
+        shape_mask = create_shape_mask(shape, (x, y), current_shape_type, size, shape_params)
+        mask = np.maximum(mask, shape_mask)
+    
+    return mask
+
 
 ###TRANSFORM
 def warp_affine(mask: np.ndarray, M: np.ndarray) -> np.ndarray:
