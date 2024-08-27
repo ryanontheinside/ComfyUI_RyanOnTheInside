@@ -74,7 +74,10 @@ from .nodes.masks.flex_masks import (
     FlexMaskMorph,
     FlexMaskWarp,
     FlexMaskTransform,
-    FlexMaskMath
+    FlexMaskMath,
+    FlexMaskOpacity,
+    FlexMaskVoronoi,
+    FlexMaskVoronoiScheduled,
 )
 
 
@@ -98,7 +101,10 @@ from .nodes.masks.particle_system_masks import (
     ParticleSpeedModulation,
     )
 
-
+from .nodes.masks.opacity_masks import(
+    DepthBasedMaskOpacity,
+    FlexDepthBasedMaskOpacity,
+)
 
 from .nodes.masks.utility_nodes import (
     _mfc, 
@@ -129,6 +135,10 @@ from .nodes.flex.feature_externals import (
 
 from .nodes.flex.feature_modulation import (
     FeatureMixer
+)
+
+from .nodes.five.adaptive_lora import (
+    LoraWeightStrategyLoader
 )
 
 
@@ -207,6 +217,12 @@ NODE_CLASS_MAPPINGS = {
     "FlexImagePixelate":FlexImagePixelate,
     "FlexImageColorGrade":FlexImageColorGrade,
     "FlexImageTiltShift":FlexImageTiltShift,
+    "FlexMaskOpacity":FlexMaskOpacity,
+    "FlexMaskVoronoi":FlexMaskVoronoi,
+    "FlexMaskVoronoiScheduled":FlexMaskVoronoiScheduled,
+    #opacity
+    "FlexDepthBasedMaskOpacity":FlexDepthBasedMaskOpacity,
+    "DepthBasedMaskOpacity":DepthBasedMaskOpacity,
 
 
     #garb
@@ -217,7 +233,7 @@ NODE_CLASS_MAPPINGS = {
     
 
 
-
+    "LoraWeightStrategyLoader": LoraWeightStrategyLoader
 
 
 }
