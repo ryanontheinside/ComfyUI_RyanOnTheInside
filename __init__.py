@@ -76,7 +76,6 @@ from .nodes.masks.flex_masks import (
     FlexMaskTransform,
     FlexMaskMath,
     FlexMaskOpacity,
-    FlexMaskVoronoi,
     FlexMaskVoronoiScheduled,
 )
 
@@ -137,9 +136,6 @@ from .nodes.flex.feature_modulation import (
     FeatureMixer
 )
 
-from .nodes.five.adaptive_lora import (
-    LoraWeightStrategyLoader
-)
 
 
 import os
@@ -218,11 +214,11 @@ NODE_CLASS_MAPPINGS = {
     "FlexImageColorGrade":FlexImageColorGrade,
     "FlexImageTiltShift":FlexImageTiltShift,
     "FlexMaskOpacity":FlexMaskOpacity,
-    "FlexMaskVoronoi":FlexMaskVoronoi,
     "FlexMaskVoronoiScheduled":FlexMaskVoronoiScheduled,
-    #opacity
-    "FlexDepthBasedMaskOpacity":FlexDepthBasedMaskOpacity,
-    "DepthBasedMaskOpacity":DepthBasedMaskOpacity,
+    
+    #opacity xp
+    # "FlexDepthBasedMaskOpacity":FlexDepthBasedMaskOpacity,
+    # "DepthBasedMaskOpacity":DepthBasedMaskOpacity,
 
 
     #garb
@@ -230,11 +226,6 @@ NODE_CLASS_MAPPINGS = {
     "MovingShape": MovingShape,
     "_mfc":_mfc,
     "TextMaskNode":TextMaskNode,
-    
-
-
-    "LoraWeightStrategyLoader": LoraWeightStrategyLoader
-
 
 }
 
