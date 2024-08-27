@@ -3,6 +3,7 @@ from .mask_utils import morph_mask, warp_mask, transform_mask, combine_masks
 import math
 import numpy as np
 from .voronoi_noise import VoronoiNoise #NOTE credit for Voronoi goes to Alan Huang https://github.com/alanhuang67/
+from comfy.model_management import get_torch_device
 
 class FlexMaskMorph(FlexMaskBase):
     @classmethod
@@ -184,7 +185,7 @@ class FlexMaskVoronoiScheduled(FlexMaskBase):
             Y=[y_offset],
             distance_metric=distance_metric,
             batch_size=1,
-            device='cpu'
+            device=get_torch_device()
         )
 
         # Generate Voronoi noise
