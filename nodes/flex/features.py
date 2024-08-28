@@ -101,10 +101,14 @@ class AudioFeature(BaseFeature):
         end_time = (frame_index + 1) * self.frame_duration
         start_sample = int(start_time * self.sample_rate)
         end_sample = int(end_time * self.sample_rate)
-        return self.audio[start_sample:end_sample]
+        if start_sample >= len(self.audio):
+            return np.array([])  # Return empty array if we've run out of audio
+        return self.audio[start_sample:min(end_sample, len(self.audio))]
 
     def _amplitude_envelope(self):
-        return np.array([np.max(np.abs(self._get_audio_frame(i))) for i in range(self.num_frames)])
+        def safe_max(frame):
+            return np.max(np.abs(frame)) if frame.size > 0 else 0
+        return np.array([safe_max(self._get_audio_frame(i)) for i in range(self.num_frames)])
 
     def _rms_energy(self):
         return np.array([np.sqrt(np.mean(self._get_audio_frame(i)**2)) for i in range(self.num_frames)])

@@ -716,3 +716,32 @@ add_node_config("FlexImageTiltShift", {
 - `focus_shape`: Shape of the focus area ("rectangle" or "ellipse")
 """
 })
+
+add_node_config("FlexMaskOpacity", {
+    "TOP_DESCRIPTION": "Applies opacity modulation to the mask based on a selected feature.",
+    "ADDITIONAL_INFO": """
+- `max_opacity`: Maximum opacity to apply to the mask (0.0 to 1.0). Higher values allow for more opaque masks.
+
+The actual opacity applied is determined by the product of max_opacity, feature value, and strength.
+
+This node is useful for creating masks that fade in and out based on the selected feature, allowing for smooth transitions and effects that respond to various inputs like audio, time, or other extracted features.
+"""
+})
+
+add_node_config("FlexMaskVoronoiScheduled", {
+    "TOP_DESCRIPTION": "Generates a Voronoi noise mask with parameters modulated by a selected feature according to a specified formula.",
+    "ADDITIONAL_INFO": """
+- `distance_metric`: Method used to calculate distances in the Voronoi diagram. Options include various mathematical norms and custom patterns.
+- `scale`: Base scale of the Voronoi cells (0.1 to 10.0). Larger values create bigger cells.
+- `detail`: Number of Voronoi cells (10 to 1000). More cells create more intricate patterns.
+- `randomness`: Degree of randomness in cell placement (0.0 to 5.0). Higher values create more chaotic patterns.
+- `seed`: Random seed for reproducible results (0 to 2^64 - 1).
+- `x_offset`: Horizontal offset of the Voronoi pattern (-1000.0 to 1000.0).
+- `y_offset`: Vertical offset of the Voronoi pattern (-1000.0 to 1000.0).
+- `control_parameter`: Which parameter to modulate based on the feature ("scale", "detail", "randomness", "seed", "x_offset", "y_offset").
+- `formula`: Mathematical formula used to map the feature value to the control parameter. Options include "Linear", "Quadratic", "Cubic", "Sinusoidal", and "Exponential".
+- `a` and `b`: Parameters for fine-tuning the chosen formula (0.1 to 10.0).
+
+Credit for the  heavy lifting for this node goes to https://github.com/alanhuang67/
+"""
+})
