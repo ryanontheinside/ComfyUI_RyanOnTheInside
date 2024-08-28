@@ -237,7 +237,7 @@ class EmitterMovement(ParticleSystemModulatorBase):
                 "emitter_y_frequency": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.01}),
                 "emitter_y_amplitude": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 0.5, "step": 0.01}),
                 "direction_frequency": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.01}),
-                "direction_amplitude": ("FLOAT", {"default": 360.0, "min": 0.0, "max": 180.0, "step": 1.0}),
+                "direction_amplitude": ("FLOAT", {"default": 180.0, "min": 0.0, "max": 360.0, "step": 1.0}),
             }
         }
 
