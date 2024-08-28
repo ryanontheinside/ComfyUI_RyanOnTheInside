@@ -156,6 +156,7 @@ class ParticleEmitter(ParticleSystemModulatorBase):
                 "initial_plume": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "start_frame": ("INT", {"default": 0, "min": 0, "max": 10000, "step": 1}),
                 "end_frame": ("INT", {"default": 0, "min": 0, "max": 10000, "step": 1}),
+                "emission_radius": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 100.0, "step": 0.1}),
             },
             "optional": {
                 "previous_emitter": ("PARTICLE_EMITTER",),
@@ -170,8 +171,8 @@ class ParticleEmitter(ParticleSystemModulatorBase):
 
     def create_emitter(self, emitter_x, emitter_y, particle_direction, particle_spread, 
                        particle_size, particle_speed, emission_rate, color, initial_plume,
-                       start_frame, end_frame, previous_emitter=None, emitter_movement=None, 
-                       spring_joint_setting=None, particle_modulation=None):
+                       start_frame, end_frame, emission_radius, previous_emitter=None, 
+                       emitter_movement=None, spring_joint_setting=None, particle_modulation=None):
         emitter = {
             "emitter_x": emitter_x,
             "emitter_y": emitter_y,
@@ -184,6 +185,7 @@ class ParticleEmitter(ParticleSystemModulatorBase):
             "initial_plume": initial_plume,
             "start_frame": start_frame,
             "end_frame": end_frame,
+            "emission_radius": emission_radius,
         }
         
         if emitter_movement:
@@ -235,7 +237,7 @@ class EmitterMovement(ParticleSystemModulatorBase):
                 "emitter_y_frequency": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.01}),
                 "emitter_y_amplitude": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 0.5, "step": 0.01}),
                 "direction_frequency": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.01}),
-                "direction_amplitude": ("FLOAT", {"default": 360.0, "min": 0.0, "max": 180.0, "step": 1.0}),
+                "direction_amplitude": ("FLOAT", {"default": 180.0, "min": 0.0, "max": 360.0, "step": 1.0}),
             }
         }
 
@@ -309,6 +311,7 @@ class ParticleModulationBase(ParticleSystemModulatorBase):
                 "effect_duration": ("INT", {"default": 0, "min": 0, "max": 1000, "step": 1}),
                 "temporal_easing": (["ease_in_out", "linear", "bounce", "elastic", "none"],),
                 "palindrome": ("BOOLEAN", {"default": False}),
+                "random": ("BOOLEAN", {"default": False}),
             },
             "optional": {
                 "previous_modulation": ("PARTICLE_MODULATION",),
@@ -316,13 +319,14 @@ class ParticleModulationBase(ParticleSystemModulatorBase):
         }
     
 
-    def create_modulation(self, start_frame, end_frame, effect_duration, temporal_easing, palindrome, previous_modulation=None):
+    def create_modulation(self, start_frame, end_frame, effect_duration, temporal_easing, palindrome, random, previous_modulation=None):
         modulation = {
             "start_frame": start_frame,
             "end_frame": end_frame,
             "effect_duration": effect_duration,
             "temporal_easing": temporal_easing,
             "palindrome": palindrome,
+            "random": random,
         }
         
         modulation_type = self.__class__.__name__
