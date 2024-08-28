@@ -220,13 +220,14 @@ class FlexMaskBinary(FlexMaskBase):
                 "method": (["simple", "adaptive", "hysteresis", "edge"],),
                 "max_smoothing": ("INT", {"default": 21, "min": 0, "max": 51, "step": 2}),
                 "max_edge_enhancement": ("FLOAT", {"default": 2.0, "min": 0.0, "max": 10.0, "step": 0.1}),
-                "feature_param": ([ "threshold","none", "smoothing", "edge_enhancement"],),
+                "feature_param": (["threshold", "none", "smoothing", "edge_enhancement"],),
+                "use_epsilon": ("BOOLEAN", {"default": False}),
             }
         }
 
     def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, threshold: float, 
                      method: str, max_smoothing: int, max_edge_enhancement: float, 
-                     feature_param: str, **kwargs) -> np.ndarray:
+                     feature_param: str, use_epsilon: bool, **kwargs) -> np.ndarray:
         mask = mask.astype(np.float32)
         mask = np.clip(mask, 0, 1)
 
@@ -257,7 +258,12 @@ class FlexMaskBinary(FlexMaskBase):
         adjusted_threshold = max(0.0, min(1.0, adjusted_threshold))
 
         if method == "simple":
-            binary_mask = (mask > adjusted_threshold).astype(np.float32)
+            if use_epsilon:
+                epsilon = 1e-7  # Small value to avoid exact comparisons
+                binary_mask = ((mask > adjusted_threshold + epsilon) | 
+                               (abs(mask - adjusted_threshold) < epsilon)).astype(np.float32)
+            else:
+                binary_mask = (mask > adjusted_threshold).astype(np.float32)
         elif method == "adaptive":
             mask_uint8 = (mask * 255).astype(np.uint8)
             binary_mask = cv2.adaptiveThreshold(
@@ -286,13 +292,14 @@ class FlexMaskBinary(FlexMaskBase):
 
     def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, invert, 
                       subtract_original, grow_with_blur, threshold, method, max_smoothing, 
-                      max_edge_enhancement, feature_param, **kwargs):
+                      max_edge_enhancement, feature_param, use_epsilon, **kwargs):
         return (self.apply_mask_operation(masks, feature, feature_pipe, strength, feature_threshold, 
                                           invert, subtract_original, grow_with_blur, 
                                           threshold=threshold, method=method, 
                                           max_smoothing=max_smoothing, 
                                           max_edge_enhancement=max_edge_enhancement, 
-                                          feature_param=feature_param, **kwargs),)
+                                          feature_param=feature_param,
+                                          use_epsilon=use_epsilon, **kwargs),)
 
 
 
