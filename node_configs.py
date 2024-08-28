@@ -654,6 +654,51 @@ Outputs:
 """
 })
 
+add_node_config("FeatureScaler", {
+    "TOP_DESCRIPTION": "Scales and transforms feature values using various mathematical functions.",
+    "ADDITIONAL_INFO": """
+    - `feature`: Input feature to be scaled (FEATURE type)
+    - `scale_type`: Type of scaling to apply ("linear", "logarithmic", "exponential", "inverse")
+    - `min_output`: Minimum output value after scaling (0.0 to 1.0)
+    - `max_output`: Maximum output value after scaling (0.0 to 1.0)
+    - `exponent`: Exponent for exponential scaling (0.1 to 10.0)
+    """
+})
+
+add_node_config("FeatureMath", {
+    "TOP_DESCRIPTION": "Performs mathematical operations between two features.",
+    "ADDITIONAL_INFO": """
+    - `feature1`: First input feature (FEATURE type)
+    - `feature2`: Second input feature (FEATURE type)
+    - `operation`: Mathematical operation to perform ("add", "subtract", "multiply", "divide", "max", "min")
+    - `weight1`: Weight applied to feature1 (0.0 to 1.0)
+    - `weight2`: Weight applied to feature2 (0.0 to 1.0)
+    """
+})
+
+add_node_config("FeatureSmoothing", {
+    "TOP_DESCRIPTION": "Applies various smoothing techniques to a feature.",
+    "ADDITIONAL_INFO": """
+    - `feature`: Input feature to be smoothed (FEATURE type)
+    - `smoothing_type`: Type of smoothing to apply ("moving_average", "exponential", "gaussian")
+    - `window_size`: Size of the smoothing window for moving average and gaussian (3 to 21, odd numbers only)
+    - `alpha`: Smoothing factor for exponential smoothing (0.0 to 1.0)
+    - `sigma`: Standard deviation for gaussian smoothing (0.1 to 5.0)
+    """
+})
+
+add_node_config("FeatureOscillator", {
+    "TOP_DESCRIPTION": "Generates oscillating patterns based on the input feature.",
+    "ADDITIONAL_INFO": """
+    - `feature`: Input feature to base oscillation on (FEATURE type)
+    - `oscillator_type`: Type of oscillation ("sine", "square", "sawtooth", "triangle")
+    - `frequency`: Frequency of oscillation (0.1 to 10.0)
+    - `amplitude`: Amplitude of oscillation (0.0 to 1.0)
+    - `phase_shift`: Phase shift of oscillation (0.0 to 2π)
+    - `blend`: Blend factor between original feature and oscillation (0.0 to 1.0)
+    """
+})
+
 add_node_config("FeatureToWeightsStrategy", {
     "TOP_DESCRIPTION": "Converts a FEATURE input into a WEIGHTS_STRATEGY for use with IPAdapter nodes.",
     "ADDITIONAL_INFO": """
