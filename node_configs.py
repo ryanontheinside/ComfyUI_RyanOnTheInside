@@ -287,6 +287,7 @@ add_node_config("ParticleModulationBase", {
 - `effect_duration`: Duration of the modulation effect in frames (0 to 1000)
 - `temporal_easing`: Easing function for the modulation effect ("ease_in_out", "linear", "bounce", "elastic", "none")
 - `palindrome`: Whether to reverse the modulation effect after completion (True/False)
+- `random`: Selects a random value between 0 and the chosen target value and applies it per particle
 """
 })
 
@@ -560,6 +561,7 @@ add_node_config("ParticleEmitter", {
 - `initial_plume`: Initial burst of particles (0.0 to 1.0)
 - `start_frame`: Frame to start the emission (0 to 10000)
 - `end_frame`: Frame to end the emission (0 to 10000)
+- `emission_radius`: Defaulting to 0 (a point), this value changes the radius of the area from which the particles are emitted. The open 'mouth' of the emitter.
 
 Optional inputs:
 - `emitter_movement`: Movement settings for the emitter (EMITTER_MOVEMENT type)

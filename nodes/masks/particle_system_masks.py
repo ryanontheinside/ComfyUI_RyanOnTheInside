@@ -156,6 +156,7 @@ class ParticleEmitter(ParticleSystemModulatorBase):
                 "initial_plume": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "start_frame": ("INT", {"default": 0, "min": 0, "max": 10000, "step": 1}),
                 "end_frame": ("INT", {"default": 0, "min": 0, "max": 10000, "step": 1}),
+                "emission_radius": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 100.0, "step": 0.1}),
             },
             "optional": {
                 "previous_emitter": ("PARTICLE_EMITTER",),
@@ -170,8 +171,8 @@ class ParticleEmitter(ParticleSystemModulatorBase):
 
     def create_emitter(self, emitter_x, emitter_y, particle_direction, particle_spread, 
                        particle_size, particle_speed, emission_rate, color, initial_plume,
-                       start_frame, end_frame, previous_emitter=None, emitter_movement=None, 
-                       spring_joint_setting=None, particle_modulation=None):
+                       start_frame, end_frame, emission_radius, previous_emitter=None, 
+                       emitter_movement=None, spring_joint_setting=None, particle_modulation=None):
         emitter = {
             "emitter_x": emitter_x,
             "emitter_y": emitter_y,
@@ -184,6 +185,7 @@ class ParticleEmitter(ParticleSystemModulatorBase):
             "initial_plume": initial_plume,
             "start_frame": start_frame,
             "end_frame": end_frame,
+            "emission_radius": emission_radius,
         }
         
         if emitter_movement:

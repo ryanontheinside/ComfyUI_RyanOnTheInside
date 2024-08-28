@@ -701,11 +701,25 @@ class ParticleSystemMaskBase(MaskBase, ABC):
         return ccw(p1,p3,p4) != ccw(p2,p3,p4) and ccw(p1,p2,p3) != ccw(p1,p2,p4)
 
     def emit_particle(self, emitter, height, width, emitter_index, frame_index):
-        emitter_pos = (float(emitter['emitter_x']) * width, float(emitter['emitter_y']) * height)
+        emitter_x = float(emitter['emitter_x']) * width
+        emitter_y = float(emitter['emitter_y']) * height
         particle_direction = math.radians(float(emitter['particle_direction']))
         particle_spread = math.radians(float(emitter['particle_spread']))
         particle_speed = float(emitter['particle_speed'])
         particle_size = float(emitter['particle_size'])
+        
+        emission_radius = float(emitter.get('emission_radius', 0))  # Default to 0 if not specified
+
+        # Generate a random point within the circular emission area
+        if emission_radius > 0:
+            r = random.uniform(0, emission_radius)
+            theta = random.uniform(0, 2 * math.pi)
+            emitter_pos = (
+                emitter_x + r * math.cos(theta),
+                emitter_y + r * math.sin(theta)
+            )
+        else:
+            emitter_pos = (emitter_x, emitter_y)
 
         angle = random.uniform(particle_direction - particle_spread/2, 
                                particle_direction + particle_spread/2)
