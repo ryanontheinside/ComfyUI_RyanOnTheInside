@@ -77,6 +77,7 @@ from .nodes.masks.flex_masks import (
     FlexMaskMath,
     FlexMaskOpacity,
     FlexMaskVoronoiScheduled,
+    FlexMaskBinary,
 )
 
 
@@ -133,7 +134,11 @@ from .nodes.flex.feature_externals import (
 )
 
 from .nodes.flex.feature_modulation import (
-    FeatureMixer
+    FeatureMixer,
+    FeatureMath,
+    FeatureOscillator,
+    FeatureScaler,
+    FeatureSmoothing,
 )
 
 
@@ -154,78 +159,88 @@ os.makedirs(midi_path, exist_ok=True)
 NODE_CLASS_MAPPINGS = {
     
     ###temporal
-    "MaskMorph": MaskMorph,
-    "MaskTransform":MaskTransform,
-    "MaskMath":MaskMath,
-    "MaskRings":MaskRings,
-    "MaskWarp":MaskWarp,
+    "MaskMorph":                    MaskMorph,
+    "MaskTransform":                MaskTransform,
+    "MaskMath":                     MaskMath,
+    "MaskRings":                    MaskRings,
+    "MaskWarp":                     MaskWarp,
 
+
+    #optical flow   
+    "OpticalFlowMaskModulation":    OpticalFlowMaskModulation,
+    "OpticalFlowParticleSystem":    OpticalFlowParticleSystem,
+    "OpticalFlowDirectionMask":     OpticalFlowDirectionMask,
+
+    #particle simulation    
+    "ParticleEmissionMask":         ParticleEmissionMask,
+    "Vortex":                       Vortex,
+    "GravityWell":                  GravityWell,
+    "EmitterMovement":              EmitterMovement,
+    "ParticleEmitter":              ParticleEmitter,
+    "SpringJointSetting":           SpringJointSetting,
+    "StaticBody":                   StaticBody,
+    "ParticleColorModulation":      ParticleColorModulation,
+    "ParticleSizeModulation":       ParticleSizeModulation,
+    "ParticleSpeedModulation":      ParticleSpeedModulation,
+
+
+    #flex masks 
+    "FlexMaskMorph":                FlexMaskMorph,
+    "FlexMaskWarp":                 FlexMaskWarp,
+    "FlexMaskTransform":            FlexMaskTransform,
+    "FlexMaskMath":                 FlexMaskMath,
+    "FlexMaskBinary":               FlexMaskBinary,
+    "FlexMaskOpacity":              FlexMaskOpacity,
+    "FlexMaskVoronoiScheduled":     FlexMaskVoronoiScheduled,
+
+
+    #audio  
+    "AudioSeparator":               AudioSeparator,
+    "DownloadOpenUnmixModel":       DownloadOpenUnmixModel,
+    "AudioFeatureVisualizer":       AudioFeatureVisualizer,
+    "FrequencyFilterCustom":        FrequencyFilterCustom,
+    "FrequencyFilterPreset":        FrequencyFilterPreset,
+    "AudioFilter":                  AudioFilter,
+
+    #features   
+    "AudioFeatureExtractor":        AudioFeatureExtractor,
+    "MIDILoadAndExtract":           MIDILoadAndExtract,
+    "TimeFeatureNode":              TimeFeatureNode,
+    "DepthFeatureNode":             DepthFeatureNode,
+    "ColorFeatureNode":             ColorFeatureNode,
+    "BrightnessFeatureNode":        BrightnessFeatureNode,
+    "MotionFeatureNode":            MotionFeatureNode,
+    "FeatureToWeightsStrategy":     FeatureToWeightsStrategy,
+
+    #feature modulation
+    "FeatureMixer":                 FeatureMixer,
+    "FeatureMath":                  FeatureMath,
+    "FeatureOscillator":            FeatureOscillator,
+    "FeatureScaler":                FeatureScaler,
+    "FeatureSmoothing":             FeatureSmoothing,
     
-    #optical flow
-    "OpticalFlowMaskModulation": OpticalFlowMaskModulation,
-    "OpticalFlowParticleSystem":OpticalFlowParticleSystem,
-    "OpticalFlowDirectionMask":OpticalFlowDirectionMask,
-
-    #particle simulation
-    "ParticleEmissionMask":ParticleEmissionMask,
-    "Vortex":Vortex,
-    "GravityWell":GravityWell,
-    "EmitterMovement":EmitterMovement,
-    "ParticleEmitter":ParticleEmitter,
-    "SpringJointSetting":SpringJointSetting,
-    "StaticBody":StaticBody,
-    "ParticleColorModulation":ParticleColorModulation,
-    "ParticleSizeModulation":ParticleSizeModulation,
-    "ParticleSpeedModulation":ParticleSpeedModulation,
+    #images
+    'FlexImageEdgeDetect':          FlexImageEdgeDetect,
+    "FlexImagePosterize":           FlexImagePosterize,
+    "FlexImageKaleidoscope":        FlexImageKaleidoscope,
+    "FlexImageBloom":               FlexImageBloom,
+    "FlexImageChromaticAberration": FlexImageChromaticAberration,
+    "FlexImageGlitch":              FlexImageGlitch,
+    "FlexImagePixelate":            FlexImagePixelate,
+    "FlexImageColorGrade":          FlexImageColorGrade,
+    "FlexImageTiltShift":           FlexImageTiltShift,
 
 
-    #flex masks
-    "FlexMaskMorph":       FlexMaskMorph,
-    "FlexMaskWarp":        FlexMaskWarp,
-    "FlexMaskTransform":   FlexMaskTransform,
-    "FlexMaskMath":        FlexMaskMath,
-
-    #audio
-    "AudioSeparator": AudioSeparator,
-    "DownloadOpenUnmixModel":DownloadOpenUnmixModel,
-    "AudioFeatureVisualizer":AudioFeatureVisualizer,
-    "FrequencyFilterCustom": FrequencyFilterCustom,
-    "FrequencyFilterPreset": FrequencyFilterPreset,
-    "AudioFilter":AudioFilter,
-
-    #features
-    "AudioFeatureExtractor":AudioFeatureExtractor,
-    "MIDILoadAndExtract":MIDILoadAndExtract,
-    "TimeFeatureNode":TimeFeatureNode,
-    "DepthFeatureNode": DepthFeatureNode,
-    "ColorFeatureNode":ColorFeatureNode,
-    "BrightnessFeatureNode":BrightnessFeatureNode,
-    "MotionFeatureNode":MotionFeatureNode,
-    "FeatureToWeightsStrategy": FeatureToWeightsStrategy,
-    "FeatureMixer":FeatureMixer,
-    
-    'FlexImageEdgeDetect':FlexImageEdgeDetect,
-    "FlexImagePosterize":FlexImagePosterize,
-    "FlexImageKaleidoscope":FlexImageKaleidoscope,
-    "FlexImageBloom":FlexImageBloom,
-    "FlexImageChromaticAberration":FlexImageChromaticAberration,
-    "FlexImageGlitch":FlexImageGlitch,
-    "FlexImagePixelate":FlexImagePixelate,
-    "FlexImageColorGrade":FlexImageColorGrade,
-    "FlexImageTiltShift":FlexImageTiltShift,
-    "FlexMaskOpacity":FlexMaskOpacity,
-    "FlexMaskVoronoiScheduled":FlexMaskVoronoiScheduled,
-    
-    #opacity xp
-    # "FlexDepthBasedMaskOpacity":FlexDepthBasedMaskOpacity,
-    # "DepthBasedMaskOpacity":DepthBasedMaskOpacity,
+    #opacity xp 
+    # "FlexDepthBasedMaskOpacity":  FlexDepthBasedMaskOpacity,
+    # "DepthBasedMaskOpacity":      DepthBasedMaskOpacity,
 
 
-    #garb
-    "DyeImage": DyeImage,
-    "MovingShape": MovingShape,
-    "_mfc":_mfc,
-    "TextMaskNode":TextMaskNode,
+    #garb   
+    "DyeImage":                     DyeImage,
+    "MovingShape":                  MovingShape,
+    "_mfc":                         _mfc,
+    "TextMaskNode":                 TextMaskNode,
 
 }
 
@@ -271,6 +286,13 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DepthFeatureNode":"Depth Feature",
     "BrightnessFeatureNode":"Brightness Feature",
     "MotionFeatureNode":"Motion Feature",
+
+    "FeatureMixer":                 "FeatureMod Mixer",
+    "FeatureMath":                  "FeatureMod Math",
+    "FeatureOscillator":            "FeatureMod Oscillator",
+    "FeatureScaler":                "FeatureMod Scaler",
+    "FeatureSmoothing":             "FeatureMod Smoothing",
+
 
     "MovingShape": "Moving Shape",
     "TextMaskNode":"Text Mask Node",
