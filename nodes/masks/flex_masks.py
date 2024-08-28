@@ -4,6 +4,7 @@ import math
 import numpy as np
 from .voronoi_noise import VoronoiNoise #NOTE credit for Voronoi goes to Alan Huang https://github.com/alanhuang67/
 from comfy.model_management import get_torch_device
+import cv2
 
 class FlexMaskMorph(FlexMaskBase):
     @classmethod
@@ -138,7 +139,7 @@ class FlexMaskVoronoiScheduled(FlexMaskBase):
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
                 "x_offset": ("FLOAT", {"default": 0.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
                 "y_offset": ("FLOAT", {"default": 0.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
-                "control_parameter": (["scale", "detail", "randomness", "seed", "x_offset", "y_offset"],),
+                "feature_param": (["scale", "detail", "randomness", "seed", "x_offset", "y_offset"],),
                 "formula": (list(cls.formulas.keys()),),
                 "a": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 10.0, "step": 0.1}),
                 "b": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 10.0, "step": 0.1}),
@@ -151,7 +152,7 @@ class FlexMaskVoronoiScheduled(FlexMaskBase):
 
     def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, 
                      distance_metric: str, scale: float, detail: int, randomness: float, 
-                     seed: int, x_offset: float, y_offset: float, control_parameter: str,
+                     seed: int, x_offset: float, y_offset: float, feature_param: str,
                      formula: str, a: float, b: float, **kwargs) -> np.ndarray:
         
         height, width = mask.shape[:2]
@@ -160,17 +161,17 @@ class FlexMaskVoronoiScheduled(FlexMaskBase):
         schedule_value = self.generate_schedule(formula, feature_value, a, b)
 
         # Adjust the controlled parameter based on the schedule value and strength
-        if control_parameter == "scale":
+        if feature_param == "scale":
             scale *= (1 + schedule_value * strength)
-        elif control_parameter == "detail":
+        elif feature_param == "detail":
             detail = int(detail * (1 + schedule_value * strength))
-        elif control_parameter == "randomness":
+        elif feature_param == "randomness":
             randomness *= (1 + schedule_value * strength)
-        elif control_parameter == "seed":
+        elif feature_param == "seed":
             seed = int(seed + (schedule_value * strength * 1000000))
-        elif control_parameter == "x_offset":
+        elif feature_param == "x_offset":
             x_offset *= (1 + schedule_value * strength)
-        elif control_parameter == "y_offset":
+        elif feature_param == "y_offset":
             y_offset *= (1 + schedule_value * strength)
 
         # Create VoronoiNoise instance
@@ -199,14 +200,101 @@ class FlexMaskVoronoiScheduled(FlexMaskBase):
     def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, 
                       invert, subtract_original, grow_with_blur, distance_metric, 
                       scale, detail, randomness, seed, x_offset, y_offset, 
-                      control_parameter, formula, a, b, **kwargs):
+                      feature_param, formula, a, b, **kwargs):
         return (self.apply_mask_operation(masks, feature, feature_pipe, strength, 
                                           feature_threshold, invert, subtract_original, 
                                           grow_with_blur, distance_metric=distance_metric, 
                                           scale=scale, detail=detail, randomness=randomness, 
                                           seed=seed, x_offset=x_offset, y_offset=y_offset, 
-                                          control_parameter=control_parameter, 
+                                          feature_param=feature_param, 
                                           formula=formula, a=a, b=b, **kwargs),)
+
+class FlexMaskBinary(FlexMaskBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "threshold": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "method": (["simple", "adaptive", "hysteresis", "edge"],),
+                "max_smoothing": ("INT", {"default": 21, "min": 0, "max": 51, "step": 2}),
+                "max_edge_enhancement": ("FLOAT", {"default": 2.0, "min": 0.0, "max": 10.0, "step": 0.1}),
+                "feature_param": ([ "threshold","none", "smoothing", "edge_enhancement"],),
+            }
+        }
+
+    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, threshold: float, 
+                     method: str, max_smoothing: int, max_edge_enhancement: float, 
+                     feature_param: str, **kwargs) -> np.ndarray:
+        mask = mask.astype(np.float32)
+        mask = np.clip(mask, 0, 1)
+
+        # Apply smoothing
+        if feature_param == "smoothing":
+            smoothing = int(max_smoothing * feature_value * strength)
+        else:
+            smoothing = int(max_smoothing * 0.5)
+        
+        if smoothing > 0:
+            mask = cv2.GaussianBlur(mask, (smoothing * 2 + 1, smoothing * 2 + 1), 0)
+
+        # Apply edge enhancement
+        if feature_param == "edge_enhancement":
+            edge_enhancement = max_edge_enhancement * feature_value * strength
+        else:
+            edge_enhancement = max_edge_enhancement * 0.5
+        
+        if edge_enhancement > 0:
+            laplacian = cv2.Laplacian(mask, cv2.CV_32F, ksize=3)
+            mask = np.clip(mask + edge_enhancement * laplacian, 0, 1)
+
+        # Adjust threshold
+        if feature_param == "threshold":
+            adjusted_threshold = threshold + (feature_value - 0.5) * strength * 0.5
+        else:
+            adjusted_threshold = threshold
+        adjusted_threshold = max(0.0, min(1.0, adjusted_threshold))
+
+        if method == "simple":
+            binary_mask = (mask > adjusted_threshold).astype(np.float32)
+        elif method == "adaptive":
+            mask_uint8 = (mask * 255).astype(np.uint8)
+            binary_mask = cv2.adaptiveThreshold(
+                mask_uint8,
+                1,
+                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                cv2.THRESH_BINARY,
+                11,  # block size
+                2    # C constant
+            ).astype(np.float32)
+        elif method == "hysteresis":
+            low_threshold = max(0, adjusted_threshold - 0.1)
+            high_threshold = min(1, adjusted_threshold + 0.1)
+            low_mask = mask > low_threshold
+            high_mask = mask > high_threshold
+            binary_mask = cv2.connectedComponents((high_mask * 255).astype(np.uint8))[1]
+            binary_mask = ((binary_mask > 0) & low_mask).astype(np.float32)
+        elif method == "edge":
+            mask_uint8 = (mask * 255).astype(np.uint8)
+            edges = cv2.Canny(mask_uint8, 
+                              int(adjusted_threshold * 255 * 0.5), 
+                              int(adjusted_threshold * 255 * 1.5))
+            binary_mask = edges.astype(np.float32) / 255.0
+
+        return binary_mask
+
+    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, invert, 
+                      subtract_original, grow_with_blur, threshold, method, max_smoothing, 
+                      max_edge_enhancement, feature_param, **kwargs):
+        return (self.apply_mask_operation(masks, feature, feature_pipe, strength, feature_threshold, 
+                                          invert, subtract_original, grow_with_blur, 
+                                          threshold=threshold, method=method, 
+                                          max_smoothing=max_smoothing, 
+                                          max_edge_enhancement=max_edge_enhancement, 
+                                          feature_param=feature_param, **kwargs),)
+
+
 
 #TODO
 # class FlexMaskVoronoiShape(FlexMaskBase):

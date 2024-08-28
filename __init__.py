@@ -77,6 +77,7 @@ from .nodes.masks.flex_masks import (
     FlexMaskMath,
     FlexMaskOpacity,
     FlexMaskVoronoiScheduled,
+    FlexMaskBinary,
 )
 
 
@@ -180,11 +181,15 @@ NODE_CLASS_MAPPINGS = {
 
 
     #flex masks
-    "FlexMaskMorph":       FlexMaskMorph,
-    "FlexMaskWarp":        FlexMaskWarp,
-    "FlexMaskTransform":   FlexMaskTransform,
-    "FlexMaskMath":        FlexMaskMath,
-
+    "FlexMaskMorph":            FlexMaskMorph,
+    "FlexMaskWarp":             FlexMaskWarp,
+    "FlexMaskTransform":        FlexMaskTransform,
+    "FlexMaskMath":             FlexMaskMath,
+    "FlexMaskBinary":           FlexMaskBinary,
+    "FlexMaskOpacity":          FlexMaskOpacity,
+    "FlexMaskVoronoiScheduled": FlexMaskVoronoiScheduled,
+    
+    
     #audio
     "AudioSeparator": AudioSeparator,
     "DownloadOpenUnmixModel":DownloadOpenUnmixModel,
@@ -213,8 +218,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexImagePixelate":FlexImagePixelate,
     "FlexImageColorGrade":FlexImageColorGrade,
     "FlexImageTiltShift":FlexImageTiltShift,
-    "FlexMaskOpacity":FlexMaskOpacity,
-    "FlexMaskVoronoiScheduled":FlexMaskVoronoiScheduled,
+
     
     #opacity xp
     # "FlexDepthBasedMaskOpacity":FlexDepthBasedMaskOpacity,

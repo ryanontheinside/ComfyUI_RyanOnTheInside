@@ -313,16 +313,11 @@ add_node_config("ParticleColorModulation", {
 
 add_node_config("FlexMaskBase", {
     "BASE_DESCRIPTION": """
-Provides a base for mask operations modulated by various features.
-
 ## Common Parameters
 - `feature`: The feature used to modulate the mask operation (FEATURE type)
 - `feature_pipe`: The feature pipe containing frame information (FEATURE_PIPE type)
 - `feature_threshold`: Threshold for feature activation (0.0 to 1.0)
 
-Optional inputs:
-- `feature`: The feature used to modulate the mask operation (FEATURE type)
-- `feature_pipe`: The feature pipe containing frame information (FEATURE_PIPE type)
 """
 })
 
@@ -371,6 +366,50 @@ add_node_config("FlexMaskMath", {
   - Options: "add", "subtract", "multiply", "minimum", "maximum"
 
 The strength of the combination is determined by the selected feature's value at each frame.
+"""
+})
+
+add_node_config("FlexMaskOpacity", {
+    "TOP_DESCRIPTION": "Applies opacity modulation to the mask based on a selected feature.",
+    "ADDITIONAL_INFO": """
+- `max_opacity`: Maximum opacity to apply to the mask (0.0 to 1.0). Higher values allow for more opaque masks.
+
+The actual opacity applied is determined by the product of max_opacity, feature value, and strength.
+
+This node is useful for creating masks that fade in and out based on the selected feature, allowing for smooth transitions and effects that respond to various inputs like audio, time, or other extracted features.
+"""
+})
+
+add_node_config("FlexMaskVoronoiScheduled", {
+    "TOP_DESCRIPTION": "Generates a Voronoi noise mask with parameters modulated by a selected feature according to a specified formula.",
+    "ADDITIONAL_INFO": """
+- `distance_metric`: Method used to calculate distances in the Voronoi diagram. Options include various mathematical norms and custom patterns.
+- `scale`: Base scale of the Voronoi cells (0.1 to 10.0). Larger values create bigger cells.
+- `detail`: Number of Voronoi cells (10 to 1000). More cells create more intricate patterns.
+- `randomness`: Degree of randomness in cell placement (0.0 to 5.0). Higher values create more chaotic patterns.
+- `seed`: Random seed for reproducible results (0 to 2^64 - 1).
+- `x_offset`: Horizontal offset of the Voronoi pattern (-1000.0 to 1000.0).
+- `y_offset`: Vertical offset of the Voronoi pattern (-1000.0 to 1000.0).
+- `control_parameter`: Which parameter to modulate based on the feature ("scale", "detail", "randomness", "seed", "x_offset", "y_offset").
+- `formula`: Mathematical formula used to map the feature value to the control parameter. Options include "Linear", "Quadratic", "Cubic", "Sinusoidal", and "Exponential".
+- `a` and `b`: Parameters for fine-tuning the chosen formula (0.1 to 10.0).
+
+Credit for the  heavy lifting for this node goes to https://github.com/alanhuang67/
+"""
+})
+
+add_node_config("FlexMaskBinary", {
+    "TOP_DESCRIPTION": "Applies binary thresholding to the mask, modulated by a selected feature.",
+    "ADDITIONAL_INFO": """
+- `threshold`: Base threshold value for binarization (0.0 to 1.0). Pixels above this value become white, below become black.
+- `method`: Thresholding method to use.
+  - Options: "simple" (basic threshold), "adaptive" (local adaptive threshold), "hysteresis" (double threshold with connectivity), "edge" (Canny edge detection)
+- `max_smoothing`: Maximum amount of Gaussian smoothing to apply (0 to 51, odd values only). Higher values create smoother masks.
+- `max_edge_enhancement`: Maximum strength of edge enhancement (0.0 to 10.0). Higher values create more pronounced edges.
+- `feature_param`: Which parameter to modulate based on the feature value.
+  - Options: "threshold" (adjusts threshold), "smoothing" (adjusts smoothing), "edge_enhancement" (adjusts edge enhancement), "none" (no modulation)
+
+The binary mask operation is applied with strength determined by the selected feature's value at each frame. This node is useful for creating sharp, high-contrast masks that can be dynamically adjusted based on various inputs like audio, time, or other extracted features.
 """
 })
 
@@ -717,31 +756,3 @@ add_node_config("FlexImageTiltShift", {
 """
 })
 
-add_node_config("FlexMaskOpacity", {
-    "TOP_DESCRIPTION": "Applies opacity modulation to the mask based on a selected feature.",
-    "ADDITIONAL_INFO": """
-- `max_opacity`: Maximum opacity to apply to the mask (0.0 to 1.0). Higher values allow for more opaque masks.
-
-The actual opacity applied is determined by the product of max_opacity, feature value, and strength.
-
-This node is useful for creating masks that fade in and out based on the selected feature, allowing for smooth transitions and effects that respond to various inputs like audio, time, or other extracted features.
-"""
-})
-
-add_node_config("FlexMaskVoronoiScheduled", {
-    "TOP_DESCRIPTION": "Generates a Voronoi noise mask with parameters modulated by a selected feature according to a specified formula.",
-    "ADDITIONAL_INFO": """
-- `distance_metric`: Method used to calculate distances in the Voronoi diagram. Options include various mathematical norms and custom patterns.
-- `scale`: Base scale of the Voronoi cells (0.1 to 10.0). Larger values create bigger cells.
-- `detail`: Number of Voronoi cells (10 to 1000). More cells create more intricate patterns.
-- `randomness`: Degree of randomness in cell placement (0.0 to 5.0). Higher values create more chaotic patterns.
-- `seed`: Random seed for reproducible results (0 to 2^64 - 1).
-- `x_offset`: Horizontal offset of the Voronoi pattern (-1000.0 to 1000.0).
-- `y_offset`: Vertical offset of the Voronoi pattern (-1000.0 to 1000.0).
-- `control_parameter`: Which parameter to modulate based on the feature ("scale", "detail", "randomness", "seed", "x_offset", "y_offset").
-- `formula`: Mathematical formula used to map the feature value to the control parameter. Options include "Linear", "Quadratic", "Cubic", "Sinusoidal", and "Exponential".
-- `a` and `b`: Parameters for fine-tuning the chosen formula (0.1 to 10.0).
-
-Credit for the  heavy lifting for this node goes to https://github.com/alanhuang67/
-"""
-})
