@@ -309,6 +309,7 @@ class ParticleModulationBase(ParticleSystemModulatorBase):
                 "effect_duration": ("INT", {"default": 0, "min": 0, "max": 1000, "step": 1}),
                 "temporal_easing": (["ease_in_out", "linear", "bounce", "elastic", "none"],),
                 "palindrome": ("BOOLEAN", {"default": False}),
+                "random": ("BOOLEAN", {"default": False}),
             },
             "optional": {
                 "previous_modulation": ("PARTICLE_MODULATION",),
@@ -316,13 +317,14 @@ class ParticleModulationBase(ParticleSystemModulatorBase):
         }
     
 
-    def create_modulation(self, start_frame, end_frame, effect_duration, temporal_easing, palindrome, previous_modulation=None):
+    def create_modulation(self, start_frame, end_frame, effect_duration, temporal_easing, palindrome, random, previous_modulation=None):
         modulation = {
             "start_frame": start_frame,
             "end_frame": end_frame,
             "effect_duration": effect_duration,
             "temporal_easing": temporal_easing,
             "palindrome": palindrome,
+            "random": random,
         }
         
         modulation_type = self.__class__.__name__

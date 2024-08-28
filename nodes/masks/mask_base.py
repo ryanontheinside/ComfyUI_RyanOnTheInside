@@ -555,7 +555,8 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                         'end_frame': end_frame,
                         'effect_duration': effect_duration,
                         'temporal_easing': modulation['temporal_easing'],
-                        'palindrome': modulation['palindrome']
+                        'palindrome': modulation['palindrome'],
+                        'random': modulation.get('random', False)  # Add this line
                     }
                     
                     if modulation['type'] == 'ParticleSizeModulation':
@@ -577,7 +578,10 @@ class ParticleSystemMaskBase(MaskBase, ABC):
 
         for modulation in self.emitter_modulations[emitter_index]:
             if modulation['start_frame'] <= current_frame < modulation['end_frame']:
-                progress = self.calculate_modulation_progress(current_frame, modulation, particle.creation_frame)
+                if modulation.get('random', False):
+                    progress = random.random()  # Generate a random value between 0 and 1
+                else:
+                    progress = self.calculate_modulation_progress(current_frame, modulation, particle.creation_frame)
                 
                 if modulation['type'] == 'ParticleSizeModulation':
                     self.apply_size_modulation(particle, modulation, progress)
