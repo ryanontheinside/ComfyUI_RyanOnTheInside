@@ -149,10 +149,8 @@ class FlexImageColorGrade(FlexImageBase):
                 **super().INPUT_TYPES()["required"],
                 "intensity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "mix": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "lut_file": ("STRING", {"default": ""}),
             },
-            "optional": {
-                "lut_file": ("STRING", {"default": None}),
-            }
         }
 
     @classmethod
@@ -164,7 +162,7 @@ class FlexImageColorGrade(FlexImageBase):
         self.lut_cache = {}
 
     def load_lut(self, lut_file):
-        if lut_file is None:
+        if lut_file is None or lut_file == "":
             return None
         if lut_file not in self.lut_cache:
             lut = cv2.imread(lut_file, cv2.IMREAD_UNCHANGED)
