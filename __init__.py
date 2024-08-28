@@ -74,7 +74,9 @@ from .nodes.masks.flex_masks import (
     FlexMaskMorph,
     FlexMaskWarp,
     FlexMaskTransform,
-    FlexMaskMath
+    FlexMaskMath,
+    FlexMaskOpacity,
+    FlexMaskVoronoiScheduled,
 )
 
 
@@ -98,7 +100,10 @@ from .nodes.masks.particle_system_masks import (
     ParticleSpeedModulation,
     )
 
-
+# from .nodes.masks.opacity_masks import(
+#     DepthBasedMaskOpacity,
+#     FlexDepthBasedMaskOpacity,
+# )
 
 from .nodes.masks.utility_nodes import (
     _mfc, 
@@ -130,6 +135,7 @@ from .nodes.flex.feature_externals import (
 from .nodes.flex.feature_modulation import (
     FeatureMixer
 )
+
 
 
 import os
@@ -207,6 +213,12 @@ NODE_CLASS_MAPPINGS = {
     "FlexImagePixelate":FlexImagePixelate,
     "FlexImageColorGrade":FlexImageColorGrade,
     "FlexImageTiltShift":FlexImageTiltShift,
+    "FlexMaskOpacity":FlexMaskOpacity,
+    "FlexMaskVoronoiScheduled":FlexMaskVoronoiScheduled,
+    
+    #opacity xp
+    # "FlexDepthBasedMaskOpacity":FlexDepthBasedMaskOpacity,
+    # "DepthBasedMaskOpacity":DepthBasedMaskOpacity,
 
 
     #garb
@@ -214,11 +226,6 @@ NODE_CLASS_MAPPINGS = {
     "MovingShape": MovingShape,
     "_mfc":_mfc,
     "TextMaskNode":TextMaskNode,
-    
-
-
-
-
 
 }
 
