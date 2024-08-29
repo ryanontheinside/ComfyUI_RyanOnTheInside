@@ -556,7 +556,8 @@ class ParticleSystemMaskBase(MaskBase, ABC):
                         'effect_duration': effect_duration,
                         'temporal_easing': modulation['temporal_easing'],
                         'palindrome': modulation['palindrome'],
-                        'random': modulation.get('random', False)  # Add this line
+                        'random': modulation.get('random', False),
+                        'feature': modulation.get('feature',None)
                     }
                     
                     if modulation['type'] == 'ParticleSizeModulation':
@@ -580,6 +581,8 @@ class ParticleSystemMaskBase(MaskBase, ABC):
             if modulation['start_frame'] <= current_frame < modulation['end_frame']:
                 if modulation.get('random', False):
                     progress = random.random()  # Generate a random value between 0 and 1
+                elif 'feature' in modulation and modulation['feature'] is not None:
+                    progress = modulation['feature'].get_value_at_frame(current_frame)
                 else:
                     progress = self.calculate_modulation_progress(current_frame, modulation, particle.creation_frame)
                 
@@ -791,6 +794,16 @@ class ParticleSystemMaskBase(MaskBase, ABC):
             if 'movement' in emitter:
                 movement = emitter['movement']
                 
+                # Check if a feature is present and apply it to the specified parameter
+                if 'feature' in movement and movement['feature'] is not None:
+                    feature = movement['feature']
+                    feature_param = movement['feature_param']
+                    feature_value = feature.get_value_at_frame(frame_index)
+                    
+                    if feature_param in ['emitter_x_frequency', 'emitter_y_frequency', 'direction_frequency']:
+                        # Use 1 + feature_value to ensure the frequency is always at least the original value
+                        movement[feature_param] *= (1 + feature_value)
+
                 # Modulate emitter_x
                 base_x = float(emitter['initial_x'])
                 freq_x = float(movement['emitter_x_frequency'])
