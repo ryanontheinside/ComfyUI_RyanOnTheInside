@@ -9,6 +9,14 @@ class FeatureModulationBase(RyanOnTheInside):
     CATEGORY = "RyanOnTheInside/FlexFeatures"
     FUNCTION = "modulate"
     
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "invert_output": ("BOOLEAN", {"default": False}),
+            }
+        }
+    
     def visualize(self, feature, width=1920, height=1080):
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
         frames = len(values)
@@ -58,14 +66,21 @@ class FeatureModulationBase(RyanOnTheInside):
         
         return img_tensor
 
-    def create_processed_feature(self, original_feature, processed_values, name_prefix="Processed"):
+    def create_processed_feature(self, original_feature, processed_values, name_prefix="Processed", invert_output=False):
         class ProcessedFeature(type(original_feature)):
-            def __init__(self, original_feature, processed_values):
+            def __init__(self, original_feature, processed_values, invert_output):
                 self.__dict__.update(original_feature.__dict__)
                 self.name = f"{name_prefix}_{original_feature.name}"
+                if invert_output:
+                    self.name = f"Inverted_{self.name}"
                 self.frame_rate = original_feature.frame_rate
                 self.frame_count = len(processed_values)
-                self.data = processed_values
+                
+                if invert_output:
+                    min_val, max_val = min(processed_values), max(processed_values)
+                    self.data = [max_val - v + min_val for v in processed_values]
+                else:
+                    self.data = processed_values
 
             def extract(self):
                 return self
@@ -73,7 +88,7 @@ class FeatureModulationBase(RyanOnTheInside):
             def get_value_at_frame(self, frame_index):
                 return self.data[frame_index]
 
-        return ProcessedFeature(original_feature, processed_values)
+        return ProcessedFeature(original_feature, processed_values, invert_output)
 
 class FeatureMixer(FeatureModulationBase):
     @classmethod
@@ -92,6 +107,7 @@ class FeatureMixer(FeatureModulationBase):
                 "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "rise_detection_threshold": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 1.0, "step": 0.05}),
                 "rise_smoothing_factor": ("FLOAT", {"default": 0.5, "min": 0.1, "max": 2.0, "step": 0.05}),
+                **super().INPUT_TYPES()["required"],  # Include the invert_output option
             }
         }
 
@@ -99,7 +115,7 @@ class FeatureMixer(FeatureModulationBase):
     RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
     FUNCTION = "modulate"
 
-    def modulate(self, feature, base_gain, floor, ceiling, peak_sharpness, valley_sharpness, attack, release, smoothing, feature_threshold, rise_detection_threshold, rise_smoothing_factor):
+    def modulate(self, feature, base_gain, floor, ceiling, peak_sharpness, valley_sharpness, attack, release, smoothing, feature_threshold, rise_detection_threshold, rise_smoothing_factor, invert_output):
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
         
         values = [v if v >= feature_threshold else 0 for v in values]
@@ -144,7 +160,7 @@ class FeatureMixer(FeatureModulationBase):
         # chop
         final_values = [max(floor, min(ceiling, v)) for v in adjusted]
         
-        processed_feature = self.create_processed_feature(feature, final_values, "Processed")
+        processed_feature = self.create_processed_feature(feature, final_values, "Processed", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
     def apply_rise_time_adjustment(self, values, rise_detection_threshold, rise_smoothing_factor):
@@ -180,13 +196,14 @@ class FeatureScaler(FeatureModulationBase):
                 "min_output": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "max_output": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "exponent": ("FLOAT", {"default": 2.0, "min": 0.1, "max": 10.0, "step": 0.1}),
+                **super().INPUT_TYPES()["required"],
             }
         }
 
     RETURN_TYPES = ("FEATURE", "IMAGE")
     RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
 
-    def modulate(self, feature, scale_type, min_output, max_output, exponent):
+    def modulate(self, feature, scale_type, min_output, max_output, exponent, invert_output):
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
         
         min_val, max_val = min(values), max(values)
@@ -203,7 +220,7 @@ class FeatureScaler(FeatureModulationBase):
         
         final_values = [min_output + v * (max_output - min_output) for v in scaled]
         
-        processed_feature = self.create_processed_feature(feature, final_values, "Scaled")
+        processed_feature = self.create_processed_feature(feature, final_values, "Scaled", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
 class FeatureMath(FeatureModulationBase):
@@ -216,13 +233,14 @@ class FeatureMath(FeatureModulationBase):
                 "operation": (["add", "subtract", "multiply", "divide", "max", "min"],),
                 "weight1": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "weight2": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                **super().INPUT_TYPES()["required"],
             }
         }
 
     RETURN_TYPES = ("FEATURE", "IMAGE")
     RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
 
-    def modulate(self, feature1, feature2, operation, weight1, weight2):
+    def modulate(self, feature1, feature2, operation, weight1, weight2, invert_output):
         values1 = [feature1.get_value_at_frame(i) for i in range(feature1.frame_count)]
         values2 = [feature2.get_value_at_frame(i) for i in range(feature2.frame_count)]
         
@@ -244,7 +262,7 @@ class FeatureMath(FeatureModulationBase):
         elif operation == "min":
             combined = [min(weight1 * v1, weight2 * v2) for v1, v2 in zip(values1, values2)]
         
-        processed_feature = self.create_processed_feature(feature1, combined, "Combined")
+        processed_feature = self.create_processed_feature(feature1, combined, "Combined", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
 class FeatureSmoothing(FeatureModulationBase):
@@ -257,13 +275,14 @@ class FeatureSmoothing(FeatureModulationBase):
                 "window_size": ("INT", {"default": 5, "min": 3, "max": 21, "step": 2}),
                 "alpha": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "sigma": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 5.0, "step": 0.1}),
+                **super().INPUT_TYPES()["required"],
             }
         }
 
     RETURN_TYPES = ("FEATURE", "IMAGE")
     RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
 
-    def modulate(self, feature, smoothing_type, window_size, alpha, sigma):
+    def modulate(self, feature, smoothing_type, window_size, alpha, sigma, invert_output):
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
         
         if smoothing_type == "moving_average":
@@ -281,7 +300,7 @@ class FeatureSmoothing(FeatureModulationBase):
             kernel = kernel / np.sum(kernel)
             smoothed = np.convolve(values, kernel, mode='same')
         
-        processed_feature = self.create_processed_feature(feature, smoothed, "Smoothed")
+        processed_feature = self.create_processed_feature(feature, smoothed, "Smoothed", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
 class FeatureOscillator(FeatureModulationBase):
@@ -295,13 +314,14 @@ class FeatureOscillator(FeatureModulationBase):
                 "amplitude": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "phase_shift": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 2*np.pi, "step": 0.1}),
                 "blend": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                **super().INPUT_TYPES()["required"],
             }
         }
 
     RETURN_TYPES = ("FEATURE", "IMAGE")
     RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
 
-    def modulate(self, feature, oscillator_type, frequency, amplitude, phase_shift, blend):
+    def modulate(self, feature, oscillator_type, frequency, amplitude, phase_shift, blend, invert_output):
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
         t = np.linspace(0, 2*np.pi, len(values))
         
@@ -316,5 +336,5 @@ class FeatureOscillator(FeatureModulationBase):
         
         blended = [v * (1 - blend) + osc * blend for v, osc in zip(values, oscillation)]
         
-        processed_feature = self.create_processed_feature(feature, blended, "Oscillated")
+        processed_feature = self.create_processed_feature(feature, blended, "Oscillated", invert_output)
         return (processed_feature, self.visualize(processed_feature))
