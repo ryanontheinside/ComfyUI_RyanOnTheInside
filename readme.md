@@ -36,18 +36,18 @@ Getting started with the RyanOnTheInside node pack is easy:
 2. Open ComfyUI and look for nodes prefixed with "RyanOnTheInside" in the node browser.
 3. Check out the example workflows on Civitai to see how different features can be used.
 
-### Example Workflows on Civitai
+### Example and Tutorial Workflows on Civitai
 
-For a range of example workflows showcasing the capabilities of this node pack, visit my Civitai profile:
+For a range of example and tutorial workflows showcasing the capabilities of this node pack, visit my Civitai profile:
 
 [RyanOnTheInside Civitai Profile](https://civitai.com/user/RyanOnTheInside)
 
 
 ## 🚀 Key Features
-
+Particles are now reactive!
 ### 🎛️ Flex Features
 Dynamic control over various aspects of your workflow:
-- Modulate IPAdapters, Masks, and Images based on extracted features
+- Modulate IPAdapters, Masks, Images, and Particles based on extracted features
 - Features include: Audio, MIDI, Motion, Depth, Color, Time, and more
 - Create adaptive, responsive effects that evolve with your input data
 

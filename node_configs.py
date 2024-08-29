@@ -288,6 +288,7 @@ add_node_config("ParticleModulationBase", {
 - `temporal_easing`: Easing function for the modulation effect ("ease_in_out", "linear", "bounce", "elastic", "none")
 - `palindrome`: Whether to reverse the modulation effect after completion (True/False)
 - `random`: Selects a random value between 0 and the chosen target value and applies it per particle
+- `feature`: Optionally, pass in a feature (like audio or motion) to drive the modulation of the particles
 """
 })
 
@@ -542,6 +543,10 @@ Position Control:
 Direction Control:
 - `direction_frequency`: How quickly the emission angle changes (0.0 to 10.0). Higher values create more rapid direction changes.
 - `direction_amplitude`: Maximum angle change in degrees (0.0 to 180.0). Larger values allow for more extreme direction shifts.
+
+Feature Modulation:
+- `feature`: Optional feature to modulate the movement (FEATURE type)
+- `feature_param`: Parameter to be modulated by the feature ("emitter_x_frequency", "emitter_y_frequency", or "direction_frequency")
 
 
 """
