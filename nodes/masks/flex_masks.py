@@ -141,8 +141,8 @@ class FlexMaskVoronoiScheduled(FlexMaskBase):
                 "y_offset": ("FLOAT", {"default": 0.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
                 "feature_param": (["scale", "detail", "randomness", "seed", "x_offset", "y_offset"],),
                 "formula": (list(cls.formulas.keys()),),
-                "a": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 10.0, "step": 0.1}),
-                "b": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 10.0, "step": 0.1}),
+                "x_offset": ("FLOAT", {"default": 0.0, "min": -1.0, "max": 1.0, "step": 0.01}),
+                "y_offset": ("FLOAT", {"default": 0.0, "min": -1.0, "max": 1.0, "step": 0.01}),
             }
         }
 
@@ -170,9 +170,9 @@ class FlexMaskVoronoiScheduled(FlexMaskBase):
         elif feature_param == "seed":
             seed = int(seed + (schedule_value * strength * 1000000))
         elif feature_param == "x_offset":
-            x_offset *= (1 + schedule_value * strength)
+            x_offset += width * schedule_value * strength
         elif feature_param == "y_offset":
-            y_offset *= (1 + schedule_value * strength)
+            y_offset += height * schedule_value * strength
 
         # Create VoronoiNoise instance
         voronoi = VoronoiNoise(
