@@ -238,6 +238,10 @@ class EmitterMovement(ParticleSystemModulatorBase):
                 "emitter_y_amplitude": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 0.5, "step": 0.01}),
                 "direction_frequency": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.01}),
                 "direction_amplitude": ("FLOAT", {"default": 180.0, "min": 0.0, "max": 360.0, "step": 1.0}),
+                "feature_param": (["emitter_x_frequency", "emitter_y_frequency", "direction_frequency"],),
+            },
+            "optional": {
+                "feature": ("FEATURE",),
             }
         }
 
@@ -245,7 +249,8 @@ class EmitterMovement(ParticleSystemModulatorBase):
     FUNCTION = "create_movement"
 
     def create_movement(self, emitter_x_frequency, emitter_y_frequency, direction_frequency,
-                        emitter_x_amplitude, emitter_y_amplitude, direction_amplitude):
+                        emitter_x_amplitude, emitter_y_amplitude, direction_amplitude,
+                        feature_param, feature=None):
         movement = {
             "emitter_x_frequency": emitter_x_frequency,
             "emitter_y_frequency": emitter_y_frequency,
@@ -253,6 +258,8 @@ class EmitterMovement(ParticleSystemModulatorBase):
             "emitter_x_amplitude": emitter_x_amplitude,
             "emitter_y_amplitude": emitter_y_amplitude,
             "direction_amplitude": direction_amplitude,
+            "feature_param": feature_param,
+            "feature": feature,
         }
         return (movement,)
 
@@ -315,11 +322,11 @@ class ParticleModulationBase(ParticleSystemModulatorBase):
             },
             "optional": {
                 "previous_modulation": ("PARTICLE_MODULATION",),
+                "feature": ("FEATURE",),
             }
         }
     
-
-    def create_modulation(self, start_frame, end_frame, effect_duration, temporal_easing, palindrome, random, previous_modulation=None):
+    def create_modulation(self, start_frame, end_frame, effect_duration, temporal_easing, palindrome, random, previous_modulation=None, feature=None):
         modulation = {
             "start_frame": start_frame,
             "end_frame": end_frame,
@@ -327,6 +334,7 @@ class ParticleModulationBase(ParticleSystemModulatorBase):
             "temporal_easing": temporal_easing,
             "palindrome": palindrome,
             "random": random,
+            "feature": feature,
         }
         
         modulation_type = self.__class__.__name__
