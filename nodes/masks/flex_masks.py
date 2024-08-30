@@ -141,8 +141,8 @@ class FlexMaskVoronoiScheduled(FlexMaskBase):
                 "y_offset": ("FLOAT", {"default": 0.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
                 "feature_param": (["scale", "detail", "randomness", "seed", "x_offset", "y_offset"],),
                 "formula": (list(cls.formulas.keys()),),
-                "x_offset": ("FLOAT", {"default": 0.0, "min": -1.0, "max": 1.0, "step": 0.01}),
-                "y_offset": ("FLOAT", {"default": 0.0, "min": -1.0, "max": 1.0, "step": 0.01}),
+                "a": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 10.0, "step": 0.1}),
+                "b": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 10.0, "step": 0.1}),
             }
         }
 
