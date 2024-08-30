@@ -119,6 +119,7 @@ from .nodes.masks.flex_masks import (
     FlexMaskVoronoiScheduled,
     FlexMaskBinary,
     FlexMaskWavePropagation,
+    FlexMaskEmanatingRings,
 )
 
 from .nodes.images.flex_images import (
@@ -197,6 +198,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexMaskOpacity":              FlexMaskOpacity,
     "FlexMaskVoronoiScheduled":     FlexMaskVoronoiScheduled,
     "FlexMaskWavePropagation":      FlexMaskWavePropagation,
+    "FlexMaskEmanatingRings":       FlexMaskEmanatingRings,
 
     #audio  
     "AudioSeparator":               AudioSeparator,

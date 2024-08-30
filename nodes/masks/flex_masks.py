@@ -5,7 +5,8 @@ import numpy as np
 from .voronoi_noise import VoronoiNoise #NOTE credit for Voronoi goes to Alan Huang https://github.com/alanhuang67/
 from comfy.model_management import get_torch_device
 import cv2
-import torch
+from .mask_base import FlexMaskBase
+from scipy.ndimage import distance_transform_edt
 
 class FlexMaskMorph(FlexMaskBase):
     @classmethod
@@ -305,9 +306,9 @@ class FlexMaskBinary(FlexMaskBase):
 
 
 class FlexMaskWavePropagation(FlexMaskBase):
-    feature_threshold_default=0.25
     @classmethod
     def INPUT_TYPES(cls):
+        cls.feature_threshold_default = 0.25
         return {
             **super().INPUT_TYPES(),
             "required": {
@@ -342,10 +343,11 @@ class FlexMaskWavePropagation(FlexMaskBase):
         kernel = np.ones((3,3), np.uint8)
         boundary = cv2.dilate(mask.astype(np.uint8), kernel, iterations=1) - mask.astype(np.uint8)
         
-        # Emit wave from boundary
-        self.wave_field += boundary * feature_value * wave_amplitude
+        # Reset wave field where the mask is not present
+        self.wave_field[mask == 0] *= wave_decay
         
-        # Propagate waves
+        # Emit wave from boundary and propagate
+        self.wave_field += boundary * feature_value * wave_amplitude
         self.wave_field = cv2.GaussianBlur(self.wave_field, (0, 0), sigmaX=wave_speed)
         
         # Apply decay
@@ -356,7 +358,6 @@ class FlexMaskWavePropagation(FlexMaskBase):
         if max_value > max_wave_field:
             self.wave_field *= (max_wave_field / max_value)
         
-        # Create wave pattern
         time_factor = self.frame_count * wave_frequency
         wave_pattern = np.sin(self.wave_field + time_factor) * 0.5 + 0.5
         
@@ -383,6 +384,80 @@ class FlexMaskWavePropagation(FlexMaskBase):
                                           feature_threshold, invert, subtract_original, 
                                           grow_with_blur, **kwargs),)
     
+
+
+
+class FlexMaskEmanatingRings(FlexMaskBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        cls.feature_threshold_default   =  0.25
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "num_rings": ("INT", {"default": 4, "min": 1, "max": 50, "step": 1}),
+                "max_ring_width": ("FLOAT", {"default": 0.5, "min": 0.01, "max": 0.9, "step": 0.01}),
+                "wave_speed": ("FLOAT", {"default": 0.05, "min": 0.01, "max": 0.5, "step": 0.01}),
+                "feature_param": (["num_rings", "ring_width", "wave_speed", "all"],),
+            }
+        }
+
+    def __init__(self):
+        super().__init__()
+        self.time = 0
+
+    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float,
+                     num_rings: int, max_ring_width: float, wave_speed: float,
+                     feature_param: str, **kwargs) -> np.ndarray:
+        # Adjust parameters based on feature_value and feature_param
+        if feature_param in ["num_rings", "all"]:
+            adjusted_num_rings = max(1, int(num_rings * feature_value * strength))
+        else:
+            adjusted_num_rings = num_rings
+
+        if feature_param in ["ring_width", "all"]:
+            adjusted_max_ring_width = max_ring_width * feature_value * strength
+        else:
+            adjusted_max_ring_width = max_ring_width
+
+        if feature_param in ["wave_speed", "all"]:
+            adjusted_wave_speed = wave_speed * feature_value * strength
+        else:
+            adjusted_wave_speed = wave_speed
+
+        distance = distance_transform_edt(1 - mask)
+        max_distance = np.max(distance)
+        normalized_distance = distance / max_distance
+
+        # Create emanating rings
+        rings = np.zeros_like(mask)
+        for i in range(adjusted_num_rings):
+            ring_progress = (self.time * adjusted_wave_speed + i / adjusted_num_rings) % 1
+            ring_width = adjusted_max_ring_width * (1 - ring_progress)  # Rings get thinner as they move out
+            ring_outer = normalized_distance < ring_progress
+            ring_inner = normalized_distance < (ring_progress - ring_width)
+            rings = np.logical_or(rings, np.logical_xor(ring_outer, ring_inner))
+
+        # Combine with original mask
+        result = np.logical_or(mask, rings).astype(np.float32)
+
+        self.time += 1
+        return result
+
+    def process_mask_below_threshold(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
+        # Continue the animation don't create new rings
+        return self.process_mask(mask, 0, strength, **kwargs)
+
+    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold,
+                      invert, subtract_original, grow_with_blur, num_rings,
+                      max_ring_width, wave_speed, feature_param, **kwargs):
+        self.time = 0  # Reset time for each new feature input
+        return (self.apply_mask_operation(masks, feature, feature_pipe, strength,
+                                          feature_threshold, invert, subtract_original,
+                                          grow_with_blur, num_rings=num_rings,
+                                          max_ring_width=max_ring_width, wave_speed=wave_speed,
+                                          feature_param=feature_param, **kwargs),)
+
 #TODO
 # class FlexMaskVoronoiShape(FlexMaskBase):
 #     @classmethod
