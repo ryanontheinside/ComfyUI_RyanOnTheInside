@@ -70,15 +70,7 @@ from .nodes.flex.midi_feature_extractor import(
     MIDILoadAndExtract,
 )
 
-from .nodes.masks.flex_masks import (
-    FlexMaskMorph,
-    FlexMaskWarp,
-    FlexMaskTransform,
-    FlexMaskMath,
-    FlexMaskOpacity,
-    FlexMaskVoronoiScheduled,
-    FlexMaskBinary,
-)
+
 
 
 
@@ -117,6 +109,18 @@ from .nodes.masks.utility_nodes import (
 from .nodes.images.image_utility_nodes import (
     DyeImage,
 )
+
+from .nodes.masks.flex_masks import (
+    FlexMaskMorph,
+    FlexMaskWarp,
+    FlexMaskTransform,
+    FlexMaskMath,
+    FlexMaskOpacity,
+    FlexMaskVoronoiScheduled,
+    FlexMaskBinary,
+    FlexMaskWavePropagation,
+)
+
 from .nodes.images.flex_images import (
     FlexImageEdgeDetect,
     FlexImagePosterize,
@@ -192,7 +196,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexMaskBinary":               FlexMaskBinary,
     "FlexMaskOpacity":              FlexMaskOpacity,
     "FlexMaskVoronoiScheduled":     FlexMaskVoronoiScheduled,
-
+    "FlexMaskWavePropagation":      FlexMaskWavePropagation,
 
     #audio  
     "AudioSeparator":               AudioSeparator,

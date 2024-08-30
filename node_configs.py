@@ -315,7 +315,6 @@ add_node_config("ParticleColorModulation", {
 
 add_node_config("FlexMaskBase", {
     "BASE_DESCRIPTION": """
-## Common Parameters
 - `feature`: The feature used to modulate the mask operation (FEATURE type)
 - `feature_pipe`: The feature pipe containing frame information (FEATURE_PIPE type)
 - `feature_threshold`: Threshold for feature activation (0.0 to 1.0)
@@ -392,8 +391,8 @@ add_node_config("FlexMaskVoronoiScheduled", {
 - `seed`: Random seed for reproducible results (0 to 2^64 - 1).
 - `x_offset`: Horizontal offset of the Voronoi pattern (-1000.0 to 1000.0).
 - `y_offset`: Vertical offset of the Voronoi pattern (-1000.0 to 1000.0).
-- `control_parameter`: Which parameter to modulate based on the feature ("scale", "detail", "randomness", "seed", "x_offset", "y_offset").
-- `formula`: Mathematical formula used to map the feature value to the control parameter. Options include "Linear", "Quadratic", "Cubic", "Sinusoidal", and "Exponential".
+- `feature_param`: Which parameter to modulate based on the feature ("scale", "detail", "randomness", "seed", "x_offset", "y_offset").
+- `formula`: Mathematical formula used to map the feature value to the feature parameter. Options include "Linear", "Quadratic", "Cubic", "Sinusoidal", and "Exponential".
 - `a` and `b`: Parameters for fine-tuning the chosen formula (0.1 to 10.0).
 
 Credit for the  heavy lifting for this node goes to https://github.com/alanhuang67/
@@ -419,7 +418,6 @@ add_node_config("BaseFeatureNode", {
     "BASE_DESCRIPTION": """
  Features are used to modulate mask operations in FlexMask nodes.
 
-## Common Parameters
 - `frame_rate`: Frame rate of the video
 - `frame_count`: Total number of frames
 """
@@ -719,15 +717,13 @@ This node is particularly useful for creating dynamic, feature-driven animations
 
 NODE_CONFIGS["FlexImageBase"] = {
     "BASE_DESCRIPTION": """
-
-## Common Parameters
 - `images`: Input image sequence (IMAGE type)
 - `feature`: Feature used to modulate the effect (FEATURE type)
 - `feature_pipe`: Feature pipe containing frame information (FEATURE_PIPE type)
 - `strength`: Overall strength of the effect (0.0 to 1.0)
 - `feature_threshold`: Minimum feature value to apply the effect (0.0 to 1.0)
-- `modulate_param`: Parameter to be modulated by the feature
-- `modulation_mode`: How the feature modulates the parameter ("relative" or "absolute")
+- `feature_param`: Parameter to be modulated by the feature
+- `feature_mode`: How the feature modulates the parameter ("relative" or "absolute"). Relative mode adjusts the parameter based on its current value, while absolute mode directly sets the parameter to the feature value.
 """
 }
 
