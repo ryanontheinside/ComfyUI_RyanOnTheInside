@@ -247,8 +247,8 @@ class _mfc:
                 "threshold": ("INT", { "default": 0, "min": 0, "max": 127, "step": 1, }),
             }
         }
-    #TODO add image
-    RETURN_TYPES = ("MASK",)
+    
+    RETURN_TYPES = ("MASK", "IMAGE")
     FUNCTION = "execute"
     CATEGORY = "/RyanOnTheInside/masks/"
 
@@ -262,4 +262,8 @@ class _mfc:
         mask = (temp >= lower_bound) & (temp <= upper_bound)
         mask = mask.all(dim=-1)
         mask = mask.float()
-        return (mask, )
+        
+        # Create an image of the mask
+        mask_image = mask.unsqueeze(-1).repeat(1, 1, 1, 3)
+        
+        return (mask, mask_image)

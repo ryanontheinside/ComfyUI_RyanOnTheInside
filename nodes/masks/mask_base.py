@@ -917,14 +917,15 @@ class OpticalFlowMaskBase(MaskBase, ABC):
 
 #TODO  check if input mask is blank and just skip, then check children
 class FlexMaskBase(MaskBase):
+    feature_threshold_default=0.0
     @classmethod
-    def INPUT_TYPES(cls):
+    def INPUT_TYPES(cls):  
         return {
             "required": {
                 **super().INPUT_TYPES()["required"],
                 "feature": ("FEATURE",),
                 "feature_pipe": ("FEATURE_PIPE",),
-                "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "feature_threshold": ("FLOAT", {"default": cls.feature_threshold_default, "min": 0.0, "max": 1.0, "step": 0.01}),
             }
         }
 
@@ -950,7 +951,11 @@ class FlexMaskBase(MaskBase):
             if feature_value >= feature_threshold:
                 processed_mask = self.process_mask(mask, feature_value, strength, **kwargs)
             else:
-                processed_mask = mask
+                if hasattr(self, 'process_mask_below_threshold'):
+                    processed_mask = self.process_mask_below_threshold(mask, feature_value, strength, **kwargs)
+                else:
+                    processed_mask = mask
+                
 
             result.append(processed_mask)
             self.update_progress()

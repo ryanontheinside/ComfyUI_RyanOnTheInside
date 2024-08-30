@@ -1,10 +1,11 @@
-from .mask_base import FlexMaskBase
+from .mask_base import FlexMaskBase, MaskBase
 from .mask_utils import morph_mask, warp_mask, transform_mask, combine_masks
 import math
 import numpy as np
 from .voronoi_noise import VoronoiNoise #NOTE credit for Voronoi goes to Alan Huang https://github.com/alanhuang67/
 from comfy.model_management import get_torch_device
 import cv2
+import torch
 
 class FlexMaskMorph(FlexMaskBase):
     @classmethod
@@ -303,6 +304,85 @@ class FlexMaskBinary(FlexMaskBase):
 
 
 
+class FlexMaskWavePropagation(FlexMaskBase):
+    feature_threshold_default=0.25
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "wave_speed": ("FLOAT", {"default": 50.0, "min": 0.1, "max": 100.0, "step": 0.5}),
+                "wave_amplitude": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.05}),
+                "wave_decay": ("FLOAT", {"default": 5.0, "min": 0.9, "max": 10.0, "step": 0.001}),
+                "wave_frequency": ("FLOAT", {"default": 0.1, "min": 0.01, "max": 10.0, "step": 0.01}),
+                "max_wave_field": ("FLOAT", {"default": 750.0, "min": 10.0, "max": 10000.0, "step": 10.0}),
+            }
+        }
+
+    def __init__(self):
+        super().__init__()
+        self.wave_field = None
+        self.frame_count = 0
+
+    def process_mask_below_threshold(self, mask, feature_value, strength, **kwargs):
+        self.wave_field = None
+        self.frame_count = 0
+        return mask
+
+    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, 
+                     wave_speed: float, wave_amplitude: float, wave_decay: float, 
+                     wave_frequency: float, max_wave_field: float, **kwargs) -> np.ndarray:
+        height, width = mask.shape
+        
+        if self.wave_field is None:
+            self.wave_field = np.zeros((height, width), dtype=np.float32)
+        
+        # Find mask boundary
+        kernel = np.ones((3,3), np.uint8)
+        boundary = cv2.dilate(mask.astype(np.uint8), kernel, iterations=1) - mask.astype(np.uint8)
+        
+        # Emit wave from boundary
+        self.wave_field += boundary * feature_value * wave_amplitude
+        
+        # Propagate waves
+        self.wave_field = cv2.GaussianBlur(self.wave_field, (0, 0), sigmaX=wave_speed)
+        
+        # Apply decay
+        self.wave_field *= wave_decay
+        
+        # Normalize wave field if it exceeds max_wave_field
+        max_value = np.max(np.abs(self.wave_field))
+        if max_value > max_wave_field:
+            self.wave_field *= (max_wave_field / max_value)
+        
+        # Create wave pattern
+        time_factor = self.frame_count * wave_frequency
+        wave_pattern = np.sin(self.wave_field + time_factor) * 0.5 + 0.5
+        
+        # Combine with original mask
+        result_mask = np.clip(mask + wave_pattern * strength, 0, 1)
+        
+        # Print debug information
+        print(f"Frame: {self.frame_count}")
+        print(f"Wave field min/max: {self.wave_field.min():.4f} / {self.wave_field.max():.4f}")
+        print(f"Wave pattern min/max: {wave_pattern.min():.4f} / {wave_pattern.max():.4f}")
+        print(f"Result mask min/max: {result_mask.min():.4f} / {result_mask.max():.4f}")
+        print("---")
+        
+        self.frame_count += 1
+        
+        return result_mask.astype(np.float32)
+
+    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, 
+                      invert, subtract_original, grow_with_blur, **kwargs):
+        # Reset wave_field and frame_count for each new feature input
+        self.wave_field = None
+        self.frame_count = 0
+        return (self.apply_mask_operation(masks, feature, feature_pipe, strength, 
+                                          feature_threshold, invert, subtract_original, 
+                                          grow_with_blur, **kwargs),)
+    
 #TODO
 # class FlexMaskVoronoiShape(FlexMaskBase):
 #     @classmethod
