@@ -945,6 +945,7 @@ class FlexMaskBase(MaskBase):
 
         result = []
         for i in range(num_frames):
+            kwargs['frame_index'] = i
             mask = masks[i].numpy()
             feature_value = feature.get_value_at_frame(i)
             
