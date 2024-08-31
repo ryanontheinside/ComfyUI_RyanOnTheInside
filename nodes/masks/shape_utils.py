@@ -87,7 +87,9 @@ def create_spiral(center, size, params):
     turns = params.get('turns', 3)
     thickness = params.get('thickness', 0.1)
     def spiral(t):
-        return size * t * np.array([np.cos(2*np.pi*turns*t), np.sin(2*np.pi*turns*t)]) / turns
+        x = size * t * np.cos(2*np.pi*turns*t) / turns
+        y = size * t * np.sin(2*np.pi*turns*t) / turns
+        return np.column_stack([x, y])
     t = np.linspace(0, 1, 1000)
     spiral_points = spiral(t) + center
     path = Path(spiral_points, [Path.MOVETO] + [Path.LINETO] * (len(spiral_points) - 1))
@@ -206,11 +208,14 @@ def create_cloud(center, size, params):
     angles = np.linspace(0, 2*np.pi, num_bulbs, endpoint=False)
     cloud_x = center[0] + size * 0.5 * np.cos(angles)
     cloud_y = center[1] + size * 0.25 * np.sin(angles)
-    path = None
-    for x, y in zip(cloud_x, cloud_y):
-        circle = Path.circle((x, y), bulb_size)
-        path = circle if path is None else path.union(circle)
-    return lambda x, y: path.contains_points(np.column_stack([x, y]))
+    
+    def cloud_shape(x, y):
+        mask = np.zeros_like(x, dtype=bool)
+        for cx, cy in zip(cloud_x, cloud_y):
+            mask |= ((x - cx)**2 + (y - cy)**2 <= bulb_size**2)
+        return mask
+    
+    return cloud_shape
 
 def create_raindrop(center, size, params):
     rotation = params.get('rotation', 0)
