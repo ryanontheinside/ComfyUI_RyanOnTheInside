@@ -315,7 +315,6 @@ add_node_config("ParticleColorModulation", {
 
 add_node_config("FlexMaskBase", {
     "BASE_DESCRIPTION": """
-## Common Parameters
 - `feature`: The feature used to modulate the mask operation (FEATURE type)
 - `feature_pipe`: The feature pipe containing frame information (FEATURE_PIPE type)
 - `feature_threshold`: Threshold for feature activation (0.0 to 1.0)
@@ -392,8 +391,8 @@ add_node_config("FlexMaskVoronoiScheduled", {
 - `seed`: Random seed for reproducible results (0 to 2^64 - 1).
 - `x_offset`: Horizontal offset of the Voronoi pattern (-1000.0 to 1000.0).
 - `y_offset`: Vertical offset of the Voronoi pattern (-1000.0 to 1000.0).
-- `control_parameter`: Which parameter to modulate based on the feature ("scale", "detail", "randomness", "seed", "x_offset", "y_offset").
-- `formula`: Mathematical formula used to map the feature value to the control parameter. Options include "Linear", "Quadratic", "Cubic", "Sinusoidal", and "Exponential".
+- `feature_param`: Which parameter to modulate based on the feature ("scale", "detail", "randomness", "seed", "x_offset", "y_offset").
+- `formula`: Mathematical formula used to map the feature value to the feature parameter. Options include "Linear", "Quadratic", "Cubic", "Sinusoidal", and "Exponential".
 - `a` and `b`: Parameters for fine-tuning the chosen formula (0.1 to 10.0).
 
 Credit for the  heavy lifting for this node goes to https://github.com/alanhuang67/
@@ -415,11 +414,42 @@ The binary mask operation is applied with strength determined by the selected fe
 """
 })
 
+add_node_config("FlexMaskEmanatingRings", {
+    "TOP_DESCRIPTION": "Creates dynamic, expanding ring patterns that emanate from the edges of the input mask.",
+    "ADDITIONAL_INFO": """
+- `num_rings`: Number of concentric rings to generate (1 to 50). More rings create a denser, more complex pattern.
+- `max_ring_width`: Maximum width of each ring as a fraction of the total distance (0.01 to 0.9). Larger values create wider, more prominent rings that overlap more.
+- `wave_speed`: Speed at which the rings expand outward (0.01 to 0.5). Higher values create faster-moving, more dynamic patterns.
+- `feature_param`: Determines which aspect of the effect is modulated by the input feature.
+  - Options: "num_rings" (varies ring count), "ring_width" (adjusts ring thickness), "wave_speed" (changes expansion rate), "all" (modulates all parameters)
+
+This node creates a mesmerizing effect of rings expanding from the edges of the input mask. The rings start thick at the mask boundary and thin out as they move outward, creating a pulsating, wave-like appearance. The effect can be subtle and smooth or bold and dynamic depending on the parameter settings.
+
+The feature input can be used to dynamically adjust the effect over time, allowing for rhythmic pulsing (e.g., synced to audio) or gradual evolution of the pattern. When the feature value is below the threshold, the animation continues but no new rings are generated, creating a smooth transition effect.
+"""
+})
+
+add_node_config("FlexMaskWavePropagation", {
+    "TOP_DESCRIPTION": "Good luck with this one...Simulates wave-like abstract distortions propagating from the edges of the input mask.",
+    "ADDITIONAL_INFO": """
+- `wave_speed`: Controls the rate of wave propagation (0.1 to 100.0). Higher values create faster-moving, more rapidly evolving patterns.
+- `wave_amplitude`: Determines the intensity of the wave effect (0.1 to 2.0). Larger values create more pronounced, exaggerated distortions.
+- `wave_decay`: Rate at which waves fade out over time (0.9 to 10.0). Lower values cause waves to dissipate quickly, while higher values allow waves to persist and interact more.
+- `wave_frequency`: Frequency of the wave oscillations (0.01 to 10.0). Higher values create more rapid, ripple-like effects, while lower values produce smoother, more gradual undulations.
+- `max_wave_field`: Maximum allowed intensity for the wave field (10.0 to 10000.0). This parameter prevents the effect from becoming too extreme over time.
+
+This node creates a dynamic, fluid-like effect where waves seem to emanate from the edges of the input mask. The waves propagate outward, interacting with each other and creating complex, evolving patterns. The effect can range from subtle, water-like ripples to intense, psychedelic distortions depending on the parameter settings.
+
+The wave propagation is particularly sensitive to the interplay between `wave_speed`, `wave_amplitude`, and `wave_decay`. High speed with low decay can create a turbulent, chaotic effect, while lower speed with higher decay produces a more serene, flowing appearance.
+
+The feature input modulates the intensity of new waves being generated, allowing for dynamic control over the effect's strength. This can be used to create pulsating effects synchronized with audio or other time-varying inputs.
+"""
+})
+
 add_node_config("BaseFeatureNode", {
     "BASE_DESCRIPTION": """
  Features are used to modulate mask operations in FlexMask nodes.
 
-## Common Parameters
 - `frame_rate`: Frame rate of the video
 - `frame_count`: Total number of frames
 """
@@ -719,15 +749,13 @@ This node is particularly useful for creating dynamic, feature-driven animations
 
 NODE_CONFIGS["FlexImageBase"] = {
     "BASE_DESCRIPTION": """
-
-## Common Parameters
 - `images`: Input image sequence (IMAGE type)
 - `feature`: Feature used to modulate the effect (FEATURE type)
 - `feature_pipe`: Feature pipe containing frame information (FEATURE_PIPE type)
 - `strength`: Overall strength of the effect (0.0 to 1.0)
 - `feature_threshold`: Minimum feature value to apply the effect (0.0 to 1.0)
-- `modulate_param`: Parameter to be modulated by the feature
-- `modulation_mode`: How the feature modulates the parameter ("relative" or "absolute")
+- `feature_param`: Parameter to be modulated by the feature
+- `feature_mode`: How the feature modulates the parameter ("relative" or "absolute"). Relative mode adjusts the parameter based on its current value, while absolute mode directly sets the parameter to the feature value.
 """
 }
 
