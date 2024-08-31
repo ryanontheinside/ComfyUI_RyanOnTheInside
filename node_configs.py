@@ -429,6 +429,25 @@ The feature input can be used to dynamically adjust the effect over time, allowi
 """
 })
 
+add_node_config("FlexMaskRandomShapes", {
+    "TOP_DESCRIPTION": "Generates dynamic masks with randomly placed shapes, modulated by a selected feature.",
+    "ADDITIONAL_INFO": """
+- `max_num_shapes`: Maximum number of shapes to generate (1 to 100). The actual number is modulated by the feature if 'num_shapes' is selected as the feature parameter.
+- `max_shape_size`: Maximum size of shapes as a fraction of the frame size (0.01 to 1.0). The actual size is modulated by the feature if 'shape_size' is selected as the feature parameter.
+- `appearance_duration`: Number of frames over which shapes appear (1 to 100). Modulated by the feature if selected as the feature parameter.
+- `disappearance_duration`: Number of frames over which shapes disappear (1 to 100). Modulated by the feature if selected as the feature parameter.
+- `appearance_method`: How shapes appear and disappear.
+  - Options: "grow" (shapes grow/shrink), "pop" (shapes appear/disappear suddenly), "fade" (shapes fade in/out)
+- `easing_function`: Determines the rate of change for appearance/disappearance.
+  - Options: "linear", "ease_in_out", "bounce", "elastic"
+- `shape_type`: Type of shape to generate. Includes various geometric shapes and a "random" option.
+- `feature_param`: Aspect of the effect modulated by the input feature.
+  - Options: "num_shapes", "shape_size", "appearance_duration", "disappearance_duration"
+
+This node creates a dynamic mask with randomly placed shapes that appear and disappear over time. The number, size, and timing of the shapes can be modulated by the input feature, creating effects that respond to various inputs like audio, time, or other extracted features. The shapes can grow, pop, or fade in and out, with different easing functions for smooth or bouncy transitions.
+"""
+})
+
 add_node_config("FlexMaskWavePropagation", {
     "TOP_DESCRIPTION": "Good luck with this one...Simulates wave-like abstract distortions propagating from the edges of the input mask.",
     "ADDITIONAL_INFO": """

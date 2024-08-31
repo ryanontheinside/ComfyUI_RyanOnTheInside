@@ -1,5 +1,5 @@
-from .mask_base import FlexMaskBase, MaskBase
-from .mask_utils import morph_mask, warp_mask, transform_mask, combine_masks
+from .mask_base import FlexMaskBase
+from .mask_utils import morph_mask, warp_mask, transform_mask, combine_masks,apply_easing
 import math
 import numpy as np
 from .voronoi_noise import VoronoiNoise #NOTE credit for Voronoi goes to Alan Huang https://github.com/alanhuang67/
@@ -7,6 +7,8 @@ from comfy.model_management import get_torch_device
 import cv2
 from .mask_base import FlexMaskBase
 from scipy.ndimage import distance_transform_edt
+from .mask_base import FlexMaskBase
+from .shape_utils import create_shape_mask, get_available_shapes
 
 class FlexMaskMorph(FlexMaskBase):
     @classmethod
@@ -88,6 +90,8 @@ class FlexMaskMath(FlexMaskBase):
         }
 
     def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, mask_b: np.ndarray, combination_method: str, **kwargs) -> np.ndarray:
+        frame_index = kwargs.get('frame_index', 0)
+        mask_b = mask_b[frame_index].numpy()
         return combine_masks(mask, mask_b, combination_method, feature_value * strength)
 
     def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, invert, subtract_original, grow_with_blur, mask_b, combination_method, **kwargs):
@@ -303,8 +307,6 @@ class FlexMaskBinary(FlexMaskBase):
                                           feature_param=feature_param,
                                           use_epsilon=use_epsilon, **kwargs),)
 
-
-
 class FlexMaskWavePropagation(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -383,9 +385,6 @@ class FlexMaskWavePropagation(FlexMaskBase):
         return (self.apply_mask_operation(masks, feature, feature_pipe, strength, 
                                           feature_threshold, invert, subtract_original, 
                                           grow_with_blur, **kwargs),)
-    
-
-
 
 class FlexMaskEmanatingRings(FlexMaskBase):
     @classmethod
@@ -458,6 +457,125 @@ class FlexMaskEmanatingRings(FlexMaskBase):
                                           max_ring_width=max_ring_width, wave_speed=wave_speed,
                                           feature_param=feature_param, **kwargs),)
 
+class FlexMaskRandomShapes(FlexMaskBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        cls.feature_threshold_default = 0.25
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "max_num_shapes": ("INT", {"default": 10, "min": 1, "max": 100, "step": 1}),
+                "max_shape_size": ("FLOAT", {"default": 0.2, "min": 0.01, "max": 1.0, "step": 0.01}),
+                "appearance_duration": ("INT", {"default": 10, "min": 1, "max": 100, "step": 1}),
+                "disappearance_duration": ("INT", {"default": 10, "min": 1, "max": 100, "step": 1}),
+                "appearance_method": (["grow", "pop", "fade"],),
+                "easing_function": (["linear","ease_in_out", "bounce","elastic"],),
+                "shape_type": (get_available_shapes(),),
+                "feature_param": (["num_shapes", "shape_size", "appearance_duration", "disappearance_duration"],),
+            }
+        }
+
+    def __init__(self):
+        super().__init__()
+        self.shapes = []
+        self.frame_count = 0
+
+    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float,
+                     max_num_shapes: int, max_shape_size: float, appearance_duration: int,
+                     disappearance_duration: int, appearance_method: str, easing_function: str,
+                     shape_type: str, feature_param: str, **kwargs) -> np.ndarray:
+        height, width = mask.shape
+        result_mask = mask.copy()
+
+        # Adjust parameters based on feature_value and feature_param
+        if feature_param == "num_shapes":
+            num_shapes = max(1, int(max_num_shapes * feature_value * strength))
+        else:
+            num_shapes = max_num_shapes
+
+        if feature_param == "shape_size":
+            shape_size = max_shape_size * feature_value * strength
+        else:
+            shape_size = max_shape_size
+
+        if feature_param == "appearance_duration":
+            app_duration = max(1, int(appearance_duration * feature_value * strength))
+        else:
+            app_duration = appearance_duration
+
+        if feature_param == "disappearance_duration":
+            disapp_duration = max(1, int(disappearance_duration * feature_value * strength))
+        else:
+            disapp_duration = disappearance_duration
+
+        # Remove completed shapes
+        self.shapes = [shape for shape in self.shapes if shape['frame'] < shape['total_frames']]
+
+        # Add new shapes if needed
+        while len(self.shapes) < num_shapes:
+            center = (np.random.randint(0, width), np.random.randint(0, height))
+            if shape_type == "random":
+                selected_shape = np.random.choice(get_available_shapes())
+            else:
+                selected_shape = shape_type
+            new_shape = {
+                'center': center,
+                'size': int(min(height, width) * shape_size),
+                'type': selected_shape,
+                'frame': 0,
+                'total_frames': app_duration + disapp_duration,
+                'app_duration': app_duration,
+                'disapp_duration': disapp_duration,
+            }
+            self.shapes.append(new_shape)
+
+        # Update and draw shapes
+        for shape in self.shapes:
+            if shape['frame'] < shape['app_duration']:
+                progress = shape['frame'] / shape['app_duration']
+                alpha = apply_easing(progress, easing_function)
+                if appearance_method == "grow":
+                    current_size = int(shape['size'] * alpha)
+                    shape_mask = create_shape_mask((height, width), shape['center'], shape['type'], current_size)
+                elif appearance_method == "pop":
+                    shape_mask = create_shape_mask((height, width), shape['center'], shape['type'], shape['size']) * (1 if progress > 0.5 else 0)
+                elif appearance_method == "fade":
+                    shape_mask = create_shape_mask((height, width), shape['center'], shape['type'], shape['size']) * alpha
+            else:
+                progress = (shape['frame'] - shape['app_duration']) / shape['disapp_duration']
+                alpha = 1 - apply_easing(progress, easing_function)
+                if appearance_method == "grow":
+                    current_size = int(shape['size'] * (1 - progress))
+                    shape_mask = create_shape_mask((height, width), shape['center'], shape['type'], current_size)
+                elif appearance_method == "pop":
+                    shape_mask = create_shape_mask((height, width), shape['center'], shape['type'], shape['size']) * (1 if progress < 0.5 else 0)
+                elif appearance_method == "fade":
+                    shape_mask = create_shape_mask((height, width), shape['center'], shape['type'], shape['size']) * alpha
+
+            result_mask = np.maximum(result_mask, shape_mask)
+            shape['frame'] += 1
+
+        self.frame_count += 1
+        return result_mask
+
+    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold,
+                      invert, subtract_original, grow_with_blur, max_num_shapes,
+                      max_shape_size, appearance_duration, disappearance_duration,
+                      appearance_method, easing_function, shape_type, feature_param, **kwargs):
+        
+        self.shapes=[]
+        self.frame_count=0
+        return (self.apply_mask_operation(masks, feature, feature_pipe, strength,
+                                          feature_threshold, invert, subtract_original,
+                                          grow_with_blur, max_num_shapes=max_num_shapes,
+                                          max_shape_size=max_shape_size,
+                                          appearance_duration=appearance_duration,
+                                          disappearance_duration=disappearance_duration,
+                                          appearance_method=appearance_method,
+                                          easing_function=easing_function,
+                                          shape_type=shape_type,
+                                          feature_param=feature_param, **kwargs),)
 #TODO
 # class FlexMaskVoronoiShape(FlexMaskBase):
 #     @classmethod

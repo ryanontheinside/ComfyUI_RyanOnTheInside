@@ -7,7 +7,8 @@ class RyanOnTheInside(metaclass=CombinedMeta):
     def get_description(cls):
         
         display_name = NODE_DISPLAY_NAME_MAPPINGS.get(cls.__name__, cls.__name__)
-        footer = "For more information, visit [RyanOnTheInside GitHub](https://github.com/ryanontheinside)."
+        footer = "For more information, visit [RyanOnTheInside GitHub](https://github.com/ryanontheinside).\n\n"
+        footer += "For tutorials and example workflows visit [RyanOnTheInside Civitai](https://civitai.com/user/ryanontheinside).\n\n"
         display_name = display_name.replace(" | RyanOnTheInside", "")
         
         desc = f"# {display_name}\n\n"
@@ -120,6 +121,8 @@ from .nodes.masks.flex_masks import (
     FlexMaskBinary,
     FlexMaskWavePropagation,
     FlexMaskEmanatingRings,
+    FlexMaskRandomShapes,
+
 )
 
 from .nodes.images.flex_images import (
@@ -199,6 +202,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexMaskVoronoiScheduled":     FlexMaskVoronoiScheduled,
     "FlexMaskWavePropagation":      FlexMaskWavePropagation,
     "FlexMaskEmanatingRings":       FlexMaskEmanatingRings,
+    "FlexMaskRandomShapes":         FlexMaskRandomShapes,
 
     #audio  
     "AudioSeparator":               AudioSeparator,

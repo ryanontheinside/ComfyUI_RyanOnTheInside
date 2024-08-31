@@ -29,7 +29,7 @@ RyanOnTheInside node pack introduces dynamic features to ComfyUI:
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
 
 ##### 🆕 Recent Updates
-
+- 8/31/24 - **FlexMaskRandomShapes**: Create dynamic shapes. Cooler than it sounds!
 - 8/30/24 - **FlexMaskEmanatingRings**: Create dynamic, expanding ring patterns emanating from mask edges.
 - 8/30/24 - **FlexMaskWavePropagation**: Simulate wave-like distortions propagating from mask boundaries.
 - 8/29/24 - **Added feature reactivity to paricle simulations**
