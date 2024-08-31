@@ -19,7 +19,7 @@ class FlexImageEdgeDetect(FlexImageBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["low_threshold", "high_threshold"]
+        return ["low_threshold", "high_threshold", "None"]
 
     def apply_effect_internal(self, image: np.ndarray, low_threshold: float, high_threshold: float, **kwargs) -> np.ndarray:
         gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -47,7 +47,7 @@ class FlexImagePosterize(FlexImageBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["max_levels", "dither_strength", "channel_separation", "gamma"]
+        return ["max_levels", "dither_strength", "channel_separation", "gamma", "None"]
 
     def apply_effect_internal(self, image: np.ndarray, max_levels: int, dither_strength: float, 
                               channel_separation: float, gamma: float, **kwargs) -> np.ndarray:
@@ -105,7 +105,7 @@ class FlexImageKaleidoscope(FlexImageBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["segments", "zoom", "rotation", "precession", "speed"]
+        return ["segments", "zoom", "rotation", "precession", "speed", "None"]
 
     def apply_effect_internal(self, image: np.ndarray, segments: int, center_x: float, center_y: float, 
                               zoom: float, rotation: float, precession: float, speed: float, **kwargs) -> np.ndarray:
@@ -204,7 +204,7 @@ class FlexImageGlitch(FlexImageBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["shift_amount", "scan_lines", "color_shift"]
+        return ["shift_amount", "scan_lines", "color_shift", "None"]
 
     def apply_effect_internal(self, image: np.ndarray, shift_amount: float, scan_lines: int, color_shift: float, **kwargs) -> np.ndarray:
         h, w = image.shape[:2]
@@ -241,7 +241,7 @@ class FlexImageChromaticAberration(FlexImageBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["shift_amount", "angle"]
+        return ["shift_amount", "angle", "None"]
 
     def apply_effect_internal(self, image: np.ndarray, shift_amount: float, angle: float, **kwargs) -> np.ndarray:
         h, w = image.shape[:2]
@@ -272,7 +272,7 @@ class FlexImagePixelate(FlexImageBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["pixel_size"]
+        return ["pixel_size", "None"]
 
     def apply_effect_internal(self, image: np.ndarray, pixel_size: int, **kwargs) -> np.ndarray:
         h, w = image.shape[:2]
@@ -309,7 +309,7 @@ class FlexImageBloom(FlexImageBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["threshold", "blur_amount", "intensity"]
+        return ["threshold", "blur_amount", "intensity", "None"]
 
     def apply_effect_internal(self, image: np.ndarray, threshold: float, blur_amount: float, 
                               intensity: float, **kwargs) -> np.ndarray:
@@ -342,7 +342,7 @@ class FlexImageTiltShift(FlexImageBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["blur_amount", "focus_position_x", "focus_position_y", "focus_width", "focus_height"]
+        return ["blur_amount", "focus_position_x", "focus_position_y", "focus_width", "focus_height", "None"]
 
     def apply_effect_internal(self, image: np.ndarray, blur_amount: float, focus_position_x: float, 
                               focus_position_y: float, focus_width: float, focus_height: float, 
