@@ -389,7 +389,7 @@ class FlexMaskWavePropagation(FlexMaskBase):
 class FlexMaskEmanatingRings(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
-        cls.feature_threshold_default   =  0.25
+        cls.feature_threshold_default = 0.25
         return {
             **super().INPUT_TYPES(),
             "required": {
@@ -403,36 +403,53 @@ class FlexMaskEmanatingRings(FlexMaskBase):
 
     def __init__(self):
         super().__init__()
-        self.time = 0
+        self.rings = []
 
     def process_mask(self, mask: np.ndarray, feature_value: float, strength: float,
                      num_rings: int, max_ring_width: float, wave_speed: float,
                      feature_param: str, **kwargs) -> np.ndarray:
-        # Adjust parameters based on feature_value and feature_param
-        if feature_param in ["num_rings", "all"]:
-            adjusted_num_rings = max(1, int(num_rings * feature_value * strength))
-        else:
-            adjusted_num_rings = num_rings
-
-        if feature_param in ["ring_width", "all"]:
-            adjusted_max_ring_width = max_ring_width * feature_value * strength
-        else:
-            adjusted_max_ring_width = max_ring_width
-
-        if feature_param in ["wave_speed", "all"]:
-            adjusted_wave_speed = wave_speed * feature_value * strength
-        else:
-            adjusted_wave_speed = wave_speed
-
+        height, width = mask.shape
         distance = distance_transform_edt(1 - mask)
         max_distance = np.max(distance)
         normalized_distance = distance / max_distance
 
+        # Update existing rings
+        new_rings = []
+        for ring in self.rings:
+            ring['progress'] += ring['wave_speed']
+            if ring['progress'] < 1:
+                new_rings.append(ring)
+        self.rings = new_rings
+
+        # Create new rings if feature_value > 0
+        if feature_value > 0:
+            if feature_param in ["num_rings", "all"]:
+                adjusted_num_rings = max(1, int(num_rings * feature_value * strength))
+            else:
+                adjusted_num_rings = num_rings
+
+            if feature_param in ["ring_width", "all"]:
+                adjusted_max_ring_width = max_ring_width * feature_value * strength
+            else:
+                adjusted_max_ring_width = max_ring_width
+
+            if feature_param in ["wave_speed", "all"]:
+                adjusted_wave_speed = wave_speed * feature_value * strength
+            else:
+                adjusted_wave_speed = wave_speed
+
+            for i in range(adjusted_num_rings):
+                self.rings.append({
+                    'progress': i / adjusted_num_rings,
+                    'ring_width': adjusted_max_ring_width,
+                    'wave_speed': adjusted_wave_speed
+                })
+
         # Create emanating rings
         rings = np.zeros_like(mask)
-        for i in range(adjusted_num_rings):
-            ring_progress = (self.time * adjusted_wave_speed + i / adjusted_num_rings) % 1
-            ring_width = adjusted_max_ring_width * (1 - ring_progress)  # Rings get thinner as they move out
+        for ring in self.rings:
+            ring_progress = ring['progress'] % 1
+            ring_width = ring['ring_width'] * (1 - ring_progress)  # Rings get thinner as they move out
             ring_outer = normalized_distance < ring_progress
             ring_inner = normalized_distance < (ring_progress - ring_width)
             rings = np.logical_or(rings, np.logical_xor(ring_outer, ring_inner))
@@ -440,17 +457,15 @@ class FlexMaskEmanatingRings(FlexMaskBase):
         # Combine with original mask
         result = np.logical_or(mask, rings).astype(np.float32)
 
-        self.time += 1
         return result
 
     def process_mask_below_threshold(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
-        # Continue the animation don't create new rings
+        # Continue the animation but don't create new rings
         return self.process_mask(mask, 0, strength, **kwargs)
 
     def main_function(self, masks, feature, feature_pipe, strength, feature_threshold,
                       invert, subtract_original, grow_with_blur, num_rings,
                       max_ring_width, wave_speed, feature_param, **kwargs):
-        self.time = 0  # Reset time for each new feature input
         return (self.apply_mask_operation(masks, feature, feature_pipe, strength,
                                           feature_threshold, invert, subtract_original,
                                           grow_with_blur, num_rings=num_rings,

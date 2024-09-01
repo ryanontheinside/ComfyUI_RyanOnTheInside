@@ -48,6 +48,11 @@ For a range of example and tutorial workflows showcasing the capabilities of thi
 
 [RyanOnTheInside Civitai Profile](https://civitai.com/user/RyanOnTheInside)
 
+## ❓ Help and Documentation
+
+For detailed information on each and every node, click the ❓ icon present in the top-right corner of every node.
+
+![Help and Documentation](./assets/help.png)
 
 ## 🚀 Key Features
 Particles are now reactive!
