@@ -111,6 +111,7 @@ from .nodes.utility_nodes import (
     VideoChunks,
     ImageDifference,
     ImageShuffle,
+    SwapDevice,
 )
 
 ###images
@@ -266,6 +267,7 @@ NODE_CLASS_MAPPINGS = {
     "VideoChunk":                   VideoChunks,
     "ImageDifference":              ImageDifference,
     "ImageShuffle":                 ImageShuffle,
+    "SwapDevice":                   SwapDevice,
     
 }
 

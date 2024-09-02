@@ -197,3 +197,37 @@ class ImageDifference(UtilityNode):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "compute_difference"
 
+class SwapDevice(UtilityNode):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "device": (["cpu", "cuda"],),
+            },
+            "optional": {
+                "image": ("IMAGE",),
+                "mask": ("MASK",),
+            },
+        }
+
+    def swap_device(self, device, image=None, mask=None):
+        # Check if the device is available
+        if device not in ["cpu", "cuda"] or (device == "cuda" and not torch.cuda.is_available()):
+            raise ValueError(f"Device {device} is not available.")
+
+        # Transfer image to the chosen device or create a zero tensor if image is None
+        if image is not None:
+            image = image.to(device)
+        else:
+            image = torch.zeros((1, 1, 1, 1), device=device)
+
+        # Transfer mask to the chosen device or create a zero tensor if mask is None
+        if mask is not None:
+            mask = mask.to(device)
+        else:
+            mask = torch.zeros((1, 1, 1, 1), device=device)
+
+        return (image, mask)
+
+    RETURN_TYPES = ("IMAGE", "MASK")
+    FUNCTION = "swap_device"
