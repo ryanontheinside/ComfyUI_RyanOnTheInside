@@ -99,10 +99,18 @@ from .nodes.masks.particle_system_masks import (
 #     FlexDepthBasedMaskOpacity,
 # )
 
-from .nodes.masks.utility_nodes import (
+from .nodes.masks.mask_utility_nodes import (
     _mfc, 
     TextMaskNode, 
     MovingShape,
+)
+
+from .nodes.utility_nodes import (
+    ImageChunks, 
+    ImageIntervalSelect,
+    VideoChunks,
+    ImageDifference,
+    ImageShuffle,
 )
 
 ###images
@@ -252,6 +260,13 @@ NODE_CLASS_MAPPINGS = {
     "_mfc":                         _mfc,
     "TextMaskNode":                 TextMaskNode,
 
+    #utility nodes
+    "ImageChunk":                   ImageChunks, 
+    "ImageInterval":                ImageIntervalSelect,
+    "VideoChunk":                   VideoChunks,
+    "ImageDifference":              ImageDifference,
+    "ImageShuffle":                 ImageShuffle,
+    
 }
 
 WEB_DIRECTORY = "./web/js"
