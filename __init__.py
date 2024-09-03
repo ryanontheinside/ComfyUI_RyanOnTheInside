@@ -131,6 +131,8 @@ from .nodes.masks.flex_masks import (
     FlexMaskWavePropagation,
     FlexMaskEmanatingRings,
     FlexMaskRandomShapes,
+    FlexMaskDepthChamber,
+   # FlexMaskDepthChamberRelative, #NOTE work in progress
 
 )
 
@@ -156,6 +158,7 @@ from .nodes.flex.feature_modulation import (
     FeatureOscillator,
     FeatureScaler,
     FeatureSmoothing,
+    FeatureFade,
 )
 
 
@@ -212,6 +215,8 @@ NODE_CLASS_MAPPINGS = {
     "FlexMaskWavePropagation":      FlexMaskWavePropagation,
     "FlexMaskEmanatingRings":       FlexMaskEmanatingRings,
     "FlexMaskRandomShapes":         FlexMaskRandomShapes,
+    "FlexMaskDepthChamber":         FlexMaskDepthChamber,
+    # "FlexMaskDepthChamberRelative": FlexMaskDepthChamberRelative,
 
     #audio  
     "AudioSeparator":               AudioSeparator,
@@ -237,6 +242,7 @@ NODE_CLASS_MAPPINGS = {
     "FeatureOscillator":            FeatureOscillator,
     "FeatureScaler":                FeatureScaler,
     "FeatureSmoothing":             FeatureSmoothing,
+    "FeatureFade":                  FeatureFade,
     
     #images
     'FlexImageEdgeDetect':          FlexImageEdgeDetect,

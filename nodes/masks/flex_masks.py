@@ -591,6 +591,143 @@ class FlexMaskRandomShapes(FlexMaskBase):
                                           easing_function=easing_function,
                                           shape_type=shape_type,
                                           feature_param=feature_param, **kwargs),)
+
+import torch
+class FlexMaskDepthChamber(FlexMaskBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "depth_map": ("IMAGE",),
+                "z_front": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "z_back": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "feature_param": (["none", "z_front", "z_back", "both"],),
+                "feature_mode": (["squeeze", "expand"],),
+            }
+        }
+
+    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, 
+                     depth_map: torch.Tensor, z_front: float, z_back: float, feature_param: str, 
+                     feature_mode: str, **kwargs) -> np.ndarray:
+        frame_index = kwargs.get('frame_index', 0)
+        depth_map_frame = depth_map[frame_index].cpu().numpy()
+
+        depth_map_frame = depth_map_frame[:, :, 0]
+
+        # Adjust z_front and z_back based on feature_mode and feature_param
+        if feature_param != "none":
+            if feature_mode == "squeeze":
+                if feature_param in ["z_front", "both"]:
+                    z_front = z_front - (z_front - z_back) * strength * feature_value / 2 if z_front > z_back else z_front + (z_back - z_front) * strength * feature_value / 2
+                if feature_param in ["z_back", "both"]:
+                    z_back = z_back + (z_front - z_back) * strength * feature_value / 2 if z_back < z_front else z_back - (z_back - z_front) * strength * feature_value / 2
+            elif feature_mode == "expand":
+                if feature_param in ["z_front", "both"]:
+                    z_front = min(1.0, z_front + (z_front - z_back) * strength * feature_value / 2) if z_front > z_back else max(0.0, z_front - (z_back - z_front) * strength * feature_value / 2)
+                if feature_param in ["z_back", "both"]:
+                    z_back = max(0.0, z_back - (z_front - z_back) * strength * feature_value / 2) if z_back < z_front else min(1.0, z_back + (z_back - z_front) * strength * feature_value / 2)
+
+        # Create the depth mask
+        if z_back < z_front:
+            depth_mask = (depth_map_frame >= z_back) & (depth_map_frame <= z_front)
+        else:
+            depth_mask = (depth_map_frame >= z_back) | (depth_map_frame <= z_front)
+
+        depth_mask_resized = cv2.resize(depth_mask.astype(np.float32), (mask.shape[1], mask.shape[0]))
+
+        return depth_mask_resized
+
+    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, 
+                      invert, subtract_original, grow_with_blur, depth_map, z_front, z_back, 
+                      feature_param, feature_mode, **kwargs):
+        return (self.apply_mask_operation(masks, feature, feature_pipe, strength, 
+                                          feature_threshold, invert, subtract_original, 
+                                          grow_with_blur, depth_map=depth_map, z_front=z_front, z_back=z_back, 
+                                          feature_param=feature_param, feature_mode=feature_mode, 
+                                          **kwargs),)
+
+from typing import List
+import torch.nn.functional as F
+class FlexMaskDepthChamberRelative(FlexMaskBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "depth_map": ("IMAGE",),
+                "z1": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "z2": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "feature_param": (["none", "z1", "z2", "both"],),
+                "feature_mode": (["squeeze", "expand"],),
+            }
+        }
+
+    def calculate_roi_size(self, mask: torch.Tensor) -> float:
+        # Calculate the bounding box of the mask
+        y_indices, x_indices = torch.where(mask > 0)
+        if len(y_indices) == 0 or len(x_indices) == 0:
+            return 0.0
+        height = y_indices.max().item() - y_indices.min().item()
+        width = x_indices.max().item() - x_indices.min().item()
+        return height * width
+
+    def calculate_reference_size(self, masks: List[torch.Tensor]) -> float:
+        # Calculate the mean or median size of the ROI across all frames
+        sizes = [self.calculate_roi_size(mask) for mask in masks]
+        return torch.median(torch.tensor(sizes)).item()  # or torch.mean(torch.tensor(sizes)).item()
+
+    def process_mask(self, mask: torch.Tensor, feature_value: float, strength: float, 
+                     depth_map: torch.Tensor, z1: float, z2: float, feature_param: str, 
+                     feature_mode: str, reference_size: float, **kwargs) -> torch.Tensor:
+        frame_index = kwargs.get('frame_index', 0)
+        depth_map_frame = depth_map[frame_index, :, :, 0]
+
+        # Calculate the ROI size for the current frame
+        roi_size = self.calculate_roi_size(mask)
+
+        if feature_param == "z1":
+            z1 = z1 * (roi_size / reference_size)
+        elif feature_param == "z2":
+            z2 = z2 * (roi_size / reference_size)
+        elif feature_param == "both":
+            z1 = z1 * (roi_size / reference_size)
+            z2 = z2 * (roi_size / reference_size)
+
+        # Ensure z1 is less than z2
+        z1, z2 = min(z1, z2), max(z1, z2)
+
+        if feature_mode == "squeeze":
+            depth_mask = (depth_map_frame >= z1) & (depth_map_frame <= z2)
+        elif feature_mode == "expand":
+            depth_mask = (depth_map_frame < z1) | (depth_map_frame > z2)
+
+        depth_mask_resized = F.interpolate(depth_mask.unsqueeze(0).unsqueeze(0).float(), size=mask.shape[-2:], mode='nearest').squeeze(0).squeeze(0)
+
+        output_mask = mask.float() * depth_mask_resized
+
+        return output_mask
+
+    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, 
+                      invert, subtract_original, grow_with_blur, depth_map, z1, z2, 
+                      feature_param, feature_mode, **kwargs):
+        reference_size = self.calculate_reference_size(masks)
+
+        output_masks = []
+        for frame_index, mask in enumerate(masks):
+            output_mask = self.process_mask(mask, feature_value=1.0, strength=1.0, 
+                                            depth_map=depth_map, z1=z1, z2=z2, 
+                                            feature_param=feature_param, feature_mode=feature_mode, 
+                                            reference_size=reference_size, frame_index=frame_index)
+            output_masks.append(output_mask)
+
+        # Stack the list of tensors into a single tensor
+        output_masks_tensor = torch.stack(output_masks)
+
+        return (output_masks_tensor,)
+
 #TODO
 # class FlexMaskVoronoiShape(FlexMaskBase):
 #     @classmethod

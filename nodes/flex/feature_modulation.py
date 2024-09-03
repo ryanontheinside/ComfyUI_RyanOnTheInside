@@ -105,7 +105,7 @@ class FeatureMixer(FeatureModulationBase):
                 "release": ("FLOAT", {"default": 1.0, "min": 0.01, "max": 1.0, "step": 0.01}),
                 "smoothing": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "rise_detection_threshold": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 1.0, "step": 0.05}),
+                "rise_detection_threshold": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05}),
                 "rise_smoothing_factor": ("FLOAT", {"default": 0.5, "min": 0.1, "max": 2.0, "step": 0.05}),
                 **super().INPUT_TYPES()["required"],  # Include the invert_output option
             }
@@ -337,4 +337,45 @@ class FeatureOscillator(FeatureModulationBase):
         blended = [v * (1 - blend) + osc * blend for v, osc in zip(values, oscillation)]
         
         processed_feature = self.create_processed_feature(feature, blended, "Oscillated", invert_output)
+        return (processed_feature, self.visualize(processed_feature))
+
+
+#NOTE  separated from FeatureMath for ease  of  use.
+class FeatureFade(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature1": ("FEATURE",),
+                "feature2": ("FEATURE",),
+                "fader": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                **super().INPUT_TYPES()["required"],
+            },
+            "optional": {
+                "control_feature": ("FEATURE",),
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE", "IMAGE")
+    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+
+    def modulate(self, feature1, feature2, fader, invert_output, control_feature=None):
+        values1 = [feature1.get_value_at_frame(i) for i in range(feature1.frame_count)]
+        values2 = [feature2.get_value_at_frame(i) for i in range(feature2.frame_count)]
+        
+        # Ensure both features have the same length
+        min_length = min(len(values1), len(values2))
+        values1 = values1[:min_length]
+        values2 = values2[:min_length]
+        
+        if control_feature:
+            control_values = [control_feature.get_value_at_frame(i) for i in range(control_feature.frame_count)]
+            control_values = control_values[:min_length]
+            fader_values = [(v - min(control_values)) / (max(control_values) - min(control_values)) if max(control_values) > min(control_values) else 0.5 for v in control_values]
+        else:
+            fader_values = [fader] * min_length
+        
+        combined = [(1 - f) * v1 + f * v2 for v1, v2, f in zip(values1, values2, fader_values)]
+        
+        processed_feature = self.create_processed_feature(feature1, combined, "Faded", invert_output)
         return (processed_feature, self.visualize(processed_feature))

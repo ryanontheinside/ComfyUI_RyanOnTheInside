@@ -1,13 +1,17 @@
 # ComfyUI RyanOnTheInside Node Pack
 
 ## Overview
-RyanOnTheInside node pack introduces dynamic features to ComfyUI:
+### RyanOnTheInside node pack introduces dynamic features to ComfyUI:
+  **Dynamic Reactivity**: Almost all nodes in this pack can be made to react to audio, MIDI, motion, time, color, depth, brightness, and more, allowing for incredibly dynamic and responsive workflows.**
 
 - 🎆 **Particle Systems**: Create mesmerizing, fluid-like effects
 - 🎵 **Audio & MIDI Processing**: Separate instruments and create audio-reactive visuals
 - 🎛️ **Flex Features**: Dynamic control over IPAdapters, Masks, and Images
 - 🌊 **Optical Flow**: Generate masks based on motion in videos
 - ⏳ **Temporal Effects**: Apply time-based transformations to masks and images
+
+
+
 
 <table style="border-collapse: collapse; border: none;">
   <tr>
@@ -29,6 +33,9 @@ RyanOnTheInside node pack introduces dynamic features to ComfyUI:
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
 
 ##### 🆕 Recent Updates
+- 9/3/24 - **FlexMaskDepthChamber**: Mask anything within a given depth range
+- 9/3/24 - **FeatureFade**: another feature modifier  to allow mixing of features, controled by features. Think mixing depth and motion features according to a kick drum or somthing. Ridiculous.
+- 9/1/24 - **Utility Nodes**: Added many utility nodes for batch manipulation and more
 - 8/31/24 - **FlexMaskRandomShapes**: Create dynamic shapes. Cooler than it sounds!
 - 8/30/24 - **FlexMaskEmanatingRings**: Create dynamic, expanding ring patterns emanating from mask edges.
 - 8/30/24 - **FlexMaskWavePropagation**: Simulate wave-like distortions propagating from mask boundaries.
@@ -50,7 +57,7 @@ For a range of example and tutorial workflows showcasing the capabilities of thi
 
 ## ❓ Help and Documentation
 
-For detailed information on each and every node, click the ❓ icon present in the top-right corner of every node.
+For detailed information on each and every node, click the ❓ icon present in the top-right corner of the node.
 
 ![Help and Documentation](./assets/help.png)
 

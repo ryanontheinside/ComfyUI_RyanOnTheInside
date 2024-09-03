@@ -322,6 +322,20 @@ add_node_config("FlexMaskBase", {
 """
 })
 
+add_node_config("FlexMaskDepthChamber", {
+    "TOP_DESCRIPTION": "Applies a depth-based mask modulation using a depth map and specified front and back depth values.",
+    "ADDITIONAL_INFO": """
+- `depth_map`: Input depth map (IMAGE type)
+- `z_front`: Front depth value for the mask (0.0 to 1.0). Default is 1.0.
+- `z_back`: Back depth value for the mask (0.0 to 1.0). Default is 0.0.
+- `feature_param`: Parameter to modulate based on the feature. Options are "none", "z_front", "z_back", "both".
+- `feature_mode`: Mode of feature modulation. Options are "squeeze" and "expand".
+
+This node creates a mask based on the depth values in the input depth map. The mask is modulated by the specified front and back depth values, and can be further adjusted using a feature input to dynamically change the depth range.
+"""
+})
+
+
 add_node_config("FlexMaskMorph", {
     "TOP_DESCRIPTION": "Applies morphological operations to the mask, modulated by a selected feature.",
     "ADDITIONAL_INFO": """
@@ -755,6 +769,18 @@ add_node_config("FeatureOscillator", {
     """
 })
 
+add_node_config("FeatureFade", {
+    "TOP_DESCRIPTION": "Fades between two features based on a fader value or a control feature.",
+    "ADDITIONAL_INFO": """
+- `feature1`: First input feature to fade from (FEATURE type)
+- `feature2`: Second input feature to fade to (FEATURE type)
+- `fader`: Static fader value to control the blend between feature1 and feature2 (0.0 to 1.0). 0.0 is 100 percent feature1, 1.0 is 100 percent feature2.
+- `control_feature`: Optional feature to dynamically control the fader value (FEATURE type). If provided, the fader value will be modulated by this feature.
+
+Shoutout @cyncratic
+"""
+})
+
 add_node_config("FeatureToWeightsStrategy", {
     "TOP_DESCRIPTION": "Converts a FEATURE input into a WEIGHTS_STRATEGY for use with IPAdapter nodes.",
     "ADDITIONAL_INFO": """
@@ -859,7 +885,7 @@ add_node_config("UtilityNode",{
     "BASE_DESCRIPTION":"Various Utils"
 })
 
-add_node_config("ImageInterval", {
+add_node_config("ImageIntervalSelect", {
     "TOP_DESCRIPTION": "Selects images from a sequence at specified intervals.",
     "ADDITIONAL_INFO": """
 - `image`: Input image sequence (IMAGE type)
@@ -869,7 +895,7 @@ add_node_config("ImageInterval", {
 """
 })
 
-add_node_config("ImageChunk", {
+add_node_config("ImageChunks", {
     "TOP_DESCRIPTION": "Concatenates images into a grid.",
     "ADDITIONAL_INFO": """
 - `image`: Input image sequence (IMAGE type)
@@ -880,8 +906,8 @@ add_node_config("ImageChunk", {
 """
 })
 
-add_node_config("VideoChunk", {
-    "TOP_DESCRIPTION": "Chunks images into grids for video processing.",
+add_node_config("VideoChunks", {
+    "TOP_DESCRIPTION": "Chunks images into grids.",
     "ADDITIONAL_INFO": """
 - `image`: Input image sequence (IMAGE type)
 - `chunk_size`: Number of images per grid (default: 4, min: 1)
@@ -889,6 +915,17 @@ add_node_config("VideoChunk", {
 - `normalize`: Whether to normalize the images (default: False)
 - `scale_each`: Whether to scale each image individually (default: False)
 - `pad_value`: Value for padding (default: 0)
+"""
+})
+
+add_node_config("SwapDevice", {
+    "TOP_DESCRIPTION": "Transfers the image and mask tensors to the specified device (CPU or CUDA).",
+    "ADDITIONAL_INFO": """
+- `device`: The target device to transfer the tensors to. Options are "cpu" or "cuda".
+- `image`: (Optional) The image tensor to transfer. If not provided, a zero tensor is created.
+- `mask`: (Optional) The mask tensor to transfer. If not provided, a zero tensor is created.
+
+This node checks if the specified device is available and transfers the image and mask tensors to that device. If the device is not available, it raises a ValueError.
 """
 })
 
