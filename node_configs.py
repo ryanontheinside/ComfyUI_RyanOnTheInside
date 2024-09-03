@@ -855,3 +855,54 @@ add_node_config("FlexImageTiltShift", {
 """
 })
 
+add_node_config("UtilityNode",{
+    "BASE_DESCRIPTION":"Various Utils"
+})
+
+add_node_config("ImageInterval", {
+    "TOP_DESCRIPTION": "Selects images from a sequence at specified intervals.",
+    "ADDITIONAL_INFO": """
+- `image`: Input image sequence (IMAGE type)
+- `interval`: Interval at which to select images (1 to 100000)
+- `start_at`: Starting index for selection (0 to 100000)
+- `end_at`: Ending index for selection (0 to 100000)
+"""
+})
+
+add_node_config("ImageChunk", {
+    "TOP_DESCRIPTION": "Concatenates images into a grid.",
+    "ADDITIONAL_INFO": """
+- `image`: Input image sequence (IMAGE type)
+- `padding`: Padding between images in the grid (default: 0)
+- `normalize`: Whether to normalize the images (default: False)
+- `scale_each`: Whether to scale each image individually (default: False)
+- `pad_value`: Value for padding (default: 0)
+"""
+})
+
+add_node_config("VideoChunk", {
+    "TOP_DESCRIPTION": "Chunks images into grids for video processing.",
+    "ADDITIONAL_INFO": """
+- `image`: Input image sequence (IMAGE type)
+- `chunk_size`: Number of images per grid (default: 4, min: 1)
+- `padding`: Padding between images in the grid (default: 2)
+- `normalize`: Whether to normalize the images (default: False)
+- `scale_each`: Whether to scale each image individually (default: False)
+- `pad_value`: Value for padding (default: 0)
+"""
+})
+
+add_node_config("ImageShuffle", {
+    "TOP_DESCRIPTION": "Shuffles images in groups of specified size.",
+    "ADDITIONAL_INFO": """
+- `image`: Input image sequence (IMAGE type)
+- `shuffle_size`: Number of images per shuffle group (default: 4, min: 1)
+"""
+})
+
+add_node_config("ImageDifference", {
+    "TOP_DESCRIPTION": "Computes the difference between consecutive images.",
+    "ADDITIONAL_INFO": """
+- `image`: Input image sequence (IMAGE type)
+"""
+})
