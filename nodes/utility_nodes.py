@@ -3,9 +3,9 @@ import torch
 import torchvision
 from .. import RyanOnTheInside
 from abc import ABC
-
+ 
 class UtilityNode(RyanOnTheInside, ABC):
-    CATEGORY="UTILITY"
+    CATEGORY="RyanOnTheInside/Utility"
 
 
 class ImageIntervalSelect(UtilityNode):
