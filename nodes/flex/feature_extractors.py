@@ -25,7 +25,6 @@ class AudioFeatureExtractor(FeatureExtractorBase):
         feature.extract()
         return (feature, feature_pipe)
 
-
 class FirstFeature(FeatureExtractorBase):
     @classmethod
     def INPUT_TYPES(cls):

@@ -604,7 +604,7 @@ class FlexMaskDepthChamber(FlexMaskBase):
                 "z_front": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "z_back": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "feature_param": (["none", "z_front", "z_back", "both"],),
-                "feature_mode": (["squeeze", "expand"],),
+                "feature_mode": (["squeeze", "expand", "move_forward", "move_back"],),
             }
         }
 
@@ -628,6 +628,12 @@ class FlexMaskDepthChamber(FlexMaskBase):
                     z_front = min(1.0, z_front + (z_front - z_back) * strength * feature_value / 2) if z_front > z_back else max(0.0, z_front - (z_back - z_front) * strength * feature_value / 2)
                 if feature_param in ["z_back", "both"]:
                     z_back = max(0.0, z_back - (z_front - z_back) * strength * feature_value / 2) if z_back < z_front else min(1.0, z_back + (z_back - z_front) * strength * feature_value / 2)
+            elif feature_mode == "move_forward":
+                z_front = min(1.0, z_front + strength * feature_value)
+                z_back = min(1.0, z_back + strength * feature_value)
+            elif feature_mode == "move_back":
+                z_front = max(0.0, z_front - strength * feature_value)
+                z_back = max(0.0, z_back - strength * feature_value)
 
         # Create the depth mask
         if z_back < z_front:
@@ -637,7 +643,10 @@ class FlexMaskDepthChamber(FlexMaskBase):
 
         depth_mask_resized = cv2.resize(depth_mask.astype(np.float32), (mask.shape[1], mask.shape[0]))
 
-        return depth_mask_resized
+        # Subtract anything that doesn't fall within the input mask
+        combined_mask = np.where(mask > 0, depth_mask_resized, 0)
+
+        return combined_mask
 
     def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, 
                       invert, subtract_original, grow_with_blur, depth_map, z_front, z_back, 

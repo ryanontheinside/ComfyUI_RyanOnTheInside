@@ -146,10 +146,6 @@ add_node_config("MaskWarp", {
 """
 })
 
-add_node_config("BaseFeatureNode", {
-    "BASE_DESCRIPTION": "Provides a foundation for creating features that control mask modulation. Features are used to dynamically adjust mask operations over time or based on various inputs."
-})
-
 add_node_config("MIDILoadAndExtract", {
     "TOP_DESCRIPTION": """
     Loads a MIDI file and extracts specified features for mask modulation. To use this, select the notes on the piano that you want to use to control modulations. 
@@ -479,10 +475,15 @@ The feature input modulates the intensity of new waves being generated, allowing
 """
 })
 
-add_node_config("BaseFeatureNode", {
+add_node_config("FeatureExtractorBase", {
     "BASE_DESCRIPTION": """
- Features are used to modulate mask operations in FlexMask nodes.
+ Features are used to modulate mask operations in FlexMask nodes. 
 
+ You can replace this feature with any of the others, and it will work.
+ 
+ Available features include Audio, Motion, MIDI, Depth, Time, Color, Brightness, and more.
+
+### Parameters:
 - `frame_rate`: Frame rate of the video
 - `frame_count`: Total number of frames
 """
