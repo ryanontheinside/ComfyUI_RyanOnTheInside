@@ -18,7 +18,7 @@ class RyanOnTheInside(metaclass=CombinedMeta):
             return desc
 
         if hasattr(cls, 'TOP_DESCRIPTION'):
-            desc += f"{cls.TOP_DESCRIPTION}\n\n"
+            desc += f"### {cls.TOP_DESCRIPTION}\n\n"
         
         if hasattr(cls, "BASE_DESCRIPTION"):
             desc += cls.BASE_DESCRIPTION + "\n\n"
