@@ -9,6 +9,9 @@ from .mask_base import FlexMaskBase
 from scipy.ndimage import distance_transform_edt
 from .mask_base import FlexMaskBase
 from .shape_utils import create_shape_mask, get_available_shapes
+import torch
+from typing import List
+import torch.nn.functional as F
 
 class FlexMaskMorph(FlexMaskBase):
     @classmethod
@@ -592,7 +595,6 @@ class FlexMaskRandomShapes(FlexMaskBase):
                                           shape_type=shape_type,
                                           feature_param=feature_param, **kwargs),)
 
-import torch
 class FlexMaskDepthChamber(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -604,7 +606,7 @@ class FlexMaskDepthChamber(FlexMaskBase):
                 "z_front": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "z_back": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "feature_param": (["none", "z_front", "z_back", "both"],),
-                "feature_mode": (["squeeze", "expand"],),
+                "feature_mode": (["squeeze", "expand", "move_forward", "move_back"],),
             }
         }
 
@@ -628,6 +630,16 @@ class FlexMaskDepthChamber(FlexMaskBase):
                     z_front = min(1.0, z_front + (z_front - z_back) * strength * feature_value / 2) if z_front > z_back else max(0.0, z_front - (z_back - z_front) * strength * feature_value / 2)
                 if feature_param in ["z_back", "both"]:
                     z_back = max(0.0, z_back - (z_front - z_back) * strength * feature_value / 2) if z_back < z_front else min(1.0, z_back + (z_back - z_front) * strength * feature_value / 2)
+            elif feature_mode == "move_forward":
+                if feature_param in ["z_front", "both"]:
+                    z_front = min(1.0, z_front + strength * feature_value)
+                if feature_param in ["z_back", "both"]:
+                    z_back = min(1.0, z_back + strength * feature_value)
+            elif feature_mode == "move_back":
+                if feature_param in ["z_front", "both"]:
+                    z_front = max(0.0, z_front - strength * feature_value)
+                if feature_param in ["z_back", "both"]:
+                    z_back = max(0.0, z_back - strength * feature_value)
 
         # Create the depth mask
         if z_back < z_front:
@@ -637,7 +649,10 @@ class FlexMaskDepthChamber(FlexMaskBase):
 
         depth_mask_resized = cv2.resize(depth_mask.astype(np.float32), (mask.shape[1], mask.shape[0]))
 
-        return depth_mask_resized
+        # Subtract anything that doesn't fall within the input mask
+        combined_mask = np.where(mask > 0, depth_mask_resized, 0)
+
+        return combined_mask
 
     def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, 
                       invert, subtract_original, grow_with_blur, depth_map, z_front, z_back, 
@@ -648,8 +663,6 @@ class FlexMaskDepthChamber(FlexMaskBase):
                                           feature_param=feature_param, feature_mode=feature_mode, 
                                           **kwargs),)
 
-from typing import List
-import torch.nn.functional as F
 class FlexMaskDepthChamberRelative(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):

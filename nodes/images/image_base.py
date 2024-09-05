@@ -59,7 +59,7 @@ class FlexImageBase(RyanOnTheInside, ABC):
         for i in range(num_frames):
             image = images_np[i]
             feature_value = feature.get_value_at_frame(i)
-            
+            kwargs['frame_index'] = i
             if feature_value >= feature_threshold:
                 processed_image = self.process_image(image, feature_value, strength, 
                                                      feature_param=feature_param, 
