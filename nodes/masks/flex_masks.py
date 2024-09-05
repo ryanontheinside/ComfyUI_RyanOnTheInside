@@ -9,6 +9,9 @@ from .mask_base import FlexMaskBase
 from scipy.ndimage import distance_transform_edt
 from .mask_base import FlexMaskBase
 from .shape_utils import create_shape_mask, get_available_shapes
+import torch
+from typing import List
+import torch.nn.functional as F
 
 class FlexMaskMorph(FlexMaskBase):
     @classmethod
@@ -592,7 +595,6 @@ class FlexMaskRandomShapes(FlexMaskBase):
                                           shape_type=shape_type,
                                           feature_param=feature_param, **kwargs),)
 
-import torch
 class FlexMaskDepthChamber(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -629,11 +631,15 @@ class FlexMaskDepthChamber(FlexMaskBase):
                 if feature_param in ["z_back", "both"]:
                     z_back = max(0.0, z_back - (z_front - z_back) * strength * feature_value / 2) if z_back < z_front else min(1.0, z_back + (z_back - z_front) * strength * feature_value / 2)
             elif feature_mode == "move_forward":
-                z_front = min(1.0, z_front + strength * feature_value)
-                z_back = min(1.0, z_back + strength * feature_value)
+                if feature_param in ["z_front", "both"]:
+                    z_front = min(1.0, z_front + strength * feature_value)
+                if feature_param in ["z_back", "both"]:
+                    z_back = min(1.0, z_back + strength * feature_value)
             elif feature_mode == "move_back":
-                z_front = max(0.0, z_front - strength * feature_value)
-                z_back = max(0.0, z_back - strength * feature_value)
+                if feature_param in ["z_front", "both"]:
+                    z_front = max(0.0, z_front - strength * feature_value)
+                if feature_param in ["z_back", "both"]:
+                    z_back = max(0.0, z_back - strength * feature_value)
 
         # Create the depth mask
         if z_back < z_front:
@@ -657,8 +663,6 @@ class FlexMaskDepthChamber(FlexMaskBase):
                                           feature_param=feature_param, feature_mode=feature_mode, 
                                           **kwargs),)
 
-from typing import List
-import torch.nn.functional as F
 class FlexMaskDepthChamberRelative(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
