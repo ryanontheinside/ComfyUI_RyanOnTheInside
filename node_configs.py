@@ -800,85 +800,131 @@ NODE_CONFIGS["FlexImageBase"] = {
 - `feature_pipe`: Feature pipe containing frame information (FEATURE_PIPE type)
 - `strength`: Overall strength of the effect (0.0 to 1.0)
 - `feature_threshold`: Minimum feature value to apply the effect (0.0 to 1.0)
-- `feature_param`: Parameter to be modulated by the feature
 - `feature_mode`: How the feature modulates the parameter ("relative" or "absolute"). Relative mode adjusts the parameter based on its current value, while absolute mode directly sets the parameter to the feature value.
 """
 }
 
+add_node_config("FlexImageEdgeDetect", {
+    "TOP_DESCRIPTION": "Applies edge detection to the image using the Canny algorithm.",
+    "ADDITIONAL_INFO": """
+- `low_threshold`: Lower bound for the hysteresis thresholding (0 to 255).
+- `high_threshold`: Upper bound for the hysteresis thresholding (0 to 255).
+- `feature_param`: Parameter to modulate based on the feature. Options are "low_threshold", "high_threshold", "None".
+
+This node detects edges in the image using the Canny edge detection algorithm. The thresholds control the sensitivity of the edge detection.
+"""
+})
+
 add_node_config("FlexImagePosterize", {
     "TOP_DESCRIPTION": "Applies a posterization effect to the image, reducing the number of colors.",
     "ADDITIONAL_INFO": """
-- `max_levels`: Maximum number of color levels per channel (2 to 256)
-- `dither_strength`: Intensity of dithering effect (0.0 to 1.0)
-- `channel_separation`: Degree of separation between color channels (0.0 to 1.0)
-- `gamma`: Gamma correction applied before posterization (0.1 to 2.2)
+- `max_levels`: Maximum number of color levels per channel (2 to 256).
+- `dither_strength`: Intensity of dithering effect (0.0 to 1.0).
+- `channel_separation`: Degree of separation between color channels (0.0 to 1.0).
+- `gamma`: Gamma correction applied before posterization (0.1 to 2.2).
+- `feature_param`: Parameter to modulate based on the feature. Options are "max_levels", "dither_strength", "channel_separation", "gamma", "None".
+
+This node reduces the number of colors in the image, creating a posterized effect. Dithering can be applied to reduce banding.
 """
 })
 
 add_node_config("FlexImageKaleidoscope", {
     "TOP_DESCRIPTION": "Creates a kaleidoscope effect by mirroring and rotating segments of the image.",
     "ADDITIONAL_INFO": """
-- `segments`: Number of mirror segments (2 to 32)
-- `center_x`: X-coordinate of the effect center (0.0 to 1.0)
-- `center_y`: Y-coordinate of the effect center (0.0 to 1.0)
-- `zoom`: Zoom factor for the effect (0.1 to 2.0)
-- `rotation`: Rotation angle of the effect (0.0 to 360.0 degrees)
-- `precession`: Rate of rotation change over time (-1.0 to 1.0)
-- `speed`: Speed of the effect animation (0.1 to 5.0)
+- `segments`: Number of mirror segments (2 to 32).
+- `center_x`: X-coordinate of the effect center (0.0 to 1.0).
+- `center_y`: Y-coordinate of the effect center (0.0 to 1.0).
+- `zoom`: Zoom factor for the effect (0.1 to 2.0).
+- `rotation`: Rotation angle of the effect (0.0 to 360.0 degrees).
+- `precession`: Rate of rotation change over time (-1.0 to 1.0).
+- `speed`: Speed of the effect animation (0.1 to 5.0).
+- `feature_param`: Parameter to modulate based on the feature. Options are "segments", "zoom", "rotation", "precession", "speed", "None".
+
+This node creates a kaleidoscope effect by mirroring and rotating segments of the image.
 """
 })
 
 add_node_config("FlexImageColorGrade", {
     "TOP_DESCRIPTION": "Applies color grading to the image using a Look-Up Table (LUT).",
     "ADDITIONAL_INFO": """
-- `intensity`: Strength of the color grading effect (0.0 to 1.0)
-- `mix`: Blend factor between original and graded image (0.0 to 1.0)
-- `lut_file`: Path to the LUT file (optional)
+- `intensity`: Strength of the color grading effect (0.0 to 1.0).
+- `mix`: Blend factor between original and graded image (0.0 to 1.0).
+- `lut_file`: Path to the LUT file (optional).
+- `feature_param`: Parameter to modulate based on the feature. Options are "intensity", "mix", "None".
+
+This node applies color grading to the image using a LUT. The intensity and mix parameters control the strength and blend of the effect.
 """
 })
 
 add_node_config("FlexImageGlitch", {
     "TOP_DESCRIPTION": "Creates a glitch effect by applying horizontal shifts and color channel separation.",
     "ADDITIONAL_INFO": """
-- `shift_amount`: Magnitude of horizontal shift (0.0 to 1.0)
-- `scan_lines`: Number of scan lines to add (0 to 100)
-- `color_shift`: Amount of color channel separation (0.0 to 1.0)
+- `shift_amount`: Magnitude of horizontal shift (0.0 to 1.0).
+- `scan_lines`: Number of scan lines to add (0 to 100).
+- `color_shift`: Amount of color channel separation (0.0 to 1.0).
+- `feature_param`: Parameter to modulate based on the feature. Options are "shift_amount", "scan_lines", "color_shift", "None".
+
+This node creates a glitch effect by shifting pixels horizontally and separating color channels.
 """
 })
 
 add_node_config("FlexImageChromaticAberration", {
     "TOP_DESCRIPTION": "Simulates chromatic aberration by shifting color channels.",
     "ADDITIONAL_INFO": """
-- `shift_amount`: Magnitude of color channel shift (0.0 to 0.1)
-- `angle`: Angle of the shift effect (0.0 to 360.0 degrees)
+- `shift_amount`: Magnitude of color channel shift (0.0 to 0.1).
+- `angle`: Angle of the shift effect (0.0 to 360.0 degrees).
+- `feature_param`: Parameter to modulate based on the feature. Options are "shift_amount", "angle", "None".
+
+This node simulates chromatic aberration by shifting the red and blue color channels in opposite directions.
 """
 })
 
 add_node_config("FlexImagePixelate", {
     "TOP_DESCRIPTION": "Applies a pixelation effect to the image.",
     "ADDITIONAL_INFO": """
-- `pixel_size`: Size of each pixelated block (1 to 100 pixels)
+- `pixel_size`: Size of each pixelated block (1 to 100 pixels).
+- `feature_param`: Parameter to modulate based on the feature. Options are "pixel_size", "None".
+
+This node reduces the resolution of the image by applying a pixelation effect.
 """
 })
 
 add_node_config("FlexImageBloom", {
     "TOP_DESCRIPTION": "Adds a bloom effect to bright areas of the image.",
     "ADDITIONAL_INFO": """
-- `threshold`: Brightness threshold for the bloom effect (0.0 to 1.0)
-- `blur_amount`: Amount of blur applied to the bloom (0.0 to 50.0)
-- `intensity`: Strength of the bloom effect (0.0 to 1.0)
+- `threshold`: Brightness threshold for the bloom effect (0.0 to 1.0).
+- `blur_amount`: Amount of blur applied to the bloom (0.0 to 50.0).
+- `intensity`: Strength of the bloom effect (0.0 to 1.0).
+- `feature_param`: Parameter to modulate based on the feature. Options are "threshold", "blur_amount", "intensity", "None".
+
+This node adds a bloom effect to bright areas of the image, creating a glowing effect.
 """
 })
 
 add_node_config("FlexImageTiltShift", {
     "TOP_DESCRIPTION": "Creates a tilt-shift effect, simulating a shallow depth of field.",
     "ADDITIONAL_INFO": """
-- `blur_amount`: Strength of the blur effect (0.0 to 50.0)
-- `focus_position_x`: X-coordinate of the focus center (0.0 to 1.0)
-- `focus_position_y`: Y-coordinate of the focus center (0.0 to 1.0)
-- `focus_width`: Width of the focus area (0.0 to 1.0)
-- `focus_height`: Height of the focus area (0.0 to 1.0)
-- `focus_shape`: Shape of the focus area ("rectangle" or "ellipse")
+- `blur_amount`: Strength of the blur effect (0.0 to 50.0).
+- `focus_position_x`: X-coordinate of the focus center (0.0 to 1.0).
+- `focus_position_y`: Y-coordinate of the focus center (0.0 to 1.0).
+- `focus_width`: Width of the focus area (0.0 to 1.0).
+- `focus_height`: Height of the focus area (0.0 to 1.0).
+- `focus_shape`: Shape of the focus area ("rectangle" or "ellipse").
+- `feature_param`: Parameter to modulate based on the feature. Options are "blur_amount", "focus_position_x", "focus_position_y", "focus_width", "focus_height", "None".
+
+This node creates a tilt-shift effect, simulating a shallow depth of field by blurring areas outside the focus region.
+"""
+})
+
+add_node_config("FlexImageParallax", {
+    "TOP_DESCRIPTION": "Applies a parallax effect to the image using a depth map.",
+    "ADDITIONAL_INFO": """
+- `shift_x`: Horizontal shift factor for the parallax effect (-1.0 to 1.0). Positive values shift right, negative values shift left.
+- `shift_y`: Vertical shift factor for the parallax effect (-1.0 to 1.0). Positive values shift up, negative values shift down.
+- `depth_map`: Input depth map (IMAGE type). The depth map is used to determine the amount of shift for each pixel.
+- `feature_param`: Parameter to modulate based on the feature. Options are "shift_x", "shift_y", "None".
+
+This node creates a parallax effect by shifting pixels in the image based on the corresponding values in the depth map. The shift factors `shift_x` and `shift_y` control the direction and magnitude of the parallax effect. The depth map should be provided as an image, where the intensity of each pixel represents the depth value.
 """
 })
 
