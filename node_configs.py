@@ -942,6 +942,16 @@ add_node_config("ImageIntervalSelect", {
 """
 })
 
+add_node_config("ImageIntervalSelectPercentage", {
+    "TOP_DESCRIPTION": "Selects images from a sequence at specified percentage intervals.",
+    "ADDITIONAL_INFO": """
+- `image`: Input image sequence (IMAGE type)
+- `interval_percentage`: Interval at which to select images as a percentage of the total sequence length (1 to 100)
+- `start_percentage`: Starting percentage for selection (0 to 100)
+- `end_percentage`: Ending percentage for selection (0 to 100)
+"""
+})
+
 add_node_config("ImageChunks", {
     "TOP_DESCRIPTION": "Concatenates images into a grid.",
     "ADDITIONAL_INFO": """
