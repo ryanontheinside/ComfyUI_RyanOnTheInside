@@ -39,6 +39,36 @@ class ImageIntervalSelect(UtilityNode):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "select_interval"
 
+#NOTE eh
+class ImageIntervalSelectPercentage(UtilityNode):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "interval_percentage": ("FLOAT", {"default": 10, "min": 1, "max": 100, "step": 1}),
+                "start_percentage": ("FLOAT", {"default": 0, "min": 0, "max": 100, "step": 1}),
+                "end_percentage": ("FLOAT", {"default": 100, "min": 0, "max": 100, "step": 1}),
+            },
+        }
+    
+    def select_percentage_interval(self, image, interval_percentage=10, start_percentage=0, end_percentage=100):
+        total_images = len(image)
+        interval = max(1, int(total_images * (interval_percentage / 100)))
+        start_at = int(total_images * (start_percentage / 100))
+        end_at = int(total_images * (end_percentage / 100))
+
+        # Ensure start_at and end_at are within the bounds of the image list
+        start_at = max(0, min(start_at, total_images - 1))
+        end_at = max(start_at + 1, min(end_at, total_images))
+
+        # Slice the image list from start_at to end_at with the specified interval
+        images = image[start_at:end_at:interval]
+        return (images,)
+
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "select_percentage_interval"
+
 class ImageChunks(UtilityNode):
     @classmethod
     def INPUT_TYPES(cls):

@@ -112,6 +112,7 @@ from .nodes.utility_nodes import (
     ImageDifference,
     ImageShuffle,
     SwapDevice,
+    ImageIntervalSelectPercentage,
 )
 
 ###images
@@ -147,6 +148,7 @@ from .nodes.images.flex_images import (
     FlexImageColorGrade,
     FlexImageTiltShift,
     FlexImageParallax,
+    FlexImageReliefMapping,
 )
 
 from .nodes.flex.feature_externals import (
@@ -256,7 +258,6 @@ NODE_CLASS_MAPPINGS = {
     "FlexImageColorGrade":          FlexImageColorGrade,
     "FlexImageTiltShift":           FlexImageTiltShift,
     "FlexImageParallax":            FlexImageParallax,
-
     #opacity xp 
     # "FlexDepthBasedMaskOpacity":  FlexDepthBasedMaskOpacity,
     # "DepthBasedMaskOpacity":      DepthBasedMaskOpacity,
@@ -275,6 +276,7 @@ NODE_CLASS_MAPPINGS = {
     "ImageDifference":              ImageDifference,
     "ImageShuffle":                 ImageShuffle,
     "SwapDevice":                   SwapDevice,
+    "ImageIntervalSelectPercentage":ImageIntervalSelectPercentage,
     
 }
 
@@ -333,6 +335,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
 
     "DyeImage" : "Dye Image",
+    "ImageIntervalSelectPercentage":  "Image Interval Select %"
     # "FlexImageAdjustment":"Flex Image Adjustment",
     # "FlexImageFilter":"Flex Image Filter",
     # "FlexImageBlend":"Flex Image Blend",
