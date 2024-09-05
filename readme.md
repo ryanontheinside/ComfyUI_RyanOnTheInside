@@ -2,7 +2,7 @@
 
 ## Overview
 ### RyanOnTheInside node pack introduces dynamic features to ComfyUI:
-  **Dynamic Reactivity**: Almost all nodes in this pack can be made to react to audio, MIDI, motion, time, color, depth, brightness, and more, allowing for incredibly dynamic and responsive workflows.**
+  **Dynamic Reactivity**: Almost all nodes in this pack can be made to react to audio, MIDI, motion, time, color, depth, brightness, and more, allowing for incredibly dynamic and responsive workflows. If a node prefixed with  FLEX, then this  reactivity is central to its functionality.**
 
 - 🎆 **Particle Systems**: Create mesmerizing, fluid-like effects
 - 🎵 **Audio & MIDI Processing**: Separate instruments and create audio-reactive visuals
@@ -33,6 +33,7 @@
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
 
 ##### 🆕 Recent Updates
+- 9/5/24 - **FlexImageParallax**: Add illusory depth.
 - 9/3/24 - **FlexMaskDepthChamber**: Mask anything within a given depth range
 - 9/3/24 - **FeatureFade**: another feature modifier  to allow mixing of features, controled by features. Think mixing depth and motion features according to a kick drum or somthing. Ridiculous.
 - 9/1/24 - **Utility Nodes**: Added many utility nodes for batch manipulation and more

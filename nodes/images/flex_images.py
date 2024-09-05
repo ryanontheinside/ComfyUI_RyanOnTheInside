@@ -258,7 +258,6 @@ class FlexImageChromaticAberration(FlexImageBase):
 
         return np.clip(result, 0, 1)
 
-
 class FlexImagePixelate(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -369,3 +368,36 @@ class FlexImageTiltShift(FlexImageBase):
 
         return np.clip(result, 0, 1)
     
+class FlexImageParallax(FlexImageBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "shift_x": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
+                "shift_y": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
+                "depth_map": ("IMAGE",),  # Assuming depth map is provided as an image
+            }
+        }
+
+    @classmethod
+    def get_modifiable_params(cls):
+        return ["shift_x", "shift_y", "None"]
+
+    def apply_effect_internal(self, image: np.ndarray, shift_x: float, shift_y: float, depth_map: np.ndarray, frame_index: int, **kwargs) -> np.ndarray:
+        h, w, _ = image.shape
+
+        depth_map_frame = depth_map[frame_index].cpu().numpy()
+        depth_map_gray = np.mean(depth_map_frame, axis=-1)
+        depth_map_gray = depth_map_gray / np.max(depth_map_gray)
+        dx = (w * shift_x * depth_map_gray).astype(np.int32)
+        dy = (h * shift_y * depth_map_gray).astype(np.int32)
+        x, y = np.meshgrid(np.arange(w), np.arange(h))
+
+        new_x = np.clip(x + dx, 0, w - 1)
+        new_y = np.clip(y + dy, 0, h - 1)
+
+        result = image[new_y, new_x]
+
+        return np.clip(result, 0, 1)

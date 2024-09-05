@@ -18,7 +18,7 @@ class RyanOnTheInside(metaclass=CombinedMeta):
             return desc
 
         if hasattr(cls, 'TOP_DESCRIPTION'):
-            desc += f"{cls.TOP_DESCRIPTION}\n\n"
+            desc += f"### {cls.TOP_DESCRIPTION}\n\n"
         
         if hasattr(cls, "BASE_DESCRIPTION"):
             desc += cls.BASE_DESCRIPTION + "\n\n"
@@ -146,6 +146,7 @@ from .nodes.images.flex_images import (
     FlexImagePixelate,
     FlexImageColorGrade,
     FlexImageTiltShift,
+    FlexImageParallax,
 )
 
 from .nodes.flex.feature_externals import (
@@ -254,7 +255,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexImagePixelate":            FlexImagePixelate,
     "FlexImageColorGrade":          FlexImageColorGrade,
     "FlexImageTiltShift":           FlexImageTiltShift,
-
+    "FlexImageParallax":            FlexImageParallax,
 
     #opacity xp 
     # "FlexDepthBasedMaskOpacity":  FlexDepthBasedMaskOpacity,
