@@ -336,7 +336,7 @@ class BrightnessFeature(BaseFeature):
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 
 class MotionFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, images, feature_name='mean_motion', flow_method='Farneback', flow_threshold=0.0, magnitude_threshold=0.0):
+    def __init__(self, name, frame_rate, frame_count, images, feature_name='mean_motion', flow_method='Farneback', flow_threshold=0.0, magnitude_threshold=0.0, progress_callback=None):
         self.images = images
         self.feature_name = feature_name
         self.flow_method = flow_method
@@ -344,8 +344,10 @@ class MotionFeature(BaseFeature):
         self.magnitude_threshold = magnitude_threshold
         self.available_features = [
             "mean_motion", "max_motion", "motion_direction",
-            "horizontal_motion", "vertical_motion", "motion_complexity"
+            "horizontal_motion", "vertical_motion", "motion_complexity",
+            "motion_speed"
         ]
+        self.progress_callback = progress_callback
         super().__init__(name, "motion", frame_rate, frame_count)
 
     def extract(self):
@@ -353,14 +355,18 @@ class MotionFeature(BaseFeature):
         self.features = {self.feature_name: []}
         
         images_np = (self.images.cpu().numpy() * 255).astype(np.uint8)
-        
-        for i in range(len(images_np) - 1):
+        num_frames = len(images_np) - 1
+
+        for i in range(num_frames):
             print(f"Processing frames {i+1} and {i+2}")
             frame1 = images_np[i]
             frame2 = images_np[i+1]
             
             flow = calculate_optical_flow(frame1, frame2, self.flow_method)
             self._extract_features(flow)
+            
+            if self.progress_callback:
+                self.progress_callback(i + 1, num_frames)
 
         self._pad_last_frame()
         self._normalize_features()
@@ -387,6 +393,8 @@ class MotionFeature(BaseFeature):
             self.features[self.feature_name].append(np.mean(np.abs(flow[..., 1])))
         elif self.feature_name == 'motion_complexity':
             self.features[self.feature_name].append(np.std(flow_magnitude))
+        elif self.feature_name == 'motion_speed':
+            self.features[self.feature_name].append(np.mean(flow_magnitude) * self.frame_rate)
 
     def _pad_last_frame(self):
         for feature in self.features:

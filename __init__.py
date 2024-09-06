@@ -148,7 +148,7 @@ from .nodes.images.flex_images import (
     FlexImageColorGrade,
     FlexImageTiltShift,
     FlexImageParallax,
-    FlexImageReliefMapping,
+    
 )
 
 from .nodes.flex.feature_externals import (
@@ -157,11 +157,13 @@ from .nodes.flex.feature_externals import (
 
 from .nodes.flex.feature_modulation import (
     FeatureMixer,
-    FeatureMath,
+    FeatureCombine,
     FeatureOscillator,
     FeatureScaler,
     FeatureSmoothing,
     FeatureFade,
+    PreviewFeature,
+    FeatureMath,
 )
 
 
@@ -241,12 +243,13 @@ NODE_CLASS_MAPPINGS = {
 
     #feature modulation
     "FeatureMixer":                 FeatureMixer,
-    "FeatureMath":                  FeatureMath,
+    "FeatureCombine":               FeatureCombine,
     "FeatureOscillator":            FeatureOscillator,
     "FeatureScaler":                FeatureScaler,
     "FeatureSmoothing":             FeatureSmoothing,
     "FeatureFade":                  FeatureFade,
-    
+    "FeatureMath":                  FeatureMath,
+    "PreviewFeature":               PreviewFeature,
     #images
     'FlexImageEdgeDetect':          FlexImageEdgeDetect,
     "FlexImagePosterize":           FlexImagePosterize,
@@ -324,12 +327,11 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "MotionFeatureNode":"Motion Feature",
 
     "FeatureMixer":                 "FeatureMod Mixer",
-    "FeatureMath":                  "FeatureMod Math",
+    "FeatureCombine":               "FeatureMod Combine",
     "FeatureOscillator":            "FeatureMod Oscillator",
     "FeatureScaler":                "FeatureMod Scaler",
     "FeatureSmoothing":             "FeatureMod Smoothing",
-
-
+    "FeatureMath":                  "FeatureMod Math",
     "MovingShape": "Moving Shape",
     "TextMaskNode":"Text Mask Node",
 
