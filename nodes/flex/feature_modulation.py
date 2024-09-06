@@ -223,7 +223,7 @@ class FeatureScaler(FeatureModulationBase):
         processed_feature = self.create_processed_feature(feature, final_values, "Scaled", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
-class FeatureMath(FeatureModulationBase):
+class FeatureCombine(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -265,6 +265,41 @@ class FeatureMath(FeatureModulationBase):
         processed_feature = self.create_processed_feature(feature1, combined, "Combined", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
+class FeatureMath(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "y": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10000000.0, "step": 0.005}),
+                "operation": (["add", "subtract", "multiply", "divide", "max", "min"],),
+                **super().INPUT_TYPES()["required"],
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE", "IMAGE")
+    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    FUNCTION = "modulate"
+
+    def modulate(self, feature, y, operation, invert_output):
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        if operation == "add":
+            result = [v + y for v in values]
+        elif operation == "subtract":
+            result = [v - y for v in values]
+        elif operation == "multiply":
+            result = [v * y for v in values]
+        elif operation == "divide":
+            result = [v / y if y != 0 else 0 for v in values]
+        elif operation == "max":
+            result = [max(v, y) for v in values]
+        elif operation == "min":
+            result = [min(v, y) for v in values]
+        
+        processed_feature = self.create_processed_feature(feature, result, "MathResult", invert_output)
+        return (processed_feature, self.visualize(processed_feature))
+    
 class FeatureSmoothing(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -379,3 +414,20 @@ class FeatureFade(FeatureModulationBase):
         
         processed_feature = self.create_processed_feature(feature1, combined, "Faded", invert_output)
         return (processed_feature, self.visualize(processed_feature))
+    
+class PreviewFeature(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                **super().INPUT_TYPES()["required"],
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("FEATURE_PREVIEW",)
+    FUNCTION = "preview"
+
+    def preview(self, feature, invert_output):
+        return (self.visualize(feature),)

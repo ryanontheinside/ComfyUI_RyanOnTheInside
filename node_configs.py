@@ -325,7 +325,7 @@ add_node_config("FlexMaskDepthChamber", {
 - `z_front`: Front depth value for the mask (0.0 to 1.0). Default is 1.0.
 - `z_back`: Back depth value for the mask (0.0 to 1.0). Default is 0.0.
 - `feature_param`: Parameter to modulate based on the feature. Options are "none", "z_front", "z_back", "both".
-- `feature_mode`: Mode of feature modulation. Options are "squeeze" and "expand".
+- `feature_mode`: Mode of feature modulation.
 
 This node creates a mask based on the depth values in the input depth map. The mask is modulated by the specified front and back depth values, and can be further adjusted using a feature input to dynamically change the depth range.
 """
@@ -725,6 +725,18 @@ Outputs:
 """
 })
 
+add_node_config("FeatureMath", {
+    "TOP_DESCRIPTION": "Performs mathematical operations between a feature's values and a float value.",
+    "ADDITIONAL_INFO": """
+- `feature`: Input feature (FEATURE type)
+- `y`: Input value (FLOAT type)
+- `operation`: Mathematical operation to perform ("add", "subtract", "multiply", "divide", "max", "min"). Determines how the feature's values are combined with y.
+
+This node takes a feature and performs the specified operation between its values and the float value y, returning the processed feature and its visualization.
+"""
+})
+
+
 add_node_config("FeatureScaler", {
     "TOP_DESCRIPTION": "Scales and transforms feature values using various mathematical functions.",
     "ADDITIONAL_INFO": """
@@ -736,14 +748,14 @@ add_node_config("FeatureScaler", {
     """
 })
 
-add_node_config("FeatureMath", {
+add_node_config("FeatureCombine", {
     "TOP_DESCRIPTION": "Performs mathematical operations between two features.",
     "ADDITIONAL_INFO": """
     - `feature1`: First input feature (FEATURE type)
     - `feature2`: Second input feature (FEATURE type)
-    - `operation`: Mathematical operation to perform ("add", "subtract", "multiply", "divide", "max", "min")
-    - `weight1`: Weight applied to feature1 (0.0 to 1.0)
-    - `weight2`: Weight applied to feature2 (0.0 to 1.0)
+    - `operation`: Mathematical operation to perform ("add", "subtract", "multiply", "divide", "max", "min"). Determines how the two features are combined.
+    - `weight1`: Weight applied to feature1 (0.0 to 1.0). Higher values give more importance to feature1 in the operation.
+    - `weight2`: Weight applied to feature2 (0.0 to 1.0). Higher values give more importance to feature2 in the operation.
     """
 })
 
@@ -752,9 +764,9 @@ add_node_config("FeatureSmoothing", {
     "ADDITIONAL_INFO": """
     - `feature`: Input feature to be smoothed (FEATURE type)
     - `smoothing_type`: Type of smoothing to apply ("moving_average", "exponential", "gaussian")
-    - `window_size`: Size of the smoothing window for moving average and gaussian (3 to 21, odd numbers only)
-    - `alpha`: Smoothing factor for exponential smoothing (0.0 to 1.0)
-    - `sigma`: Standard deviation for gaussian smoothing (0.1 to 5.0)
+    - `window_size`: Size of the smoothing window for moving average and gaussian (3 to 21, odd numbers only). Larger values create smoother transitions but may reduce responsiveness.
+    - `alpha`: Smoothing factor for exponential smoothing (0.0 to 1.0). Higher values make the feature respond more quickly to changes, while lower values create a more gradual, smoothed effect.
+    - `sigma`: Standard deviation for gaussian smoothing (0.1 to 5.0). Higher values create a more pronounced smoothing effect.
     """
 })
 

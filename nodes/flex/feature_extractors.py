@@ -1,8 +1,36 @@
 from .feature_pipe import FeaturePipe
 from ... import RyanOnTheInside
 from .features import AudioFeature, TimeFeature, DepthFeature, ColorFeature, BrightnessFeature, MotionFeature
+from tqdm import tqdm
+from comfy.utils import ProgressBar
 
 class FeatureExtractorBase(RyanOnTheInside):
+    def __init__(self):
+        self.progress_bar = None
+        self.tqdm_bar = None
+        self.current_progress = 0
+        self.total_steps = 0
+
+    def start_progress(self, total_steps, desc="Processing"):
+        self.progress_bar = ProgressBar(total_steps)
+        self.tqdm_bar = tqdm(total=total_steps, desc=desc, leave=False)
+        self.current_progress = 0
+        self.total_steps = total_steps
+
+    def update_progress(self, step=1):
+        self.current_progress += step
+        if self.progress_bar:
+            self.progress_bar.update(step)
+        if self.tqdm_bar:
+            self.tqdm_bar.update(step)
+
+    def end_progress(self):
+        if self.tqdm_bar:
+            self.tqdm_bar.close()
+        self.progress_bar = None
+        self.tqdm_bar = None
+        self.current_progress = 0
+        self.total_steps = 0
     CATEGORY="RyanOnTheInside/FlexFeatures"
 
 class AudioFeatureExtractor(FeatureExtractorBase):
@@ -119,7 +147,7 @@ class MotionFeatureNode(FirstFeature):
             **super().INPUT_TYPES(),
             "required": {
                 **super().INPUT_TYPES()["required"],
-                "feature_type": (["mean_motion", "max_motion", "motion_direction", "horizontal_motion", "vertical_motion", "motion_complexity"],),
+                "feature_type": (["mean_motion", "max_motion", "motion_direction", "horizontal_motion", "vertical_motion", "motion_complexity","motion_speed"],),
                 "flow_method": (["Farneback", "LucasKanade", "PyramidalLK"],),
                 "flow_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.1}),
                 "magnitude_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
@@ -131,6 +159,13 @@ class MotionFeatureNode(FirstFeature):
 
     def create_feature(self, video_frames, frame_rate, feature_type, flow_method, flow_threshold, magnitude_threshold):
         feature_pipe = FeaturePipe(frame_rate, video_frames)
+        num_frames = feature_pipe.frame_count
+
+        self.start_progress(num_frames, desc="Extracting motion features")
+
+        def progress_callback(current_step, total_steps):
+            self.update_progress(current_step - self.current_progress)
+
         motion_feature = MotionFeature(
             "motion_feature",
             feature_pipe.frame_rate,
@@ -139,7 +174,11 @@ class MotionFeatureNode(FirstFeature):
             feature_type,
             flow_method,
             flow_threshold,
-            magnitude_threshold
+            magnitude_threshold,
+            progress_callback=progress_callback
         )
+
         motion_feature.extract()
+        self.end_progress()
+
         return (motion_feature, feature_pipe)
