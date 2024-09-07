@@ -71,6 +71,10 @@ from .nodes.flex.midi_feature_extractor import(
     MIDILoadAndExtract,
 )
 
+from .nodes.flex.proximity_feature_extractor import(
+    LocationFromMask,
+    ProximityFeatureNode,
+)
 
 
 
@@ -240,7 +244,8 @@ NODE_CLASS_MAPPINGS = {
     "BrightnessFeatureNode":        BrightnessFeatureNode,
     "MotionFeatureNode":            MotionFeatureNode,
     "FeatureToWeightsStrategy":     FeatureToWeightsStrategy,
-
+    "LocationFromMask":             LocationFromMask,
+    "ProximityFeatureNode":         ProximityFeatureNode,
     #feature modulation
     "FeatureMixer":                 FeatureMixer,
     "FeatureCombine":               FeatureCombine,

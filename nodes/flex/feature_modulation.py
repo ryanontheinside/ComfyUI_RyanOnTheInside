@@ -430,4 +430,13 @@ class PreviewFeature(FeatureModulationBase):
     FUNCTION = "preview"
 
     def preview(self, feature, invert_output):
-        return (self.visualize(feature),)
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        if invert_output:
+            min_val, max_val = min(values), max(values)
+            inverted_values = [max_val - v + min_val for v in values]
+            processed_feature = self.create_processed_feature(feature, inverted_values, "Inverted", invert_output)
+        else:
+            processed_feature = feature
+        
+        return (self.visualize(processed_feature),)

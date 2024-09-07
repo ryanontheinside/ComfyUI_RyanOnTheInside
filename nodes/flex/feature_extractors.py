@@ -1,6 +1,7 @@
 from .feature_pipe import FeaturePipe
 from ... import RyanOnTheInside
 from .features import AudioFeature, TimeFeature, DepthFeature, ColorFeature, BrightnessFeature, MotionFeature
+from .proximity_feature  import  Location
 from tqdm import tqdm
 from comfy.utils import ProgressBar
 
