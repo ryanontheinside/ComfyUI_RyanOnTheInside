@@ -75,6 +75,8 @@ from .nodes.flex.proximity_feature_extractor import(
     LocationFromMask,
     ProximityFeatureNode,
     ProximityVisualizer,
+    LocationFromPoint,
+    LocationTransform,
 )
 
 
@@ -169,6 +171,7 @@ from .nodes.flex.feature_modulation import (
     FeatureFade,
     PreviewFeature,
     FeatureMath,
+    FeatureRebase,
 )
 
 
@@ -248,7 +251,9 @@ NODE_CLASS_MAPPINGS = {
     "LocationFromMask":             LocationFromMask,
     "ProximityFeatureNode":         ProximityFeatureNode,
     "ProximityVisualizer":          ProximityVisualizer,
-
+    "LocationFromPoint":            LocationFromPoint,
+    "LocationTransform":            LocationTransform,
+    
     #feature modulation
     "FeatureMixer":                 FeatureMixer,
     "FeatureCombine":               FeatureCombine,
@@ -258,6 +263,7 @@ NODE_CLASS_MAPPINGS = {
     "FeatureFade":                  FeatureFade,
     "FeatureMath":                  FeatureMath,
     "PreviewFeature":               PreviewFeature,
+    "FeatureRebase":                FeatureRebase,
     #images
     'FlexImageEdgeDetect':          FlexImageEdgeDetect,
     "FlexImagePosterize":           FlexImagePosterize,

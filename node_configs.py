@@ -617,6 +617,30 @@ This node generates locations from the input masks using the specified method. T
 """
 })
 
+add_node_config("LocationFromPoint", {
+    "TOP_DESCRIPTION": "Generates locations from specified x, y, and z coordinates.",
+    "ADDITIONAL_INFO": """
+- `x`: X-coordinate of the location (FLOAT, default: 0.0, min: 0.0, step: 0.01)
+- `y`: Y-coordinate of the location (FLOAT, default: 0.0, min: 0.0, step: 0.01)
+- `batch_count`: Number of locations to generate (INT, default: 1, min: 1)
+- `z`: Z-coordinate of the location (FLOAT, default: 0.0, min: 0.0, max: 1.0, step: 0.01)
+
+This node generates a batch of locations based on the specified x, y, and z coordinates.
+"""
+})
+
+add_node_config("LocationTransform", {
+    "TOP_DESCRIPTION": "Transforms locations based on a feature and specified transformation type.",
+    "ADDITIONAL_INFO": """
+- `locations`: Input locations to be transformed (LOCATION type)
+- `feature`: Feature used to modulate the transformation (FEATURE type)
+- `transformation_type`: Type of transformation to apply ("translate" or "scale")
+- `transformation_value`: Value of the transformation (FLOAT, default: 1.0)
+
+This node transforms the input locations based on the specified transformation type and value, modulated by the input feature.
+"""
+})
+
 add_node_config("EmitterMovement", {
     "TOP_DESCRIPTION": """These parameters work together to create complex, periodic movements for particle emitters. 
 By adjusting frequencies and amplitudes, you can achieve various patterns like circles, 
@@ -746,6 +770,18 @@ This node provides extensive control over feature modulation, allowing for compl
 Outputs:
 - Processed FEATURE
 - Visualization of the processed feature (IMAGE type)
+"""
+})
+
+add_node_config("FeatureRebase", {
+    "TOP_DESCRIPTION": "Rebases feature values within specified thresholds.",
+    "ADDITIONAL_INFO": """
+- `feature`: Input feature to be rebased (FEATURE type)
+- `lower_threshold`: Lower threshold for feature values (FLOAT, default: 0.0, min: 0.0, max: 1.0, step: 0.01)
+- `upper_threshold`: Upper threshold for feature values (FLOAT, default: 1.0, min: 0.0, max: 1.0, step: 0.01)
+- `invert_output`: Whether to invert the output feature values (BOOLEAN, default: False)
+
+This node rebases the input feature values within the specified thresholds and normalizes them.
 """
 })
 
