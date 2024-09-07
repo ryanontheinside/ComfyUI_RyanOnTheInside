@@ -593,6 +593,30 @@ Analyzes the input depth maps to extract the specified depth-related feature. Th
 """
 })
 
+add_node_config("ProximityFeatureNode", {
+    "TOP_DESCRIPTION": "Calculates a proximity feature based on the distance between anchor and query locations in video frames.",
+    "ADDITIONAL_INFO": """
+- `video_frames`: Input video frames (IMAGE type)
+- `frame_rate`: Frame rate of the video (FLOAT type, default: 30.0, min: 1.0, max: 120.0, step: 0.1)
+- `anchor_locations`: Locations of anchor points (LOCATION type)
+- `query_locations`: Locations of query points (LOCATION type)
+- `distance_metric`: Distance metric to use for calculation (Options: "euclidean", "manhattan", "chebyshev")
+
+This node calculates a proximity feature based on the specified distance metric between anchor and query locations in the input video frames. The resulting feature can be used to modulate other effects based on spatial relationships.
+"""
+})
+
+add_node_config("LocationFromMask", {
+    "TOP_DESCRIPTION": "This is for use with proximity features. This generates locations from mask inputs using various methods.",
+    "ADDITIONAL_INFO": """
+- `masks`: Input masks (MASK type)
+- `method`: Method to use for location extraction (Options: "mask_center", "mask_boundary", "mask_top_left", "mask_bottom_right")
+- `depth_maps`: (Optional) Input depth maps. The depth map provides a value for the z coordinate of every location. If no depth map is provided, the value defaults to .5. The z coordinate is far less granular than x and y, as all we have are relative normalized depth per frame (0 to 1).  
+
+This node generates locations from the input masks using the specified method. The locations can be used as anchor or query points for proximity calculations or other spatially dependent effects.
+"""
+})
+
 add_node_config("EmitterMovement", {
     "TOP_DESCRIPTION": """These parameters work together to create complex, periodic movements for particle emitters. 
 By adjusting frequencies and amplitudes, you can achieve various patterns like circles, 
