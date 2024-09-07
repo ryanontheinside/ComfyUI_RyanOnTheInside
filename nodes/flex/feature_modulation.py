@@ -319,6 +319,7 @@ class FeatureSmoothing(FeatureModulationBase):
 
     def modulate(self, feature, smoothing_type, window_size, alpha, sigma, invert_output):
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        original_min = min(values)
         
         if smoothing_type == "moving_average":
             smoothed = np.convolve(values, np.ones(window_size), 'valid') / window_size
@@ -335,7 +336,12 @@ class FeatureSmoothing(FeatureModulationBase):
             kernel = kernel / np.sum(kernel)
             smoothed = np.convolve(values, kernel, mode='same')
         
-        processed_feature = self.create_processed_feature(feature, smoothed, "Smoothed", invert_output)
+        # Adjust the smoothed values to ensure the minimum value remains unchanged
+        smoothed_min = min(smoothed)
+        adjustment = original_min - smoothed_min
+        adjusted_smoothed = [v + adjustment for v in smoothed]
+        
+        processed_feature = self.create_processed_feature(feature, adjusted_smoothed, "Smoothed", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
 class FeatureOscillator(FeatureModulationBase):
@@ -414,7 +420,39 @@ class FeatureFade(FeatureModulationBase):
         
         processed_feature = self.create_processed_feature(feature1, combined, "Faded", invert_output)
         return (processed_feature, self.visualize(processed_feature))
-    
+
+class FeatureRebase(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "lower_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "upper_threshold": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                **super().INPUT_TYPES()["required"],
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE", "IMAGE")
+    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    FUNCTION = "rebase"
+
+    def rebase(self, feature, lower_threshold, upper_threshold, invert_output):
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        # Apply thresholds
+        rebased_values = [v if lower_threshold <= v <= upper_threshold else 0 for v in values]
+        
+        # Re-normalize the values
+        min_val, max_val = min(rebased_values), max(rebased_values)
+        if min_val == max_val:
+            normalized = [0 for _ in rebased_values]  # All values are the same, normalize to 0
+        else:
+            normalized = [(v - min_val) / (max_val - min_val) for v in rebased_values]
+        
+        processed_feature = self.create_processed_feature(feature, normalized, "Rebased", invert_output)
+        return (processed_feature, self.visualize(processed_feature))
+
 class PreviewFeature(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):

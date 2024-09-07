@@ -6,69 +6,65 @@ import numpy as np
 from .features import BaseFeature
 
 class ProximityFeature(BaseFeature):
-    def __init__(self, name, anchor_locations, query_locations, frame_rate, frame_count, distance_metric='euclidean'):
+    def __init__(self, name, anchor_locations, query_locations, frame_rate, frame_count, frame_dimensions, normalization_method='frame'):
         super().__init__(name, "proximity", frame_rate, frame_count)
         self.anchor_locations = anchor_locations
         self.query_locations = query_locations
-        self.distance_metric = distance_metric
-        self.closest_distances = None
-        self.global_min = None
-        self.global_max = None
+        self.frame_diagonal = np.sqrt(frame_dimensions[0]**2 + frame_dimensions[1]**2)
         self.proximity_values = None
+        self.normalization_method = normalization_method
 
     def extract(self):
-        self.closest_distances = []
-        all_distances = []
-
+        from scipy.spatial.distance import cdist
+        
+        proximities = []
         for anchor, query in zip(self.anchor_locations, self.query_locations):
-            frame_distances = []
-            for a in anchor:
-                for q in query:
-                    if self.distance_metric == 'euclidean':
-                        distance = np.sqrt((a.x - q.x)**2 + (a.y - q.y)**2 + (a.z - q.z)**2)
-                    elif self.distance_metric == 'manhattan':
-                        distance = abs(a.x - q.x) + abs(a.y - q.y) + abs(a.z - q.z)
-                    elif self.distance_metric == 'chebyshev':
-                        distance = max(abs(a.x - q.x), abs(a.y - q.y), abs(a.z - q.z))
-                    else:
-                        raise ValueError(f"Unsupported distance metric: {self.distance_metric}")
-                    frame_distances.append(distance)
-            
-            closest_distance = min(frame_distances)
-            self.closest_distances.append(closest_distance)
-            all_distances.extend(frame_distances)
-
-        self.closest_distances = np.array(self.closest_distances)
-        self.global_min = np.min(self.closest_distances)
-        self.global_max = np.max(self.closest_distances)
-
-        return self.normalize()
-
-    def normalize(self):
-        if self.global_max > self.global_min:
-            # Normalize the closest distances to the range [0, 1]
-            self.proximity_values = (self.closest_distances - self.global_min) / (self.global_max - self.global_min)
+            if len(anchor) == 0 or len(query) == 0:
+                proximities.append(self.frame_diagonal if self.normalization_method == 'frame' else float('inf'))
+            else:
+                distances = cdist(anchor.points, query.points)
+                min_distance = np.min(distances)
+                proximities.append(min_distance)
+        
+        proximities = np.array(proximities)
+        
+        if self.normalization_method == 'frame':
+            self.proximity_values = 1 - np.clip(proximities / self.frame_diagonal, 0, 1)
+        elif self.normalization_method == 'minmax':
+            min_proximity = np.min(proximities)
+            max_proximity = np.max(proximities)
+            if max_proximity > min_proximity:
+                self.proximity_values = 1 - (proximities - min_proximity) / (max_proximity - min_proximity)
+            else:
+                self.proximity_values = np.ones_like(proximities)
         else:
-            self.proximity_values = np.zeros_like(self.closest_distances)
+            raise ValueError(f"Unknown normalization method: {self.normalization_method}")
+        
+        self.smooth_proximities()
         return self
+
+    def smooth_proximities(self, window_size=5):
+        kernel = np.ones(window_size) / window_size
+        self.proximity_values = np.convolve(self.proximity_values, kernel, mode='same')
 
     def get_value_at_frame(self, frame_index):
         return self.proximity_values[frame_index]
 
 class Location:
-    def __init__(self, x, y, z=0.5):
-        if isinstance(x, (list, tuple, np.ndarray)):
-            self.points = []
-            for i in range(len(x)):
-                xi = x[i]
-                yi = y[i] if isinstance(y, (list, tuple, np.ndarray)) else y
-                zi = z[i] if isinstance(z, (list, tuple, np.ndarray)) else z
-                self.points.append(Location(xi, yi, zi))
+    def __init__(self, x, y, z=None):
+        x = np.asarray(x).reshape(-1)
+        y = np.asarray(y).reshape(-1)
+        
+        if z is not None:
+            z = np.asarray(z).reshape(-1)
+            # Ensure z has the same length as x and y, with a small tolerance for floating-point imprecision
+            if abs(len(z) - len(x)) <= 1:  # Allow for off-by-one errors
+                z = z[:len(x)] if len(z) > len(x) else np.pad(z, (0, len(x) - len(z)), 'constant', constant_values=np.nan)
+            elif len(z) != len(x):
+                raise ValueError(f"Mismatch in dimensions: x,y have length {len(x)}, but z has length {len(z)}")
+            self.points = np.column_stack((x, y, z))
         else:
-            self.x = float(x)
-            self.y = float(y)
-            self.z = float(z)
-            self.points = [self]
+            self.points = np.column_stack((x, y))
 
     def __len__(self):
         return len(self.points)
@@ -76,24 +72,21 @@ class Location:
     def __getitem__(self, idx):
         return self.points[idx]
 
-    def __iter__(self):
-        return iter(self.points)
+    @property
+    def x(self):
+        return self.points[:, 0]
 
-    def __repr__(self):
-        if len(self) == 1:
-            return f"Location(x={self.x:.2f}, y={self.y:.2f}, z={self.z:.2f})"
-        else:
-            return f"Location(points={len(self)})"
+    @property
+    def y(self):
+        return self.points[:, 1]
+
+    @property
+    def z(self):
+        return self.points[:, 2] if self.points.shape[1] > 2 else None
 
     @classmethod
     def from_tensor(cls, tensor):
-        if tensor.dim() == 1:
-            return cls(tensor[0].item(), tensor[1].item(), tensor[2].item() if len(tensor) > 2 else 0.5)
-        elif tensor.dim() == 2:
-            return cls(tensor[:, 0].tolist(), tensor[:, 1].tolist(), 
-                       tensor[:, 2].tolist() if tensor.shape[1] > 2 else [0.5] * tensor.shape[0])
-        else:
-            raise ValueError("Tensor must have 1 or 2 dimensions")
+        return cls(tensor[:, 0], tensor[:, 1], tensor[:, 2] if tensor.shape[1] > 2 else None)
 
     def to_tensor(self):
-        return torch.tensor([[p.x, p.y, p.z] for p in self.points])
+        return torch.from_numpy(self.points)
