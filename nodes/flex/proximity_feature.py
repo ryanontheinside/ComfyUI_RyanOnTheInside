@@ -39,17 +39,17 @@ class ProximityFeature(BaseFeature):
             all_distances.extend(frame_distances)
 
         self.closest_distances = np.array(self.closest_distances)
-        self.global_min = np.min(all_distances)
-        self.global_max = np.max(all_distances)
+        self.global_min = np.min(self.closest_distances)
+        self.global_max = np.max(self.closest_distances)
 
         return self.normalize()
 
     def normalize(self):
         if self.global_max > self.global_min:
-            # Normalize and invert the values
-            self.proximity_values = 1 - (self.closest_distances - self.global_min) / (self.global_max - self.global_min)
+            # Normalize the closest distances to the range [0, 1]
+            self.proximity_values = (self.closest_distances - self.global_min) / (self.global_max - self.global_min)
         else:
-            self.proximity_values = np.ones_like(self.closest_distances)
+            self.proximity_values = np.zeros_like(self.closest_distances)
         return self
 
     def get_value_at_frame(self, frame_index):
