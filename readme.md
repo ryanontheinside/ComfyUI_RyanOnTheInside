@@ -33,7 +33,8 @@
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
 
 ##### 🆕 Recent Updates
-- 9/10/24 - **Proximity Feature**: Adds proximity as a driving reactivity feature! Allows for the distince of objects from one another to control other nodes.
+- 9/8/24 - **Area Feature**: Adds area  as a  driving reactivity feature!
+- 9/7/24 - **Proximity Feature**: Adds proximity as a driving reactivity feature! Allows for the distince of objects from one another to control other nodes.
 - 9/5/24 - **FlexImageParallax**: Add illusory depth.
 - 9/3/24 - **FlexMaskDepthChamber**: Mask anything within a given depth range
 - 9/3/24 - **FeatureFade**: another feature modifier  to allow mixing of features, controled by features. Think mixing depth and motion features according to a kick drum or somthing. Ridiculous.

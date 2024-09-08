@@ -428,6 +428,65 @@ class MotionFeature(BaseFeature):
             self.feature_name = feature_name
         else:
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
+
+class AreaFeature(BaseFeature):
+    def __init__(self, name, frame_rate, frame_count, masks, feature_type='total_area', threshold=0.5):
+        self.masks = masks
+        self.feature_type = feature_type
+        self.threshold = threshold
+        self.available_features = ["total_area", "largest_contour", "bounding_box"]
+        super().__init__(name, "area", frame_rate, frame_count)
+
+    def extract(self):
+        self.data = []
         
-#TODO area feature
+        for mask in self.masks:
+            mask_np = mask.cpu().numpy()
+            binary_mask = (mask_np > self.threshold).astype(np.uint8)
+            
+            if self.feature_type == 'total_area':
+                area = np.sum(binary_mask)
+            elif self.feature_type == 'largest_contour':
+                contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                if contours:
+                    largest_contour = max(contours, key=cv2.contourArea)
+                    area = cv2.contourArea(largest_contour)
+                else:
+                    area = 0
+            elif self.feature_type == 'bounding_box':
+                contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                if contours:
+                    x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
+                    area = w * h
+                else:
+                    area = 0
+            else:
+                raise ValueError(f"Unsupported feature type: {self.feature_type}")
+            
+            self.data.append(area)
+        
+        return self.normalize()
+
+    def normalize(self):
+        if self.data:
+            min_val = min(self.data)
+            max_val = max(self.data)
+            if max_val > min_val:
+                self.data = [(v - min_val) / (max_val - min_val) for v in self.data]
+            else:
+                self.data = [0] * len(self.data)
+        return self
+
+    def get_value_at_frame(self, frame_index):
+        if self.data is not None and 0 <= frame_index < len(self.data):
+            return self.data[frame_index]
+        else:
+            raise ValueError("Invalid frame index or no data available")
+
+    def set_active_feature(self, feature_name):
+        if feature_name in self.available_features:
+            self.feature_type = feature_name
+            self.extract()  # Re-extract the data with the new feature type
+        else:
+            raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 #TODO volume feature

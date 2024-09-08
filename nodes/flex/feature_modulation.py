@@ -6,7 +6,7 @@ from io import BytesIO
 from PIL import Image
 
 class FeatureModulationBase(RyanOnTheInside):
-    CATEGORY = "RyanOnTheInside/FlexFeatures"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/FeatureModulators"
     FUNCTION = "modulate"
     
     @classmethod
