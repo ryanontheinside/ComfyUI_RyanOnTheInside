@@ -38,13 +38,29 @@ class ProximityFeatureNode(FirstFeature):
             normalization_method=normalization_method
         )
 
-        self.start_progress(len(video_frames), desc="Calculating proximity")
+        # Ensure anchor and query points have the same number of columns
+        anchor_dim = anchor_locations[0].points.shape[1]
+        query_dim = query_locations[0].points.shape[1]
+
+        if anchor_dim != query_dim:
+            if anchor_dim == 3:
+                for location in anchor_locations:
+                    location.points = location.points[:, :2]
+            elif query_dim == 3:
+                for location in query_locations:
+                    location.points = location.points[:, :2]
+            print("Depth ignored. Depth must be included for all points or no points.")
+
+        # self.start_progress(len(video_frames), desc="Calculating proximity")
         proximity_feature.extract()
-        self.end_progress()
+        # self.end_progress()
 
         return (proximity_feature, feature_pipe)
 
-class LocationFromMask(RyanOnTheInside):
+class ProximityFeatureInput(RyanOnTheInside):
+    CATEGORY="RyanOnTheInside/Proximity"
+
+class LocationFromMask(ProximityFeatureInput):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -96,15 +112,15 @@ class LocationFromMask(RyanOnTheInside):
 
         return (locations,)
 
-class LocationFromPoint(RyanOnTheInside):
+class LocationFromPoint(ProximityFeatureInput):
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
                 "x": ("FLOAT", {"default": 0.0,"min":0.0,"step":0.01}),
                 "y": ("FLOAT", {"default": 0.0,"min":0.0,"step":0.01}),
-                "batch_count": ("INT", {"default": 1, "min": 1}),
                 "z": ("FLOAT", {"default": 0.0,  "max":1.0, "min":0.0,"step":0.01}),
+                "batch_count": ("INT", {"default": 1, "min": 1}),
             }
         }
 
@@ -119,7 +135,7 @@ class LocationFromPoint(RyanOnTheInside):
 
         return (locations,)
 
-class LocationTransform(RyanOnTheInside):
+class LocationTransform(ProximityFeatureInput):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -188,6 +204,11 @@ class ProximityVisualizer(RyanOnTheInside):
         text_color = self.parse_color(text_color)
 
         output_frames = []
+        height, width = video_frames.shape[1:3]  # Extract height and width from video_frames
+
+        # Calculate the frame diagonal from the video frames
+        frame_diagonal = np.sqrt(width**2 + height**2)
+        scale_factor = frame_diagonal / proximity_feature.frame_diagonal
         for frame_index in range(len(video_frames)):
             frame = video_frames[frame_index].cpu().numpy()
             frame = (frame * 255).astype(np.uint8)
@@ -196,11 +217,16 @@ class ProximityVisualizer(RyanOnTheInside):
             anchor = anchor_locations[frame_index]
             query = query_locations[frame_index]
 
+            # Calculate scaling factors based on the frame diagonal
+            
+
             # Draw all anchor and query points (using only x and y coordinates)
             for point in anchor:
-                cv2.circle(frame, (int(point[0]), int(point[1])), 2, anchor_color, -1)
+                scaled_point = (int(point[0] * scale_factor), int(point[1] * scale_factor))
+                cv2.circle(frame, scaled_point, 2, anchor_color, -1)
             for point in query:
-                cv2.circle(frame, (int(point[0]), int(point[1])), 2, query_color, -1)
+                scaled_point = (int(point[0] * scale_factor), int(point[1] * scale_factor))
+                cv2.circle(frame, scaled_point, 2, query_color, -1)
 
             # Find the closest pair of points
             if len(anchor) > 0 and len(query) > 0:
@@ -211,13 +237,13 @@ class ProximityVisualizer(RyanOnTheInside):
 
                 # Draw line between closest points (using only x and y coordinates)
                 cv2.line(frame, 
-                         (int(closest_anchor[0]), int(closest_anchor[1])), 
-                         (int(closest_query[0]), int(closest_query[1])), 
+                         (int(closest_anchor[0] * scale_factor), int(closest_anchor[1] * scale_factor)), 
+                         (int(closest_query[0] * scale_factor), int(closest_query[1] * scale_factor)), 
                          line_color, 2)
 
                 # Display coordinates of closest points
-                anchor_text = f"Anchor: ({int(closest_anchor[0])}, {int(closest_anchor[1])}"
-                query_text = f"Query: ({int(closest_query[0])}, {int(closest_query[1])}"
+                anchor_text = f"Anchor: ({int(closest_anchor[0] * scale_factor)}, {int(closest_anchor[1] * scale_factor)}"
+                query_text = f"Query: ({int(closest_query[0] * scale_factor)}, {int(closest_query[1] * scale_factor)}"
                 
                 if anchor.z is not None and query.z is not None:
                     anchor_text += f", {closest_anchor[2]:.2f})"
