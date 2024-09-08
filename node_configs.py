@@ -593,6 +593,21 @@ Analyzes the input depth maps to extract the specified depth-related feature. Th
 """
 })
 
+add_node_config("AreaFeatureNode", {
+    "TOP_DESCRIPTION": "Extracts area-related features from mask sequences for mask modulation.",
+    "ADDITIONAL_INFO": """
+- `masks`: Input mask sequence to analyze (MASK type)
+- `feature_type`: Type of area feature to extract
+  - Options: 
+    - "total_area" (sum of pixels above threshold)
+    - "largest_contour" (area of the largest contiguous region)
+    - "bounding_box" (area of the bounding box containing the largest region)
+- `threshold`: Threshold value for considering pixels as part of the area (0.0 to 1.0)
+
+This node analyzes the input mask sequence to extract the specified area-related feature. The resulting feature can be used to modulate masks based on changes in area over time, allowing for effects that respond to the size or extent of masked regions in the scene.
+"""
+})
+
 add_node_config("ProximityFeatureNode", {
     "TOP_DESCRIPTION": "Calculates a proximity feature based on the distance between anchor and query locations in video frames.",
     "ADDITIONAL_INFO": """

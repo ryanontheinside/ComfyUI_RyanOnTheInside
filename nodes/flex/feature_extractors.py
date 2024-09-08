@@ -1,6 +1,6 @@
 from .feature_pipe import FeaturePipe
 from ... import RyanOnTheInside
-from .features import AudioFeature, TimeFeature, DepthFeature, ColorFeature, BrightnessFeature, MotionFeature
+from .features import AudioFeature, TimeFeature, DepthFeature, ColorFeature, BrightnessFeature, MotionFeature, AreaFeature
 from .proximity_feature  import  Location
 from tqdm import tqdm
 from comfy.utils import ProgressBar
@@ -183,3 +183,27 @@ class MotionFeatureNode(FirstFeature):
         self.end_progress()
 
         return (motion_feature, feature_pipe)
+    
+
+class AreaFeatureNode(FirstFeature):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "masks": ("MASK",),
+                "feature_type": (["total_area", "largest_contour", "bounding_box"],),
+                "threshold": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE", "FEATURE_PIPE")
+    FUNCTION = "create_feature"
+
+    def create_feature(self, masks, video_frames, frame_rate, feature_type, threshold):
+        feature_pipe = FeaturePipe(frame_rate, video_frames)
+        area_feature = AreaFeature("area_feature", feature_pipe.frame_rate, feature_pipe.frame_count, 
+                                   masks, feature_type=feature_type, threshold=threshold)
+        area_feature.extract()
+        return (area_feature, feature_pipe)

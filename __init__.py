@@ -65,6 +65,7 @@ from .nodes.flex.feature_extractors import(
     ColorFeatureNode,
     BrightnessFeatureNode,
     MotionFeatureNode,
+    AreaFeatureNode,
 )
 
 from .nodes.flex.midi_feature_extractor import(
@@ -160,6 +161,7 @@ from .nodes.images.flex_images import (
 
 from .nodes.flex.feature_externals import (
     FeatureToWeightsStrategy,
+    DepthShapeModifier,
 )
 
 from .nodes.flex.feature_modulation import (
@@ -247,13 +249,16 @@ NODE_CLASS_MAPPINGS = {
     "ColorFeatureNode":             ColorFeatureNode,
     "BrightnessFeatureNode":        BrightnessFeatureNode,
     "MotionFeatureNode":            MotionFeatureNode,
-    "FeatureToWeightsStrategy":     FeatureToWeightsStrategy,
     "LocationFromMask":             LocationFromMask,
     "ProximityFeatureNode":         ProximityFeatureNode,
     "ProximityVisualizer":          ProximityVisualizer,
     "LocationFromPoint":            LocationFromPoint,
     "LocationTransform":            LocationTransform,
-    
+    "AreaFeatureNode":              AreaFeatureNode,
+
+    "FeatureToWeightsStrategy":     FeatureToWeightsStrategy,
+    "DepthShapeModifier":           DepthShapeModifier,
+
     #feature modulation
     "FeatureMixer":                 FeatureMixer,
     "FeatureCombine":               FeatureCombine,
