@@ -80,6 +80,11 @@ class LocationFromMask(ProximityFeatureInput):
         locations = []
         for i in range(masks.shape[0]):
             mask = masks[i].cpu().numpy()
+            if np.sum(mask) == 0:  # Check if the mask is empty
+                print(f"No mask found in frame {i}.")
+                locations.append(Location(np.array([-1]), np.array([-1]), np.array([-1]) if depth_maps is not None else None))
+                continue
+
             if method == "mask_boundary":
                 contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 if contours:
@@ -100,8 +105,12 @@ class LocationFromMask(ProximityFeatureInput):
                 valid_points = (boundary[:, 0] < depth_map.shape[1]) & (boundary[:, 1] < depth_map.shape[0])
                 boundary = boundary[valid_points]
                 
+                if boundary.size == 0:  # Check if boundary is empty after filtering
+                    print(f"No valid boundary points in frame {i}.")
+                    locations.append(Location(np.array([-1]), np.array([-1]), np.array([-1])))
+                    continue
+
                 # Extract depth values for valid boundary points
-                # Use the average of the three channels as the depth value
                 z = np.mean(depth_map[boundary[:, 1].astype(int), boundary[:, 0].astype(int)], axis=-1)
                 
                 location = Location(boundary[:, 0], boundary[:, 1], z)

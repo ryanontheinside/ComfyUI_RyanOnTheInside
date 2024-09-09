@@ -9,6 +9,7 @@ class RyanOnTheInside(metaclass=CombinedMeta):
         display_name = NODE_DISPLAY_NAME_MAPPINGS.get(cls.__name__, cls.__name__)
         footer = "For more information, visit [RyanOnTheInside GitHub](https://github.com/ryanontheinside).\n\n"
         footer += "For tutorials and example workflows visit [RyanOnTheInside Civitai](https://civitai.com/user/ryanontheinside).\n\n"
+        footer += "For video tutorials and more visit [RyanOnTheInside YouTube](https://www.youtube.com/@ryanontheinside).\n\n"
         display_name = display_name.replace(" | RyanOnTheInside", "")
         
         desc = f"# {display_name}\n\n"
