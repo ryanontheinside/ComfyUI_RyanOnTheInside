@@ -33,6 +33,8 @@
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
 
 ##### 🆕 Recent Updates
+- 9/8/24 - **Area Feature**: Adds area  as a  driving reactivity feature!
+- 9/7/24 - **Proximity Feature**: Adds proximity as a driving reactivity feature! Allows for the distince of objects from one another to control other nodes.
 - 9/5/24 - **FlexImageParallax**: Add illusory depth.
 - 9/3/24 - **FlexMaskDepthChamber**: Mask anything within a given depth range
 - 9/3/24 - **FeatureFade**: another feature modifier  to allow mixing of features, controled by features. Think mixing depth and motion features according to a kick drum or somthing. Ridiculous.
@@ -67,7 +69,7 @@ Particles are now reactive!
 ### 🎛️ Flex Features
 Dynamic control over various aspects of your workflow:
 - Modulate IPAdapters, Masks, Images, and Particles based on extracted features
-- Features include: Audio, MIDI, Motion, Depth, Color, Time, and more
+- Features include: Audio, MIDI, Motion, Proximity Depth, Color, Time, and more
 - Create adaptive, responsive effects that evolve with your input data
 
 ### 🎆 Particle Systems

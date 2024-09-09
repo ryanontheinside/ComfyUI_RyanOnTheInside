@@ -6,7 +6,7 @@ from io import BytesIO
 from PIL import Image
 
 class FeatureModulationBase(RyanOnTheInside):
-    CATEGORY = "RyanOnTheInside/FlexFeatures"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/FeatureModulators"
     FUNCTION = "modulate"
     
     @classmethod
@@ -223,7 +223,7 @@ class FeatureScaler(FeatureModulationBase):
         processed_feature = self.create_processed_feature(feature, final_values, "Scaled", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
-class FeatureMath(FeatureModulationBase):
+class FeatureCombine(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -265,6 +265,41 @@ class FeatureMath(FeatureModulationBase):
         processed_feature = self.create_processed_feature(feature1, combined, "Combined", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
+class FeatureMath(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "y": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10000000.0, "step": 0.005}),
+                "operation": (["add", "subtract", "multiply", "divide", "max", "min"],),
+                **super().INPUT_TYPES()["required"],
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE", "IMAGE")
+    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    FUNCTION = "modulate"
+
+    def modulate(self, feature, y, operation, invert_output):
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        if operation == "add":
+            result = [v + y for v in values]
+        elif operation == "subtract":
+            result = [v - y for v in values]
+        elif operation == "multiply":
+            result = [v * y for v in values]
+        elif operation == "divide":
+            result = [v / y if y != 0 else 0 for v in values]
+        elif operation == "max":
+            result = [max(v, y) for v in values]
+        elif operation == "min":
+            result = [min(v, y) for v in values]
+        
+        processed_feature = self.create_processed_feature(feature, result, "MathResult", invert_output)
+        return (processed_feature, self.visualize(processed_feature))
+    
 class FeatureSmoothing(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -284,6 +319,7 @@ class FeatureSmoothing(FeatureModulationBase):
 
     def modulate(self, feature, smoothing_type, window_size, alpha, sigma, invert_output):
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        original_min = min(values)
         
         if smoothing_type == "moving_average":
             smoothed = np.convolve(values, np.ones(window_size), 'valid') / window_size
@@ -300,7 +336,12 @@ class FeatureSmoothing(FeatureModulationBase):
             kernel = kernel / np.sum(kernel)
             smoothed = np.convolve(values, kernel, mode='same')
         
-        processed_feature = self.create_processed_feature(feature, smoothed, "Smoothed", invert_output)
+        # Adjust the smoothed values to ensure the minimum value remains unchanged
+        smoothed_min = min(smoothed)
+        adjustment = original_min - smoothed_min
+        adjusted_smoothed = [v + adjustment for v in smoothed]
+        
+        processed_feature = self.create_processed_feature(feature, adjusted_smoothed, "Smoothed", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
 class FeatureOscillator(FeatureModulationBase):
@@ -379,3 +420,61 @@ class FeatureFade(FeatureModulationBase):
         
         processed_feature = self.create_processed_feature(feature1, combined, "Faded", invert_output)
         return (processed_feature, self.visualize(processed_feature))
+
+class FeatureRebase(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "lower_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "upper_threshold": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                **super().INPUT_TYPES()["required"],
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE", "IMAGE")
+    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    FUNCTION = "rebase"
+
+    def rebase(self, feature, lower_threshold, upper_threshold, invert_output):
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        # Apply thresholds
+        rebased_values = [v if lower_threshold <= v <= upper_threshold else 0 for v in values]
+        
+        # Re-normalize the values
+        min_val, max_val = min(rebased_values), max(rebased_values)
+        if min_val == max_val:
+            normalized = [0 for _ in rebased_values]  # All values are the same, normalize to 0
+        else:
+            normalized = [(v - min_val) / (max_val - min_val) for v in rebased_values]
+        
+        processed_feature = self.create_processed_feature(feature, normalized, "Rebased", invert_output)
+        return (processed_feature, self.visualize(processed_feature))
+
+class PreviewFeature(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                **super().INPUT_TYPES()["required"],
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("FEATURE_PREVIEW",)
+    FUNCTION = "preview"
+
+    def preview(self, feature, invert_output):
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        if invert_output:
+            min_val, max_val = min(values), max(values)
+            inverted_values = [max_val - v + min_val for v in values]
+            processed_feature = self.create_processed_feature(feature, inverted_values, "Inverted", invert_output)
+        else:
+            processed_feature = feature
+        
+        return (self.visualize(processed_feature),)
