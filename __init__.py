@@ -9,6 +9,7 @@ class RyanOnTheInside(metaclass=CombinedMeta):
         display_name = NODE_DISPLAY_NAME_MAPPINGS.get(cls.__name__, cls.__name__)
         footer = "For more information, visit [RyanOnTheInside GitHub](https://github.com/ryanontheinside).\n\n"
         footer += "For tutorials and example workflows visit [RyanOnTheInside Civitai](https://civitai.com/user/ryanontheinside).\n\n"
+        footer += "For video tutorials and more visit [RyanOnTheInside YouTube](https://www.youtube.com/@ryanontheinside).\n\n"
         display_name = display_name.replace(" | RyanOnTheInside", "")
         
         desc = f"# {display_name}\n\n"
@@ -65,12 +66,20 @@ from .nodes.flex.feature_extractors import(
     ColorFeatureNode,
     BrightnessFeatureNode,
     MotionFeatureNode,
+    AreaFeatureNode,
 )
 
 from .nodes.flex.midi_feature_extractor import(
     MIDILoadAndExtract,
 )
 
+from .nodes.flex.proximity_feature_extractor import(
+    LocationFromMask,
+    ProximityFeatureNode,
+    ProximityVisualizer,
+    LocationFromPoint,
+    LocationTransform,
+)
 
 
 
@@ -112,6 +121,7 @@ from .nodes.utility_nodes import (
     ImageDifference,
     ImageShuffle,
     SwapDevice,
+    ImageIntervalSelectPercentage,
 )
 
 ###images
@@ -147,19 +157,24 @@ from .nodes.images.flex_images import (
     FlexImageColorGrade,
     FlexImageTiltShift,
     FlexImageParallax,
+    
 )
 
 from .nodes.flex.feature_externals import (
     FeatureToWeightsStrategy,
+    DepthShapeModifier,
 )
 
 from .nodes.flex.feature_modulation import (
     FeatureMixer,
-    FeatureMath,
+    FeatureCombine,
     FeatureOscillator,
     FeatureScaler,
     FeatureSmoothing,
     FeatureFade,
+    PreviewFeature,
+    FeatureMath,
+    FeatureRebase,
 )
 
 
@@ -235,16 +250,26 @@ NODE_CLASS_MAPPINGS = {
     "ColorFeatureNode":             ColorFeatureNode,
     "BrightnessFeatureNode":        BrightnessFeatureNode,
     "MotionFeatureNode":            MotionFeatureNode,
+    "LocationFromMask":             LocationFromMask,
+    "ProximityFeatureNode":         ProximityFeatureNode,
+    "ProximityVisualizer":          ProximityVisualizer,
+    "LocationFromPoint":            LocationFromPoint,
+    "LocationTransform":            LocationTransform,
+    "AreaFeatureNode":              AreaFeatureNode,
+
     "FeatureToWeightsStrategy":     FeatureToWeightsStrategy,
+    "DepthShapeModifier":           DepthShapeModifier,
 
     #feature modulation
     "FeatureMixer":                 FeatureMixer,
-    "FeatureMath":                  FeatureMath,
+    "FeatureCombine":               FeatureCombine,
     "FeatureOscillator":            FeatureOscillator,
     "FeatureScaler":                FeatureScaler,
     "FeatureSmoothing":             FeatureSmoothing,
     "FeatureFade":                  FeatureFade,
-    
+    "FeatureMath":                  FeatureMath,
+    "PreviewFeature":               PreviewFeature,
+    "FeatureRebase":                FeatureRebase,
     #images
     'FlexImageEdgeDetect':          FlexImageEdgeDetect,
     "FlexImagePosterize":           FlexImagePosterize,
@@ -256,7 +281,6 @@ NODE_CLASS_MAPPINGS = {
     "FlexImageColorGrade":          FlexImageColorGrade,
     "FlexImageTiltShift":           FlexImageTiltShift,
     "FlexImageParallax":            FlexImageParallax,
-
     #opacity xp 
     # "FlexDepthBasedMaskOpacity":  FlexDepthBasedMaskOpacity,
     # "DepthBasedMaskOpacity":      DepthBasedMaskOpacity,
@@ -275,6 +299,7 @@ NODE_CLASS_MAPPINGS = {
     "ImageDifference":              ImageDifference,
     "ImageShuffle":                 ImageShuffle,
     "SwapDevice":                   SwapDevice,
+    "ImageIntervalSelectPercentage":ImageIntervalSelectPercentage,
     
 }
 
@@ -322,17 +347,17 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "MotionFeatureNode":"Motion Feature",
 
     "FeatureMixer":                 "FeatureMod Mixer",
-    "FeatureMath":                  "FeatureMod Math",
+    "FeatureCombine":               "FeatureMod Combine",
     "FeatureOscillator":            "FeatureMod Oscillator",
     "FeatureScaler":                "FeatureMod Scaler",
     "FeatureSmoothing":             "FeatureMod Smoothing",
-
-
+    "FeatureMath":                  "FeatureMod Math",
     "MovingShape": "Moving Shape",
     "TextMaskNode":"Text Mask Node",
 
 
     "DyeImage" : "Dye Image",
+    "ImageIntervalSelectPercentage":  "Image Interval Select %"
     # "FlexImageAdjustment":"Flex Image Adjustment",
     # "FlexImageFilter":"Flex Image Filter",
     # "FlexImageBlend":"Flex Image Blend",
