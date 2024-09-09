@@ -47,13 +47,15 @@ import torch
 import torch.nn.functional as F
 import cv2
 
-class DepthShapeModifier(RyanOnTheInside):
+class DepthShapeModifier(FlexExternalModulator):
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
                 "depth_map": ("IMAGE",),
                 "mask": ("MASK",),
+                # "feature": ("FEATURE",),
+                # "feature_param": (["gradient_steepness", "depth_min", "depth_max", "strength"],),
                 "gradient_steepness": ("FLOAT", {"default": 2.0, "min": 0.1, "max": 10.0, "step": 0.1}),
                 "depth_min": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "depth_max": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
@@ -73,6 +75,11 @@ class DepthShapeModifier(RyanOnTheInside):
         
         modified_depths = []
         for i in range(b):
+            # Modify feature parameters based on the feature value
+            # gradient_steepness, depth_min, depth_max, strength = self.modify_feature_param(
+            #     feature, feature_param, gradient_steepness, depth_min, depth_max, strength
+            # ) #TODO
+            
             mask_i = mask[i].cpu().numpy().astype(np.uint8)
             
             # Use cv2 to find contours (separate shapes)
@@ -122,3 +129,17 @@ class DepthShapeModifier(RyanOnTheInside):
         
         result = torch.stack(modified_depths, dim=0)
         return (result,)
+
+    def modify_feature_param(self, feature, feature_param, gradient_steepness, depth_min, depth_max, strength):
+        frames = feature.frame_count
+        for i in range(frames):
+            value = feature.get_value_at_frame(i)
+            if feature_param == "gradient_steepness":
+                gradient_steepness *= value
+            elif feature_param == "depth_min":
+                depth_min += value
+            elif feature_param == "depth_max":
+                depth_max -= value
+            elif feature_param == "strength":
+                strength *= value
+        return gradient_steepness, depth_min, depth_max, strength
