@@ -336,7 +336,7 @@ class BrightnessFeature(BaseFeature):
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 
 class MotionFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, images, feature_name='mean_motion', flow_method='Farneback', flow_threshold=0.0, magnitude_threshold=0.0):
+    def __init__(self, name, frame_rate, frame_count, images, feature_name='mean_motion', flow_method='Farneback', flow_threshold=0.0, magnitude_threshold=0.0, progress_callback=None):
         self.images = images
         self.feature_name = feature_name
         self.flow_method = flow_method
@@ -344,8 +344,10 @@ class MotionFeature(BaseFeature):
         self.magnitude_threshold = magnitude_threshold
         self.available_features = [
             "mean_motion", "max_motion", "motion_direction",
-            "horizontal_motion", "vertical_motion", "motion_complexity"
+            "horizontal_motion", "vertical_motion", "motion_complexity",
+            "motion_speed"
         ]
+        self.progress_callback = progress_callback
         super().__init__(name, "motion", frame_rate, frame_count)
 
     def extract(self):
@@ -353,14 +355,18 @@ class MotionFeature(BaseFeature):
         self.features = {self.feature_name: []}
         
         images_np = (self.images.cpu().numpy() * 255).astype(np.uint8)
-        
-        for i in range(len(images_np) - 1):
+        num_frames = len(images_np) - 1
+
+        for i in range(num_frames):
             print(f"Processing frames {i+1} and {i+2}")
             frame1 = images_np[i]
             frame2 = images_np[i+1]
             
             flow = calculate_optical_flow(frame1, frame2, self.flow_method)
             self._extract_features(flow)
+            
+            if self.progress_callback:
+                self.progress_callback(i + 1, num_frames)
 
         self._pad_last_frame()
         self._normalize_features()
@@ -387,6 +393,8 @@ class MotionFeature(BaseFeature):
             self.features[self.feature_name].append(np.mean(np.abs(flow[..., 1])))
         elif self.feature_name == 'motion_complexity':
             self.features[self.feature_name].append(np.std(flow_magnitude))
+        elif self.feature_name == 'motion_speed':
+            self.features[self.feature_name].append(np.mean(flow_magnitude) * self.frame_rate)
 
     def _pad_last_frame(self):
         for feature in self.features:
@@ -420,3 +428,65 @@ class MotionFeature(BaseFeature):
             self.feature_name = feature_name
         else:
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
+
+class AreaFeature(BaseFeature):
+    def __init__(self, name, frame_rate, frame_count, masks, feature_type='total_area', threshold=0.5):
+        self.masks = masks
+        self.feature_type = feature_type
+        self.threshold = threshold
+        self.available_features = ["total_area", "largest_contour", "bounding_box"]
+        super().__init__(name, "area", frame_rate, frame_count)
+
+    def extract(self):
+        self.data = []
+        
+        for mask in self.masks:
+            mask_np = mask.cpu().numpy()
+            binary_mask = (mask_np > self.threshold).astype(np.uint8)
+            
+            if self.feature_type == 'total_area':
+                area = np.sum(binary_mask)
+            elif self.feature_type == 'largest_contour':
+                contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                if contours:
+                    largest_contour = max(contours, key=cv2.contourArea)
+                    area = cv2.contourArea(largest_contour)
+                else:
+                    area = 0
+            elif self.feature_type == 'bounding_box':
+                contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                if contours:
+                    x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
+                    area = w * h
+                else:
+                    area = 0
+            else:
+                raise ValueError(f"Unsupported feature type: {self.feature_type}")
+            
+            self.data.append(area)
+        
+        return self.normalize()
+
+    def normalize(self):
+        if self.data:
+            min_val = min(self.data)
+            max_val = max(self.data)
+            if max_val > min_val:
+                self.data = [(v - min_val) / (max_val - min_val) for v in self.data]
+            else:
+                self.data = [0] * len(self.data)
+        return self
+
+    def get_value_at_frame(self, frame_index):
+        if self.data is not None and 0 <= frame_index < len(self.data):
+            return self.data[frame_index]
+        else:
+            raise ValueError("Invalid frame index or no data available")
+
+    def set_active_feature(self, feature_name):
+        if feature_name in self.available_features:
+            self.feature_type = feature_name
+            self.extract()  # Re-extract the data with the new feature type
+        else:
+            raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
+#TODO volume feature

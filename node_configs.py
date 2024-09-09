@@ -325,7 +325,7 @@ add_node_config("FlexMaskDepthChamber", {
 - `z_front`: Front depth value for the mask (0.0 to 1.0). Default is 1.0.
 - `z_back`: Back depth value for the mask (0.0 to 1.0). Default is 0.0.
 - `feature_param`: Parameter to modulate based on the feature. Options are "none", "z_front", "z_back", "both".
-- `feature_mode`: Mode of feature modulation. Options are "squeeze" and "expand".
+- `feature_mode`: Mode of feature modulation.
 
 This node creates a mask based on the depth values in the input depth map. The mask is modulated by the specified front and back depth values, and can be further adjusted using a feature input to dynamically change the depth range.
 """
@@ -593,6 +593,69 @@ Analyzes the input depth maps to extract the specified depth-related feature. Th
 """
 })
 
+add_node_config("AreaFeatureNode", {
+    "TOP_DESCRIPTION": "Extracts area-related features from mask sequences for mask modulation.",
+    "ADDITIONAL_INFO": """
+- `masks`: Input mask sequence to analyze (MASK type)
+- `feature_type`: Type of area feature to extract
+  - Options: 
+    - "total_area" (sum of pixels above threshold)
+    - "largest_contour" (area of the largest contiguous region)
+    - "bounding_box" (area of the bounding box containing the largest region)
+- `threshold`: Threshold value for considering pixels as part of the area (0.0 to 1.0)
+
+This node analyzes the input mask sequence to extract the specified area-related feature. The resulting feature can be used to modulate masks based on changes in area over time, allowing for effects that respond to the size or extent of masked regions in the scene.
+"""
+})
+
+add_node_config("ProximityFeatureNode", {
+    "TOP_DESCRIPTION": "Calculates a proximity feature based on the distance between anchor and query locations in video frames.",
+    "ADDITIONAL_INFO": """
+- `video_frames`: Input video frames (IMAGE type)
+- `frame_rate`: Frame rate of the video (FLOAT type, default: 30.0, min: 1.0, max: 120.0, step: 0.1)
+- `anchor_locations`: Locations of anchor points (LOCATION type)
+- `query_locations`: Locations of query points (LOCATION type)
+- `distance_metric`: Distance metric to use for calculation (Options: "euclidean", "manhattan", "chebyshev")
+
+This node calculates a proximity feature based on the specified distance metric between anchor and query locations in the input video frames. The resulting feature can be used to modulate other effects based on spatial relationships.
+"""
+})
+
+add_node_config("LocationFromMask", {
+    "TOP_DESCRIPTION": "This is for use with proximity features. This generates locations from mask inputs using various methods.",
+    "ADDITIONAL_INFO": """
+- `masks`: Input masks (MASK type)
+- `method`: Method to use for location extraction (Options: "mask_center", "mask_boundary", "mask_top_left", "mask_bottom_right")
+- `depth_maps`: (Optional) Input depth maps. The depth map provides a value for the z coordinate of every location. If no depth map is provided, the value defaults to .5. The z coordinate is far less granular than x and y, as all we have are relative normalized depth per frame (0 to 1).  
+
+This node generates locations from the input masks using the specified method. The locations can be used as anchor or query points for proximity calculations or other spatially dependent effects.
+"""
+})
+
+add_node_config("LocationFromPoint", {
+    "TOP_DESCRIPTION": "Generates locations from specified x, y, and z coordinates.",
+    "ADDITIONAL_INFO": """
+- `x`: X-coordinate of the location (FLOAT, default: 0.0, min: 0.0, step: 0.01)
+- `y`: Y-coordinate of the location (FLOAT, default: 0.0, min: 0.0, step: 0.01)
+- `batch_count`: Number of locations to generate (INT, default: 1, min: 1)
+- `z`: Z-coordinate of the location (FLOAT, default: 0.0, min: 0.0, max: 1.0, step: 0.01)
+
+This node generates a batch of locations based on the specified x, y, and z coordinates.
+"""
+})
+
+add_node_config("LocationTransform", {
+    "TOP_DESCRIPTION": "Transforms locations based on a feature and specified transformation type.",
+    "ADDITIONAL_INFO": """
+- `locations`: Input locations to be transformed (LOCATION type)
+- `feature`: Feature used to modulate the transformation (FEATURE type)
+- `transformation_type`: Type of transformation to apply ("translate" or "scale")
+- `transformation_value`: Value of the transformation (FLOAT, default: 1.0)
+
+This node transforms the input locations based on the specified transformation type and value, modulated by the input feature.
+"""
+})
+
 add_node_config("EmitterMovement", {
     "TOP_DESCRIPTION": """These parameters work together to create complex, periodic movements for particle emitters. 
 By adjusting frequencies and amplitudes, you can achieve various patterns like circles, 
@@ -725,6 +788,30 @@ Outputs:
 """
 })
 
+add_node_config("FeatureRebase", {
+    "TOP_DESCRIPTION": "Rebases feature values within specified thresholds.",
+    "ADDITIONAL_INFO": """
+- `feature`: Input feature to be rebased (FEATURE type)
+- `lower_threshold`: Lower threshold for feature values (FLOAT, default: 0.0, min: 0.0, max: 1.0, step: 0.01)
+- `upper_threshold`: Upper threshold for feature values (FLOAT, default: 1.0, min: 0.0, max: 1.0, step: 0.01)
+- `invert_output`: Whether to invert the output feature values (BOOLEAN, default: False)
+
+This node rebases the input feature values within the specified thresholds and normalizes them.
+"""
+})
+
+add_node_config("FeatureMath", {
+    "TOP_DESCRIPTION": "Performs mathematical operations between a feature's values and a float value.",
+    "ADDITIONAL_INFO": """
+- `feature`: Input feature (FEATURE type)
+- `y`: Input value (FLOAT type)
+- `operation`: Mathematical operation to perform ("add", "subtract", "multiply", "divide", "max", "min"). Determines how the feature's values are combined with y.
+
+This node takes a feature and performs the specified operation between its values and the float value y, returning the processed feature and its visualization.
+"""
+})
+
+
 add_node_config("FeatureScaler", {
     "TOP_DESCRIPTION": "Scales and transforms feature values using various mathematical functions.",
     "ADDITIONAL_INFO": """
@@ -736,14 +823,14 @@ add_node_config("FeatureScaler", {
     """
 })
 
-add_node_config("FeatureMath", {
+add_node_config("FeatureCombine", {
     "TOP_DESCRIPTION": "Performs mathematical operations between two features.",
     "ADDITIONAL_INFO": """
     - `feature1`: First input feature (FEATURE type)
     - `feature2`: Second input feature (FEATURE type)
-    - `operation`: Mathematical operation to perform ("add", "subtract", "multiply", "divide", "max", "min")
-    - `weight1`: Weight applied to feature1 (0.0 to 1.0)
-    - `weight2`: Weight applied to feature2 (0.0 to 1.0)
+    - `operation`: Mathematical operation to perform ("add", "subtract", "multiply", "divide", "max", "min"). Determines how the two features are combined.
+    - `weight1`: Weight applied to feature1 (0.0 to 1.0). Higher values give more importance to feature1 in the operation.
+    - `weight2`: Weight applied to feature2 (0.0 to 1.0). Higher values give more importance to feature2 in the operation.
     """
 })
 
@@ -752,9 +839,9 @@ add_node_config("FeatureSmoothing", {
     "ADDITIONAL_INFO": """
     - `feature`: Input feature to be smoothed (FEATURE type)
     - `smoothing_type`: Type of smoothing to apply ("moving_average", "exponential", "gaussian")
-    - `window_size`: Size of the smoothing window for moving average and gaussian (3 to 21, odd numbers only)
-    - `alpha`: Smoothing factor for exponential smoothing (0.0 to 1.0)
-    - `sigma`: Standard deviation for gaussian smoothing (0.1 to 5.0)
+    - `window_size`: Size of the smoothing window for moving average and gaussian (3 to 21, odd numbers only). Larger values create smoother transitions but may reduce responsiveness.
+    - `alpha`: Smoothing factor for exponential smoothing (0.0 to 1.0). Higher values make the feature respond more quickly to changes, while lower values create a more gradual, smoothed effect.
+    - `sigma`: Standard deviation for gaussian smoothing (0.1 to 5.0). Higher values create a more pronounced smoothing effect.
     """
 })
 
@@ -939,6 +1026,16 @@ add_node_config("ImageIntervalSelect", {
 - `interval`: Interval at which to select images (1 to 100000)
 - `start_at`: Starting index for selection (0 to 100000)
 - `end_at`: Ending index for selection (0 to 100000)
+"""
+})
+
+add_node_config("ImageIntervalSelectPercentage", {
+    "TOP_DESCRIPTION": "Selects images from a sequence at specified percentage intervals.",
+    "ADDITIONAL_INFO": """
+- `image`: Input image sequence (IMAGE type)
+- `interval_percentage`: Interval at which to select images as a percentage of the total sequence length (1 to 100)
+- `start_percentage`: Starting percentage for selection (0 to 100)
+- `end_percentage`: Ending percentage for selection (0 to 100)
 """
 })
 
