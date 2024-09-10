@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import numpy  as np
 from ... import RyanOnTheInside
-from ... import RyanOnTheInside
+import cv2
 
 class FlexExternalModulator(RyanOnTheInside):
     CATEGORY = "RyanOnTheInside/FlexExternalMod"
@@ -41,11 +41,6 @@ class FeatureToWeightsStrategy(FlexExternalModulator):
 
         return (weights_strategy,)
 
-
-
-import torch
-import torch.nn.functional as F
-import cv2
 
 class DepthShapeModifier(FlexExternalModulator):
     @classmethod
