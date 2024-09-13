@@ -262,7 +262,7 @@ NODE_CLASS_MAPPINGS = {
     "PitchFeatureExtractor":        PitchFeatureExtractor,
     "PitchRange":                   PitchRangeNode,
     "PitchRangePreset":             PitchRangePresetNode,
-    "PitchRangeByNote":             PitchRangeByNoteNode,
+    "PitchRangeByNoteNode":         PitchRangeByNoteNode,
     "MIDILoadAndExtract":           MIDILoadAndExtract,
     "TimeFeatureNode":              TimeFeatureNode,
     "DepthFeatureNode":             DepthFeatureNode,
@@ -361,6 +361,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "AudioFilter": "Audio Filter",
     
     "MIDILoadAndExtract":   "MIDI Load & Feature Extract",
+    "PitchRangeByNoteNode": "Pitch Range By Note",
     "AudioFeatureExtractor": "Audio Feature & Extractor",
     "TimeFeatureNode":          "Time Feature",
     "DepthFeatureNode":"Depth Feature",

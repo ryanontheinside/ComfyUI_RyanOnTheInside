@@ -566,6 +566,60 @@ add_node_config("AudioFeatureExtractor", {
 """
 })
 
+add_node_config("PitchFeatureExtractor", {
+    "TOP_DESCRIPTION": "Extracts pitch-related features from audio input.",
+    "ADDITIONAL_INFO": """
+- `audio`: Input audio to analyze (AUDIO type)
+- `feature_pipe`: Feature pipe containing frame information (FEATURE_PIPE type)
+- `feature_type`: Type of pitch feature to extract:
+  - "pitch_filtered": Filtered pitch values
+  - "pitch_direction": Direction of pitch changes
+  - "vibrato_signal": Vibrato signal
+  - "vibrato_intensity": Intensity of vibrato
+- `window_size`: Size of the analysis window (0 for default)
+- `pitch_tolerance`: Tolerance for pitch detection (0.0 to 1.0)
+- `pitch_range_collections`: (Optional) Collections of pitch ranges to consider (PITCH_RANGE_COLLECTION type)
+
+This node extracts various pitch-related features from the input audio, which can be used for further analysis or mask modulation.
+"""
+})
+
+add_node_config("PitchRangeByNoteNode", {
+    "TOP_DESCRIPTION": "Creates pitch ranges based on specified MIDI notes.",
+    "ADDITIONAL_INFO": """
+- `chord_only`: If true, only detects when all specified notes are present simultaneously (BOOLEAN)
+- `pitch_tolerance_percent`: Tolerance percentage for pitch detection (0.0 to 100.0)
+- `notes`: Comma-separated list of MIDI note numbers (e.g., "60,64,67" for C major triad)
+- `previous_range_collection`: (Optional) Previous pitch range collection to append to (PITCH_RANGE_COLLECTION type)
+
+This node creates pitch ranges based on specified MIDI notes, which can be used for targeted pitch detection in audio analysis.
+"""
+})
+
+add_node_config("PitchRangePresetNode", {
+    "TOP_DESCRIPTION": "Creates preset pitch ranges for common vocal ranges.",
+    "ADDITIONAL_INFO": """
+- `preset`: Preset vocal range to use:
+  - Options: "Bass", "Baritone", "Tenor", "Alto", "Mezzo-soprano", "Soprano", "Contralto"
+- `previous_range_collection`: (Optional) Previous pitch range collection to append to (PITCH_RANGE_COLLECTION type)
+
+This node provides preset pitch ranges corresponding to common vocal ranges, which can be used for voice-specific audio analysis.
+"""
+})
+
+add_node_config("PitchRangeNode", {
+    "TOP_DESCRIPTION": "Creates a custom pitch range for audio analysis.",
+    "ADDITIONAL_INFO": """
+- `min_pitch`: Minimum frequency of the pitch range in Hz (20.0 to 2000.0)
+- `max_pitch`: Maximum frequency of the pitch range in Hz (20.0 to 2000.0)
+- `previous_range_collection`: (Optional) Previous pitch range collection to append to (PITCH_RANGE_COLLECTION type)
+
+This node allows you to create a custom pitch range by specifying the minimum and maximum frequencies. This can be useful for targeting specific frequency ranges in audio analysis, such as isolating particular instruments or vocal ranges.
+
+The created pitch range can be combined with other pitch ranges or used independently in pitch-related feature extraction nodes.
+"""
+})
+
 add_node_config("TimeFeatureNode", {
     "TOP_DESCRIPTION": "Generates time-based features for mask modulation.",
     "ADDITIONAL_INFO": """
