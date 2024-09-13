@@ -30,7 +30,6 @@ class PitchFeatureExtractor(FeatureExtractorBase):
                 "feature_pipe": ("FEATURE_PIPE", ),
                 "feature_type": (
                     [
-                        "pitch",
                         "pitch_filtered",
                         "pitch_direction",
                         "vibrato_signal",
@@ -149,21 +148,16 @@ class PitchRangePresetNode(PitchAbstraction):
             collections = previous_range_collection + [pitch_range_collection]
         return (collections,)
     
-class PitchRangeByNoteNode(PitchAbstraction):
+class PitchRangeByNoteNode(FeatureExtractorBase):
     @classmethod
     def INPUT_TYPES(cls):
-        notes = [
-            "C", "C#", "D", "D#", "E", "F", "F#",
-            "G", "G#", "A", "A#", "B"
-        ]
-        octaves = range(0, 9)  # MIDI supports octaves from 0 to 8
-        note_options = [f"{note}{octave}" for octave in octaves for note in notes]
         return {
             "required": {
                 "chord_only": ("BOOLEAN", {"default": False}),
+                "pitch_tolerance_percent": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 100.0, "step": 0.1}),
+                "notes": ("STRING", {"multiline": False}),
             },
             "optional": {
-                **{note: ("BOOLEAN", {"default": False}) for note in note_options},
                 "previous_range_collection": ("PITCH_RANGE_COLLECTION",),
             },
         }
@@ -173,17 +167,22 @@ class PitchRangeByNoteNode(PitchAbstraction):
 
     CATEGORY = "RyanOnTheInside/FlexFeatures"
 
-    def create_note_pitch_ranges(self, chord_only, previous_range_collection=None, **note_selection):
-        selected_notes = [note for note, selected in note_selection.items() if selected]
-        if not selected_notes:
+    def create_note_pitch_ranges(self, chord_only, notes, pitch_tolerance_percent, previous_range_collection=None):
+        if not notes:
             raise ValueError("At least one note must be selected.")
 
+        # Parse the 'notes' string into a list of MIDI note numbers
+        selected_notes = [int(note.strip()) for note in notes.split(',') if note.strip().isdigit()]
+
+        if not selected_notes:
+            raise ValueError("No valid notes found in the 'notes' field.")
+
         pitch_ranges = []
-        for note in selected_notes:
-            frequency = self._note_to_frequency(note)
-            # Define a small range around the note's frequency
-            min_pitch = frequency - 1.0  # 1 Hz below
-            max_pitch = frequency + 1.0  # 1 Hz above
+        for midi_note in selected_notes:
+            frequency = self._midi_to_frequency(midi_note)
+            tolerance = self._calculate_tolerance(frequency, pitch_tolerance_percent)
+            min_pitch = frequency - tolerance
+            max_pitch = frequency + tolerance
             pitch_range = PitchRange(min_pitch, max_pitch)
             pitch_ranges.append(pitch_range)
 
@@ -193,6 +192,7 @@ class PitchRangeByNoteNode(PitchAbstraction):
             "chord_only": chord_only,
         }
 
+        # Combine with previous collections if provided
         if previous_range_collection is None:
             collections = [pitch_range_collection]
         else:
@@ -200,6 +200,14 @@ class PitchRangeByNoteNode(PitchAbstraction):
 
         return (collections,)
 
-    def _note_to_frequency(self, note):
+    def _midi_to_frequency(self, midi_note):
         import librosa
-        return librosa.note_to_hz(note)
+        return librosa.midi_to_hz(midi_note)
+
+    def _calculate_tolerance(self, frequency, tolerance_percent):
+        # Calculate the frequency of the next semitone
+        next_semitone_freq = frequency * 2**(1/12)
+        # Calculate the difference to the next semitone
+        freq_difference = next_semitone_freq - frequency
+        # Calculate the tolerance based on the percentage
+        return (freq_difference * tolerance_percent) / 100

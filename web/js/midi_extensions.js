@@ -1,5 +1,4 @@
 import { app } from "../../scripts/app.js";
-import { api } from "../../scripts/api.js";
 import { drawPiano, handlePianoMouseDown } from "./piano.js";
 
 app.registerExtension({
@@ -11,7 +10,6 @@ app.registerExtension({
 
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
         if (nodeData.name === "MIDILoadAndExtract") {
-            console.log("MIDI Extension: Modifying MIDILoadAndExtract node");
 
             // Add the disableWidget method to the nodeType prototype
             nodeType.prototype.disableWidget = function(widget) {
@@ -41,7 +39,6 @@ app.registerExtension({
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                console.log("MIDI file uploaded successfully");
                                 // Update the midi_file widget with the new file path
                                 const midiFileWidget = this.widgets.find(w => w.name === "midi_file");
                                 if (midiFileWidget) {
@@ -67,7 +64,6 @@ app.registerExtension({
             };
             
             nodeType.prototype.onNodeCreated = function() {
-                console.log("MIDI Extension: onNodeCreated called for MIDILoadAndExtract");
                 this.properties = this.properties || {};
                 this.properties.selectedNotes = []; // Initialize with an empty array
                 this.pianoScroll = 0;
@@ -95,7 +91,6 @@ app.registerExtension({
                 const midiFileWidget = this.widgets.find(w => w.name === "midi_file");
                 if (midiFileWidget) {
                     midiFileWidget.callback = (value) => {
-                        console.log('MIDI file changed to:', value);
                         this.updateTrackSelection();
                         this.saveState(); // Save state when MIDI file changes
                     };
@@ -127,28 +122,23 @@ app.registerExtension({
                 // Instead of calling updateTrackSelection here, we'll set up a callback
                 // that will be called when the graph is available
                 this.onGraphAvailable = () => {
-                    console.log('Graph available, updating track selection');
                     this.updateTrackSelection();
                 };
             };
 
             nodeType.prototype.loadSavedState = function() {
-                console.log(`loadSavedState called for node ${this.id}`);
                 const savedState = localStorage.getItem(`MIDILoadAndExtract_${this.id}`);
                 if (savedState) {
                     this.loadedState = JSON.parse(savedState);
-                    console.log('Loaded saved state:', this.loadedState);
                     
                     const midiFileWidget = this.widgets.find(w => w.name === "midi_file");
                     if (midiFileWidget && this.loadedState.midiFile) {
                         midiFileWidget.value = this.loadedState.midiFile;
-                        console.log(`Set midiFile to: ${midiFileWidget.value}`);
                     }
                 }
             };
 
             nodeType.prototype.updateTrackSelection = async function() {
-                console.log(`updateTrackSelection called, isInitialLoad: ${this.isInitialLoad}`);
                 if (this.isUpdatingTrackSelection) {
                     console.log('Track selection update already in progress, skipping');
                     return;
@@ -157,7 +147,6 @@ app.registerExtension({
 
                 try {
                     const midiFile = this.getCurrentMidiFile();
-                    console.log(`Current MIDI file: ${midiFile}`);
 
                     if (!midiFile) {
                         console.warn('No MIDI file selected');
@@ -176,7 +165,6 @@ app.registerExtension({
                         return;
                     }
                     
-                    console.log('Received track data:', data);
 
                     const trackSelectionWidget = this.widgets.find(w => w.name === "track_selection");
                     if (trackSelectionWidget) {
@@ -186,7 +174,6 @@ app.registerExtension({
 
                     // Update available notes
                     this.availableNotes = new Set(data.all_notes.split(',').map(Number));
-                    console.log(`Updated available notes: ${Array.from(this.availableNotes)}`);
                     
                     // Apply loaded state if this is the initial load
                     if (this.isInitialLoad && this.loadedState) {
@@ -195,7 +182,6 @@ app.registerExtension({
                     }
 
                     this.setDirtyCanvas(true, true);
-                    console.log('Track selection update completed');
                 } catch (error) {
                     console.error('Error updating track selection:', error);
                     this.availableNotes = new Set(); // Reset to empty Set in case of error
@@ -205,7 +191,6 @@ app.registerExtension({
             };
 
             nodeType.prototype.refreshMIDIData = async function() {
-                console.log("Refreshing MIDI data");
                 const midiFile = this.getCurrentMidiFile();
                 const trackSelection = this.widgets.find(w => w.name === "track_selection").value;
 
@@ -227,7 +212,6 @@ app.registerExtension({
                         return;
                     }
                     
-                    console.log('Received refreshed MIDI data:', data);
 
                     // Update available tracks
                     const trackSelectionWidget = this.widgets.find(w => w.name === "track_selection");
@@ -237,7 +221,6 @@ app.registerExtension({
 
                     // Update available notes
                     this.availableNotes = new Set(data.all_notes.split(',').map(Number));
-                    console.log(`Updated available notes: ${Array.from(this.availableNotes)}`);
                     
                     // Filter out selected notes that are no longer available
                     if (this.properties.selectedNotes) {
@@ -256,13 +239,11 @@ app.registerExtension({
 
             nodeType.prototype.applyLoadedState = function() {
                 if (this.loadedState) {
-                    console.log('Applying loaded state:', this.loadedState);
                     
                     const trackSelectionWidget = this.widgets.find(w => w.name === "track_selection");
                     if (trackSelectionWidget && this.loadedState.trackSelection) {
                         if (trackSelectionWidget.options.values.includes(this.loadedState.trackSelection)) {
                             trackSelectionWidget.value = this.loadedState.trackSelection;
-                            console.log(`Set track selection to loaded value: ${trackSelectionWidget.value}`);
                         } else {
                             console.log(`Loaded track selection ${this.loadedState.trackSelection} is no longer valid`);
                         }
@@ -270,7 +251,6 @@ app.registerExtension({
                     
                     if (this.loadedState.selectedNotes) {
                         this.properties.selectedNotes = this.loadedState.selectedNotes.filter(note => this.availableNotes.has(note));
-                        console.log(`Applied selected notes: ${this.properties.selectedNotes}`);
                     }
                     
                     this.syncNotesWidget();
@@ -285,7 +265,6 @@ app.registerExtension({
                     trackSelection: this.widgets.find(w => w.name === "track_selection")?.value,
                     selectedNotes: this.properties.selectedNotes
                 };
-                console.log("Saving state:", state);
                 localStorage.setItem(`MIDILoadAndExtract_${this.id}`, JSON.stringify(state));
             };
 
