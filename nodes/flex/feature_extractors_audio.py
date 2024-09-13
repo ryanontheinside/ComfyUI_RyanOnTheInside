@@ -87,16 +87,16 @@ class PitchRangeNode(PitchAbstraction):
 
     CATEGORY = "RyanOnTheInside/FlexFeatures"
 
-    def create_pitch_range(self, min_pitch, max_pitch, previous_range=None):
+    def create_pitch_range(self, min_pitch, max_pitch, previous_range_collection=None):
         pitch_range = PitchRange(min_pitch, max_pitch)
         pitch_range_collection = {
             "pitch_ranges": [pitch_range],
             "chord_only": False,
         }
-        if previous_range is None:
+        if previous_range_collection is None:
             collections = [pitch_range_collection]
         else:
-            collections = previous_range + [pitch_range_collection]
+            collections = previous_range_collection + [pitch_range_collection]
         return (collections,)
     
 class PitchRangePresetNode(PitchAbstraction):
@@ -117,7 +117,7 @@ class PitchRangePresetNode(PitchAbstraction):
                 )
             },
             "optional": {
-                "previous_range": ("PITCH_RANGE",),
+                "previous_range_collection": ("PITCH_RANGE_COLLECTION",),
             },
         }
 
@@ -126,7 +126,7 @@ class PitchRangePresetNode(PitchAbstraction):
 
     CATEGORY = "RyanOnTheInside/FlexFeatures"
 
-    def create_pitch_range_preset(self, preset, previous_range=None):
+    def create_pitch_range_preset(self, preset, previous_range_collection=None):
         presets = {
             "Bass": (82.41, 196.00),            # E2 - G3
             "Baritone": (98.00, 247.94),        # G2 - B3
@@ -143,10 +143,10 @@ class PitchRangePresetNode(PitchAbstraction):
             "pitch_ranges": [pitch_range],
             "chord_only": False,
         }
-        if previous_range is None:
+        if previous_range_collection is None:
             collections = [pitch_range_collection]
         else:
-            collections = previous_range + [pitch_range_collection]
+            collections = previous_range_collection + [pitch_range_collection]
         return (collections,)
     
 class PitchRangeByNoteNode(PitchAbstraction):
@@ -164,7 +164,7 @@ class PitchRangeByNoteNode(PitchAbstraction):
             },
             "optional": {
                 **{note: ("BOOLEAN", {"default": False}) for note in note_options},
-                "previous_range": ("PITCH_RANGE_COLLECTION",),
+                "previous_range_collection": ("PITCH_RANGE_COLLECTION",),
             },
         }
 
@@ -173,7 +173,7 @@ class PitchRangeByNoteNode(PitchAbstraction):
 
     CATEGORY = "RyanOnTheInside/FlexFeatures"
 
-    def create_note_pitch_ranges(self, chord_only, previous_range=None, **note_selection):
+    def create_note_pitch_ranges(self, chord_only, previous_range_collection=None, **note_selection):
         selected_notes = [note for note, selected in note_selection.items() if selected]
         if not selected_notes:
             raise ValueError("At least one note must be selected.")
@@ -193,10 +193,10 @@ class PitchRangeByNoteNode(PitchAbstraction):
             "chord_only": chord_only,
         }
 
-        if previous_range is None:
+        if previous_range_collection is None:
             collections = [pitch_range_collection]
         else:
-            collections = previous_range + [pitch_range_collection]
+            collections = previous_range_collection + [pitch_range_collection]
 
         return (collections,)
 
