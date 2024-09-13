@@ -59,15 +59,20 @@ from .nodes.audio.audio_nodes import (
 )
 
 from .nodes.flex.feature_extractors import(
-    
-    AudioFeatureExtractor,
-    PitchFeatureExtractor,
     TimeFeatureNode,
     DepthFeatureNode,
     ColorFeatureNode,
     BrightnessFeatureNode,
     MotionFeatureNode,
     AreaFeatureNode,
+)
+
+from .nodes.flex.feature_extractors_audio import(
+        AudioFeatureExtractor,
+        PitchRangeNode,
+        PitchRangePresetNode,
+        PitchRangeByNoteNode,
+        PitchFeatureExtractor,
 )
 
 from .nodes.flex.midi_feature_extractor import(
@@ -254,7 +259,10 @@ NODE_CLASS_MAPPINGS = {
 
     #features   
     "AudioFeatureExtractor":        AudioFeatureExtractor,
-   # "PitchFeatureExtractor":        PitchFeatureExtractor,
+    "PitchFeatureExtractor":        PitchFeatureExtractor,
+    "PitchRange":                   PitchRangeNode,
+    "PitchRangePreset":             PitchRangePresetNode,
+    "PitchRangeByNote":             PitchRangeByNoteNode,
     "MIDILoadAndExtract":           MIDILoadAndExtract,
     "TimeFeatureNode":              TimeFeatureNode,
     "DepthFeatureNode":             DepthFeatureNode,
