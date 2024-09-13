@@ -22,11 +22,14 @@ class ProximityFeature(BaseFeature):
             if len(anchor) == 0 or len(query) == 0:
                 proximities.append(self.frame_diagonal if self.normalization_method == 'frame' else float('inf'))
             else:
-                distances = cdist(anchor.points, query.points)
+                # Ensure points are treated as floats
+                anchor_points = anchor.points.astype(float)
+                query_points = query.points.astype(float)
+                distances = cdist(anchor_points, query_points)
                 min_distance = np.min(distances)
                 proximities.append(min_distance)
         
-        proximities = np.array(proximities)
+        proximities = np.array(proximities, dtype=float)
         
         if self.normalization_method == 'frame':
             self.proximity_values = 1 - np.clip(proximities / self.frame_diagonal, 0, 1)
@@ -52,19 +55,19 @@ class ProximityFeature(BaseFeature):
 
 class Location:
     def __init__(self, x, y, z=None):
-        x = np.asarray(x).reshape(-1)
-        y = np.asarray(y).reshape(-1)
+        x = np.asarray(x, dtype=float).reshape(-1)
+        y = np.asarray(y, dtype=float).reshape(-1)
         
         if z is not None:
-            z = np.asarray(z).reshape(-1)
-            # Ensure z has the same length as x and y, with a small tolerance for floating-point imprecision
-            if abs(len(z) - len(x)) <= 1:  # Allow for off-by-one errors
-                z = z[:len(x)] if len(z) > len(x) else np.pad(z, (0, len(x) - len(z)), 'constant', constant_values=np.nan)
+            z = np.asarray(z, dtype=float).reshape(-1)
+            if abs(len(z) - len(x)) <= 1:
+                z = z[:len(x)] if len(z) > len(x) else np.pad(z, (0, len(x) - len(z)), 'constant', constant_values=0.0)
             elif len(z) != len(x):
                 raise ValueError(f"Mismatch in dimensions: x,y have length {len(x)}, but z has length {len(z)}")
             self.points = np.column_stack((x, y, z))
         else:
             self.points = np.column_stack((x, y))
+        
 
     def __len__(self):
         return len(self.points)
@@ -86,7 +89,7 @@ class Location:
 
     @classmethod
     def from_tensor(cls, tensor):
-        return cls(tensor[:, 0], tensor[:, 1], tensor[:, 2] if tensor.shape[1] > 2 else None)
+        return cls(tensor[:, 0].astype(float), tensor[:, 1].astype(float), tensor[:, 2].astype(float) if tensor.shape[1] > 2 else None)
 
     def to_tensor(self):
-        return torch.from_numpy(self.points)
+        return torch.from_numpy(self.points).float()

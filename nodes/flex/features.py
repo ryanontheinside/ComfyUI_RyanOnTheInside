@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 import numpy as np
-import librosa
 import torch
 import cv2
 from ..masks.mask_utils import calculate_optical_flow
@@ -71,56 +70,6 @@ class TimeFeature(BaseFeature):
             raise ValueError("Unsupported effect type")
         
         return self.normalize()
-
-class AudioFeature(BaseFeature):
-    def __init__(self, name, audio, num_frames, frame_rate, feature_type='amplitude_envelope'):
-        self.audio = audio['waveform'].squeeze(0).mean(axis=0).cpu().numpy()
-        self.sample_rate = audio['sample_rate']
-        self.num_frames = num_frames
-        self.feature_type = feature_type
-        super().__init__(name, "audio", frame_rate, num_frames)
-        self.frame_duration = 1 / self.frame_rate if self.frame_rate > 0 else len(self.audio) / (self.sample_rate * self.num_frames)
-
-    def extract(self):
-        if self.feature_type == 'amplitude_envelope':
-            self.data = self._amplitude_envelope()
-        elif self.feature_type == 'rms_energy':
-            self.data = self._rms_energy()
-        elif self.feature_type == 'spectral_centroid':
-            self.data = self._spectral_centroid()
-        elif self.feature_type == 'onset_detection':
-            self.data = self._onset_detection()
-        elif self.feature_type == 'chroma_features':
-            self.data = self._chroma_features()
-        else:
-            raise ValueError("Unsupported feature type")
-        return self.normalize()
-
-    def _get_audio_frame(self, frame_index):
-        start_time = frame_index * self.frame_duration
-        end_time = (frame_index + 1) * self.frame_duration
-        start_sample = int(start_time * self.sample_rate)
-        end_sample = int(end_time * self.sample_rate)
-        if start_sample >= len(self.audio):
-            return np.array([])  # Return empty array if we've run out of audio
-        return self.audio[start_sample:min(end_sample, len(self.audio))]
-
-    def _amplitude_envelope(self):
-        def safe_max(frame):
-            return np.max(np.abs(frame)) if frame.size > 0 else 0
-        return np.array([safe_max(self._get_audio_frame(i)) for i in range(self.num_frames)])
-
-    def _rms_energy(self):
-        return np.array([np.sqrt(np.mean(self._get_audio_frame(i)**2)) for i in range(self.num_frames)])
-
-    def _spectral_centroid(self):
-        return np.array([np.mean(librosa.feature.spectral_centroid(y=self._get_audio_frame(i), sr=self.sample_rate)[0]) for i in range(self.num_frames)])
-
-    def _onset_detection(self):
-        return np.array([np.mean(librosa.onset.onset_strength(y=self._get_audio_frame(i), sr=self.sample_rate)) for i in range(self.num_frames)])
-
-    def _chroma_features(self):
-        return np.array([np.mean(librosa.feature.chroma_stft(y=self._get_audio_frame(i), sr=self.sample_rate), axis=1) for i in range(self.num_frames)])
 
 class DepthFeature(BaseFeature):
     def __init__(self, name, frame_rate, frame_count, depth_maps, feature_name='mean_depth'):

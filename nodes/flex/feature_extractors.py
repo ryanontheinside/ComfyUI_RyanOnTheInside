@@ -1,6 +1,7 @@
 from .feature_pipe import FeaturePipe
 from ... import RyanOnTheInside
-from .features import AudioFeature, TimeFeature, DepthFeature, ColorFeature, BrightnessFeature, MotionFeature, AreaFeature
+from .features import TimeFeature, DepthFeature, ColorFeature, BrightnessFeature, MotionFeature, AreaFeature
+from .audio_feature import AudioFeature, PitchFeature
 from .proximity_feature  import  Location
 from tqdm import tqdm
 from comfy.utils import ProgressBar
@@ -54,6 +55,30 @@ class AudioFeatureExtractor(FeatureExtractorBase):
         feature.extract()
         return (feature, feature_pipe)
 
+class PitchFeatureExtractor(RyanOnTheInside):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "audio": ("AUDIO",),
+                "feature_pipe": ("FEATURE_PIPE",),
+                "feature_type": ([
+                    "fundamental_frequency", "pitch_confidence", "pitch_statistics",
+                    "pitch_contour", "vibrato", "pitch_histogram", "pitch_class_profile"
+                ],),
+                "frame_duration": ("FLOAT", {"default": 0.01, "min": 0.005, "max": 0.1, "step": 0.001}),
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE", "FEATURE_PIPE")
+    FUNCTION = "extract_feature"
+
+    def extract_feature(self, audio, feature_pipe, feature_type, frame_duration):
+        feature = PitchFeature(f"pitch_{feature_type}", audio, feature_pipe.frame_count, 
+                               feature_pipe.frame_rate, feature_type, frame_duration)
+        feature.extract()
+        return (feature, feature_pipe)
+    
 class FirstFeature(FeatureExtractorBase):
     @classmethod
     def INPUT_TYPES(cls):

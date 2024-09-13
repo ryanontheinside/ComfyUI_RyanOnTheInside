@@ -61,6 +61,7 @@ from .nodes.audio.audio_nodes import (
 from .nodes.flex.feature_extractors import(
     
     AudioFeatureExtractor,
+    PitchFeatureExtractor,
     TimeFeatureNode,
     DepthFeatureNode,
     ColorFeatureNode,
@@ -76,11 +77,14 @@ from .nodes.flex.midi_feature_extractor import(
 from .nodes.flex.proximity_feature_extractor import(
     LocationFromMask,
     ProximityFeatureNode,
-    ProximityVisualizer,
     LocationFromPoint,
     LocationTransform,
 )
 
+from .nodes.flex.visualizers import(
+    ProximityVisualizer,
+    EffectVisualizer,
+)
 
 
 
@@ -143,6 +147,11 @@ from .nodes.masks.flex_masks import (
     FlexMaskRandomShapes,
     FlexMaskDepthChamber,
    # FlexMaskDepthChamberRelative, #NOTE work in progress
+
+)
+
+from .nodes.masks.flex_masks_normal import (
+    FlexMaskNormalLighting,
 
 )
 
@@ -232,6 +241,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexMaskEmanatingRings":       FlexMaskEmanatingRings,
     "FlexMaskRandomShapes":         FlexMaskRandomShapes,
     "FlexMaskDepthChamber":         FlexMaskDepthChamber,
+    #"FlexMaskNormalLighting":       FlexMaskNormalLighting,
     # "FlexMaskDepthChamberRelative": FlexMaskDepthChamberRelative,
 
     #audio  
@@ -244,6 +254,7 @@ NODE_CLASS_MAPPINGS = {
 
     #features   
     "AudioFeatureExtractor":        AudioFeatureExtractor,
+   # "PitchFeatureExtractor":        PitchFeatureExtractor,
     "MIDILoadAndExtract":           MIDILoadAndExtract,
     "TimeFeatureNode":              TimeFeatureNode,
     "DepthFeatureNode":             DepthFeatureNode,
@@ -252,7 +263,6 @@ NODE_CLASS_MAPPINGS = {
     "MotionFeatureNode":            MotionFeatureNode,
     "LocationFromMask":             LocationFromMask,
     "ProximityFeatureNode":         ProximityFeatureNode,
-    "ProximityVisualizer":          ProximityVisualizer,
     "LocationFromPoint":            LocationFromPoint,
     "LocationTransform":            LocationTransform,
     "AreaFeatureNode":              AreaFeatureNode,
@@ -285,6 +295,9 @@ NODE_CLASS_MAPPINGS = {
     # "FlexDepthBasedMaskOpacity":  FlexDepthBasedMaskOpacity,
     # "DepthBasedMaskOpacity":      DepthBasedMaskOpacity,
 
+    #visulizers
+    "ProximityVisualizer":          ProximityVisualizer,
+    "EffectVisualizer":             EffectVisualizer,
 
     #garb   
     "DyeImage":                     DyeImage,

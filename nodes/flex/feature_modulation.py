@@ -478,3 +478,4 @@ class PreviewFeature(FeatureModulationBase):
             processed_feature = feature
         
         return (self.visualize(processed_feature),)
+    
