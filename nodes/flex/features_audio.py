@@ -128,7 +128,7 @@ class PitchFeature(BaseAudioFeature):
         pitch_range_collections=None,
         feature_type='pitch',
         window_size=0,
-        pitch_tolerance=0.0,
+        pitch_tolerance_percent=1.0,
         vibrato_options=None,
     ):
         super().__init__(feature_name, audio, frame_count, frame_rate)
@@ -138,7 +138,7 @@ class PitchFeature(BaseAudioFeature):
         self.vibrato_options = vibrato_options
         self.feature_name = feature_type
         self.window_size = window_size
-        self.pitch_tolerance = pitch_tolerance
+        self.pitch_tolerance_percent = pitch_tolerance_percent
         self.current_frame = 0
         self._prepare_audio()
         
@@ -227,7 +227,7 @@ class PitchFeature(BaseAudioFeature):
             self._extract_pitch_sequence(filtered=True)
         elif self.feature_name == 'pitch_direction':
             self._extract_pitch_direction()
-        elif self.feature_name == 'pitch_contour':  # New condition
+        elif self.feature_name == 'pitch_contour':
             self._extract_pitch_contour()
         elif self.feature_name == 'vibrato_signal':
             self._extract_vibrato(signal=True)
@@ -246,7 +246,8 @@ class PitchFeature(BaseAudioFeature):
         # Apply filtering and smoothing
         filtered_pitch = self._filter_and_smooth_pitch(pitches, confidences, filtered)
         
-        # Store the filtered pitch directly, as it's already a list
+        # Store the filtered pitch
+        self.features[self.feature_name + '_smoothed'] = filtered_pitch
         self.features[self.feature_name] = filtered_pitch
 
     @ensure_pitch_and_confidence
@@ -307,7 +308,8 @@ class PitchFeature(BaseAudioFeature):
         pitches = self.features[self.feature_name + '_pitch']
         
         pitch_diff = np.diff(pitches, prepend=pitches[0])
-        pitch_diff[np.abs(pitch_diff) < self.pitch_tolerance] = 0.0
+        tolerances = np.array([self.calculate_tolerance(p, self.pitch_tolerance_percent) if p > 0 else 0 for p in pitches])
+        pitch_diff[np.abs(pitch_diff) < tolerances] = 0.0
         direction = np.sign(pitch_diff)
         self.features[self.feature_name] = direction.tolist()
 
@@ -364,19 +366,53 @@ class PitchFeature(BaseAudioFeature):
                 normalized[finite_mask] = (feature_array[finite_mask] - min_val) / (max_val - min_val)
             else:
                 normalized = np.zeros_like(feature_array)
-        self.features[self.feature_name+'_original'] =  self.features[self.feature_name].copy()
-        self.features[self.feature_name] = normalized.tolist()
+        self.features[self.feature_name+'_original'] = self.features[self.feature_name].copy()
+        self.features[self.feature_name+'_normalized'] = normalized.tolist()
 
-    def get_pitch_at_frame(self, frame_index):
-        if self.data is not None:
-            return self.data[frame_index]
-        elif self.features is not None and hasattr(self, 'feature_name'):
-            pitch = self.features[self.feature_name+'_pitch'][frame_index]
-            confidence_key = self.feature_name+'_confidence'
-            confidence = self.features.get(confidence_key, [1.0] * len(self.features[self.feature_name]))[frame_index]
-            return (pitch, confidence)
+    def get_pitch_feature(self, frame_index):
+        if self.features is None:
+            self.extract()
+        
+        original_value = self.features[self.feature_name+'_original'][frame_index]
+        normalized_value = self.features[self.feature_name+'_normalized'][frame_index]
+        actual_pitch = self.features[self.feature_name+'_pitch'][frame_index]
+        smoothed_pitch = self.features[self.feature_name+'_smoothed'][frame_index]
+        
+        return {
+            'original': original_value,
+            'normalized': normalized_value,
+            'actual_pitch': actual_pitch,
+            'smoothed_pitch': smoothed_pitch
+        }
+
+    @classmethod
+    def calculate_tolerance(cls, frequency, tolerance_percent):
+        # Calculate the frequency of the next semitone
+        next_semitone_freq = frequency * 2**(1/12)
+        # Calculate half the difference to the next semitone
+        half_freq_difference = (next_semitone_freq - frequency) / 2
+        # Calculate the tolerance based on the percentage, max at half the semitone difference
+        return min(half_freq_difference * (tolerance_percent / 100), half_freq_difference)
+
+    @classmethod
+    def quantize_to_nearest_semitone(cls, frequency, tolerance_percent):
+        if frequency == 0.0:
+            return frequency
+        # Calculate MIDI note number
+        midi_note = 69 + 12 * np.log2(frequency / 440)
+        # Round to nearest integer
+        nearest_midi = round(midi_note)
+        # Convert back to frequency
+        nearest_freq = 440 * 2**((nearest_midi - 69) / 12)
+        
+        # Calculate tolerance
+        tolerance = cls.calculate_tolerance(nearest_freq, tolerance_percent)
+        
+        # If within tolerance, return the nearest semitone frequency
+        if abs(frequency - nearest_freq) <= tolerance:
+            return nearest_freq
         else:
-            raise ValueError("No data or features available")
+            return frequency
 
     def _filter_and_smooth_pitch(self, pitches, confidences, filtered):
         smoothed_pitch = signal.medfilt(pitches, kernel_size=5)
@@ -389,9 +425,14 @@ class PitchFeature(BaseAudioFeature):
             
             if confidence < 0.3:  # Adjust this threshold as needed
                 pitch = 0.0
+            else:
+                # Quantize the pitch to the nearest semitone if within tolerance
+                pitch = self.quantize_to_nearest_semitone(pitch, self.pitch_tolerance_percent)
             
-            if prev_valid_pitch is not None and abs(pitch - prev_valid_pitch) < self.pitch_tolerance:
-                pitch = prev_valid_pitch
+            if prev_valid_pitch is not None:
+                tolerance = self.calculate_tolerance(prev_valid_pitch, self.pitch_tolerance_percent)
+                if abs(pitch - prev_valid_pitch) < tolerance:
+                    pitch = prev_valid_pitch
             
             if filtered and self.pitch_range_collections:
                 if self._matches_any_collection(pitch):

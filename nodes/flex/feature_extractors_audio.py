@@ -41,7 +41,7 @@ class PitchFeatureExtractor(FeatureExtractorBase):
                 "audio": ("AUDIO", ),
                 "feature_pipe": ("FEATURE_PIPE", ),
                 "window_size": ("INT", {"default": 0, "min": 0}),
-                "pitch_tolerance": ("FLOAT", {"default": 0.0, "min": 0.0, "step": 0.01}),
+                "pitch_tolerance_percent": ("FLOAT", {"default": 0.0, "min": 0.0, "max":1.0, "step": 0.01}),
             },
             "optional": {
                 "pitch_range_collections": ("PITCH_RANGE_COLLECTION", ),
@@ -53,7 +53,7 @@ class PitchFeatureExtractor(FeatureExtractorBase):
 
     CATEGORY = "RyanOnTheInside/FlexFeatures"
 
-    def extract_feature(self, audio, feature_pipe, extraction_method, window_size, pitch_tolerance, pitch_range_collections=None):
+    def extract_feature(self, audio, feature_pipe, extraction_method, window_size, pitch_tolerance_percent, pitch_range_collections=None):
         if pitch_range_collections is None:
             pitch_range_collections = []
         feature = PitchFeature(
@@ -64,7 +64,7 @@ class PitchFeatureExtractor(FeatureExtractorBase):
             pitch_range_collections=pitch_range_collections,
             feature_type=extraction_method,
             window_size=window_size,
-            pitch_tolerance=pitch_tolerance,
+            pitch_tolerance_percent=pitch_tolerance_percent,
         )
         feature.extract()
         return (feature, feature_pipe)
@@ -184,7 +184,7 @@ class PitchRangeByNoteNode(PitchAbstraction):
         pitch_ranges = []
         for midi_note in selected_notes:
             frequency = self._midi_to_frequency(midi_note)
-            tolerance = self._calculate_tolerance(frequency, pitch_tolerance_percent)
+            tolerance = PitchFeature.calculate_tolerance(frequency, pitch_tolerance_percent)
             min_pitch = frequency - tolerance
             max_pitch = frequency + tolerance
             pitch_range = PitchRange(min_pitch, max_pitch)
@@ -208,10 +208,4 @@ class PitchRangeByNoteNode(PitchAbstraction):
         import librosa
         return librosa.midi_to_hz(midi_note)
 
-    def _calculate_tolerance(self, frequency, tolerance_percent):
-        # Calculate the frequency of the next semitone
-        next_semitone_freq = frequency * 2**(1/12)
-        # Calculate the difference to the next semitone
-        freq_difference = next_semitone_freq - frequency
-        # Calculate the tolerance based on the percentage
-        return (freq_difference * tolerance_percent) / 100
+    # The _calculate_tolerance method has been removed from here

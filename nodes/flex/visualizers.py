@@ -166,22 +166,23 @@ class PitchVisualizer(EffectVisualizer):
             frame = (frame * 255).astype(np.uint8)
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
-            # Get feature value for the current frame
-            feature_value = feature.get_value_at_frame(frame_index)
-
-            # Get pitch value for the current frame
-            pitch_value,confidence_value = feature.get_pitch_at_frame(frame_index)
+            # Get pitch feature data for the current frame
+            pitch_data = feature.get_pitch_feature(frame_index)
 
             # Convert pitch to approximate note
-            note = feature.pitch_to_note(pitch_value)
-
-            # Display feature value, pitch value, and approximate note on the frame
+            note = feature.pitch_to_note(pitch_data['actual_pitch'])
+            smoothed_note = feature.pitch_to_note(pitch_data['smoothed_pitch'])
+            # Display feature values on the frame
             texts = [
-                f"Feature: {feature_value:.2f}",
-                f"Pitch: {pitch_value:.2f} Hz",
-                f"Confidence: {confidence_value:.2f}",
-                f"Note: {note}"
+                f"Original: {pitch_data['original']:.2f}",
+                f"Normalized: {pitch_data['normalized']:.2f}",
+                f"Actual Pitch: {pitch_data['actual_pitch']:.2f} Hz",
+                f"Note: {note}",
+                f"Smoothed Pitch: {pitch_data['smoothed_pitch']:.2f} Hz",
+                f"Smoothed Note: {smoothed_note}"
             ]
+
+            
 
             for i, text in enumerate(texts):
                 text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, 2)[0]

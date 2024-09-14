@@ -1,4 +1,4 @@
-#NOTE: this abstraction allows for both the documentation to be centrally managed and inherited
+#NOTE: this abstraction allows for the documentation to be both centrally managed and inherited
 from abc import ABCMeta
 class NodeConfigMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -948,6 +948,35 @@ add_node_config("FeatureFade", {
 Shoutout @cyncratic
 """
 })
+
+add_node_config("FeatureTruncateOrExtend", {
+    "TOP_DESCRIPTION": "Adjusts the length of a feature to match a target feature pipe, either by truncating or extending it.",
+    "ADDITIONAL_INFO": """
+- `feature`: Input feature to be adjusted (FEATURE type)
+- `target_feature_pipe`: Target feature pipe to match the length (FEATURE type)
+- `fill_method`: Method to use when extending the feature:
+  - "zeros": Fills with 0's
+  - "ones": Fills with 1's
+  - "average": Fills with the average value of the source feature
+  - "random": Fills with random values between 0 and 1
+  - "repeat": Repeats the source values from the beginning
+- `invert_output`: Whether to invert the output feature values (True/False)
+
+This node adjusts the length of the input feature to match the length of the target feature pipe. If the input feature is longer, it will be truncated. If it's shorter, it will be extended using the specified fill method.
+
+The "repeat" fill method is particularly useful for maintaining patterns or rhythms when extending the feature.
+
+Use cases:
+1. Adapting audio-extracted features for shorter or longer video animations
+2. Synchronizing features of different lengths for complex animations
+3. Creating looping patterns by repeating shorter features
+
+Outputs:
+- Adjusted FEATURE
+- Visualization of the adjusted feature (IMAGE type)
+"""
+})
+
 
 add_node_config("FeatureToWeightsStrategy", {
     "TOP_DESCRIPTION": "Converts a FEATURE input into a WEIGHTS_STRATEGY for use with IPAdapter nodes.",
