@@ -1,14 +1,20 @@
 from .feature_extractors import FeatureExtractorBase
-from .audio_feature import AudioFeature, PitchFeature, PitchRange
+from .features_audio import AudioFeature, PitchFeature, PitchRange, BaseFeature
 from ... import RyanOnTheInside
+
 class AudioFeatureExtractor(FeatureExtractorBase):
+    @classmethod
+    def feature_type(cls) -> type[BaseFeature]:
+        return AudioFeature
+
     @classmethod
     def INPUT_TYPES(cls):
         return {
+            **super().INPUT_TYPES(),
             "required": {
+                **super().INPUT_TYPES()["required"],
                 "audio": ("AUDIO",),
                 "feature_pipe": ("FEATURE_PIPE",),
-                "feature_type": (["amplitude_envelope",  "spectral_centroid", "onset_detection", "chroma_features"],),
             }
         }
 
@@ -16,26 +22,24 @@ class AudioFeatureExtractor(FeatureExtractorBase):
     FUNCTION = "extract_feature"
     
 
-    def extract_feature(self, audio, feature_pipe, feature_type):
-        feature = AudioFeature(feature_type, audio, feature_pipe.frame_count, feature_pipe.frame_rate, feature_type)
+    def extract_feature(self, audio, feature_pipe, extraction_method):
+        feature = AudioFeature(extraction_method, audio, feature_pipe.frame_count, feature_pipe.frame_rate, extraction_method)
         feature.extract()
         return (feature, feature_pipe)
 
 class PitchFeatureExtractor(FeatureExtractorBase):
     @classmethod
+    def feature_type(cls) -> type[BaseFeature]:
+        return  PitchFeature
+
+    @classmethod
     def INPUT_TYPES(cls):
-        return {
+        return {            
+            **super().INPUT_TYPES(),
             "required": {
+                **super().INPUT_TYPES()["required"],
                 "audio": ("AUDIO", ),
                 "feature_pipe": ("FEATURE_PIPE", ),
-                "feature_type": (
-                    [
-                        "pitch_filtered",
-                        "pitch_direction",
-                        "vibrato_signal",
-                        "vibrato_intensity",
-                    ],
-                ),
                 "window_size": ("INT", {"default": 0, "min": 0}),
                 "pitch_tolerance": ("FLOAT", {"default": 0.0, "min": 0.0, "step": 0.01}),
             },
@@ -49,7 +53,7 @@ class PitchFeatureExtractor(FeatureExtractorBase):
 
     CATEGORY = "RyanOnTheInside/FlexFeatures"
 
-    def extract_feature(self, audio, feature_pipe, feature_type, window_size, pitch_tolerance, pitch_range_collections=None):
+    def extract_feature(self, audio, feature_pipe, extraction_method, window_size, pitch_tolerance, pitch_range_collections=None):
         if pitch_range_collections is None:
             pitch_range_collections = []
         feature = PitchFeature(
@@ -58,7 +62,7 @@ class PitchFeatureExtractor(FeatureExtractorBase):
             frame_count=feature_pipe.frame_count,
             frame_rate=feature_pipe.frame_rate,
             pitch_range_collections=pitch_range_collections,
-            feature_type=feature_type,
+            feature_type=extraction_method,
             window_size=window_size,
             pitch_tolerance=pitch_tolerance,
         )
@@ -148,7 +152,7 @@ class PitchRangePresetNode(PitchAbstraction):
             collections = previous_range_collection + [pitch_range_collection]
         return (collections,)
     
-class PitchRangeByNoteNode(FeatureExtractorBase):
+class PitchRangeByNoteNode(PitchAbstraction):
     @classmethod
     def INPUT_TYPES(cls):
         return {

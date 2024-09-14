@@ -55,6 +55,8 @@ from .nodes.audio.audio_nodes import (
     FrequencyFilterCustom,
     FrequencyFilterPreset,
     AudioFilter,
+    EmptyMaskFromAudio,
+    EmptyImageFromAudio,
     
 )
 
@@ -75,11 +77,11 @@ from .nodes.flex.feature_extractors_audio import(
         PitchFeatureExtractor,
 )
 
-from .nodes.flex.midi_feature_extractor import(
+from .nodes.flex.feature_extractors_midi import(
     MIDILoadAndExtract,
 )
 
-from .nodes.flex.proximity_feature_extractor import(
+from .nodes.flex.feature_extractors_proximity import(
     LocationFromMask,
     ProximityFeatureNode,
     LocationFromPoint,
@@ -89,6 +91,7 @@ from .nodes.flex.proximity_feature_extractor import(
 from .nodes.flex.visualizers import(
     ProximityVisualizer,
     EffectVisualizer,
+    PitchVisualizer,
 )
 
 
@@ -111,11 +114,6 @@ from .nodes.masks.particle_system_masks import (
     ParticleSizeModulation,
     ParticleSpeedModulation,
     )
-
-# from .nodes.masks.opacity_masks import(
-#     DepthBasedMaskOpacity,
-#     FlexDepthBasedMaskOpacity,
-# )
 
 from .nodes.masks.mask_utility_nodes import (
     _mfc, 
@@ -256,6 +254,8 @@ NODE_CLASS_MAPPINGS = {
     "FrequencyFilterCustom":        FrequencyFilterCustom,
     "FrequencyFilterPreset":        FrequencyFilterPreset,
     "AudioFilter":                  AudioFilter,
+    "EmptyMaskFromAudio":           EmptyMaskFromAudio,
+    "EmptyImageFromAudio":          EmptyImageFromAudio,
 
     #features   
     "AudioFeatureExtractor":        AudioFeatureExtractor,
@@ -306,6 +306,7 @@ NODE_CLASS_MAPPINGS = {
     #visulizers
     "ProximityVisualizer":          ProximityVisualizer,
     "EffectVisualizer":             EffectVisualizer,
+    "PitchVisualizer":              PitchVisualizer,
 
     #garb   
     "DyeImage":                     DyeImage,
@@ -349,17 +350,15 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ParticleSizeModulation": "Particle Size Modulation",
     "ParticleSpeedModulation":"Particle Speed Modulation",
 
-    "AudioMaskMorph":"Audio Mask Morph",
-    "AudioMaskWarp": "Audio Mask Warp",
-    "AudioMaskTransform":"Audio Mask Transform",
-    "AudioMaskMath": "Audio Mask Math",
+  
     "AudioSeparator": "Audio Separator",
 
     "AudioFeatureVisualizer": "Audio Feature Visualizer" ,
     "Frequency Filter Custom": "Frequency Filter Custom",
     "Frequency Filter Preset": "Frequency Filter Preset",
     "AudioFilter": "Audio Filter",
-    
+  
+
     "MIDILoadAndExtract":   "MIDI Load & Feature Extract",
     "PitchRangeByNoteNode": "Pitch Range By Note",
     "AudioFeatureExtractor": "Audio Feature & Extractor",

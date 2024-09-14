@@ -157,7 +157,7 @@ add_node_config("MIDILoadAndExtract", {
 - `frame_rate`: Frame rate of the video to sync MIDI data with
 - `video_frames`: Corresponding video frames (IMAGE type)
 - `chord_only`: When true, only considers full chords (BOOLEAN)
-- `notes`: Specific notes to consider (comma-separated string of MIDI note numbers, e.g., "60,64,67" for C major triad)
+- `notes`: IGNORE THIS. Certain limitations prevent me from hiding it completely. Love, Ryan
 """
 })
 
@@ -477,11 +477,11 @@ The feature input modulates the intensity of new waves being generated, allowing
 
 add_node_config("FeatureExtractorBase", {
     "BASE_DESCRIPTION": """
- Features are used to modulate mask operations in FlexMask nodes. 
+ Features are used to modulate other RyanOnTheInside nodes. 
 
  You can replace this feature with any of the others, and it will work.
  
- Available features include Audio, Motion, MIDI, Depth, Time, Color, Brightness, and more.
+ Available features include Audio, Motion, MIDI, Pitch, Proximity, Depth, Time, Color, Brightness, and more.
 
 ### Parameters:
 - `frame_rate`: Frame rate of the video
@@ -589,7 +589,7 @@ add_node_config("PitchRangeByNoteNode", {
     "ADDITIONAL_INFO": """
 - `chord_only`: If true, only detects when all specified notes are present simultaneously (BOOLEAN)
 - `pitch_tolerance_percent`: Tolerance percentage for pitch detection (0.0 to 100.0)
-- `notes`: Comma-separated list of MIDI note numbers (e.g., "60,64,67" for C major triad)
+- `notes`: IGNORE THIS. Certain limitations prevent me from hiding it completely. Love, Ryan
 - `previous_range_collection`: (Optional) Previous pitch range collection to append to (PITCH_RANGE_COLLECTION type)
 
 This node creates pitch ranges based on specified MIDI notes, which can be used for targeted pitch detection in audio analysis.
@@ -617,6 +617,30 @@ add_node_config("PitchRangeNode", {
 This node allows you to create a custom pitch range by specifying the minimum and maximum frequencies. This can be useful for targeting specific frequency ranges in audio analysis, such as isolating particular instruments or vocal ranges.
 
 The created pitch range can be combined with other pitch ranges or used independently in pitch-related feature extraction nodes.
+"""
+})
+
+add_node_config("EmptyImageFromAudio", {
+    "TOP_DESCRIPTION": "Creates an empty image sequence based on audio input.",
+    "ADDITIONAL_INFO": """
+- `audio`: Input audio (AUDIO type)
+- `frame_rate`: Frame rate of the output image sequence (0.1 to 120 fps)
+- `height`: Height of the output images (16 to 4096 pixels)
+- `width`: Width of the output images (16 to 4096 pixels)
+
+This node generates an empty image sequence (filled with zeros) with the specified dimensions and frame rate, based on the duration of the input audio. It's useful for creating a blank canvas for further image processing or visualization that matches the length of an audio track.
+"""
+})
+
+add_node_config("EmptyMaskFromAudio", {
+    "TOP_DESCRIPTION": "Creates an empty mask sequence based on audio input.",
+    "ADDITIONAL_INFO": """
+- `audio`: Input audio (AUDIO type)
+- `frame_rate`: Frame rate of the output mask sequence (0.1 to 120 fps)
+- `height`: Height of the output masks (16 to 4096 pixels)
+- `width`: Width of the output masks (16 to 4096 pixels)
+
+This node generates an empty mask sequence (filled with zeros) with the specified dimensions and frame rate, based on the duration of the input audio. It's useful for creating a blank mask for further processing or effects that match the length of an audio track.
 """
 })
 
@@ -1139,5 +1163,48 @@ add_node_config("ImageDifference", {
     "TOP_DESCRIPTION": "Computes the difference between consecutive images.",
     "ADDITIONAL_INFO": """
 - `image`: Input image sequence (IMAGE type)
+"""
+})
+
+add_node_config("EffectVisualizer", {
+    "TOP_DESCRIPTION": "Visualizes feature values on video frames.",
+    "ADDITIONAL_INFO": """
+- `video_frames`: Input video frames (IMAGE type)
+- `feature`: Feature to visualize (FEATURE type)
+- `text_color`: Color for text overlay (RGB string, e.g., "(255,255,255)")
+- `font_scale`: Scale factor for the font size (0.1 to 2.0)
+"""
+})
+
+add_node_config("ProximityVisualizer", {
+    "TOP_DESCRIPTION": "Visualizes proximity relationships between anchor and query locations on video frames.",
+    "ADDITIONAL_INFO": """
+- `anchor_locations`: Locations of anchor points (LOCATION type)
+- `query_locations`: Locations of query points (LOCATION type)
+- `feature`: Proximity feature to visualize (FEATURE type)
+- `anchor_color`: Color for anchor points (RGB string, e.g., "(255,0,0)")
+- `query_color`: Color for query points (RGB string, e.g., "(0,255,0)")
+- `line_color`: Color for the line connecting closest points (RGB string, e.g., "(0,0,255)")
+
+
+The visualization helps in understanding spatial relationships and proximity-based effects in the video sequence.
+"""
+})
+
+add_node_config("PitchVisualizer", {
+    "TOP_DESCRIPTION": "Visualizes pitch-related information on video frames.",
+    "ADDITIONAL_INFO": """
+- `video_frames`: Input video frames (IMAGE type)
+- `feature`: Pitch feature to visualize (FEATURE type)
+- `text_color`: Color of the text overlay (RGB string, e.g., "(255,255,255)")
+- `font_scale`: Scale factor for the font size (0.1 to 2.0)
+
+This node overlays pitch-related information on video frames, including:
+- Feature value
+- Pitch value in Hz
+- Confidence value of the pitch detection
+- Approximate musical note
+
+The information is displayed as text on each frame, allowing for easy visualization of pitch characteristics alongside the video content.
 """
 })

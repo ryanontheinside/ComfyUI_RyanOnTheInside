@@ -1,4 +1,4 @@
-from .proximity_feature import Location,   ProximityFeature
+from .features_proximity import Location,   ProximityFeature
 from .feature_extractors import FirstFeature
 from ... import RyanOnTheInside
 from .feature_pipe import FeaturePipe

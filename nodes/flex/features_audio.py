@@ -1,9 +1,18 @@
-from . features import BaseFeature  
+from .features import BaseFeature
 import librosa
 import numpy as np
 from scipy.signal import hilbert
+from scipy import signal
 
+from abc  import ABC, abstractmethod
 class BaseAudioFeature(BaseFeature):
+
+    @classmethod
+    @abstractmethod
+    def get_extraction_methods(cls):
+        """Return a list of parameter names that can be modulated."""
+        return []
+    
     def __init__(self, name, audio, frame_count, frame_rate):
         super().__init__(name, "audio", frame_rate, frame_count)
         self.audio = audio
@@ -52,19 +61,25 @@ class BaseAudioFeature(BaseFeature):
             )
    
 class AudioFeature(BaseAudioFeature):
+
     def __init__(self, feature_name, audio, frame_count, frame_rate, feature_type='amplitude_envelope'):
         super().__init__(feature_name, audio, frame_count, frame_rate)
         self.feature_type = feature_type
-        self.available_features = [
+        self.available_features = self.get_extraction_methods()
+        self.feature_name = feature_type
+        self._prepare_audio()
+
+    @classmethod
+    def get_extraction_methods(cls):
+        """Return a list of parameter names that can be modulated."""
+        return [
             'amplitude_envelope',
             'rms_energy',
             'spectral_centroid',
             'onset_strength',
             'chroma_features'
         ]
-        self.feature_name = feature_type
-        self._prepare_audio()
-
+    
     def extract(self):
         self.features = {self.feature_name: []}
         for i in range(self.frame_count):
@@ -117,30 +132,48 @@ class PitchFeature(BaseAudioFeature):
         vibrato_options=None,
     ):
         super().__init__(feature_name, audio, frame_count, frame_rate)
-        self.available_features = [
+        self.available_features = self.get_extraction_methods()
+        self.feature_type = feature_type
+        self.pitch_range_collections = pitch_range_collections or []
+        self.vibrato_options = vibrato_options
+        self.feature_name = feature_type
+        self.window_size = window_size
+        self.pitch_tolerance = pitch_tolerance
+        self.current_frame = 0
+        self._prepare_audio()
+        
+        # Parameters for pitch detection
+        self.frame_length = 2048
+        self.hop_length = 512
+        self.fmin = 20  # Lower frequency limit
+        self.fmax = 4000  # Upper frequency limit
+
+    @classmethod
+    def get_extraction_methods(cls):
+        """Return a list of parameter names that can be modulated."""
+        return [
             'pitch',
-            'pitch_filtered',
             'pitch_direction',
+            'pitch_contour',  # Added new feature
             'vibrato_signal',
             'vibrato_intensity',
         ]
-        self.feature_type = feature_type
-        self.pitch_range_collections = pitch_range_collections or []  # List of collections
-        self.vibrato_options = vibrato_options  # Dict with vibrato analysis options
-        self.feature_name = feature_type
-        self.window_size = window_size  # Number of frames before and after
-        self.pitch_tolerance = pitch_tolerance  # Tolerance for pitch variation
-        self.current_frame = 0  # Initialize the current frame index
-        self._prepare_audio()
-
+    
+    @classmethod
+    def pitch_to_note(self, pitch):
+        if pitch == 0:
+            return "N/A"
+        
+        return librosa.hz_to_note(pitch)
+    
     def extract(self):
         self.features = {self.feature_name: []}
         if self.feature_name == 'pitch':
-            self._extract_pitch()
-        elif self.feature_name == 'pitch_filtered':
             self._extract_pitch(filtered=True)
         elif self.feature_name == 'pitch_direction':
             self._extract_pitch_direction()
+        elif self.feature_name == 'pitch_contour':  # New condition
+            self._extract_pitch_contour()
         elif self.feature_name == 'vibrato_signal':
             self._extract_vibrato(signal=True)
         elif self.feature_name == 'vibrato_intensity':
@@ -153,28 +186,79 @@ class PitchFeature(BaseAudioFeature):
     def _extract_pitch(self, filtered=False):
         pitches = []
         confidences = []
-        prev_valid_pitch = None  # Keep track of the previous valid pitch
-        for i in range(self.frame_count):
-            self.current_frame = i  # Update current frame index
-            window_frame = self._get_audio_window(i)
-            pitch, confidence = self._calculate_pitch(window_frame)
-            # Apply pitch tolerance
-            if prev_valid_pitch is not None:
-                if abs(pitch - prev_valid_pitch) < self.pitch_tolerance:
-                    pitch = prev_valid_pitch
-            # Apply pitch range filtering
-            if filtered and self.pitch_range_collections:
-                if self._matches_any_collection(pitch):
-                    pitches.append(pitch)
-                    prev_valid_pitch = pitch
-                else:
-                    pitches.append(0.0)
-                    prev_valid_pitch = None
+        
+        # Use multiple pitch estimation methods
+        pitch_piptrack, mag = librosa.piptrack(y=self.audio_array, sr=self.sample_rate, 
+                                               fmin=self.fmin, fmax=self.fmax,
+                                               hop_length=self.hop_length)
+        
+        pitch_yin = librosa.yin(self.audio_array, fmin=self.fmin, fmax=self.fmax, 
+                                sr=self.sample_rate, hop_length=self.hop_length)
+        
+        for i in range(pitch_piptrack.shape[1]):
+            pitch_candidates = pitch_piptrack[:, i]
+            mag_candidates = mag[:, i]
+            
+            # Get the top 3 pitch candidates
+            top_indices = np.argsort(mag_candidates)[-3:]
+            top_pitches = pitch_candidates[top_indices]
+            top_mags = mag_candidates[top_indices]
+            
+            # Compare with YIN pitch
+            yin_pitch = pitch_yin[i]
+            
+            # Choose the pitch closest to YIN if it's within a threshold
+            threshold = 50  # Hz
+            closest_pitch = min(top_pitches, key=lambda x: abs(x - yin_pitch))
+            
+            if abs(closest_pitch - yin_pitch) < threshold:
+                pitch = closest_pitch
+                confidence = np.max(top_mags) / np.sum(top_mags)
             else:
-                pitches.append(pitch)
-                prev_valid_pitch = pitch
+                pitch = 0.0
+                confidence = 0.0
+            
+            pitches.append(pitch)
             confidences.append(confidence)
-        self.features[self.feature_name] = pitches
+        
+        # Interpolate to match frame count
+        frame_times = np.linspace(0, len(self.audio_array) / self.sample_rate, num=self.frame_count)
+        pitch_times = librosa.frames_to_time(np.arange(len(pitches)), sr=self.sample_rate, hop_length=self.hop_length)
+        
+        interpolated_pitch = np.interp(frame_times, pitch_times, pitches)
+        interpolated_confidence = np.interp(frame_times, pitch_times, confidences)
+        
+        # Apply filtering and smoothing
+        filtered_pitch = self._filter_and_smooth_pitch(interpolated_pitch, interpolated_confidence, filtered)
+        
+        self.features[self.feature_name] = filtered_pitch
+        self.features[self.feature_name+'_confidence'] = interpolated_confidence.tolist()
+
+    def _extract_pitch_contour(self):
+        pitches = []
+        for i in range(self.frame_count):
+            self.current_frame = i
+            window_frame = self._get_audio_window(i)
+            pitch, _ = self._calculate_pitch(window_frame)
+            pitches.append(pitch)
+
+        # Filter out zero pitches and invalid values
+        valid_pitches = [p for p in pitches if p > 0 and np.isfinite(p)]
+
+        if not valid_pitches:
+            self.features[self.feature_name] = [0.0] * self.frame_count
+            return
+
+        min_pitch = min(valid_pitches)
+        max_pitch = max(valid_pitches)
+        pitch_range = max_pitch - min_pitch
+
+        if pitch_range == 0:
+            self.features[self.feature_name] = [0.0 if p == 0 else 1.0 for p in pitches]
+        else:
+            self.features[self.feature_name] = [
+                0.0 if p == 0 else (p - min_pitch) for p in pitches
+            ]
 
     def _matches_any_collection(self, pitch):
         for collection in self.pitch_range_collections:
@@ -303,6 +387,7 @@ class PitchFeature(BaseAudioFeature):
         pitch = pitch if not np.isnan(pitch) else 0.0
         confidence = confidence if not np.isnan(confidence) else 0.0
         return pitch, confidence
+    
 
     def _get_audio_window(self, frame_index):
         # Calculate the start and end frame indices for the window
@@ -330,8 +415,48 @@ class PitchFeature(BaseAudioFeature):
                 normalized[finite_mask] = (feature_array[finite_mask] - min_val) / (max_val - min_val)
             else:
                 normalized = np.zeros_like(feature_array)
+        self.features[self.feature_name+'_original'] =  self.features[self.feature_name].copy()
         self.features[self.feature_name] = normalized.tolist()
 
+    def get_pitch_at_frame(self, frame_index):
+        if self.data is not None:
+            return self.data[frame_index]
+        elif self.features is not None and hasattr(self, 'feature_name'):
+            pitch = self.features[self.feature_name+'_original'][frame_index]
+            confidence_key = self.feature_name+'_confidence'
+            confidence = self.features.get(confidence_key, [1.0] * len(self.features[self.feature_name]))[frame_index]
+            return (pitch, confidence)
+        else:
+            raise ValueError("No data or features available")
+
+    def _filter_and_smooth_pitch(self, pitches, confidences, filtered):
+        smoothed_pitch = signal.medfilt(pitches, kernel_size=5)
+        
+        prev_valid_pitch = None
+        filtered_pitch = []
+        
+        for i, pitch in enumerate(smoothed_pitch):
+            confidence = confidences[i]
+            
+            if confidence < 0.3:  # Adjust this threshold as needed
+                pitch = 0.0
+            
+            if prev_valid_pitch is not None and abs(pitch - prev_valid_pitch) < self.pitch_tolerance:
+                pitch = prev_valid_pitch
+            
+            if filtered and self.pitch_range_collections:
+                if self._matches_any_collection(pitch):
+                    filtered_pitch.append(pitch)
+                    prev_valid_pitch = pitch
+                else:
+                    filtered_pitch.append(0.0)
+                    prev_valid_pitch = None
+            else:
+                filtered_pitch.append(pitch)
+                prev_valid_pitch = pitch
+        
+        return filtered_pitch
+        
 class PitchRange:
     def __init__(self, min_pitch, max_pitch):
         self.min_pitch = min_pitch
