@@ -70,11 +70,11 @@ from .nodes.flex.feature_extractors import(
 )
 
 from .nodes.flex.feature_extractors_audio import(
-        AudioFeatureExtractor,
-        PitchRangeNode,
-        PitchRangePresetNode,
-        PitchRangeByNoteNode,
-        PitchFeatureExtractor,
+    AudioFeatureExtractor,
+    PitchRangeNode,
+    PitchRangePresetNode,
+    PitchRangeByNoteNode,
+    PitchFeatureExtractor,
 )
 
 from .nodes.flex.feature_extractors_midi import(
@@ -187,6 +187,7 @@ from .nodes.flex.feature_modulation import (
     PreviewFeature,
     FeatureMath,
     FeatureRebase,
+    FeatureTruncateOrExtend,
 )
 
 
@@ -288,6 +289,8 @@ NODE_CLASS_MAPPINGS = {
     "FeatureMath":                  FeatureMath,
     "PreviewFeature":               PreviewFeature,
     "FeatureRebase":                FeatureRebase,
+    "FeatureTruncateOrExtend":      FeatureTruncateOrExtend,
+
     #images
     'FlexImageEdgeDetect':          FlexImageEdgeDetect,
     "FlexImagePosterize":           FlexImagePosterize,
