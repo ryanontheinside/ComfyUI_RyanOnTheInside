@@ -628,7 +628,8 @@ add_node_config("EmptyImageFromAudio", {
 - `height`: Height of the output images (16 to 4096 pixels)
 - `width`: Width of the output images (16 to 4096 pixels)
 
-This node generates an empty image sequence (filled with zeros) with the specified dimensions and frame rate, based on the duration of the input audio. It's useful for creating a blank canvas for further image processing or visualization that matches the length of an audio track.
+This node generates an empty image sequence dimensions and frame rate, based on the duration of the input audio. 
+It's useful for creating a blank canvas for further image processing or visualization that matches the length of an audio track.
 """
 })
 
@@ -640,7 +641,8 @@ add_node_config("EmptyMaskFromAudio", {
 - `height`: Height of the output masks (16 to 4096 pixels)
 - `width`: Width of the output masks (16 to 4096 pixels)
 
-This node generates an empty mask sequence (filled with zeros) with the specified dimensions and frame rate, based on the duration of the input audio. It's useful for creating a blank mask for further processing or effects that match the length of an audio track.
+This node generates an empty mask sequence with the specified dimensions and frame rate, based on the duration of the input audio. 
+It's useful for creating a blank mask for further processing or effects that match the length of an audio track.
 """
 })
 
