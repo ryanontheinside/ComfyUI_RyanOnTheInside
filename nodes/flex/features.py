@@ -18,6 +18,12 @@ class BaseFeature(ABC):
     def extract(self):
         pass
 
+    @classmethod
+    @abstractmethod
+    def get_extraction_methods(cls):
+        """Return a list of parameter names that can be modulated."""
+        return []
+    
     def get_value_at_frame(self, frame_index):
         if self.data is not None:
             return self.data[frame_index]
@@ -25,6 +31,7 @@ class BaseFeature(ABC):
             return self.features[self.feature_name][frame_index]
         else:
             raise ValueError("No data or features available")
+    
 
     def normalize(self):
         if self.data is not None:
@@ -52,6 +59,12 @@ class TimeFeature(BaseFeature):
         self.offset = offset
         super().__init__(name, "time", frame_rate, frame_count)
 
+    @classmethod
+    def get_extraction_methods(self):
+        return [
+            "smooth", "accelerate", "pulse", "sawtooth","bounce"
+        ]
+
     def extract(self):
         t = np.linspace(0, self.frame_count / self.frame_rate, self.frame_count)
         t = (t * self.speed + self.offset) % 1
@@ -76,11 +89,15 @@ class DepthFeature(BaseFeature):
         self.depth_maps = depth_maps
         self.features = None
         self.feature_name = feature_name
-        self.available_features = [
+        self.available_features = self.get_extraction_methods()
+        super().__init__(name, "depth", frame_rate, frame_count)
+
+    @classmethod
+    def get_extraction_methods(self):
+        return [
             "mean_depth", "depth_variance", "depth_range", "gradient_magnitude",
             "foreground_ratio", "midground_ratio", "background_ratio"
         ]
-        super().__init__(name, "depth", frame_rate, frame_count)
 
     def extract(self):
         self.features = {self.feature_name: []}
@@ -146,12 +163,16 @@ class ColorFeature(BaseFeature):
             raise ValueError(f"Expected images in BHWC format, but got shape {images.shape}")
         self.images = images
         self.feature_name = feature_name
-        self.available_features = [
+        self.available_features = self.get_extraction_methods()
+        super().__init__(name, "color", frame_rate, frame_count)
+
+    @classmethod
+    def get_extraction_methods(self):
+        return [
             "dominant_color", "color_variance", "saturation",
             "red_ratio", "green_ratio", "blue_ratio"
         ]
-        super().__init__(name, "color", frame_rate, frame_count)
-
+    
     def extract(self):
         self.features = {self.feature_name: []}
         
@@ -224,12 +245,16 @@ class BrightnessFeature(BaseFeature):
     def __init__(self, name, frame_rate, frame_count, images, feature_name='mean_brightness'):
         self.images = images
         self.feature_name = feature_name
-        self.available_features = [
+        self.available_features = self.get_extraction_methods()
+        super().__init__(name, "brightness", frame_rate, frame_count)
+
+    @classmethod
+    def get_extraction_methods(self):
+        return [
             "mean_brightness", "brightness_variance", "brightness_histogram",
             "dark_ratio", "mid_ratio", "bright_ratio"
         ]
-        super().__init__(name, "brightness", frame_rate, frame_count)
-
+    
     def extract(self):
         self.features = {self.feature_name: []}
         
@@ -291,14 +316,19 @@ class MotionFeature(BaseFeature):
         self.flow_method = flow_method
         self.flow_threshold = flow_threshold
         self.magnitude_threshold = magnitude_threshold
-        self.available_features = [
+        self.available_features = self.get_extraction_methods()
+        self.progress_callback = progress_callback
+        super().__init__(name, "motion", frame_rate, frame_count)
+
+    @classmethod
+    def get_extraction_methods(self):
+        return [
             "mean_motion", "max_motion", "motion_direction",
             "horizontal_motion", "vertical_motion", "motion_complexity",
             "motion_speed"
         ]
-        self.progress_callback = progress_callback
-        super().__init__(name, "motion", frame_rate, frame_count)
-
+    
+    
     def extract(self):
         print("Starting MotionFeature extraction")
         self.features = {self.feature_name: []}
@@ -383,8 +413,12 @@ class AreaFeature(BaseFeature):
         self.masks = masks
         self.feature_type = feature_type
         self.threshold = threshold
-        self.available_features = ["total_area", "largest_contour", "bounding_box"]
+        self.available_features = self.get_extraction_methods()
         super().__init__(name, "area", frame_rate, frame_count)
+
+    @classmethod
+    def get_extraction_methods(self):
+        return ["total_area", "largest_contour", "bounding_box"]
 
     def extract(self):
         self.data = []
@@ -438,4 +472,5 @@ class AreaFeature(BaseFeature):
             self.extract()  # Re-extract the data with the new feature type
         else:
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
+
 #TODO volume feature

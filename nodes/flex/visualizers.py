@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import  torch
 from scipy.spatial.distance import cdist
+import math
 
 class EffectVisualizer(RyanOnTheInside):
     @classmethod
@@ -18,7 +19,7 @@ class EffectVisualizer(RyanOnTheInside):
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "visualize"
-    CATTEGORY = "RyanOnTheInside/FlexFeatures/EffectVisualizers"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/EffectVisualizers"
 
     def visualize(self, video_frames, feature, text_color, font_scale):
         text_color = self.parse_color(text_color)
@@ -127,6 +128,67 @@ class ProximityVisualizer(EffectVisualizer):
             proximity_value = feature.get_value_at_frame(frame_index)
             cv2.putText(frame, f"Proximity: {proximity_value:.2f}", (10, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, text_color, 2)
+
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            output_frames.append(frame)
+
+        output_tensor = torch.from_numpy(np.stack(output_frames)).float() / 255.0
+        return (output_tensor,)
+
+
+
+class PitchVisualizer(EffectVisualizer):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "video_frames": ("IMAGE",),
+                "feature": ("FEATURE",),
+                "text_color": ("STRING", {"default": "(255,255,255)"}),
+                "font_scale": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.1}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "visualize_pitch"
+
+    def visualize_pitch(self, video_frames, feature, text_color, font_scale):
+        text_color = self.parse_color(text_color)
+        output_frames = []
+        padding = 10  # Padding from the edges
+
+        # Ensure video_frames is BHWC
+        if video_frames.shape[-1] != 3:
+            video_frames = video_frames.permute(0, 2, 3, 1)
+
+        for frame_index in range(video_frames.shape[0]):
+            frame = video_frames[frame_index].cpu().numpy()
+            frame = (frame * 255).astype(np.uint8)
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+            # Get feature value for the current frame
+            feature_value = feature.get_value_at_frame(frame_index)
+
+            # Get pitch value for the current frame
+            pitch_value,confidence_value = feature.get_pitch_at_frame(frame_index)
+
+            # Convert pitch to approximate note
+            note = feature.pitch_to_note(pitch_value)
+
+            # Display feature value, pitch value, and approximate note on the frame
+            texts = [
+                f"Feature: {feature_value:.2f}",
+                f"Pitch: {pitch_value:.2f} Hz",
+                f"Confidence: {confidence_value:.2f}",
+                f"Note: {note}"
+            ]
+
+            for i, text in enumerate(texts):
+                text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, 2)[0]
+                text_x = padding
+                text_y = padding + (i + 1) * (text_size[1] + 10)  # Add some vertical spacing
+
+                cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, text_color, 2)
 
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             output_frames.append(frame)
