@@ -1148,6 +1148,33 @@ add_node_config("ImageIntervalSelectPercentage", {
 """
 })
 
+add_node_config("DepthInjection", {
+    "TOP_DESCRIPTION": "Modifies depth maps based on mask contours, creating spherical gradients.",
+    "ADDITIONAL_INFO": """
+- `depth_map`: Input depth map (IMAGE type)
+- `mask`: Input mask to define areas for depth modification (MASK type)
+- `gradient_steepness`: Controls the steepness of the spherical gradient (0.1 to 10.0). Higher values create sharper transitions.
+- `depth_min`: Minimum depth value for the modified areas (0.0 to 1.0)
+- `depth_max`: Maximum depth value for the modified areas (0.0 to 1.0)
+- `strength`: Overall strength of the depth modification effect (0.0 to 1.0)
+
+This node modifies depth maps by creating spherical gradients based on the contours of the input mask. It's useful for adding depth variations to specific areas of an image, such as creating a sense of volume for masked objects.
+
+The process involves:
+1. Finding contours in the mask
+2. Generating spherical gradients for each contour
+3. Scaling the gradients to the specified depth range
+4. Blending the modified depth with the original depth map
+
+This node can be particularly effective for:
+- Adding depth to flat objects in a scene
+- Creating a sense of volume for masked areas
+- Fine-tuning depth maps for more realistic 3D effects
+
+Note: The node currently doesn't use the feature modulation capabilities, but these could be added in future versions for dynamic depth modifications.
+"""
+})
+
 add_node_config("ImageChunks", {
     "TOP_DESCRIPTION": "Concatenates images into a grid.",
     "ADDITIONAL_INFO": """

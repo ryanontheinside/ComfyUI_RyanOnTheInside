@@ -42,7 +42,7 @@ class FeatureToWeightsStrategy(FlexExternalModulator):
         return (weights_strategy,)
 
 
-class DepthShapeModifier(FlexExternalModulator):
+class DepthInjection(FlexExternalModulator):
     @classmethod
     def INPUT_TYPES(cls):
         return {
