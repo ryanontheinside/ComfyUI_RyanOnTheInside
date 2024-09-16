@@ -14,6 +14,11 @@ from ... import RyanOnTheInside
 
 class AudioNodeBase(RyanOnTheInside):
     CATEGORY= "RyanOnTheInside/Audio"
+    @staticmethod
+    def create_empty_tensor(audio, frame_rate, height, width, channels):
+        audio_duration = audio['waveform'].shape[-1] / audio['sample_rate']
+        num_frames = int(audio_duration * frame_rate)
+        return torch.zeros((num_frames, height, width, channels), dtype=torch.float32)
 
 class DownloadOpenUnmixModel(AudioNodeBase):
     @classmethod
@@ -167,6 +172,44 @@ class AudioFilter(AudioNodeBase):
 
         return signal.lfilter(b, a, audio)
 
+# class DownloadCREPEModel(AudioNodeBase):
+#     @classmethod
+#     def INPUT_TYPES(cls):
+#         return {
+#             "required": {
+#                 "model_name": (["tiny", "small", "medium", "large", "full"], {"default": "medium"}),
+#             }
+#         }
+
+#     RETURN_TYPES = ("CREPE_MODEL",)
+#     FUNCTION = "download_and_load_model"
+#     CATEGORY = "RyanOnTheInside/Audio"
+
+#     def download_and_load_model(self, model_name):
+#         try:
+#             import crepe
+#         except ImportError:
+#             raise ImportError("""To use this node please 
+#                               pip install crepe tensorflow
+#                               :)
+#                               """)
+
+#         download_path = os.path.join(folder_paths.models_dir, "crepe")
+#         os.makedirs(download_path, exist_ok=True)
+
+#         model_file = f"crepe_{model_name}.json"
+#         model_path = os.path.join(download_path, model_file)
+
+#         if not os.path.exists(model_path):
+#             print(f"Downloading CREPE {model_name} model...")
+#             model = crepe.core.build_and_load_model(model_name)
+#             print(f"Model downloaded and loaded.")
+#         else:
+#             print(f"Loading model from: {model_path}")
+#             model = crepe.core.build_and_load_model(model_name)
+
+#         return (model,)
+
 class FrequencyFilterPreset(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -318,4 +361,42 @@ class AudioFeatureVisualizer(AudioNodeBase):
             raise ValueError(f"Unsupported visualization type: {visualization_type}")
 
 
-        return (mask,)
+        return (mask,)   
+
+class EmptyImageFromAudio(AudioNodeBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "audio": ("AUDIO",),
+                "frame_rate": ("FLOAT", {"default": 30, "min": 0.1, "max": 120, "step": 0.1}),
+                "height": ("INT", {"default": 512, "min": 16, "max": 4096, "step": 1}),
+                "width": ("INT", {"default": 512, "min": 16, "max": 4096, "step": 1}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "create_empty_image"
+
+    def create_empty_image(self, audio, frame_rate, height, width):
+        empty_image = self.create_empty_tensor(audio, frame_rate, height, width, channels=3)
+        return (empty_image,)
+
+class EmptyMaskFromAudio(AudioNodeBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "audio": ("AUDIO",),
+                "frame_rate": ("FLOAT", {"default": 30, "min": 0.1, "max": 120, "step": 0.1}),
+                "height": ("INT", {"default": 512, "min": 16, "max": 4096, "step": 1}),
+                "width": ("INT", {"default": 512, "min": 16, "max": 4096, "step": 1}),
+            }
+        }
+
+    RETURN_TYPES = ("MASK",)
+    FUNCTION = "create_empty_mask"
+
+    def create_empty_mask(self, audio, frame_rate, height, width):
+        empty_mask = self.create_empty_tensor(audio, frame_rate, height, width, channels=1)
+        return (empty_mask,)

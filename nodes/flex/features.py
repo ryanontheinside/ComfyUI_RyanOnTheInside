@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 import numpy as np
-import librosa
 import torch
 import cv2
 from ..masks.mask_utils import calculate_optical_flow
@@ -19,6 +18,12 @@ class BaseFeature(ABC):
     def extract(self):
         pass
 
+    @classmethod
+    @abstractmethod
+    def get_extraction_methods(cls):
+        """Return a list of parameter names that can be modulated."""
+        return []
+    
     def get_value_at_frame(self, frame_index):
         if self.data is not None:
             return self.data[frame_index]
@@ -26,6 +31,7 @@ class BaseFeature(ABC):
             return self.features[self.feature_name][frame_index]
         else:
             raise ValueError("No data or features available")
+    
 
     def normalize(self):
         if self.data is not None:
@@ -53,6 +59,12 @@ class TimeFeature(BaseFeature):
         self.offset = offset
         super().__init__(name, "time", frame_rate, frame_count)
 
+    @classmethod
+    def get_extraction_methods(self):
+        return [
+            "smooth", "accelerate", "pulse", "sawtooth","bounce"
+        ]
+
     def extract(self):
         t = np.linspace(0, self.frame_count / self.frame_rate, self.frame_count)
         t = (t * self.speed + self.offset) % 1
@@ -72,66 +84,20 @@ class TimeFeature(BaseFeature):
         
         return self.normalize()
 
-class AudioFeature(BaseFeature):
-    def __init__(self, name, audio, num_frames, frame_rate, feature_type='amplitude_envelope'):
-        self.audio = audio['waveform'].squeeze(0).mean(axis=0).cpu().numpy()
-        self.sample_rate = audio['sample_rate']
-        self.num_frames = num_frames
-        self.feature_type = feature_type
-        super().__init__(name, "audio", frame_rate, num_frames)
-        self.frame_duration = 1 / self.frame_rate if self.frame_rate > 0 else len(self.audio) / (self.sample_rate * self.num_frames)
-
-    def extract(self):
-        if self.feature_type == 'amplitude_envelope':
-            self.data = self._amplitude_envelope()
-        elif self.feature_type == 'rms_energy':
-            self.data = self._rms_energy()
-        elif self.feature_type == 'spectral_centroid':
-            self.data = self._spectral_centroid()
-        elif self.feature_type == 'onset_detection':
-            self.data = self._onset_detection()
-        elif self.feature_type == 'chroma_features':
-            self.data = self._chroma_features()
-        else:
-            raise ValueError("Unsupported feature type")
-        return self.normalize()
-
-    def _get_audio_frame(self, frame_index):
-        start_time = frame_index * self.frame_duration
-        end_time = (frame_index + 1) * self.frame_duration
-        start_sample = int(start_time * self.sample_rate)
-        end_sample = int(end_time * self.sample_rate)
-        if start_sample >= len(self.audio):
-            return np.array([])  # Return empty array if we've run out of audio
-        return self.audio[start_sample:min(end_sample, len(self.audio))]
-
-    def _amplitude_envelope(self):
-        def safe_max(frame):
-            return np.max(np.abs(frame)) if frame.size > 0 else 0
-        return np.array([safe_max(self._get_audio_frame(i)) for i in range(self.num_frames)])
-
-    def _rms_energy(self):
-        return np.array([np.sqrt(np.mean(self._get_audio_frame(i)**2)) for i in range(self.num_frames)])
-
-    def _spectral_centroid(self):
-        return np.array([np.mean(librosa.feature.spectral_centroid(y=self._get_audio_frame(i), sr=self.sample_rate)[0]) for i in range(self.num_frames)])
-
-    def _onset_detection(self):
-        return np.array([np.mean(librosa.onset.onset_strength(y=self._get_audio_frame(i), sr=self.sample_rate)) for i in range(self.num_frames)])
-
-    def _chroma_features(self):
-        return np.array([np.mean(librosa.feature.chroma_stft(y=self._get_audio_frame(i), sr=self.sample_rate), axis=1) for i in range(self.num_frames)])
-
 class DepthFeature(BaseFeature):
     def __init__(self, name, frame_rate, frame_count, depth_maps, feature_name='mean_depth'):
         self.depth_maps = depth_maps
         self.features = None
         self.feature_name = feature_name
-        self.available_features = [
+        self.available_features = self.get_extraction_methods()
+        super().__init__(name, "depth", frame_rate, frame_count)
+
+    @classmethod
+    def get_extraction_methods(self):
+        return [
             "mean_depth", "depth_variance", "depth_range", "gradient_magnitude",
             "foreground_ratio", "midground_ratio", "background_ratio"
         ]
-        super().__init__(name, "depth", frame_rate, frame_count)
 
     def extract(self):
         self.features = {self.feature_name: []}
@@ -197,12 +163,16 @@ class ColorFeature(BaseFeature):
             raise ValueError(f"Expected images in BHWC format, but got shape {images.shape}")
         self.images = images
         self.feature_name = feature_name
-        self.available_features = [
+        self.available_features = self.get_extraction_methods()
+        super().__init__(name, "color", frame_rate, frame_count)
+
+    @classmethod
+    def get_extraction_methods(self):
+        return [
             "dominant_color", "color_variance", "saturation",
             "red_ratio", "green_ratio", "blue_ratio"
         ]
-        super().__init__(name, "color", frame_rate, frame_count)
-
+    
     def extract(self):
         self.features = {self.feature_name: []}
         
@@ -275,12 +245,16 @@ class BrightnessFeature(BaseFeature):
     def __init__(self, name, frame_rate, frame_count, images, feature_name='mean_brightness'):
         self.images = images
         self.feature_name = feature_name
-        self.available_features = [
+        self.available_features = self.get_extraction_methods()
+        super().__init__(name, "brightness", frame_rate, frame_count)
+
+    @classmethod
+    def get_extraction_methods(self):
+        return [
             "mean_brightness", "brightness_variance", "brightness_histogram",
             "dark_ratio", "mid_ratio", "bright_ratio"
         ]
-        super().__init__(name, "brightness", frame_rate, frame_count)
-
+    
     def extract(self):
         self.features = {self.feature_name: []}
         
@@ -342,14 +316,19 @@ class MotionFeature(BaseFeature):
         self.flow_method = flow_method
         self.flow_threshold = flow_threshold
         self.magnitude_threshold = magnitude_threshold
-        self.available_features = [
+        self.available_features = self.get_extraction_methods()
+        self.progress_callback = progress_callback
+        super().__init__(name, "motion", frame_rate, frame_count)
+
+    @classmethod
+    def get_extraction_methods(self):
+        return [
             "mean_motion", "max_motion", "motion_direction",
             "horizontal_motion", "vertical_motion", "motion_complexity",
             "motion_speed"
         ]
-        self.progress_callback = progress_callback
-        super().__init__(name, "motion", frame_rate, frame_count)
-
+    
+    
     def extract(self):
         print("Starting MotionFeature extraction")
         self.features = {self.feature_name: []}
@@ -434,8 +413,12 @@ class AreaFeature(BaseFeature):
         self.masks = masks
         self.feature_type = feature_type
         self.threshold = threshold
-        self.available_features = ["total_area", "largest_contour", "bounding_box"]
+        self.available_features = self.get_extraction_methods()
         super().__init__(name, "area", frame_rate, frame_count)
+
+    @classmethod
+    def get_extraction_methods(self):
+        return ["total_area", "largest_contour", "bounding_box"]
 
     def extract(self):
         self.data = []
@@ -489,4 +472,5 @@ class AreaFeature(BaseFeature):
             self.extract()  # Re-extract the data with the new feature type
         else:
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
+
 #TODO volume feature
