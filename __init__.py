@@ -1,4 +1,4 @@
-from .node_configs import CombinedMeta
+from .node_configs.node_configs import CombinedMeta
 from collections import OrderedDict
 
 #allows for central management and inheritance of class variables for help documentation
@@ -51,16 +51,17 @@ from .nodes.masks.temporal_masks import (
 from .nodes.audio.audio_nodes import (
     AudioSeparator, 
     DownloadOpenUnmixModel,
+    # DownloadCREPEModel,
     AudioFeatureVisualizer,
     FrequencyFilterCustom,
     FrequencyFilterPreset,
     AudioFilter,
+    EmptyMaskFromAudio,
+    EmptyImageFromAudio,
     
 )
 
 from .nodes.flex.feature_extractors import(
-    
-    AudioFeatureExtractor,
     TimeFeatureNode,
     DepthFeatureNode,
     ColorFeatureNode,
@@ -69,18 +70,30 @@ from .nodes.flex.feature_extractors import(
     AreaFeatureNode,
 )
 
-from .nodes.flex.midi_feature_extractor import(
+from .nodes.flex.feature_extractors_audio import(
+    AudioFeatureExtractor,
+    PitchRangeNode,
+    PitchRangePresetNode,
+    PitchRangeByNoteNode,
+    PitchFeatureExtractor,
+)
+
+from .nodes.flex.feature_extractors_midi import(
     MIDILoadAndExtract,
 )
 
-from .nodes.flex.proximity_feature_extractor import(
+from .nodes.flex.feature_extractors_proximity import(
     LocationFromMask,
     ProximityFeatureNode,
-    ProximityVisualizer,
     LocationFromPoint,
     LocationTransform,
 )
 
+from .nodes.flex.visualizers import(
+    ProximityVisualizer,
+    EffectVisualizer,
+    PitchVisualizer,
+)
 
 
 
@@ -102,11 +115,6 @@ from .nodes.masks.particle_system_masks import (
     ParticleSizeModulation,
     ParticleSpeedModulation,
     )
-
-# from .nodes.masks.opacity_masks import(
-#     DepthBasedMaskOpacity,
-#     FlexDepthBasedMaskOpacity,
-# )
 
 from .nodes.masks.mask_utility_nodes import (
     _mfc, 
@@ -146,6 +154,11 @@ from .nodes.masks.flex_masks import (
 
 )
 
+from .nodes.masks.flex_masks_normal import (
+    FlexMaskNormalLighting,
+
+)
+
 from .nodes.images.flex_images import (
     FlexImageEdgeDetect,
     FlexImagePosterize,
@@ -175,6 +188,7 @@ from .nodes.flex.feature_modulation import (
     PreviewFeature,
     FeatureMath,
     FeatureRebase,
+    FeatureTruncateOrExtend,
 )
 
 
@@ -232,18 +246,26 @@ NODE_CLASS_MAPPINGS = {
     "FlexMaskEmanatingRings":       FlexMaskEmanatingRings,
     "FlexMaskRandomShapes":         FlexMaskRandomShapes,
     "FlexMaskDepthChamber":         FlexMaskDepthChamber,
+    #"FlexMaskNormalLighting":       FlexMaskNormalLighting,
     # "FlexMaskDepthChamberRelative": FlexMaskDepthChamberRelative,
 
     #audio  
     "AudioSeparator":               AudioSeparator,
     "DownloadOpenUnmixModel":       DownloadOpenUnmixModel,
+    # "DownloadCREPEModel":           DownloadCREPEModel,
     "AudioFeatureVisualizer":       AudioFeatureVisualizer,
     "FrequencyFilterCustom":        FrequencyFilterCustom,
     "FrequencyFilterPreset":        FrequencyFilterPreset,
     "AudioFilter":                  AudioFilter,
+    "EmptyMaskFromAudio":           EmptyMaskFromAudio,
+    "EmptyImageFromAudio":          EmptyImageFromAudio,
 
     #features   
     "AudioFeatureExtractor":        AudioFeatureExtractor,
+    "PitchFeatureExtractor":        PitchFeatureExtractor,
+    "PitchRange":                   PitchRangeNode,
+    "PitchRangePreset":             PitchRangePresetNode,
+    "PitchRangeByNoteNode":         PitchRangeByNoteNode,
     "MIDILoadAndExtract":           MIDILoadAndExtract,
     "TimeFeatureNode":              TimeFeatureNode,
     "DepthFeatureNode":             DepthFeatureNode,
@@ -252,7 +274,6 @@ NODE_CLASS_MAPPINGS = {
     "MotionFeatureNode":            MotionFeatureNode,
     "LocationFromMask":             LocationFromMask,
     "ProximityFeatureNode":         ProximityFeatureNode,
-    "ProximityVisualizer":          ProximityVisualizer,
     "LocationFromPoint":            LocationFromPoint,
     "LocationTransform":            LocationTransform,
     "AreaFeatureNode":              AreaFeatureNode,
@@ -270,6 +291,8 @@ NODE_CLASS_MAPPINGS = {
     "FeatureMath":                  FeatureMath,
     "PreviewFeature":               PreviewFeature,
     "FeatureRebase":                FeatureRebase,
+    "FeatureTruncateOrExtend":      FeatureTruncateOrExtend,
+
     #images
     'FlexImageEdgeDetect':          FlexImageEdgeDetect,
     "FlexImagePosterize":           FlexImagePosterize,
@@ -285,6 +308,10 @@ NODE_CLASS_MAPPINGS = {
     # "FlexDepthBasedMaskOpacity":  FlexDepthBasedMaskOpacity,
     # "DepthBasedMaskOpacity":      DepthBasedMaskOpacity,
 
+    #visulizers
+    "ProximityVisualizer":          ProximityVisualizer,
+    "EffectVisualizer":             EffectVisualizer,
+    "PitchVisualizer":              PitchVisualizer,
 
     #garb   
     "DyeImage":                     DyeImage,
@@ -328,18 +355,17 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ParticleSizeModulation": "Particle Size Modulation",
     "ParticleSpeedModulation":"Particle Speed Modulation",
 
-    "AudioMaskMorph":"Audio Mask Morph",
-    "AudioMaskWarp": "Audio Mask Warp",
-    "AudioMaskTransform":"Audio Mask Transform",
-    "AudioMaskMath": "Audio Mask Math",
+  
     "AudioSeparator": "Audio Separator",
 
     "AudioFeatureVisualizer": "Audio Feature Visualizer" ,
     "Frequency Filter Custom": "Frequency Filter Custom",
     "Frequency Filter Preset": "Frequency Filter Preset",
     "AudioFilter": "Audio Filter",
-    
+  
+
     "MIDILoadAndExtract":   "MIDI Load & Feature Extract",
+    "PitchRangeByNoteNode": "Pitch Range By Note",
     "AudioFeatureExtractor": "Audio Feature & Extractor",
     "TimeFeatureNode":          "Time Feature",
     "DepthFeatureNode":"Depth Feature",
