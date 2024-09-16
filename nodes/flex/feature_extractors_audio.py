@@ -38,33 +38,30 @@ class PitchFeatureExtractor(FeatureExtractorBase):
             **super().INPUT_TYPES(),
             "required": {
                 **super().INPUT_TYPES()["required"],
-                "audio": ("AUDIO", ),
-                "feature_pipe": ("FEATURE_PIPE", ),
-                "window_size": ("INT", {"default": 0, "min": 0}),
-                "pitch_tolerance_percent": ("FLOAT", {"default": 0.0, "min": 0.0, "max":1.0, "step": 0.01}),
+                "audio": ("AUDIO",),
+                "feature_pipe": ("FEATURE_PIPE",),
+                "opt_crepe_model":(["none", "medium", "tiny", "small", "large", "full"], {"default": "medium"})
             },
             "optional": {
-                "pitch_range_collections": ("PITCH_RANGE_COLLECTION", ),
+                "opt_pitch_range_collections": ("PITCH_RANGE_COLLECTION",),
+                # "": ("CREPE_MODEL",),
             },
         }
 
     RETURN_TYPES = ("FEATURE", "FEATURE_PIPE")
     FUNCTION = "extract_feature"
 
-    CATEGORY = "RyanOnTheInside/FlexFeatures"
-
-    def extract_feature(self, audio, feature_pipe, extraction_method, window_size, pitch_tolerance_percent, pitch_range_collections=None):
-        if pitch_range_collections is None:
-            pitch_range_collections = []
+    def extract_feature(self, audio, feature_pipe, extraction_method, opt_pitch_range_collections=None, opt_crepe_model=None):
+        if opt_pitch_range_collections is None:
+            opt_pitch_range_collections = []
         feature = PitchFeature(
-            feature_name="PitchFeature",
+            feature_name=extraction_method,
             audio=audio,
             frame_count=feature_pipe.frame_count,
             frame_rate=feature_pipe.frame_rate,
-            pitch_range_collections=pitch_range_collections,
+            pitch_range_collections=opt_pitch_range_collections,
             feature_type=extraction_method,
-            window_size=window_size,
-            pitch_tolerance_percent=pitch_tolerance_percent,
+            crepe_model=opt_crepe_model
         )
         feature.extract()
         return (feature, feature_pipe)
@@ -158,7 +155,7 @@ class PitchRangeByNoteNode(PitchAbstraction):
         return {
             "required": {
                 "chord_only": ("BOOLEAN", {"default": False}),
-                "pitch_tolerance_percent": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 100.0, "step": 0.1}),
+                "pitch_tolerance_percent": ("FLOAT", {"default": 100.0, "min": 0.0, "max": 100.0, "step": 0.1}),
                 "notes": ("STRING", {"multiline": False}),
             },
             "optional": {

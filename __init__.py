@@ -1,4 +1,4 @@
-from .node_configs import CombinedMeta
+from .node_configs.node_configs import CombinedMeta
 from collections import OrderedDict
 
 #allows for central management and inheritance of class variables for help documentation
@@ -51,6 +51,7 @@ from .nodes.masks.temporal_masks import (
 from .nodes.audio.audio_nodes import (
     AudioSeparator, 
     DownloadOpenUnmixModel,
+    # DownloadCREPEModel,
     AudioFeatureVisualizer,
     FrequencyFilterCustom,
     FrequencyFilterPreset,
@@ -251,6 +252,7 @@ NODE_CLASS_MAPPINGS = {
     #audio  
     "AudioSeparator":               AudioSeparator,
     "DownloadOpenUnmixModel":       DownloadOpenUnmixModel,
+    # "DownloadCREPEModel":           DownloadCREPEModel,
     "AudioFeatureVisualizer":       AudioFeatureVisualizer,
     "FrequencyFilterCustom":        FrequencyFilterCustom,
     "FrequencyFilterPreset":        FrequencyFilterPreset,

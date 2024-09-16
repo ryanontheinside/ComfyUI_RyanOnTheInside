@@ -172,6 +172,7 @@ class PitchVisualizer(EffectVisualizer):
             # Convert pitch to approximate note
             note = feature.pitch_to_note(pitch_data['actual_pitch'])
             smoothed_note = feature.pitch_to_note(pitch_data['smoothed_pitch'])
+
             # Display feature values on the frame
             texts = [
                 f"Original: {pitch_data['original']:.2f}",
@@ -181,8 +182,6 @@ class PitchVisualizer(EffectVisualizer):
                 f"Smoothed Pitch: {pitch_data['smoothed_pitch']:.2f} Hz",
                 f"Smoothed Note: {smoothed_note}"
             ]
-
-            
 
             for i, text in enumerate(texts):
                 text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, 2)[0]
