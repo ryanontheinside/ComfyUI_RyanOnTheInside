@@ -173,9 +173,15 @@ from .nodes.images.flex_images import (
     
 )
 
+from .nodes.depth.depth_base import(
+    DepthInjection,
+    DepthBlender,
+    DepthRippleEffect,
+)
+
 from .nodes.flex.feature_externals import (
     FeatureToWeightsStrategy,
-    DepthInjection,
+    # DepthInjection,
 )
 
 from .nodes.flex.feature_modulation import (
@@ -279,8 +285,9 @@ NODE_CLASS_MAPPINGS = {
     "AreaFeatureNode":              AreaFeatureNode,
 
     "FeatureToWeightsStrategy":     FeatureToWeightsStrategy,
-    "DepthShapeModifier":           DepthInjection,
-
+    "DepthInjection":               DepthInjection,
+    "DepthRippleEffect":            DepthRippleEffect,
+    "DepthBlender":                 DepthBlender,   
     #feature modulation
     "FeatureMixer":                 FeatureMixer,
     "FeatureCombine":               FeatureCombine,
