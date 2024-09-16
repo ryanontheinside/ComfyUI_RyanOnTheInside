@@ -172,6 +172,44 @@ class AudioFilter(AudioNodeBase):
 
         return signal.lfilter(b, a, audio)
 
+# class DownloadCREPEModel(AudioNodeBase):
+#     @classmethod
+#     def INPUT_TYPES(cls):
+#         return {
+#             "required": {
+#                 "model_name": (["tiny", "small", "medium", "large", "full"], {"default": "medium"}),
+#             }
+#         }
+
+#     RETURN_TYPES = ("CREPE_MODEL",)
+#     FUNCTION = "download_and_load_model"
+#     CATEGORY = "RyanOnTheInside/Audio"
+
+#     def download_and_load_model(self, model_name):
+#         try:
+#             import crepe
+#         except ImportError:
+#             raise ImportError("""To use this node please 
+#                               pip install crepe tensorflow
+#                               :)
+#                               """)
+
+#         download_path = os.path.join(folder_paths.models_dir, "crepe")
+#         os.makedirs(download_path, exist_ok=True)
+
+#         model_file = f"crepe_{model_name}.json"
+#         model_path = os.path.join(download_path, model_file)
+
+#         if not os.path.exists(model_path):
+#             print(f"Downloading CREPE {model_name} model...")
+#             model = crepe.core.build_and_load_model(model_name)
+#             print(f"Model downloaded and loaded.")
+#         else:
+#             print(f"Loading model from: {model_path}")
+#             model = crepe.core.build_and_load_model(model_name)
+
+#         return (model,)
+
 class FrequencyFilterPreset(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -323,8 +361,7 @@ class AudioFeatureVisualizer(AudioNodeBase):
             raise ValueError(f"Unsupported visualization type: {visualization_type}")
 
 
-        return (mask,)
-    
+        return (mask,)   
 
 class EmptyImageFromAudio(AudioNodeBase):
     @classmethod

@@ -5,6 +5,12 @@ from scipy.signal import hilbert
 from scipy import signal
 import functools
 from abc  import ABC, abstractmethod
+import numpy as np
+import librosa
+from scipy.signal import medfilt, hilbert
+from scipy import signal
+import functools
+
 class BaseAudioFeature(BaseFeature):
 
     @classmethod
@@ -118,6 +124,7 @@ class AudioFeature(BaseAudioFeature):
             normalized = np.zeros_like(feature_array)
         self.features[self.feature_name] = normalized.tolist()
 
+
 class PitchFeature(BaseAudioFeature):
     def __init__(
         self,
@@ -126,20 +133,20 @@ class PitchFeature(BaseAudioFeature):
         frame_count,
         frame_rate,
         pitch_range_collections=None,
-        feature_type='pitch',
+        feature_type='frequency',
         window_size=0,
-        pitch_tolerance_percent=1.0,
         vibrato_options=None,
+        crepe_model="none"
     ):
         super().__init__(feature_name, audio, frame_count, frame_rate)
         self.available_features = self.get_extraction_methods()
         self.feature_type = feature_type
         self.pitch_range_collections = pitch_range_collections or []
         self.vibrato_options = vibrato_options
-        self.feature_name = feature_type
         self.window_size = window_size
-        self.pitch_tolerance_percent = pitch_tolerance_percent
         self.current_frame = 0
+        self.crepe_model = crepe_model
+        self.feature_name = feature_name
         self._prepare_audio()
         
         # Parameters for pitch detection
@@ -148,210 +155,192 @@ class PitchFeature(BaseAudioFeature):
         self.fmin = 20  # Lower frequency limit
         self.fmax = 4000  # Upper frequency limit
 
+    @staticmethod
+    def calculate_tolerance(frequency, tolerance_percent):
+        semitone_above = frequency * 2**(1/12)
+        frequency_difference = semitone_above - frequency
+        tolerance = (frequency_difference / 2) * (tolerance_percent / 100.0)
+        return tolerance
+    
     @classmethod
     def get_extraction_methods(cls):
         """Return a list of parameter names that can be modulated."""
         return [
-            'pitch',
+            'frequency',
+            'semitone',
             'pitch_direction',
-            'pitch_contour',  # Added new feature
             'vibrato_signal',
-            'vibrato_intensity',
+            'vibrato_strength',
         ]
     
     @classmethod
-    def pitch_to_note(self, pitch):
+    def pitch_to_note(cls, pitch):
         if pitch == 0:
             return "N/A"
         return librosa.hz_to_note(pitch)
 
-    def ensure_pitch_and_confidence(func):
-        @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
-            if self.feature_name + '_pitch' not in self.features:
-                self._calculate_pitch_sequence()
-            return func(self, *args, **kwargs)
-        return wrapper
-
     def _calculate_pitch_sequence(self):
-        pitches = []
-        confidences = []
-        
-        # Use multiple pitch estimation methods
-        pitch_piptrack, mag = librosa.piptrack(y=self.audio_array, sr=self.sample_rate, 
-                                               fmin=self.fmin, fmax=self.fmax,
-                                               hop_length=self.hop_length)
-        
-        pitch_yin = librosa.yin(self.audio_array, fmin=self.fmin, fmax=self.fmax, 
-                                sr=self.sample_rate, hop_length=self.hop_length)
-        
-        for i in range(pitch_piptrack.shape[1]):
-            pitch_candidates = pitch_piptrack[:, i]
-            mag_candidates = mag[:, i]
-            
-            # Get the top 3 pitch candidates
-            top_indices = np.argsort(mag_candidates)[-3:]
-            top_pitches = pitch_candidates[top_indices]
-            top_mags = mag_candidates[top_indices]
-            
-            # Compare with YIN pitch
-            yin_pitch = pitch_yin[i]
-            
-            # Choose the pitch closest to YIN if it's within a threshold
-            threshold = 50  # Hz
-            closest_pitch = min(top_pitches, key=lambda x: abs(x - yin_pitch))
-            
-            if abs(closest_pitch - yin_pitch) < threshold:
-                pitch = closest_pitch
-                confidence = np.max(top_mags) / np.sum(top_mags)
-            else:
-                pitch = 0.0
-                confidence = 0.0
-            
-            pitches.append(pitch)
-            confidences.append(confidence)
-        
+        # Try to use CREPE model if available
+        if self.crepe_model != "none":
+            try:
+                import crepe
+                import tensorflow
+                time_steps, frequencies, confidence, activation = crepe.predict(
+                    self.audio_array,
+                    self.sample_rate,
+                    model_capacity=self.crepe_model,
+                    viterbi=True,
+                    step_size=int(1000 * self.hop_length / self.sample_rate)  # Step size in ms
+                )            
+                # time_steps, frequencies, confidences, _ = crepe.predict(
+                #     self.audio_array,
+                #     self.sample_rate,
+                #     model_capacity=self.crepe_model,
+                #     viterbi=True,
+                #     step_size=int(1000 * self.hop_length / self.sample_rate)  # Step size in ms
+                # )
+                pitches = frequencies
+                confidences = confidence
+            except ImportError as e:
+                print(f"Please 'pip install crepe tensorflow' to use any CREPE model :)")
+                pitches, confidences = self._fallback_pitch_estimation()
+            except Exception as e:
+                print(f"Error using CREPE model: {e}. Falling back to librosa's pitch estimation.")
+                pitches, confidences = self._fallback_pitch_estimation()
+        else:
+            # Fallback to librosa if CREPE model is not provided
+            pitches, confidences = self._fallback_pitch_estimation()
+
         # Interpolate to match frame count
         frame_times = np.linspace(0, len(self.audio_array) / self.sample_rate, num=self.frame_count)
-        pitch_times = librosa.frames_to_time(np.arange(len(pitches)), sr=self.sample_rate, hop_length=self.hop_length)
-        
-        interpolated_pitch = np.interp(frame_times, pitch_times, pitches)
-        interpolated_confidence = np.interp(frame_times, pitch_times, confidences)
-        
-        self.features[self.feature_name + '_pitch'] = interpolated_pitch.tolist()
-        self.features[self.feature_name + '_confidence'] = interpolated_confidence.tolist()
-    
-    def extract(self):
-        self.features = {self.feature_name: []}
-        if self.feature_name == 'pitch':
-            self._extract_pitch_sequence(filtered=True)
-        elif self.feature_name == 'pitch_direction':
-            self._extract_pitch_direction()
-        elif self.feature_name == 'pitch_contour':
-            self._extract_pitch_contour()
-        elif self.feature_name == 'vibrato_signal':
-            self._extract_vibrato(signal=True)
-        elif self.feature_name == 'vibrato_intensity':
-            self._extract_vibrato(intensity=True)
+        if len(pitches) == 0:
+            pitches = np.zeros(len(frame_times))
+            confidences = np.zeros(len(frame_times))
+            pitch_times = frame_times
         else:
-            raise ValueError(f"Unsupported feature type: {self.feature_name}")
+            pitch_times = librosa.frames_to_time(np.arange(len(pitches)), sr=self.sample_rate, hop_length=self.hop_length)
+            pitches = np.nan_to_num(pitches)
+            confidences = np.nan_to_num(confidences)
+            pitches = np.interp(frame_times, pitch_times, pitches)
+            confidences = np.interp(frame_times, pitch_times, confidences)
+
+        # Handle potential NaNs
+        pitches = np.nan_to_num(pitches)
+        confidences = np.nan_to_num(confidences)
+
+        self.features = {}
+        self.features[self.feature_name + '_pitch'] = pitches.tolist()
+        self.features[self.feature_name + '_confidence'] = confidences.tolist()
+
+    def _fallback_pitch_estimation(self):
+        pitches, magnitudes = librosa.piptrack(
+            y=self.audio_array,
+            sr=self.sample_rate,
+            fmin=self.fmin,
+            fmax=self.fmax,
+            hop_length=self.hop_length,
+            threshold=0.1
+        )
+        pitches = pitches.max(axis=0)
+        confidences = magnitudes.max(axis=0)
+        return pitches, confidences
+
+    def extract(self):
+        self.features = {}
+        self._calculate_pitch_sequence()
+
+        if self.feature_type == 'frequency':
+            self._extract_frequency()
+        elif self.feature_type == 'semitone':
+            self._extract_semitone()
+        elif self.feature_type == 'pitch_direction':
+            self._extract_pitch_direction()
+        elif self.feature_type == 'vibrato_signal':
+            self._extract_vibrato_signal()
+        elif self.feature_type == 'vibrato_strength':
+            self._extract_vibrato_strength()
+        else:
+            raise ValueError(f"Unsupported feature type: {self.feature_type}")
+
         self._normalize_features()
         return self
 
-    @ensure_pitch_and_confidence
-    def _extract_pitch_sequence(self, filtered=False):
+    def _extract_frequency(self):
         pitches = np.array(self.features[self.feature_name + '_pitch'])
-        confidences = np.array(self.features[self.feature_name + '_confidence'])
-        
-        # Apply filtering and smoothing
-        filtered_pitch = self._filter_and_smooth_pitch(pitches, confidences, filtered)
-        
-        # Store the filtered pitch
-        self.features[self.feature_name + '_smoothed'] = filtered_pitch
-        self.features[self.feature_name] = filtered_pitch
+        valid_pitches = pitches[pitches > 0]
 
-    @ensure_pitch_and_confidence
-    def _extract_pitch_contour(self):
-        pitches = self.features[self.feature_name + '_pitch']
-
-        valid_pitches = [p for p in pitches if p > 0 and np.isfinite(p)]
-
-        if not valid_pitches:
-            self.features[self.feature_name] = [0.0] * self.frame_count
-            return
-
-        min_pitch = min(valid_pitches)
-        max_pitch = max(valid_pitches)
-        pitch_range = max_pitch - min_pitch
-
-        if pitch_range == 0:
-            self.features[self.feature_name] = [0.0 if p == 0 else 1.0 for p in pitches]
-        else:
-            self.features[self.feature_name] = [
-                0.0 if p == 0 else (p - min_pitch) / pitch_range for p in pitches
-            ]
-            
-    def _matches_any_collection(self, pitch):
-        for collection in self.pitch_range_collections:
-            pitch_ranges = collection["pitch_ranges"]
-            chord_only = collection.get("chord_only", False)
-            if chord_only:
-                # Check if all pitch ranges in the collection are present
-                if self._all_pitches_present(collection):
-                    return True
-            else:
-                # Check if the pitch matches any pitch range in the collection
-                if any(pr.contains(pitch) for pr in pitch_ranges):
-                    return True
-        return False
-
-    def _all_pitches_present(self, collection):
-        pitch_ranges = collection["pitch_ranges"]
-        chord_window_size = collection.get("window_size", 0)  # You may define this per collection
-        # Calculate the start and end frames for the window
-        start_frame = max(0, self.current_frame - chord_window_size)
-        end_frame = min(self.frame_count - 1, self.current_frame + chord_window_size)
-        pitches_in_window = []
-        for i in range(start_frame, end_frame + 1):
-            window_frame = self._get_audio_window(i)
-            pitch, _ = self._calculate_robust_frame_pitch(window_frame)
-            if pitch > 0:
-                pitches_in_window.append(pitch)
-        # For each pitch range, check if there's any pitch in the window that matches
-        return all(
-            any(pr.contains(pitch) for pitch in pitches_in_window)
-            for pr in pitch_ranges
-        )
-
-    @ensure_pitch_and_confidence
-    def _extract_pitch_direction(self):
-        pitches = self.features[self.feature_name + '_pitch']
-        
-        pitch_diff = np.diff(pitches, prepend=pitches[0])
-        tolerances = np.array([self.calculate_tolerance(p, self.pitch_tolerance_percent) if p > 0 else 0 for p in pitches])
-        pitch_diff[np.abs(pitch_diff) < tolerances] = 0.0
-        direction = np.sign(pitch_diff)
-        self.features[self.feature_name] = direction.tolist()
-
-    @ensure_pitch_and_confidence
-    def _extract_vibrato(self, signal=False, intensity=False):
-        pitches = np.array(self.features[self.feature_name + '_pitch'])
-        
-        valid_indices = pitches > 0
-        valid_pitches = pitches[valid_indices]
-        
         if len(valid_pitches) == 0:
-            self.features[self.feature_name] = [0.0] * self.frame_count
-            return
-        
-        analytic_signal = hilbert(valid_pitches)
-        amplitude_envelope = np.abs(analytic_signal)
-        instantaneous_phase = np.unwrap(np.angle(analytic_signal))
-        instantaneous_frequency = np.diff(instantaneous_phase)
-        
-        feature_values = np.zeros_like(pitches)
-        if signal:
-            vibrato_signal = np.concatenate(([0], instantaneous_frequency))
-            feature_values[valid_indices] = vibrato_signal
-        elif intensity:
-            feature_values[valid_indices] = amplitude_envelope
+            feature_values = np.zeros_like(pitches)
         else:
-            raise ValueError("Specify either 'signal' or 'intensity' for vibrato extraction")
-        
+            feature_values = pitches.copy()
+        self.features[self.feature_name + '_original'] = feature_values.tolist()
         self.features[self.feature_name] = feature_values.tolist()
 
-    def _get_audio_window(self, frame_index):
-        # Calculate the start and end frame indices for the window
-        start_frame = max(0, frame_index - self.window_size)
-        end_frame = min(self.frame_count - 1, frame_index + self.window_size)
-        # Calculate the corresponding audio sample positions
-        start_time = start_frame * self.frame_duration
-        end_time = (end_frame + 1) * self.frame_duration  # +1 to include the end frame
-        start_sample = int(start_time * self.sample_rate)
-        end_sample = int(end_time * self.sample_rate)
-        if start_sample >= len(self.audio_array):
-            return np.array([])  # Return empty array if we've run out of audio
-        return self.audio_array[start_sample:min(end_sample, len(self.audio_array))]
+    def _extract_semitone(self):
+        pitches = np.array(self.features[self.feature_name + '_pitch'])
+        midi_notes = librosa.hz_to_midi(pitches)
+        midi_notes = np.round(midi_notes)
+        semitone_freqs = librosa.midi_to_hz(midi_notes)
+
+        semitone_freqs[pitches == 0] = 0.0
+        self.features[self.feature_name + '_original'] = semitone_freqs.tolist()
+        self.features[self.feature_name] = semitone_freqs.tolist()
+
+    def _extract_pitch_direction(self):
+        pitches = np.array(self.features[self.feature_name + '_pitch'])
+        pitches[pitches == 0] = np.nan  # Replace zeros with NaN for diff calculation
+        pitch_diff = np.diff(pitches, prepend=pitches[0])
+
+        direction = np.sign(pitch_diff)
+        direction = np.nan_to_num(direction)  # Replace NaNs back to zero
+
+        self.features[self.feature_name + '_original'] = direction.tolist()
+        self.features[self.feature_name] = direction.tolist()
+
+    def _extract_vibrato_signal(self):
+        pitches = np.array(self.features[self.feature_name + '_pitch'])
+        pitches[pitches == 0] = np.nan  # Ignore zero pitches
+
+        # Interpolate to fill NaNs for Hilbert transform
+        valid_indices = np.where(~np.isnan(pitches))[0]
+        if len(valid_indices) == 0:
+            vibrato_signal = np.zeros_like(pitches)
+        else:
+            pitches = np.interp(np.arange(len(pitches)), valid_indices, pitches[valid_indices])
+
+            analytic_signal = hilbert(pitches)
+            instantaneous_phase = np.unwrap(np.angle(analytic_signal))
+            instantaneous_frequency = np.diff(instantaneous_phase)
+
+            vibrato_signal = np.concatenate(([0], instantaneous_frequency))
+
+        self.features[self.feature_name + '_original'] = vibrato_signal.tolist()
+        self.features[self.feature_name] = vibrato_signal.tolist()
+
+    def _extract_vibrato_strength(self):
+        pitches = np.array(self.features[self.feature_name + '_pitch'])
+        pitches[pitches == 0] = np.nan  # Ignore zero pitches
+
+        window_size_frames = int(0.1 * self.sample_rate / self.hop_length)  # 100ms window
+        if window_size_frames < 1:
+            window_size_frames = 1
+
+        # Compute standard deviation over the window
+        vibrato_strength = []
+        for i in range(len(pitches)):
+            start = max(0, i - window_size_frames // 2)
+            end = min(len(pitches), i + window_size_frames // 2)
+            window_pitches = pitches[start:end]
+            window_pitches = window_pitches[~np.isnan(window_pitches)]
+            if len(window_pitches) > 0:
+                std = np.std(window_pitches)
+            else:
+                std = 0.0
+            vibrato_strength.append(std)
+
+        vibrato_strength = np.array(vibrato_strength)
+        self.features[self.feature_name + '_original'] = vibrato_strength.tolist()
+        self.features[self.feature_name] = vibrato_strength.tolist()
 
     def _normalize_features(self):
         feature_array = np.array(self.features[self.feature_name], dtype=np.float32)
@@ -366,86 +355,24 @@ class PitchFeature(BaseAudioFeature):
                 normalized[finite_mask] = (feature_array[finite_mask] - min_val) / (max_val - min_val)
             else:
                 normalized = np.zeros_like(feature_array)
-        self.features[self.feature_name+'_original'] = self.features[self.feature_name].copy()
-        self.features[self.feature_name+'_normalized'] = normalized.tolist()
+        self.features[self.feature_name] = normalized.tolist()
 
     def get_pitch_feature(self, frame_index):
         if self.features is None:
             self.extract()
-        
-        original_value = self.features[self.feature_name+'_original'][frame_index]
-        normalized_value = self.features[self.feature_name+'_normalized'][frame_index]
-        actual_pitch = self.features[self.feature_name+'_pitch'][frame_index]
-        smoothed_pitch = self.features[self.feature_name+'_smoothed'][frame_index]
-        
+
+        original_value = self.features[self.feature_name + '_original'][frame_index]
+        normalized_value = self.features[self.feature_name][frame_index]
+        actual_pitch = self.features[self.feature_name + '_pitch'][frame_index]
+        # Provide smoothed pitch if available
+        smoothed_pitch = self.features.get(self.feature_name + '_smoothed', [0.0]*self.frame_count)[frame_index]
+
         return {
             'original': original_value,
             'normalized': normalized_value,
             'actual_pitch': actual_pitch,
             'smoothed_pitch': smoothed_pitch
         }
-
-    @classmethod
-    def calculate_tolerance(cls, frequency, tolerance_percent):
-        # Calculate the frequency of the next semitone
-        next_semitone_freq = frequency * 2**(1/12)
-        # Calculate half the difference to the next semitone
-        half_freq_difference = (next_semitone_freq - frequency) / 2
-        # Calculate the tolerance based on the percentage, max at half the semitone difference
-        return min(half_freq_difference * (tolerance_percent / 100), half_freq_difference)
-
-    @classmethod
-    def quantize_to_nearest_semitone(cls, frequency, tolerance_percent):
-        if frequency == 0.0:
-            return frequency
-        # Calculate MIDI note number
-        midi_note = 69 + 12 * np.log2(frequency / 440)
-        # Round to nearest integer
-        nearest_midi = round(midi_note)
-        # Convert back to frequency
-        nearest_freq = 440 * 2**((nearest_midi - 69) / 12)
-        
-        # Calculate tolerance
-        tolerance = cls.calculate_tolerance(nearest_freq, tolerance_percent)
-        
-        # If within tolerance, return the nearest semitone frequency
-        if abs(frequency - nearest_freq) <= tolerance:
-            return nearest_freq
-        else:
-            return frequency
-
-    def _filter_and_smooth_pitch(self, pitches, confidences, filtered):
-        smoothed_pitch = signal.medfilt(pitches, kernel_size=5)
-        
-        prev_valid_pitch = None
-        filtered_pitch = []
-        
-        for i, pitch in enumerate(smoothed_pitch):
-            confidence = confidences[i]
-            
-            if confidence < 0.3:  # Adjust this threshold as needed
-                pitch = 0.0
-            else:
-                # Quantize the pitch to the nearest semitone if within tolerance
-                pitch = self.quantize_to_nearest_semitone(pitch, self.pitch_tolerance_percent)
-            
-            if prev_valid_pitch is not None:
-                tolerance = self.calculate_tolerance(prev_valid_pitch, self.pitch_tolerance_percent)
-                if abs(pitch - prev_valid_pitch) < tolerance:
-                    pitch = prev_valid_pitch
-            
-            if filtered and self.pitch_range_collections:
-                if self._matches_any_collection(pitch):
-                    filtered_pitch.append(pitch)
-                    prev_valid_pitch = pitch
-                else:
-                    filtered_pitch.append(0.0)
-                    prev_valid_pitch = None
-            else:
-                filtered_pitch.append(pitch)
-                prev_valid_pitch = pitch
-        
-        return filtered_pitch
         
 class PitchRange:
     def __init__(self, min_pitch, max_pitch):
