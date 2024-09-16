@@ -175,7 +175,7 @@ from .nodes.images.flex_images import (
 
 from .nodes.flex.feature_externals import (
     FeatureToWeightsStrategy,
-    DepthShapeModifier,
+    DepthInjection,
 )
 
 from .nodes.flex.feature_modulation import (
@@ -279,7 +279,7 @@ NODE_CLASS_MAPPINGS = {
     "AreaFeatureNode":              AreaFeatureNode,
 
     "FeatureToWeightsStrategy":     FeatureToWeightsStrategy,
-    "DepthShapeModifier":           DepthShapeModifier,
+    "DepthShapeModifier":           DepthInjection,
 
     #feature modulation
     "FeatureMixer":                 FeatureMixer,
