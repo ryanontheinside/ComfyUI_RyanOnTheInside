@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import torch
 from io import BytesIO
 from PIL import Image
+import random
 
 class FeatureModulationBase(RyanOnTheInside):
     CATEGORY = "RyanOnTheInside/FlexFeatures/FeatureModulators"
@@ -478,3 +479,50 @@ class PreviewFeature(FeatureModulationBase):
             processed_feature = feature
         
         return (self.visualize(processed_feature),)
+
+class FeatureTruncateOrExtend(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "target_feature_pipe": ("FEATURE_PIPE",),
+                "fill_method": (["zeros", "ones", "average", "random", "repeat"],),
+                **super().INPUT_TYPES()["required"],
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE", "IMAGE")
+    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    FUNCTION = "truncate_or_extend"
+
+    def truncate_or_extend(self, feature, target_feature_pipe, fill_method, invert_output):
+        source_values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        target_length = target_feature_pipe.frame_count
+
+        if len(source_values) > target_length:
+            # Truncate
+            adjusted_values = source_values[:target_length]
+        elif len(source_values) < target_length:
+            # Extend
+            adjusted_values = source_values.copy()
+            extension_length = target_length - len(source_values)
+            
+            if fill_method == "zeros":
+                adjusted_values.extend([0] * extension_length)
+            elif fill_method == "ones":
+                adjusted_values.extend([1] * extension_length)
+            elif fill_method == "average":
+                avg_value = np.mean(source_values)
+                adjusted_values.extend([avg_value] * extension_length)
+            elif fill_method == "random":
+                adjusted_values.extend([random.random() for _ in range(extension_length)])
+            elif fill_method == "repeat":
+                while len(adjusted_values) < target_length:
+                    adjusted_values.extend(source_values[:min(len(source_values), target_length - len(adjusted_values))])
+        else:
+            # Same length, no adjustment needed
+            adjusted_values = source_values
+
+        processed_feature = self.create_processed_feature(feature, adjusted_values, "TruncatedOrExtended", invert_output)
+        return (processed_feature, self.visualize(processed_feature))
