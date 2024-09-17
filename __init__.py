@@ -181,7 +181,7 @@ from .nodes.depth.depth_base import(
 
 from .nodes.flex.feature_externals import (
     FeatureToWeightsStrategy,
-    # DepthInjection,
+    DepthShapeModifier,
 )
 
 from .nodes.flex.feature_modulation import (
@@ -287,7 +287,9 @@ NODE_CLASS_MAPPINGS = {
     "FeatureToWeightsStrategy":     FeatureToWeightsStrategy,
     "DepthInjection":               DepthInjection,
     "DepthRippleEffect":            DepthRippleEffect,
-    "DepthBlender":                 DepthBlender,   
+    "DepthBlender":                 DepthBlender,
+    "DepthShapeModifier":           DepthShapeModifier,
+
     #feature modulation
     "FeatureMixer":                 FeatureMixer,
     "FeatureCombine":               FeatureCombine,
