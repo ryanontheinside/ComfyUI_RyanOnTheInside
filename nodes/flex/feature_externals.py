@@ -41,8 +41,8 @@ class FeatureToWeightsStrategy(FlexExternalModulator):
 
         return (weights_strategy,)
 
-
-class DepthInjection(FlexExternalModulator):
+#TODO: sub somthing else
+class DepthShapeModifier(FlexExternalModulator):
     @classmethod
     def INPUT_TYPES(cls):
         return {
