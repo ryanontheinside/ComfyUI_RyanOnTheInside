@@ -1,4 +1,4 @@
-#NOTE: this abstraction allows for the documentation to be both centrally managed and inherited
+#NOTE: this abstraction allows for both the documentation to be centrally managed and inherited
 from abc import ABCMeta
 class NodeConfigMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -157,7 +157,7 @@ add_node_config("MIDILoadAndExtract", {
 - `frame_rate`: Frame rate of the video to sync MIDI data with
 - `video_frames`: Corresponding video frames (IMAGE type)
 - `chord_only`: When true, only considers full chords (BOOLEAN)
-- `notes`: IGNORE THIS. Certain limitations prevent me from hiding it completely. Love, Ryan
+- `notes`: Specific notes to consider (comma-separated string of MIDI note numbers, e.g., "60,64,67" for C major triad)
 """
 })
 
@@ -477,11 +477,11 @@ The feature input modulates the intensity of new waves being generated, allowing
 
 add_node_config("FeatureExtractorBase", {
     "BASE_DESCRIPTION": """
- Features are used to modulate other RyanOnTheInside nodes. 
+ Features are used to modulate mask operations in FlexMask nodes. 
 
  You can replace this feature with any of the others, and it will work.
  
- Available features include Audio, Motion, MIDI, Pitch, Proximity, Depth, Time, Color, Brightness, and more.
+ Available features include Audio, Motion, MIDI, Depth, Time, Color, Brightness, and more.
 
 ### Parameters:
 - `frame_rate`: Frame rate of the video
@@ -563,86 +563,6 @@ add_node_config("AudioFeatureExtractor", {
 - `feature_type`: Type of audio feature to extract
   - Options: "amplitude_envelope", "rms_energy", "spectral_centroid", "onset_detection", "chroma_features"
 
-"""
-})
-
-add_node_config("PitchFeatureExtractor", {
-    "TOP_DESCRIPTION": "Extracts pitch-related features from audio input.",
-    "ADDITIONAL_INFO": """
-- `audio`: Input audio to analyze (AUDIO type)
-- `feature_pipe`: Feature pipe containing frame information (FEATURE_PIPE type)
-- `feature_type`: Type of pitch feature to extract:
-  - "pitch_filtered": Filtered pitch values
-  - "pitch_direction": Direction of pitch changes
-  - "vibrato_signal": Vibrato signal
-  - "vibrato_intensity": Intensity of vibrato
-- `window_size`: Size of the analysis window (0 for default)
-- `pitch_tolerance`: Tolerance for pitch detection (0.0 to 1.0)
-- `pitch_range_collections`: (Optional) Collections of pitch ranges to consider (PITCH_RANGE_COLLECTION type)
-
-This node extracts various pitch-related features from the input audio, which can be used for further analysis or mask modulation.
-"""
-})
-
-add_node_config("PitchRangeByNoteNode", {
-    "TOP_DESCRIPTION": "Creates pitch ranges based on specified MIDI notes.",
-    "ADDITIONAL_INFO": """
-- `chord_only`: If true, only detects when all specified notes are present simultaneously (BOOLEAN)
-- `pitch_tolerance_percent`: Tolerance percentage for pitch detection (0.0 to 100.0)
-- `notes`: IGNORE THIS. Certain limitations prevent me from hiding it completely. Love, Ryan
-- `previous_range_collection`: (Optional) Previous pitch range collection to append to (PITCH_RANGE_COLLECTION type)
-
-This node creates pitch ranges based on specified MIDI notes, which can be used for targeted pitch detection in audio analysis.
-"""
-})
-
-add_node_config("PitchRangePresetNode", {
-    "TOP_DESCRIPTION": "Creates preset pitch ranges for common vocal ranges.",
-    "ADDITIONAL_INFO": """
-- `preset`: Preset vocal range to use:
-  - Options: "Bass", "Baritone", "Tenor", "Alto", "Mezzo-soprano", "Soprano", "Contralto"
-- `previous_range_collection`: (Optional) Previous pitch range collection to append to (PITCH_RANGE_COLLECTION type)
-
-This node provides preset pitch ranges corresponding to common vocal ranges, which can be used for voice-specific audio analysis.
-"""
-})
-
-add_node_config("PitchRangeNode", {
-    "TOP_DESCRIPTION": "Creates a custom pitch range for audio analysis.",
-    "ADDITIONAL_INFO": """
-- `min_pitch`: Minimum frequency of the pitch range in Hz (20.0 to 2000.0)
-- `max_pitch`: Maximum frequency of the pitch range in Hz (20.0 to 2000.0)
-- `previous_range_collection`: (Optional) Previous pitch range collection to append to (PITCH_RANGE_COLLECTION type)
-
-This node allows you to create a custom pitch range by specifying the minimum and maximum frequencies. This can be useful for targeting specific frequency ranges in audio analysis, such as isolating particular instruments or vocal ranges.
-
-The created pitch range can be combined with other pitch ranges or used independently in pitch-related feature extraction nodes.
-"""
-})
-
-add_node_config("EmptyImageFromAudio", {
-    "TOP_DESCRIPTION": "Creates an empty image sequence based on audio input.",
-    "ADDITIONAL_INFO": """
-- `audio`: Input audio (AUDIO type)
-- `frame_rate`: Frame rate of the output image sequence (0.1 to 120 fps)
-- `height`: Height of the output images (16 to 4096 pixels)
-- `width`: Width of the output images (16 to 4096 pixels)
-
-This node generates an empty image sequence dimensions and frame rate, based on the duration of the input audio. 
-It's useful for creating a blank canvas for further image processing or visualization that matches the length of an audio track.
-"""
-})
-
-add_node_config("EmptyMaskFromAudio", {
-    "TOP_DESCRIPTION": "Creates an empty mask sequence based on audio input.",
-    "ADDITIONAL_INFO": """
-- `audio`: Input audio (AUDIO type)
-- `frame_rate`: Frame rate of the output mask sequence (0.1 to 120 fps)
-- `height`: Height of the output masks (16 to 4096 pixels)
-- `width`: Width of the output masks (16 to 4096 pixels)
-
-This node generates an empty mask sequence with the specified dimensions and frame rate, based on the duration of the input audio. 
-It's useful for creating a blank mask for further processing or effects that match the length of an audio track.
 """
 })
 
@@ -949,35 +869,6 @@ Shoutout @cyncratic
 """
 })
 
-add_node_config("FeatureTruncateOrExtend", {
-    "TOP_DESCRIPTION": "Adjusts the length of a feature to match a target feature pipe, either by truncating or extending it.",
-    "ADDITIONAL_INFO": """
-- `feature`: Input feature to be adjusted (FEATURE type)
-- `target_feature_pipe`: Target feature pipe to match the length (FEATURE type)
-- `fill_method`: Method to use when extending the feature:
-  - "zeros": Fills with 0's
-  - "ones": Fills with 1's
-  - "average": Fills with the average value of the source feature
-  - "random": Fills with random values between 0 and 1
-  - "repeat": Repeats the source values from the beginning
-- `invert_output`: Whether to invert the output feature values (True/False)
-
-This node adjusts the length of the input feature to match the length of the target feature pipe. If the input feature is longer, it will be truncated. If it's shorter, it will be extended using the specified fill method.
-
-The "repeat" fill method is particularly useful for maintaining patterns or rhythms when extending the feature.
-
-Use cases:
-1. Adapting audio-extracted features for shorter or longer video animations
-2. Synchronizing features of different lengths for complex animations
-3. Creating looping patterns by repeating shorter features
-
-Outputs:
-- Adjusted FEATURE
-- Visualization of the adjusted feature (IMAGE type)
-"""
-})
-
-
 add_node_config("FeatureToWeightsStrategy", {
     "TOP_DESCRIPTION": "Converts a FEATURE input into a WEIGHTS_STRATEGY for use with IPAdapter nodes.",
     "ADDITIONAL_INFO": """
@@ -1148,33 +1039,6 @@ add_node_config("ImageIntervalSelectPercentage", {
 """
 })
 
-add_node_config("DepthInjection", {
-    "TOP_DESCRIPTION": "Modifies depth maps based on mask contours, creating spherical gradients.",
-    "ADDITIONAL_INFO": """
-- `depth_map`: Input depth map (IMAGE type)
-- `mask`: Input mask to define areas for depth modification (MASK type)
-- `gradient_steepness`: Controls the steepness of the spherical gradient (0.1 to 10.0). Higher values create sharper transitions.
-- `depth_min`: Minimum depth value for the modified areas (0.0 to 1.0)
-- `depth_max`: Maximum depth value for the modified areas (0.0 to 1.0)
-- `strength`: Overall strength of the depth modification effect (0.0 to 1.0)
-
-This node modifies depth maps by creating spherical gradients based on the contours of the input mask. It's useful for adding depth variations to specific areas of an image, such as creating a sense of volume for masked objects.
-
-The process involves:
-1. Finding contours in the mask
-2. Generating spherical gradients for each contour
-3. Scaling the gradients to the specified depth range
-4. Blending the modified depth with the original depth map
-
-This node can be particularly effective for:
-- Adding depth to flat objects in a scene
-- Creating a sense of volume for masked areas
-- Fine-tuning depth maps for more realistic 3D effects
-
-Note: The node currently doesn't use the feature modulation capabilities, but these could be added in future versions for dynamic depth modifications.
-"""
-})
-
 add_node_config("ImageChunks", {
     "TOP_DESCRIPTION": "Concatenates images into a grid.",
     "ADDITIONAL_INFO": """
@@ -1221,48 +1085,5 @@ add_node_config("ImageDifference", {
     "TOP_DESCRIPTION": "Computes the difference between consecutive images.",
     "ADDITIONAL_INFO": """
 - `image`: Input image sequence (IMAGE type)
-"""
-})
-
-add_node_config("EffectVisualizer", {
-    "TOP_DESCRIPTION": "Visualizes feature values on video frames.",
-    "ADDITIONAL_INFO": """
-- `video_frames`: Input video frames (IMAGE type)
-- `feature`: Feature to visualize (FEATURE type)
-- `text_color`: Color for text overlay (RGB string, e.g., "(255,255,255)")
-- `font_scale`: Scale factor for the font size (0.1 to 2.0)
-"""
-})
-
-add_node_config("ProximityVisualizer", {
-    "TOP_DESCRIPTION": "Visualizes proximity relationships between anchor and query locations on video frames.",
-    "ADDITIONAL_INFO": """
-- `anchor_locations`: Locations of anchor points (LOCATION type)
-- `query_locations`: Locations of query points (LOCATION type)
-- `feature`: Proximity feature to visualize (FEATURE type)
-- `anchor_color`: Color for anchor points (RGB string, e.g., "(255,0,0)")
-- `query_color`: Color for query points (RGB string, e.g., "(0,255,0)")
-- `line_color`: Color for the line connecting closest points (RGB string, e.g., "(0,0,255)")
-
-
-The visualization helps in understanding spatial relationships and proximity-based effects in the video sequence.
-"""
-})
-
-add_node_config("PitchVisualizer", {
-    "TOP_DESCRIPTION": "Visualizes pitch-related information on video frames.",
-    "ADDITIONAL_INFO": """
-- `video_frames`: Input video frames (IMAGE type)
-- `feature`: Pitch feature to visualize (FEATURE type)
-- `text_color`: Color of the text overlay (RGB string, e.g., "(255,255,255)")
-- `font_scale`: Scale factor for the font size (0.1 to 2.0)
-
-This node overlays pitch-related information on video frames, including:
-- Feature value
-- Pitch value in Hz
-- Confidence value of the pitch detection
-- Approximate musical note
-
-The information is displayed as text on each frame, allowing for easy visualization of pitch characteristics alongside the video content.
 """
 })
