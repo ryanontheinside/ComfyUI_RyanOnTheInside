@@ -33,6 +33,7 @@
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
 
 ##### 🆕 Recent Updates
+-9/25/24 - **FlexImageContrast**: Adds contrast and brightness to images, with an option to preserve luminosity.
 -9/15/24 - **alot** Depth From Shape, Audio Pitch Feature, Pitch Range  filters, new MIDI keybord for Pitch Range specification, Image from audio, mask from audio, Improved depth chamber, wave propagation, emanating rings,   and a lot more 
 - 9/8/24 - **Area Feature**: Adds area  as a  driving reactivity feature!
 - 9/7/24 - **Proximity Feature**: Adds proximity as a driving reactivity feature! Allows for the distince of objects from one another to control other nodes.
