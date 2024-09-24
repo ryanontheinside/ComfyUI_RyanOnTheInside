@@ -170,6 +170,7 @@ from .nodes.images.flex_images import (
     FlexImageColorGrade,
     FlexImageTiltShift,
     FlexImageParallax,
+    FlexImageContrast,
     
 )
 
@@ -313,6 +314,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexImageColorGrade":          FlexImageColorGrade,
     "FlexImageTiltShift":           FlexImageTiltShift,
     "FlexImageParallax":            FlexImageParallax,
+    "FlexImageContrast":            FlexImageContrast,
     #opacity xp 
     # "FlexDepthBasedMaskOpacity":  FlexDepthBasedMaskOpacity,
     # "DepthBasedMaskOpacity":      DepthBasedMaskOpacity,
