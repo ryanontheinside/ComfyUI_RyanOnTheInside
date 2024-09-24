@@ -1000,6 +1000,28 @@ NODE_CONFIGS["FlexImageBase"] = {
 """
 }
 
+add_node_config("FlexImageContrast", {
+    "TOP_DESCRIPTION": "Adjusts the contrast and brightness of the image, with an option to preserve luminosity.",
+    "ADDITIONAL_INFO": """
+- `contrast`: Controls the amount of contrast adjustment (0.0 to 3.0). Values greater than 1.0 increase contrast, while values less than 1.0 decrease it.
+- `brightness`: Adjusts the overall brightness of the image (-1.0 to 1.0). Positive values brighten the image, negative values darken it.
+- `preserve_luminosity`: When enabled, maintains the overall luminosity of the image after applying contrast and brightness adjustments (True/False).
+- `feature_param`: Parameter to modulate based on the feature. Options are "contrast", "brightness", "preserve_luminosity", "None".
+
+This node allows for dynamic adjustment of image contrast and brightness, with the ability to preserve the overall luminosity of the image. It's useful for enhancing image details, adjusting exposure, or creating dramatic lighting effects.
+
+The contrast adjustment is applied around the mean value of the image, which helps maintain the overall balance of the image. The brightness adjustment is applied uniformly across the image.
+
+When 'preserve_luminosity' is enabled, the node calculates and adjusts the final luminosity to match the original image, which can help prevent over-brightening or over-darkening when applying strong contrast adjustments.
+
+Use cases include:
+1. Enhancing low-contrast images
+2. Creating high-contrast, dramatic effects
+3. Correcting under or overexposed images
+4. Dynamically adjusting image tone based on audio or other features
+"""
+})
+
 add_node_config("FlexImageEdgeDetect", {
     "TOP_DESCRIPTION": "Applies edge detection to the image using the Canny algorithm.",
     "ADDITIONAL_INFO": """

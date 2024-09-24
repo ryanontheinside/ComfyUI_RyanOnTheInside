@@ -401,3 +401,41 @@ class FlexImageParallax(FlexImageBase):
         result = image[new_y, new_x]
 
         return np.clip(result, 0, 1)
+    
+class FlexImageContrast(FlexImageBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "contrast": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.01}),
+                "brightness": ("FLOAT", {"default": 0.0, "min": -1.0, "max": 1.0, "step": 0.01}),
+                "preserve_luminosity": ("BOOLEAN", {"default": True}),
+            }
+        }
+
+    @classmethod
+    def get_modifiable_params(cls):
+        return ["contrast", "brightness", "preserve_luminosity", "None"]
+
+    def apply_effect_internal(self, image: np.ndarray, contrast: float, brightness: float, preserve_luminosity: bool, **kwargs) -> np.ndarray:
+        # Convert to float32 if not already
+        image = image.astype(np.float32)
+
+        # Apply brightness adjustment
+        result = image + brightness
+
+        # Apply contrast adjustment
+        mean = np.mean(result, axis=(0, 1), keepdims=True)
+        result = (result - mean) * contrast + mean
+
+        if preserve_luminosity:
+            # Calculate current and original luminosity
+            current_luminosity = np.mean(result)
+            original_luminosity = np.mean(image)
+            
+            # Adjust to preserve original luminosity
+            result *= original_luminosity / current_luminosity
+
+        return np.clip(result, 0, 1)
