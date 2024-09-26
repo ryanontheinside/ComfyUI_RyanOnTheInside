@@ -368,6 +368,7 @@ class FlexImageTiltShift(FlexImageBase):
 
         return np.clip(result, 0, 1)
     
+ 
 class FlexImageParallax(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -378,8 +379,9 @@ class FlexImageParallax(FlexImageBase):
                 "shift_x": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
                 "shift_y": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
                 "shift_z": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
-                "depth_map": ("IMAGE",),  # Assuming depth map is provided as an image
-            }
+            },
+            "optional": {"depth_map": ("IMAGE",),
+            },
         }
 
     @classmethod
@@ -392,24 +394,31 @@ class FlexImageParallax(FlexImageBase):
         shift_x: float,
         shift_y: float,
         shift_z: float,
-        depth_map: np.ndarray,
-        frame_index: int,
+        depth_map: np.ndarray = None,  # Default depth_map to None
+        frame_index: int = 0,  # Default to frame 0 for consistency
         **kwargs
     ) -> np.ndarray:
         h, w, _ = image.shape
 
-        # Extract the corresponding depth map frame and normalize it
-        depth_map_frame = depth_map[frame_index].cpu().numpy()
-        depth_map_gray = np.mean(depth_map_frame, axis=-1)
-        depth_map_gray /= np.max(depth_map_gray)
+        if depth_map is not None:
+            # Depth-based parallax
+            depth_map_frame = depth_map[frame_index].cpu().numpy()
+            depth_map_gray = np.mean(depth_map_frame, axis=-1)
+            depth_map_gray /= np.max(depth_map_gray)
 
-        # Calculate shifts in x and y directions
-        dx = (w * shift_x * depth_map_gray).astype(np.int32)
-        dy = (h * shift_y * depth_map_gray).astype(np.int32)
+            # Calculate shifts based on the depth map
+            dx = (w * shift_x * depth_map_gray).astype(np.int32)
+            dy = (h * shift_y * depth_map_gray).astype(np.int32)
 
-        # Calculate scaling factor for z-direction parallax
-        scale = 1 + shift_z * depth_map_gray
+            # Scale based on depth map
+            scale = 1 + shift_z * depth_map_gray
+        else:
+            # 2D fallback: no depth map, apply uniform parallax
+            dx = int(w * shift_x)
+            dy = int(h * shift_y)
+            scale = 1 + shift_z
 
+        # Generate the grid for x, y coordinates
         x, y = np.meshgrid(np.arange(w), np.arange(h))
 
         # Apply shifts
