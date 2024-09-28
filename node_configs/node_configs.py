@@ -1,3 +1,8 @@
+
+
+NODE_CONFIGS = {}
+
+
 #NOTE: this abstraction allows for the documentation to be both centrally managed and inherited
 from abc import ABCMeta
 class NodeConfigMeta(type):
@@ -14,7 +19,7 @@ class CombinedMeta(NodeConfigMeta, ABCMeta):
 def add_node_config(node_name, config):
     NODE_CONFIGS[node_name] = config
 
-NODE_CONFIGS = {}
+
 
 add_node_config("MaskBase", {
     "BASE_DESCRIPTION": """
@@ -1286,5 +1291,50 @@ This node overlays pitch-related information on video frames, including:
 - Approximate musical note
 
 The information is displayed as text on each frame, allowing for easy visualization of pitch characteristics alongside the video content.
+"""
+})
+
+add_node_config("FlexVideoBase", {
+    "TOP_DESCRIPTION": "Base class for flexible video effect nodes.",
+    "ADDITIONAL_INFO": """
+- `images`: Input video frames (IMAGE type)
+- `feature`: Feature used to modulate the effect (FEATURE type)
+- `strength`: Overall strength of the effect (0.0 to 2.0)
+- `feature_mode`: How the feature modulates the parameter ("relative" or "absolute")
+- `feature_param`: Parameter to be modulated by the feature
+- `feature_threshold`: Minimum feature value to apply the effect (0.0 to 1.0)
+- `feature_pipe`: (Sometimes Optional) Feature pipe containing frame information (FEATURE_PIPE type)
+"""
+})
+
+add_node_config("FlexVideoDirection", {
+    "TOP_DESCRIPTION": "Applies a direction-based effect to video frames based on feature values.",
+    "ADDITIONAL_INFO": """
+- Inherits parameters from FlexVideoBase
+- `feature_pipe`: (Optional) Feature pipe containing frame information (FEATURE_PIPE type)
+
+This node creates a video effect by selecting frames based on the input feature values. It can create effects like reversing, speeding up, or creating loops in the video sequence.
+"""
+})
+
+add_node_config("FlexVideoSpeed", {
+    "TOP_DESCRIPTION": "Adjusts the playback speed of video frames based on feature values.",
+    "ADDITIONAL_INFO": """
+- Inherits parameters from FlexVideoBase
+- `feature_pipe`: Feature pipe containing frame information (FEATURE_PIPE type)
+- `max_speed_percent`: Maximum speed as a percentage of the original speed (1.0 to 1000.0)
+- `duration_adjustment_method`: Method to adjust video duration ("Interpolate" or "Truncate/Repeat")
+
+This node modifies the playback speed of the video based on the input feature values. It can create effects like slow motion, fast forward, or variable speed playback.
+"""
+})
+
+add_node_config("FlexVideoFrameBlend", {
+    "TOP_DESCRIPTION": "Applies frame blending effect to video frames based on feature values.",
+    "ADDITIONAL_INFO": """
+- Inherits parameters from FlexVideoBase
+- `blend_strength`: Strength of the frame blending effect (0.0 to 1.0)
+
+This node creates a frame blending effect, where each frame is blended with the next frame. The strength of the blend is modulated by the input feature values, allowing for dynamic motion blur effects.
 """
 })
