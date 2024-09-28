@@ -21,7 +21,13 @@ class MIDIFeature(BaseFeature):
         "Sustain (CC64)": "cc64"
     }
 
+    @classmethod
+    def get_extraction_methods(cls):
+        """Return a list of parameter names that can be modulated."""
+        return list(cls.ATTRIBUTE_MAP.keys())
+
     def __init__(self, name, midi_data, attribute, frame_rate, frame_count, notes=None, chord_only=False):
+        super().__init__(name, "midi", frame_rate, frame_count)
         self.midi_data = midi_data
         self.attribute = attribute
         self.notes = set(notes) if notes is not None else set()
@@ -33,7 +39,7 @@ class MIDIFeature(BaseFeature):
         self.pitchbend_data = []
         self.aftertouch_data = []
         self.poly_pressure_data = []
-        super().__init__(name, "midi", frame_rate, frame_count)
+        
 
     def extract(self):
         try:

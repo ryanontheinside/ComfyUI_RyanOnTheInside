@@ -10,12 +10,18 @@ from .feature_extractors import FeatureExtractorBase
 
 class MIDILoadAndExtract(FeatureExtractorBase):
     @classmethod
+    def feature_type(cls) -> type[MIDIFeature]:
+        return MIDIFeature
+    
+
+    
+    @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
+                **super().INPUT_TYPES()["required"],
                 "midi_file": (folder_paths.get_filename_list("midi_files"),),
                 "track_selection": (["all"],),
-                "attribute": (MIDIFeature.get_attribute_names(), {"default": "Note On/Off"}),
                 "frame_rate": ("FLOAT", {"default": 30, "min": 0.1, "max": 120, "step": 0.1}),
                 "video_frames": ("IMAGE",),
                 "chord_only": ("BOOLEAN", {"default": False}),
@@ -27,7 +33,7 @@ class MIDILoadAndExtract(FeatureExtractorBase):
     FUNCTION = "process_midi"
     CATEGORY = "RyanOnTheInside/Audio"
 
-    def process_midi(self, midi_file, track_selection, notes, attribute, frame_rate, video_frames, chord_only=False):
+    def process_midi(self, midi_file, track_selection, notes, extraction_method, frame_rate, video_frames, chord_only=False):
         try:
             midi_path = folder_paths.get_full_path("midi_files", midi_file)
             if not midi_path or not os.path.exists(midi_path):
@@ -39,7 +45,7 @@ class MIDILoadAndExtract(FeatureExtractorBase):
             feature_pipe = FeaturePipe(frame_rate, video_frames)
             
             # Convert friendly attribute name to internal attribute name
-            internal_attribute = MIDIFeature.get_attribute_value(attribute)
+            internal_attribute = MIDIFeature.get_attribute_value(extraction_method)
             
             feature = MIDIFeature(f"midi_{internal_attribute}", midi_data, internal_attribute, 
                                   feature_pipe.frame_rate, feature_pipe.frame_count, 
@@ -79,9 +85,14 @@ class MIDILoadAndExtract(FeatureExtractorBase):
         }
     
     @classmethod
-    def VALIDATE_INPUTS(cls, midi_file, track_selection, notes, attribute, frame_rate, video_frames):
-        if not folder_paths.exists_and_is_file(midi_file):
-            return "MIDI file not found: {}".format(midi_file)
+    def VALIDATE_INPUTS(cls, midi_file, track_selection, notes, extraction_method, frame_rate, video_frames):
+        midi_path = folder_paths.get_full_path("midi_files", midi_file)
+        if not midi_path or not os.path.isfile(midi_path):
+            return f"MIDI file not found: {midi_file}"
+        
+        # Check if the file has a .mid or .midi extension
+        if not midi_file.lower().endswith(('.mid', '.midi')):
+            return f"Invalid file type. Expected .mid or .midi file, got: {midi_file}"
         
         if notes != "all":
             try:

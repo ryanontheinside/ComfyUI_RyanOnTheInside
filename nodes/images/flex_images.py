@@ -368,6 +368,7 @@ class FlexImageTiltShift(FlexImageBase):
 
         return np.clip(result, 0, 1)
     
+ 
 class FlexImageParallax(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -377,27 +378,63 @@ class FlexImageParallax(FlexImageBase):
                 **super().INPUT_TYPES()["required"],
                 "shift_x": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
                 "shift_y": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
-                "depth_map": ("IMAGE",),  # Assuming depth map is provided as an image
-            }
+                "shift_z": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
+            },
+            "optional": {"depth_map": ("IMAGE",),
+            },
         }
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["shift_x", "shift_y", "None"]
+        return ["shift_x", "shift_y", "shift_z"]
 
-    def apply_effect_internal(self, image: np.ndarray, shift_x: float, shift_y: float, depth_map: np.ndarray, frame_index: int, **kwargs) -> np.ndarray:
+    def apply_effect_internal(
+        self,
+        image: np.ndarray,
+        shift_x: float,
+        shift_y: float,
+        shift_z: float,
+        depth_map: np.ndarray = None,  # Default depth_map to None
+        frame_index: int = 0,  # Default to frame 0 for consistency
+        **kwargs
+    ) -> np.ndarray:
         h, w, _ = image.shape
 
-        depth_map_frame = depth_map[frame_index].cpu().numpy()
-        depth_map_gray = np.mean(depth_map_frame, axis=-1)
-        depth_map_gray = depth_map_gray / np.max(depth_map_gray)
-        dx = (w * shift_x * depth_map_gray).astype(np.int32)
-        dy = (h * shift_y * depth_map_gray).astype(np.int32)
+        if depth_map is not None:
+            # Depth-based parallax
+            depth_map_frame = depth_map[frame_index].cpu().numpy()
+            depth_map_gray = np.mean(depth_map_frame, axis=-1)
+            depth_map_gray /= np.max(depth_map_gray)
+
+            # Calculate shifts based on the depth map
+            dx = (w * shift_x * depth_map_gray).astype(np.int32)
+            dy = (h * shift_y * depth_map_gray).astype(np.int32)
+
+            # Scale based on depth map
+            scale = 1 + shift_z * depth_map_gray
+        else:
+            # 2D fallback: no depth map, apply uniform parallax
+            dx = int(w * shift_x)
+            dy = int(h * shift_y)
+            scale = 1 + shift_z
+
+        # Generate the grid for x, y coordinates
         x, y = np.meshgrid(np.arange(w), np.arange(h))
 
-        new_x = np.clip(x + dx, 0, w - 1)
-        new_y = np.clip(y + dy, 0, h - 1)
+        # Apply shifts
+        x_shifted = x + dx
+        y_shifted = y + dy
 
+        # Apply scaling around the center of the image
+        cx, cy = w / 2, h / 2
+        x_scaled = cx + (x_shifted - cx) * scale
+        y_scaled = cy + (y_shifted - cy) * scale
+
+        # Ensure coordinates are within image bounds
+        new_x = np.clip(x_scaled, 0, w - 1).astype(np.int32)
+        new_y = np.clip(y_scaled, 0, h - 1).astype(np.int32)
+
+        # Generate the resulting image with parallax effect
         result = image[new_y, new_x]
 
         return np.clip(result, 0, 1)
