@@ -1,7 +1,7 @@
 [project]
 name = "comfyui_ryanonyheinside"
 description = "Custom nodes introducing particle simulations, optical flow, audio manipulation & reactivity, and temporal masks"
-version = "1.8.5"
+version = "1.8.6"
 license = {file = "LICENSE"}
 dependencies = ["opencv-python==4.10.0","scipy","torchaudio", "pillow","librosa","pymunk==6.8.1","matplotlib","openunmix","mido"]
 
