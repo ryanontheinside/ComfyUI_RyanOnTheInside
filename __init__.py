@@ -171,7 +171,13 @@ from .nodes.images.flex_images import (
     FlexImageTiltShift,
     FlexImageParallax,
     FlexImageContrast,
-    
+
+)
+
+from .nodes.video.flex_video import (
+    FlexVideoSpeed,
+    FlexVideoDirection,
+    FlexVideoFrameBlend,
 )
 
 from .nodes.depth.depth_base import(
@@ -215,6 +221,11 @@ os.makedirs(midi_path, exist_ok=True)
 
 NODE_CLASS_MAPPINGS = {
     
+    #video
+    "FlexVideoSpeed":              FlexVideoSpeed,
+    "FlexVideoDirection":          FlexVideoDirection,
+    "FlexVideoFrameBlend":         FlexVideoFrameBlend,
+
     ###temporal
     "MaskMorph":                    MaskMorph,
     "MaskTransform":                MaskTransform,
@@ -315,6 +326,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexImageTiltShift":           FlexImageTiltShift,
     "FlexImageParallax":            FlexImageParallax,
     "FlexImageContrast":            FlexImageContrast,
+
     #opacity xp 
     # "FlexDepthBasedMaskOpacity":  FlexDepthBasedMaskOpacity,
     # "DepthBasedMaskOpacity":      DepthBasedMaskOpacity,
@@ -344,6 +356,11 @@ NODE_CLASS_MAPPINGS = {
 WEB_DIRECTORY = "./web/js"
 
 NODE_DISPLAY_NAME_MAPPINGS = {
+
+    "FlexVideoSpeed":            "**BETA** Flex Video Speed",
+    "FlexVideoDirection":        "Flex Video Direction",
+    "FlexVideoFrameBlend":       "**BETA**Flex Video Frame Blend",
+
     "MaskMorph": "Temporal Mask Morph",
     "MaskTransform":"Temporal Mask Transform",
     "MaskMath":"Temporal Mask Math",

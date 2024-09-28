@@ -1,0 +1,4509 @@
+{
+  "last_node_id": 244,
+  "last_link_id": 510,
+  "nodes": [
+    {
+      "id": 165,
+      "type": "FeatureSmoothing",
+      "pos": {
+        "0": 1767.974609375,
+        "1": 1058.024658203125
+      },
+      "size": {
+        "0": 478.8000183105469,
+        "1": 174
+      },
+      "flags": {
+        "collapsed": false
+      },
+      "order": 33,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 374
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            370
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "FEATURE_VISUALIZATION",
+          "type": "IMAGE",
+          "links": [
+            371
+          ],
+          "slot_index": 1,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FeatureSmoothing"
+      },
+      "widgets_values": [
+        "moving_average",
+        7,
+        0.3,
+        1,
+        false
+      ]
+    },
+    {
+      "id": 153,
+      "type": "FeatureSmoothing",
+      "pos": {
+        "0": 1674.97509765625,
+        "1": -693.136962890625
+      },
+      "size": {
+        "0": 478.8000183105469,
+        "1": 174
+      },
+      "flags": {
+        "collapsed": false
+      },
+      "order": 32,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 351
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            357
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "FEATURE_VISUALIZATION",
+          "type": "IMAGE",
+          "links": [
+            358
+          ],
+          "slot_index": 1,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FeatureSmoothing"
+      },
+      "widgets_values": [
+        "moving_average",
+        7,
+        0.3,
+        1,
+        false
+      ]
+    },
+    {
+      "id": 157,
+      "type": "PreviewImage",
+      "pos": {
+        "0": 2260.976318359375,
+        "1": -1098.1416015625
+      },
+      "size": {
+        "0": 210,
+        "1": 246
+      },
+      "flags": {},
+      "order": 41,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 358
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 180,
+      "type": "VHS_VideoCombine",
+      "pos": {
+        "0": 8987.7255859375,
+        "1": -793.009765625
+      },
+      "size": [
+        214.7587890625,
+        670.2378472222222
+      ],
+      "flags": {},
+      "order": 63,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 405
+        },
+        {
+          "name": "audio",
+          "type": "*",
+          "link": 494
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 30,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00201-audio.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 30
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 175,
+      "type": "GetImageSizeAndCount",
+      "pos": {
+        "0": 7767.72509765625,
+        "1": -543.01025390625
+      },
+      "size": {
+        "0": 277.20001220703125,
+        "1": 86
+      },
+      "flags": {},
+      "order": 49,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 396
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            409
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "360 width",
+          "type": "INT",
+          "links": [
+            397
+          ],
+          "slot_index": 1,
+          "shape": 3
+        },
+        {
+          "name": "640 height",
+          "type": "INT",
+          "links": [
+            398
+          ],
+          "slot_index": 2,
+          "shape": 3
+        },
+        {
+          "name": "726 count",
+          "type": "INT",
+          "links": [
+            399
+          ],
+          "slot_index": 3,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GetImageSizeAndCount"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 185,
+      "type": "GetImageSizeAndCount",
+      "pos": {
+        "0": 7807.72509765625,
+        "1": 1446.989501953125
+      },
+      "size": {
+        "0": 277.20001220703125,
+        "1": 86
+      },
+      "flags": {},
+      "order": 51,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 427
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            422
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "360 width",
+          "type": "INT",
+          "links": [
+            419
+          ],
+          "slot_index": 1,
+          "shape": 3
+        },
+        {
+          "name": "640 height",
+          "type": "INT",
+          "links": [
+            420
+          ],
+          "slot_index": 2,
+          "shape": 3
+        },
+        {
+          "name": "726 count",
+          "type": "INT",
+          "links": [
+            421
+          ],
+          "slot_index": 3,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GetImageSizeAndCount"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 188,
+      "type": "VHS_VideoCombine",
+      "pos": {
+        "0": 9027.7255859375,
+        "1": 1196.989501953125
+      },
+      "size": [
+        214.7587890625,
+        670.2378472222222
+      ],
+      "flags": {},
+      "order": 64,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 425
+        },
+        {
+          "name": "audio",
+          "type": "*",
+          "link": 500
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 30,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00202-audio.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 30
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 181,
+      "type": "GetImageSizeAndCount",
+      "pos": {
+        "0": 7845.7255859375,
+        "1": 257.989501953125
+      },
+      "size": {
+        "0": 277.20001220703125,
+        "1": 86
+      },
+      "flags": {},
+      "order": 47,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 426
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            415
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "360 width",
+          "type": "INT",
+          "links": [
+            412
+          ],
+          "slot_index": 1,
+          "shape": 3
+        },
+        {
+          "name": "640 height",
+          "type": "INT",
+          "links": [
+            413
+          ],
+          "slot_index": 2,
+          "shape": 3
+        },
+        {
+          "name": "726 count",
+          "type": "INT",
+          "links": [
+            414
+          ],
+          "slot_index": 3,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GetImageSizeAndCount"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 184,
+      "type": "VHS_VideoCombine",
+      "pos": {
+        "0": 9196.7255859375,
+        "1": 187.989501953125
+      },
+      "size": [
+        214.7587890625,
+        670.2378472222222
+      ],
+      "flags": {},
+      "order": 62,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 418
+        },
+        {
+          "name": "audio",
+          "type": "*",
+          "link": 497
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 30,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00203-audio.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 30
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 164,
+      "type": "FlexVideoDirection",
+      "pos": {
+        "0": 1781.974609375,
+        "1": 1278.0252685546875
+      },
+      "size": {
+        "0": 466.279296875,
+        "1": 170
+      },
+      "flags": {},
+      "order": 42,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 391
+        },
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 370
+        },
+        {
+          "name": "feature_pipe",
+          "type": "FEATURE_PIPE",
+          "link": 375
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            369,
+            427
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlexVideoDirection"
+      },
+      "widgets_values": [
+        0.99,
+        "relative",
+        "direction",
+        0
+      ]
+    },
+    {
+      "id": 179,
+      "type": "ImageCompositeMasked",
+      "pos": {
+        "0": 8557.7255859375,
+        "1": -603.009765625
+      },
+      "size": {
+        "0": 315,
+        "1": 146
+      },
+      "flags": {},
+      "order": 59,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "destination",
+          "type": "IMAGE",
+          "link": 409
+        },
+        {
+          "name": "source",
+          "type": "IMAGE",
+          "link": 411
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 404
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            405,
+            428
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageCompositeMasked"
+      },
+      "widgets_values": [
+        0,
+        0,
+        false
+      ]
+    },
+    {
+      "id": 183,
+      "type": "ImageCompositeMasked",
+      "pos": {
+        "0": 8777.7255859375,
+        "1": 252.989501953125
+      },
+      "size": {
+        "0": 315,
+        "1": 146
+      },
+      "flags": {},
+      "order": 58,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "destination",
+          "type": "IMAGE",
+          "link": 415
+        },
+        {
+          "name": "source",
+          "type": "IMAGE",
+          "link": 416
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 417
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            418,
+            429
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageCompositeMasked"
+      },
+      "widgets_values": [
+        0,
+        0,
+        false
+      ]
+    },
+    {
+      "id": 187,
+      "type": "ImageCompositeMasked",
+      "pos": {
+        "0": 8597.7255859375,
+        "1": 1386.989501953125
+      },
+      "size": {
+        "0": 315,
+        "1": 146
+      },
+      "flags": {},
+      "order": 60,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "destination",
+          "type": "IMAGE",
+          "link": 422
+        },
+        {
+          "name": "source",
+          "type": "IMAGE",
+          "link": 423
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 424
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            425,
+            430
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageCompositeMasked"
+      },
+      "widgets_values": [
+        0,
+        0,
+        false
+      ]
+    },
+    {
+      "id": 195,
+      "type": "Reroute",
+      "pos": {
+        "0": 1644,
+        "1": 900
+      },
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 442
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "AUDIO",
+          "links": [
+            443,
+            498
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 198,
+      "type": "FeatureSmoothing",
+      "pos": {
+        "0": 1790,
+        "1": 1950
+      },
+      "size": {
+        "0": 478.8000183105469,
+        "1": 174
+      },
+      "flags": {
+        "collapsed": false
+      },
+      "order": 34,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 450
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            448
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "FEATURE_VISUALIZATION",
+          "type": "IMAGE",
+          "links": [
+            451
+          ],
+          "slot_index": 1,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FeatureSmoothing"
+      },
+      "widgets_values": [
+        "moving_average",
+        7,
+        0.3,
+        1,
+        false
+      ]
+    },
+    {
+      "id": 201,
+      "type": "Reroute",
+      "pos": {
+        "0": 1670,
+        "1": 1800
+      },
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 454
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "AUDIO",
+          "links": [
+            452,
+            501
+          ]
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 200,
+      "type": "AudioFeatureExtractor",
+      "pos": {
+        "0": 1760,
+        "1": 1800
+      },
+      "size": {
+        "0": 541.800048828125,
+        "1": 78
+      },
+      "flags": {},
+      "order": 24,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 452
+        },
+        {
+          "name": "feature_pipe",
+          "type": "FEATURE_PIPE",
+          "link": 455
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            450
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "FEATURE_PIPE",
+          "type": "FEATURE_PIPE",
+          "links": [
+            449
+          ],
+          "slot_index": 1,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AudioFeatureExtractor"
+      },
+      "widgets_values": [
+        "amplitude_envelope"
+      ]
+    },
+    {
+      "id": 172,
+      "type": "Reroute",
+      "pos": {
+        "0": 952.9832763671875,
+        "1": 422.727294921875
+      },
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 386
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "IMAGE",
+          "links": [
+            388,
+            389,
+            391,
+            453
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 191,
+      "type": "Reroute",
+      "pos": {
+        "0": 9654,
+        "1": 929
+      },
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 432
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "AUDIO",
+          "links": [
+            433
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 202,
+      "type": "GetImageSizeAndCount",
+      "pos": {
+        "0": 7820,
+        "1": 2260
+      },
+      "size": {
+        "0": 277.20001220703125,
+        "1": 86
+      },
+      "flags": {},
+      "order": 53,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 464
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            459
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "360 width",
+          "type": "INT",
+          "links": [
+            456
+          ],
+          "slot_index": 1,
+          "shape": 3
+        },
+        {
+          "name": "640 height",
+          "type": "INT",
+          "links": [
+            457
+          ],
+          "slot_index": 2,
+          "shape": 3
+        },
+        {
+          "name": "726 count",
+          "type": "INT",
+          "links": [
+            458
+          ],
+          "slot_index": 3,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GetImageSizeAndCount"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 205,
+      "type": "VHS_VideoCombine",
+      "pos": {
+        "0": 9040,
+        "1": 2010
+      },
+      "size": [
+        214.7587890625,
+        670.2378472222222
+      ],
+      "flags": {},
+      "order": 65,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 462
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 503
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 30,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00204-audio.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 30
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 189,
+      "type": "ImageConcatMulti",
+      "pos": {
+        "0": 9917,
+        "1": 981
+      },
+      "size": {
+        "0": 210,
+        "1": 190
+      },
+      "flags": {},
+      "order": 66,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "image_1",
+          "type": "IMAGE",
+          "link": 428
+        },
+        {
+          "name": "image_2",
+          "type": "IMAGE",
+          "link": 429
+        },
+        {
+          "name": "image_3",
+          "type": "IMAGE",
+          "link": 430
+        },
+        {
+          "name": "image_4",
+          "type": "IMAGE",
+          "link": 463
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            431
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        4,
+        "right",
+        false,
+        null
+      ]
+    },
+    {
+      "id": 204,
+      "type": "ImageCompositeMasked",
+      "pos": {
+        "0": 8610,
+        "1": 2200
+      },
+      "size": {
+        "0": 315,
+        "1": 146
+      },
+      "flags": {},
+      "order": 61,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "destination",
+          "type": "IMAGE",
+          "link": 459
+        },
+        {
+          "name": "source",
+          "type": "IMAGE",
+          "link": 460
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 461
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            462,
+            463
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageCompositeMasked"
+      },
+      "widgets_values": [
+        0,
+        0,
+        false
+      ]
+    },
+    {
+      "id": 197,
+      "type": "FlexVideoDirection",
+      "pos": {
+        "0": 1800,
+        "1": 2170
+      },
+      "size": {
+        "0": 466.279296875,
+        "1": 170
+      },
+      "flags": {},
+      "order": 44,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 453
+        },
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 448
+        },
+        {
+          "name": "feature_pipe",
+          "type": "FEATURE_PIPE",
+          "link": 449
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            446,
+            464
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlexVideoDirection"
+      },
+      "widgets_values": [
+        0.99,
+        "relative",
+        "direction",
+        0
+      ]
+    },
+    {
+      "id": 193,
+      "type": "EmptyImageFromAudio",
+      "pos": {
+        "0": -371.01666259765625,
+        "1": 441.72735595703125
+      },
+      "size": {
+        "0": 336,
+        "1": 113.79998779296875
+      },
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 434
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            439,
+            465
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyImageFromAudio"
+      },
+      "widgets_values": [
+        30,
+        512,
+        512
+      ]
+    },
+    {
+      "id": 208,
+      "type": "PreviewFeature",
+      "pos": {
+        "0": -182.3755340576172,
+        "1": 1588.4697265625
+      },
+      "size": {
+        "0": 415.8000183105469,
+        "1": 58
+      },
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 466
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE_PREVIEW",
+          "type": "IMAGE",
+          "links": [
+            467
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewFeature"
+      },
+      "widgets_values": [
+        false
+      ]
+    },
+    {
+      "id": 213,
+      "type": "EffectVisualizer",
+      "pos": {
+        "0": -164.37551879882812,
+        "1": 1925.4698486328125
+      },
+      "size": {
+        "0": 441,
+        "1": 102
+      },
+      "flags": {},
+      "order": 31,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_frames",
+          "type": "IMAGE",
+          "link": 472
+        },
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 473
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            474
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EffectVisualizer"
+      },
+      "widgets_values": [
+        "(255,255,255)",
+        1
+      ]
+    },
+    {
+      "id": 210,
+      "type": "FlexVideoDirection",
+      "pos": {
+        "0": -169.37551879882812,
+        "1": 1701.4698486328125
+      },
+      "size": {
+        "0": 466.279296875,
+        "1": 170
+      },
+      "flags": {},
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 470
+        },
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 469
+        },
+        {
+          "name": "feature_pipe",
+          "type": "FEATURE_PIPE",
+          "link": 479
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            472
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlexVideoDirection"
+      },
+      "widgets_values": [
+        0.99,
+        "absolute",
+        "direction",
+        0
+      ]
+    },
+    {
+      "id": 221,
+      "type": "PreviewImage",
+      "pos": {
+        "0": -52.375545501708984,
+        "1": 2606.470458984375
+      },
+      "size": {
+        "0": 210,
+        "1": 246
+      },
+      "flags": {},
+      "order": 30,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 506
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 225,
+      "type": "VHS_VideoCombine",
+      "pos": {
+        "0": 738.624267578125,
+        "1": 2394.470458984375
+      },
+      "size": [
+        214.7587890625,
+        670.2378472222222
+      ],
+      "flags": {},
+      "order": 38,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 487
+        },
+        {
+          "name": "audio",
+          "type": "*",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 30,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00218.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 30
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 211,
+      "type": "VHS_VideoCombine",
+      "pos": {
+        "0": 591.624267578125,
+        "1": 1546.4697265625
+      },
+      "size": [
+        214.7587890625,
+        670.2378472222222
+      ],
+      "flags": {},
+      "order": 39,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 474
+        },
+        {
+          "name": "audio",
+          "type": "*",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 30,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00223.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 30
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 207,
+      "type": "Note",
+      "pos": {
+        "0": 173.1876983642578,
+        "1": 473.1287841796875
+      },
+      "size": {
+        "0": 689.7115478515625,
+        "1": 270.1275634765625
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "THANK YOU for checking this out!!! I developed these nodes as well as this workflow.\n\nIf you think this is cool please consider a sub to my youtube and a star to the repo :)\n\nhttps://github.com/ryanontheinside/ComfyUI_RyanOnTheInside\nhttps://www.youtube.com/@ryanontheinside\n\nLove, \nRyan\n\nPS\n\nAudio is just one powerful example\n\nBut ANY FLEX FEATURE CAN CONTROL THIS EFFECT. Including proximity, motion, depth, MIDI, color, brightness........etc\n\nSee Time example below, and flex features tutorial for more info https://youtu.be/fobd9mEzkBU\n\n"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 186,
+      "type": "TextMaskNode",
+      "pos": {
+        "0": 8148,
+        "1": 1457
+      },
+      "size": {
+        "0": 403.1999816894531,
+        "1": 342
+      },
+      "flags": {},
+      "order": 56,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "link": 419,
+          "widget": {
+            "name": "width"
+          }
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "link": 420,
+          "widget": {
+            "name": "height"
+          }
+        },
+        {
+          "name": "batch_size",
+          "type": "INT",
+          "link": 421,
+          "widget": {
+            "name": "batch_size"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            424
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            423
+          ],
+          "slot_index": 1,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TextMaskNode"
+      },
+      "widgets_values": [
+        512,
+        512,
+        "VOCALS",
+        "Arial",
+        32,
+        "(255,255,255)",
+        "(0,0,0)",
+        0.5,
+        0,
+        0,
+        0.9,
+        1
+      ]
+    },
+    {
+      "id": 182,
+      "type": "TextMaskNode",
+      "pos": {
+        "0": 8251.7255859375,
+        "1": 251.989501953125
+      },
+      "size": {
+        "0": 403.1999816894531,
+        "1": 342
+      },
+      "flags": {},
+      "order": 54,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "link": 412,
+          "widget": {
+            "name": "width"
+          }
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "link": 413,
+          "widget": {
+            "name": "height"
+          }
+        },
+        {
+          "name": "batch_size",
+          "type": "INT",
+          "link": 414,
+          "widget": {
+            "name": "batch_size"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            417
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            416
+          ],
+          "slot_index": 1,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TextMaskNode"
+      },
+      "widgets_values": [
+        512,
+        512,
+        "BASS",
+        "Arial",
+        32,
+        "(255,255,255)",
+        "(0,0,0)",
+        0.5,
+        0,
+        0,
+        0.9,
+        1
+      ]
+    },
+    {
+      "id": 177,
+      "type": "TextMaskNode",
+      "pos": {
+        "0": 8097.7255859375,
+        "1": -533.010498046875
+      },
+      "size": {
+        "0": 403.1999816894531,
+        "1": 342
+      },
+      "flags": {},
+      "order": 55,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "link": 397,
+          "widget": {
+            "name": "width"
+          }
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "link": 398,
+          "widget": {
+            "name": "height"
+          }
+        },
+        {
+          "name": "batch_size",
+          "type": "INT",
+          "link": 399,
+          "widget": {
+            "name": "batch_size"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            404
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            411
+          ],
+          "slot_index": 1,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TextMaskNode"
+      },
+      "widgets_values": [
+        512,
+        512,
+        "DRUMS",
+        "Arial",
+        32,
+        "(255,255,255)",
+        "(0,0,0)",
+        0.5,
+        0,
+        0,
+        0.9,
+        1
+      ]
+    },
+    {
+      "id": 203,
+      "type": "TextMaskNode",
+      "pos": {
+        "0": 8160,
+        "1": 2270
+      },
+      "size": {
+        "0": 403.1999816894531,
+        "1": 342
+      },
+      "flags": {},
+      "order": 57,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "link": 456,
+          "widget": {
+            "name": "width"
+          }
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "link": 457,
+          "widget": {
+            "name": "height"
+          }
+        },
+        {
+          "name": "batch_size",
+          "type": "INT",
+          "link": 458,
+          "widget": {
+            "name": "batch_size"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            461
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            460
+          ],
+          "slot_index": 1,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TextMaskNode"
+      },
+      "widgets_values": [
+        512,
+        512,
+        "OTHER INSTRUMENTS",
+        "Arial",
+        32,
+        "(255,255,255)",
+        "(0,0,0)",
+        0.5,
+        0,
+        0,
+        0.9,
+        1
+      ]
+    },
+    {
+      "id": 192,
+      "type": "VHS_LoadAudioUpload",
+      "pos": {
+        "0": -739,
+        "1": 252
+      },
+      "size": {
+        "0": 243.818359375,
+        "1": 130
+      },
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            434,
+            437,
+            438
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_LoadAudioUpload"
+      },
+      "widgets_values": {
+        "audio": "juicy.mp3",
+        "start_time": 10.06,
+        "duration": 24.23,
+        "choose audio to upload": "image"
+      }
+    },
+    {
+      "id": 194,
+      "type": "PreviewAudio",
+      "pos": {
+        "0": -255.94879150390625,
+        "1": -81.42230224609375
+      },
+      "size": {
+        "0": 315,
+        "1": 76
+      },
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 437
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewAudio"
+      },
+      "widgets_values": [
+        null
+      ]
+    },
+    {
+      "id": 117,
+      "type": "DownloadOpenUnmixModel",
+      "pos": {
+        "0": -250,
+        "1": 93
+      },
+      "size": {
+        "0": 541.800048828125,
+        "1": 58
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "OPEN_UNMIX_MODEL",
+          "type": "OPEN_UNMIX_MODEL",
+          "links": [
+            250
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DownloadOpenUnmixModel"
+      },
+      "widgets_values": [
+        "umxl"
+      ]
+    },
+    {
+      "id": 106,
+      "type": "VHS_LoadVideo",
+      "pos": {
+        "0": -690,
+        "1": 593
+      },
+      "size": [
+        247.455078125,
+        680.3645833333333
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            386,
+            470,
+            483
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null,
+          "shape": 3
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null,
+          "shape": 3
+        },
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "links": [],
+          "slot_index": 3,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_LoadVideo"
+      },
+      "widgets_values": {
+        "video": "flower_timelapse.mp4",
+        "force_rate": 0,
+        "force_size": "Disabled",
+        "custom_width": 512,
+        "custom_height": 512,
+        "frame_load_cap": 36,
+        "skip_first_frames": 0,
+        "select_every_nth": 1,
+        "choose video to upload": "image",
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "frame_load_cap": 36,
+            "skip_first_frames": 0,
+            "force_rate": 0,
+            "filename": "flower_timelapse.mp4",
+            "type": "input",
+            "format": "video/mp4",
+            "select_every_nth": 1
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 115,
+      "type": "AudioSeparator",
+      "pos": {
+        "0": 319,
+        "1": 229
+      },
+      "size": {
+        "0": 415.8000183105469,
+        "1": 158
+      },
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "OPEN_UNMIX_MODEL",
+          "link": 250
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 438
+        },
+        {
+          "name": "video_frames",
+          "type": "IMAGE",
+          "link": 439
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            432
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "drums_audio",
+          "type": "AUDIO",
+          "links": [
+            252
+          ],
+          "slot_index": 1,
+          "shape": 3
+        },
+        {
+          "name": "vocals_audio",
+          "type": "AUDIO",
+          "links": [
+            442
+          ],
+          "slot_index": 2,
+          "shape": 3
+        },
+        {
+          "name": "bass_audio",
+          "type": "AUDIO",
+          "links": [
+            296,
+            495
+          ],
+          "slot_index": 3,
+          "shape": 3
+        },
+        {
+          "name": "other_audio",
+          "type": "AUDIO",
+          "links": [
+            454
+          ],
+          "slot_index": 4,
+          "shape": 3
+        },
+        {
+          "name": "feature_pipe",
+          "type": "FEATURE_PIPE",
+          "links": [
+            297,
+            394,
+            445,
+            455
+          ],
+          "slot_index": 5,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AudioSeparator"
+      },
+      "widgets_values": [
+        30
+      ]
+    },
+    {
+      "id": 120,
+      "type": "FrequencyFilterPreset",
+      "pos": {
+        "0": 1598,
+        "1": -1066
+      },
+      "size": {
+        "0": 516.5999755859375,
+        "1": 58
+      },
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_filter",
+          "type": "FREQUENCY_FILTER",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FREQUENCY_FILTER",
+          "type": "FREQUENCY_FILTER",
+          "links": [
+            253
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FrequencyFilterPreset"
+      },
+      "widgets_values": [
+        "isolate_kick_drum"
+      ]
+    },
+    {
+      "id": 119,
+      "type": "AudioFilter",
+      "pos": {
+        "0": 1625,
+        "1": -948
+      },
+      "size": {
+        "0": 378,
+        "1": 46
+      },
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 252
+        },
+        {
+          "name": "filters",
+          "type": "FREQUENCY_FILTER",
+          "link": 253
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            256,
+            492
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AudioFilter"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 161,
+      "type": "FeatureSmoothing",
+      "pos": {
+        "0": 1676,
+        "1": 124
+      },
+      "size": {
+        "0": 478.8000183105469,
+        "1": 174
+      },
+      "flags": {
+        "collapsed": false
+      },
+      "order": 26,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 366
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            362
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "FEATURE_VISUALIZATION",
+          "type": "IMAGE",
+          "links": [
+            365
+          ],
+          "slot_index": 1,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FeatureSmoothing"
+      },
+      "widgets_values": [
+        "moving_average",
+        7,
+        0.3,
+        1,
+        false
+      ]
+    },
+    {
+      "id": 138,
+      "type": "AudioFeatureExtractor",
+      "pos": {
+        "0": 1683,
+        "1": -34
+      },
+      "size": {
+        "0": 541.800048828125,
+        "1": 78
+      },
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 296
+        },
+        {
+          "name": "feature_pipe",
+          "type": "FEATURE_PIPE",
+          "link": 297
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            366,
+            490
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "FEATURE_PIPE",
+          "type": "FEATURE_PIPE",
+          "links": [
+            367
+          ],
+          "slot_index": 1,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AudioFeatureExtractor"
+      },
+      "widgets_values": [
+        "amplitude_envelope"
+      ]
+    },
+    {
+      "id": 233,
+      "type": "PreviewFeature",
+      "pos": {
+        "0": 2175,
+        "1": -134
+      },
+      "size": {
+        "0": 415.8000183105469,
+        "1": 58
+      },
+      "flags": {},
+      "order": 27,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 490
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE_PREVIEW",
+          "type": "IMAGE",
+          "links": [
+            491
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewFeature"
+      },
+      "widgets_values": [
+        false
+      ]
+    },
+    {
+      "id": 234,
+      "type": "PreviewImage",
+      "pos": {
+        "0": 3022.890380859375,
+        "1": -176.58802795410156
+      },
+      "size": {
+        "0": 210,
+        "1": 246
+      },
+      "flags": {},
+      "order": 37,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 491
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 162,
+      "type": "PreviewImage",
+      "pos": {
+        "0": 2277,
+        "1": 60
+      },
+      "size": {
+        "0": 210,
+        "1": 246
+      },
+      "flags": {},
+      "order": 36,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 365
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 108,
+      "type": "VHS_VideoCombine",
+      "pos": {
+        "0": 2598,
+        "1": -1059
+      },
+      "size": [
+        214.7587890625,
+        670.2378472222222
+      ],
+      "flags": {},
+      "order": 48,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 316
+        },
+        {
+          "name": "audio",
+          "type": "*",
+          "link": 493
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 30,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00219-audio.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 30
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 238,
+      "type": "Reroute",
+      "pos": {
+        "0": 2541.888916015625,
+        "1": -1148.8082275390625
+      },
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 21,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 492
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "AUDIO",
+          "links": [
+            493,
+            494
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 159,
+      "type": "VHS_VideoCombine",
+      "pos": {
+        "0": 2610,
+        "1": -7
+      },
+      "size": [
+        214.7587890625,
+        670.2378472222222
+      ],
+      "flags": {},
+      "order": 46,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 359
+        },
+        {
+          "name": "audio",
+          "type": "*",
+          "link": 496
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 30,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00221-audio.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 30
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 239,
+      "type": "Reroute",
+      "pos": {
+        "0": 2451.01806640625,
+        "1": -21.460708618164062
+      },
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 495
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "AUDIO",
+          "links": [
+            496,
+            497
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 166,
+      "type": "PreviewImage",
+      "pos": {
+        "0": 2363,
+        "1": 1046
+      },
+      "size": {
+        "0": 210,
+        "1": 246
+      },
+      "flags": {},
+      "order": 43,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 371
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 163,
+      "type": "VHS_VideoCombine",
+      "pos": {
+        "0": 2682.668701171875,
+        "1": 897.24755859375
+      },
+      "size": [
+        214.7587890625,
+        670.2378472222222
+      ],
+      "flags": {},
+      "order": 50,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 369
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 499
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 30,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00224-audio.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 30
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 240,
+      "type": "Reroute",
+      "pos": {
+        "0": 2513.22705078125,
+        "1": 919.3145751953125
+      },
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 23,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 498
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "AUDIO",
+          "links": [
+            499,
+            500
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 199,
+      "type": "PreviewImage",
+      "pos": {
+        "0": 2362,
+        "1": 1912
+      },
+      "size": {
+        "0": 210,
+        "1": 246
+      },
+      "flags": {},
+      "order": 45,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 451
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 196,
+      "type": "VHS_VideoCombine",
+      "pos": {
+        "0": 2710,
+        "1": 1790
+      },
+      "size": [
+        214.7587890625,
+        670.2378472222222
+      ],
+      "flags": {},
+      "order": 52,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 446
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 502
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 30,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00222-audio.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 30
+          },
+          "muted": false
+        }
+      }
+    },
+    {
+      "id": 241,
+      "type": "Reroute",
+      "pos": {
+        "0": 2527.7314453125,
+        "1": 1820.163818359375
+      },
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 25,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 501
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "AUDIO",
+          "links": [
+            502,
+            503
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 220,
+      "type": "Note",
+      "pos": {
+        "0": -467.3756408691406,
+        "1": 2279.470458984375
+      },
+      "size": {
+        "0": 269.4545593261719,
+        "1": 75.10535430908203
+      },
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "you can do a lot with FeatureMod nodes, too"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 224,
+      "type": "FlexVideoDirection",
+      "pos": {
+        "0": 199,
+        "1": 2400
+      },
+      "size": {
+        "0": 466.279296875,
+        "1": 170
+      },
+      "flags": {},
+      "order": 29,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 483
+        },
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 505
+        },
+        {
+          "name": "feature_pipe",
+          "type": "FEATURE_PIPE",
+          "link": 485
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            487
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlexVideoDirection"
+      },
+      "widgets_values": [
+        0.99,
+        "absolute",
+        "direction",
+        0
+      ]
+    },
+    {
+      "id": 209,
+      "type": "PreviewImage",
+      "pos": {
+        "0": 329,
+        "1": 1541
+      },
+      "size": {
+        "0": 210,
+        "1": 246
+      },
+      "flags": {},
+      "order": 28,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 467
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 206,
+      "type": "TimeFeatureNode",
+      "pos": {
+        "0": -690,
+        "1": 1683
+      },
+      "size": {
+        "0": 378,
+        "1": 150
+      },
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_frames",
+          "type": "IMAGE",
+          "link": 465
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            466,
+            469,
+            473,
+            504
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "FEATURE_PIPE",
+          "type": "FEATURE_PIPE",
+          "links": [
+            479,
+            485
+          ],
+          "slot_index": 1,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TimeFeatureNode"
+      },
+      "widgets_values": [
+        "pulse",
+        30,
+        0.30000000000000004,
+        0
+      ]
+    },
+    {
+      "id": 242,
+      "type": "FeatureOscillator",
+      "pos": {
+        "0": -624,
+        "1": 2510
+      },
+      "size": {
+        "0": 491.4000244140625,
+        "1": 198
+      },
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 504
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            505
+          ],
+          "shape": 3
+        },
+        {
+          "name": "FEATURE_VISUALIZATION",
+          "type": "IMAGE",
+          "links": [
+            506
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FeatureOscillator"
+      },
+      "widgets_values": [
+        "sine",
+        1,
+        0.5,
+        0,
+        0.5,
+        false
+      ]
+    },
+    {
+      "id": 121,
+      "type": "AudioFeatureExtractor",
+      "pos": {
+        "0": 1642,
+        "1": -841
+      },
+      "size": {
+        "0": 541.800048828125,
+        "1": 78
+      },
+      "flags": {},
+      "order": 20,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 256
+        },
+        {
+          "name": "feature_pipe",
+          "type": "FEATURE_PIPE",
+          "link": 394
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            351
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "FEATURE_PIPE",
+          "type": "FEATURE_PIPE",
+          "links": [
+            327
+          ],
+          "slot_index": 1,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AudioFeatureExtractor"
+      },
+      "widgets_values": [
+        "amplitude_envelope"
+      ]
+    },
+    {
+      "id": 142,
+      "type": "FlexVideoDirection",
+      "pos": {
+        "0": 1654,
+        "1": -435
+      },
+      "size": {
+        "0": 466.279296875,
+        "1": 170
+      },
+      "flags": {},
+      "order": 40,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 389
+        },
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 357
+        },
+        {
+          "name": "feature_pipe",
+          "type": "FEATURE_PIPE",
+          "link": 327
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            316,
+            396
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlexVideoDirection"
+      },
+      "widgets_values": [
+        0.99,
+        "relative",
+        "direction",
+        0
+      ]
+    },
+    {
+      "id": 167,
+      "type": "AudioFeatureExtractor",
+      "pos": {
+        "0": 2050,
+        "1": 860
+      },
+      "size": {
+        "0": 541.800048828125,
+        "1": 78
+      },
+      "flags": {},
+      "order": 22,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 443
+        },
+        {
+          "name": "feature_pipe",
+          "type": "FEATURE_PIPE",
+          "link": 445
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            374
+          ],
+          "slot_index": 0,
+          "shape": 3
+        },
+        {
+          "name": "FEATURE_PIPE",
+          "type": "FEATURE_PIPE",
+          "links": [
+            375
+          ],
+          "slot_index": 1,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AudioFeatureExtractor"
+      },
+      "widgets_values": [
+        "amplitude_envelope"
+      ]
+    },
+    {
+      "id": 160,
+      "type": "FlexVideoDirection",
+      "pos": {
+        "0": 1722,
+        "1": 432
+      },
+      "size": {
+        "0": 466.279296875,
+        "1": 170
+      },
+      "flags": {},
+      "order": 35,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 388
+        },
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 362
+        },
+        {
+          "name": "feature_pipe",
+          "type": "FEATURE_PIPE",
+          "link": 367
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            359,
+            426
+          ],
+          "slot_index": 0,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlexVideoDirection"
+      },
+      "widgets_values": [
+        0.99,
+        "relative",
+        "direction",
+        0
+      ]
+    },
+    {
+      "id": 190,
+      "type": "VHS_VideoCombine",
+      "pos": {
+        "0": 10165,
+        "1": 828
+      },
+      "size": [
+        214.7587890625,
+        410.55946180555554
+      ],
+      "flags": {},
+      "order": 67,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 431
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 433
+        },
+        {
+          "name": "meta_batch",
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null,
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 30,
+        "loop_count": 0,
+        "filename_prefix": "AnimateDiff",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "AnimateDiff_00200-audio.mp4",
+            "subfolder": "",
+            "type": "output",
+            "format": "video/h264-mp4",
+            "frame_rate": 30
+          },
+          "muted": false
+        }
+      }
+    }
+  ],
+  "links": [
+    [
+      250,
+      117,
+      0,
+      115,
+      0,
+      "OPEN_UNMIX_MODEL"
+    ],
+    [
+      252,
+      115,
+      1,
+      119,
+      0,
+      "AUDIO"
+    ],
+    [
+      253,
+      120,
+      0,
+      119,
+      1,
+      "FREQUENCY_FILTER"
+    ],
+    [
+      256,
+      119,
+      0,
+      121,
+      0,
+      "AUDIO"
+    ],
+    [
+      296,
+      115,
+      3,
+      138,
+      0,
+      "AUDIO"
+    ],
+    [
+      297,
+      115,
+      5,
+      138,
+      1,
+      "FEATURE_PIPE"
+    ],
+    [
+      316,
+      142,
+      0,
+      108,
+      0,
+      "IMAGE"
+    ],
+    [
+      327,
+      121,
+      1,
+      142,
+      2,
+      "FEATURE_PIPE"
+    ],
+    [
+      351,
+      121,
+      0,
+      153,
+      0,
+      "FEATURE"
+    ],
+    [
+      357,
+      153,
+      0,
+      142,
+      1,
+      "FEATURE"
+    ],
+    [
+      358,
+      153,
+      1,
+      157,
+      0,
+      "IMAGE"
+    ],
+    [
+      359,
+      160,
+      0,
+      159,
+      0,
+      "IMAGE"
+    ],
+    [
+      362,
+      161,
+      0,
+      160,
+      1,
+      "FEATURE"
+    ],
+    [
+      365,
+      161,
+      1,
+      162,
+      0,
+      "IMAGE"
+    ],
+    [
+      366,
+      138,
+      0,
+      161,
+      0,
+      "FEATURE"
+    ],
+    [
+      367,
+      138,
+      1,
+      160,
+      2,
+      "FEATURE_PIPE"
+    ],
+    [
+      369,
+      164,
+      0,
+      163,
+      0,
+      "IMAGE"
+    ],
+    [
+      370,
+      165,
+      0,
+      164,
+      1,
+      "FEATURE"
+    ],
+    [
+      371,
+      165,
+      1,
+      166,
+      0,
+      "IMAGE"
+    ],
+    [
+      374,
+      167,
+      0,
+      165,
+      0,
+      "FEATURE"
+    ],
+    [
+      375,
+      167,
+      1,
+      164,
+      2,
+      "FEATURE_PIPE"
+    ],
+    [
+      386,
+      106,
+      0,
+      172,
+      0,
+      "*"
+    ],
+    [
+      388,
+      172,
+      0,
+      160,
+      0,
+      "IMAGE"
+    ],
+    [
+      389,
+      172,
+      0,
+      142,
+      0,
+      "IMAGE"
+    ],
+    [
+      391,
+      172,
+      0,
+      164,
+      0,
+      "IMAGE"
+    ],
+    [
+      394,
+      115,
+      5,
+      121,
+      1,
+      "FEATURE_PIPE"
+    ],
+    [
+      396,
+      142,
+      0,
+      175,
+      0,
+      "IMAGE"
+    ],
+    [
+      397,
+      175,
+      1,
+      177,
+      0,
+      "INT"
+    ],
+    [
+      398,
+      175,
+      2,
+      177,
+      1,
+      "INT"
+    ],
+    [
+      399,
+      175,
+      3,
+      177,
+      2,
+      "INT"
+    ],
+    [
+      404,
+      177,
+      0,
+      179,
+      2,
+      "MASK"
+    ],
+    [
+      405,
+      179,
+      0,
+      180,
+      0,
+      "IMAGE"
+    ],
+    [
+      409,
+      175,
+      0,
+      179,
+      0,
+      "IMAGE"
+    ],
+    [
+      411,
+      177,
+      1,
+      179,
+      1,
+      "IMAGE"
+    ],
+    [
+      412,
+      181,
+      1,
+      182,
+      0,
+      "INT"
+    ],
+    [
+      413,
+      181,
+      2,
+      182,
+      1,
+      "INT"
+    ],
+    [
+      414,
+      181,
+      3,
+      182,
+      2,
+      "INT"
+    ],
+    [
+      415,
+      181,
+      0,
+      183,
+      0,
+      "IMAGE"
+    ],
+    [
+      416,
+      182,
+      1,
+      183,
+      1,
+      "IMAGE"
+    ],
+    [
+      417,
+      182,
+      0,
+      183,
+      2,
+      "MASK"
+    ],
+    [
+      418,
+      183,
+      0,
+      184,
+      0,
+      "IMAGE"
+    ],
+    [
+      419,
+      185,
+      1,
+      186,
+      0,
+      "INT"
+    ],
+    [
+      420,
+      185,
+      2,
+      186,
+      1,
+      "INT"
+    ],
+    [
+      421,
+      185,
+      3,
+      186,
+      2,
+      "INT"
+    ],
+    [
+      422,
+      185,
+      0,
+      187,
+      0,
+      "IMAGE"
+    ],
+    [
+      423,
+      186,
+      1,
+      187,
+      1,
+      "IMAGE"
+    ],
+    [
+      424,
+      186,
+      0,
+      187,
+      2,
+      "MASK"
+    ],
+    [
+      425,
+      187,
+      0,
+      188,
+      0,
+      "IMAGE"
+    ],
+    [
+      426,
+      160,
+      0,
+      181,
+      0,
+      "IMAGE"
+    ],
+    [
+      427,
+      164,
+      0,
+      185,
+      0,
+      "IMAGE"
+    ],
+    [
+      428,
+      179,
+      0,
+      189,
+      0,
+      "IMAGE"
+    ],
+    [
+      429,
+      183,
+      0,
+      189,
+      1,
+      "IMAGE"
+    ],
+    [
+      430,
+      187,
+      0,
+      189,
+      2,
+      "IMAGE"
+    ],
+    [
+      431,
+      189,
+      0,
+      190,
+      0,
+      "IMAGE"
+    ],
+    [
+      432,
+      115,
+      0,
+      191,
+      0,
+      "*"
+    ],
+    [
+      433,
+      191,
+      0,
+      190,
+      1,
+      "AUDIO"
+    ],
+    [
+      434,
+      192,
+      0,
+      193,
+      0,
+      "AUDIO"
+    ],
+    [
+      437,
+      192,
+      0,
+      194,
+      0,
+      "AUDIO"
+    ],
+    [
+      438,
+      192,
+      0,
+      115,
+      1,
+      "AUDIO"
+    ],
+    [
+      439,
+      193,
+      0,
+      115,
+      2,
+      "IMAGE"
+    ],
+    [
+      442,
+      115,
+      2,
+      195,
+      0,
+      "*"
+    ],
+    [
+      443,
+      195,
+      0,
+      167,
+      0,
+      "AUDIO"
+    ],
+    [
+      445,
+      115,
+      5,
+      167,
+      1,
+      "FEATURE_PIPE"
+    ],
+    [
+      446,
+      197,
+      0,
+      196,
+      0,
+      "IMAGE"
+    ],
+    [
+      448,
+      198,
+      0,
+      197,
+      1,
+      "FEATURE"
+    ],
+    [
+      449,
+      200,
+      1,
+      197,
+      2,
+      "FEATURE_PIPE"
+    ],
+    [
+      450,
+      200,
+      0,
+      198,
+      0,
+      "FEATURE"
+    ],
+    [
+      451,
+      198,
+      1,
+      199,
+      0,
+      "IMAGE"
+    ],
+    [
+      452,
+      201,
+      0,
+      200,
+      0,
+      "AUDIO"
+    ],
+    [
+      453,
+      172,
+      0,
+      197,
+      0,
+      "IMAGE"
+    ],
+    [
+      454,
+      115,
+      4,
+      201,
+      0,
+      "*"
+    ],
+    [
+      455,
+      115,
+      5,
+      200,
+      1,
+      "FEATURE_PIPE"
+    ],
+    [
+      456,
+      202,
+      1,
+      203,
+      0,
+      "INT"
+    ],
+    [
+      457,
+      202,
+      2,
+      203,
+      1,
+      "INT"
+    ],
+    [
+      458,
+      202,
+      3,
+      203,
+      2,
+      "INT"
+    ],
+    [
+      459,
+      202,
+      0,
+      204,
+      0,
+      "IMAGE"
+    ],
+    [
+      460,
+      203,
+      1,
+      204,
+      1,
+      "IMAGE"
+    ],
+    [
+      461,
+      203,
+      0,
+      204,
+      2,
+      "MASK"
+    ],
+    [
+      462,
+      204,
+      0,
+      205,
+      0,
+      "IMAGE"
+    ],
+    [
+      463,
+      204,
+      0,
+      189,
+      3,
+      "IMAGE"
+    ],
+    [
+      464,
+      197,
+      0,
+      202,
+      0,
+      "IMAGE"
+    ],
+    [
+      465,
+      193,
+      0,
+      206,
+      0,
+      "IMAGE"
+    ],
+    [
+      466,
+      206,
+      0,
+      208,
+      0,
+      "FEATURE"
+    ],
+    [
+      467,
+      208,
+      0,
+      209,
+      0,
+      "IMAGE"
+    ],
+    [
+      469,
+      206,
+      0,
+      210,
+      1,
+      "FEATURE"
+    ],
+    [
+      470,
+      106,
+      0,
+      210,
+      0,
+      "IMAGE"
+    ],
+    [
+      472,
+      210,
+      0,
+      213,
+      0,
+      "IMAGE"
+    ],
+    [
+      473,
+      206,
+      0,
+      213,
+      1,
+      "FEATURE"
+    ],
+    [
+      474,
+      213,
+      0,
+      211,
+      0,
+      "IMAGE"
+    ],
+    [
+      479,
+      206,
+      1,
+      210,
+      2,
+      "FEATURE_PIPE"
+    ],
+    [
+      483,
+      106,
+      0,
+      224,
+      0,
+      "IMAGE"
+    ],
+    [
+      485,
+      206,
+      1,
+      224,
+      2,
+      "FEATURE_PIPE"
+    ],
+    [
+      487,
+      224,
+      0,
+      225,
+      0,
+      "IMAGE"
+    ],
+    [
+      490,
+      138,
+      0,
+      233,
+      0,
+      "FEATURE"
+    ],
+    [
+      491,
+      233,
+      0,
+      234,
+      0,
+      "IMAGE"
+    ],
+    [
+      492,
+      119,
+      0,
+      238,
+      0,
+      "*"
+    ],
+    [
+      493,
+      238,
+      0,
+      108,
+      1,
+      "AUDIO"
+    ],
+    [
+      494,
+      238,
+      0,
+      180,
+      1,
+      "AUDIO"
+    ],
+    [
+      495,
+      115,
+      3,
+      239,
+      0,
+      "*"
+    ],
+    [
+      496,
+      239,
+      0,
+      159,
+      1,
+      "AUDIO"
+    ],
+    [
+      497,
+      239,
+      0,
+      184,
+      1,
+      "AUDIO"
+    ],
+    [
+      498,
+      195,
+      0,
+      240,
+      0,
+      "*"
+    ],
+    [
+      499,
+      240,
+      0,
+      163,
+      1,
+      "*"
+    ],
+    [
+      500,
+      240,
+      0,
+      188,
+      1,
+      "AUDIO"
+    ],
+    [
+      501,
+      201,
+      0,
+      241,
+      0,
+      "*"
+    ],
+    [
+      502,
+      241,
+      0,
+      196,
+      1,
+      "*"
+    ],
+    [
+      503,
+      241,
+      0,
+      205,
+      1,
+      "AUDIO"
+    ],
+    [
+      504,
+      206,
+      0,
+      242,
+      0,
+      "FEATURE"
+    ],
+    [
+      505,
+      242,
+      0,
+      224,
+      1,
+      "FEATURE"
+    ],
+    [
+      506,
+      242,
+      1,
+      221,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "title": "Time",
+      "bounding": [
+        -819,
+        1452,
+        1924,
+        1726
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "title": "Other",
+      "bounding": [
+        1678,
+        1737,
+        1388,
+        644
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "title": "Bass",
+      "bounding": [
+        1625,
+        -193,
+        1295,
+        901
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "title": "Vocals",
+      "bounding": [
+        1652,
+        776,
+        1367,
+        831
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "title": "Audio Separation",
+      "bounding": [
+        -739,
+        -168,
+        1831,
+        1481
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "title": "Drums",
+      "bounding": [
+        1598,
+        -1218,
+        1317,
+        941
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "title": "Text Overlay\\",
+      "bounding": [
+        7810,
+        -1086,
+        3484,
+        4046
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.12100000000000158,
+      "offset": [
+        2650.1600993659995,
+        2837.7087895071204
+      ]
+    }
+  },
+  "version": 0.4
+}
