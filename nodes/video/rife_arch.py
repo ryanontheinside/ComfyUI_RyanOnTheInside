@@ -1,3 +1,8 @@
+
+#NOTE: This file is a modified version of the original ComfyUI-Frame-Interpolation node. 
+# CREDIT goes to Fannovel16 for the original implementation. https://github.com/Fannovel16/ComfyUI-Frame-Interpolation
+
+
 """
 26-Dez-21
 https://github.com/hzwer/Practical-RIFE

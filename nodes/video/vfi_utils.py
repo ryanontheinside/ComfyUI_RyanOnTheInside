@@ -1,3 +1,8 @@
+
+#NOTE: This file is a modified version of the original ComfyUI-Frame-Interpolation node. 
+# CREDIT goes to Fannovel16 for the original implementation. https://github.com/Fannovel16/ComfyUI-Frame-Interpolation
+
+
 import yaml
 import os
 from torch.hub import download_url_to_file, get_dir
