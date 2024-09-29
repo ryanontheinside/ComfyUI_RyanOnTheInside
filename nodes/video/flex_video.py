@@ -1,6 +1,6 @@
 import numpy as np
 from .video_base import FlexVideoBase
-
+from ..flex.feature_pipe import FeaturePipe
 class FlexVideoDirection(FlexVideoBase):
 
     @classmethod
@@ -61,110 +61,52 @@ class FlexVideoSpeed(FlexVideoBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["max_speed_percent"]
+        return ["speed_factor"]
 
     @classmethod
     def INPUT_TYPES(cls):
-        return {
+                return {
             "required": {
                 **super().INPUT_TYPES()["required"],
                 "feature_pipe": ("FEATURE_PIPE",),
-                "max_speed_percent": ("FLOAT", {"default": 500.0, "min": 1.0, "max": 1000.0, "step": 1.0}),
-                "duration_adjustment_method": (["Interpolate", "Truncate/Repeat"],),
             }
         }
 
-    FUNCTION = "apply_effect"
-
-    def apply_effect_internal(
-        self,
-        video: np.ndarray,
-        feature_values: np.ndarray,
-        max_speed_percent: float,
-        feature_pipe=None,
-        duration_adjustment_method="Interpolate",
-        **kwargs,
-    ) -> np.ndarray:
-        strength = kwargs.get('strength', 1.0)
-        feature_mode = kwargs.get('feature_mode', 'relative')
+    def apply_effect_internal(self, video: np.ndarray, feature_values: np.ndarray, feature_pipe: FeaturePipe, **kwargs):
         num_frames = video.shape[0]
-        original_frame_rate = feature_pipe.frame_rate
-        num_features = len(feature_values)
+        total_duration = feature_pipe.frame_rate*feature_pipe.frame_rate
+        frame_rate = feature_pipe.frame_rate
+        original_duration = num_frames / frame_rate
+        original_timestamps = np.linspace(0, original_duration, num_frames)
 
-        # Adjust video duration to match the number of features
-        if num_frames != num_features:
-            if duration_adjustment_method == "Interpolate":
-                video = self.interpolate_video(video, num_features)
-            else:  # "Truncate/Repeat"
-                video = self.truncate_or_repeat_video(video, num_features)
-            num_frames = num_features
+        # Ensure feature_values is the same length as video frames
+        if len(feature_values) != num_frames:
+            raise ValueError("feature_values length must match the number of video frames")
 
-        # Convert max_speed_percent to a speed factor
-        max_speed_factor = max_speed_percent / 100.0
+        # Invert the feature values to make high values result in slower motion, and low values result in faster motion
+        inverted_feature_values = 1 - feature_values
 
-        # Apply strength and feature_mode to adjust speed
-        if feature_mode == "relative":
-            # Feature value of 0.5 means original speed
-            speed_factors = 1.0 + (feature_values - 0.5) * 2 * (max_speed_factor - 1.0) * strength
-        else:  # "absolute"
-            # Feature values directly map to speed, scaled by max_speed_factor
-            speed_factors = feature_values * max_speed_factor * strength
+        # Adjust time per frame based on the inverted feature values
+        adjusted_frame_durations = inverted_feature_values + 0.1  # Add a small constant to avoid zero division
+        cumulative_times = np.cumsum(adjusted_frame_durations / frame_rate)
 
-        # Ensure speed factors are within a reasonable range
-        speed_factors = np.clip(speed_factors, 1e-6, max_speed_factor)
+        # Normalize cumulative times to match the total desired duration
+        normalized_cumulative_times = cumulative_times * (total_duration / cumulative_times[-1])
 
-        # Compute time intervals between frames based on adjusted speed
-        time_intervals = 1.0 / (original_frame_rate * speed_factors)
+        # Create an array of the target timestamps that the final video must have
+        target_timestamps = np.linspace(0, total_duration, num_frames)
 
-        # Compute cumulative time
-        cumulative_time = np.cumsum(time_intervals)
-        total_time = cumulative_time[-1]
+        # Interpolate the adjusted frames based on the normalized timestamps
+        frame_indices = np.interp(target_timestamps, normalized_cumulative_times, np.arange(num_frames))
 
-        # Generate new time stamps for the output frames
-        output_time_stamps = np.linspace(0, total_time, num_frames)
+        # Ensure frame indices are valid integers
+        frame_indices = np.clip(frame_indices, 0, num_frames - 1).astype(int)
 
-        # Map output time stamps to input frame indices via interpolation
-        new_frame_indices = np.interp(output_time_stamps, cumulative_time, np.arange(num_frames))
+        # Return the video frames adjusted according to the inverted feature values
+        adjusted_video = video[frame_indices]
 
-        # Interpolate frames
-        processed_video = np.empty_like(video)
-        self.start_progress(len(new_frame_indices))
-        for idx, t in enumerate(new_frame_indices):
-            lower_idx = int(np.floor(t))
-            upper_idx = min(lower_idx + 1, num_frames - 1)
-            weight = t - lower_idx
-            processed_video[idx] = (1 - weight) * video[lower_idx] + weight * video[upper_idx]
-            self.update_progress()
-        self.end_progress()
-        return processed_video
-    
-    def interpolate_video(self, video: np.ndarray, target_frames: int) -> np.ndarray:
-        """Interpolate video to match the target number of frames."""
-        orig_frames = video.shape[0]
-        if orig_frames == target_frames:
-            return video
-        
-        new_video = np.empty((target_frames, *video.shape[1:]), dtype=video.dtype)
-        for i in range(target_frames):
-            t = i / (target_frames - 1) * (orig_frames - 1)
-            idx1, idx2 = int(t), min(int(t) + 1, orig_frames - 1)
-            weight = t - idx1
-            new_video[i] = (1 - weight) * video[idx1] + weight * video[idx2]
-        
-        return new_video
+        return adjusted_video
 
-    def truncate_or_repeat_video(self, video: np.ndarray, target_frames: int) -> np.ndarray:
-        """Truncate or repeat video frames to match the target number of frames."""
-        orig_frames = video.shape[0]
-        if orig_frames == target_frames:
-            return video
-        
-        if orig_frames > target_frames:
-            return video[:target_frames]
-        else:
-            repeats = target_frames // orig_frames
-            remainder = target_frames % orig_frames
-            return np.concatenate([np.tile(video, (repeats, 1, 1, 1)), video[:remainder]])
 class FlexVideoFrameBlend(FlexVideoBase):
 
     @classmethod
