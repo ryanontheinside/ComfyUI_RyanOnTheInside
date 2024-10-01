@@ -64,7 +64,7 @@ from .nodes.audio.audio_nodes import (
 from .nodes.audio.audio_nodes_effects import (
     AudioPitchShift,
     AudioTimeStretch,
-    AudioDither,
+    
     AudioGain,
     AudioFade,
 )
@@ -76,7 +76,8 @@ from .nodes.audio.audio_nodes_utility import (
     AudioResample,
     AudioVolumeNormalization,
     AudioCombine,
-    AudioConcatenate
+    AudioConcatenate,
+    AudioDither,
 )
 
 from .nodes.flex.feature_extractors import(
