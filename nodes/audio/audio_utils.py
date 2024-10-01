@@ -62,6 +62,39 @@ def apply_gain(waveform, gain_db):
     amplified_waveform = waveform * gain_factor
     return amplified_waveform
 
+def time_stretch(waveform, rate):
+    """
+    Stretches or compresses the waveform in time.
+
+    Args:
+        waveform (Tensor): The input waveform tensor.
+        rate (float): Rate to stretch the waveform (e.g., 2.0 doubles the length).
+
+    Returns:
+        Tensor: Time-stretched waveform.
+    """
+    # Ensure the input is 2D (channels, samples)
+    if waveform.dim() == 1:
+        waveform = waveform.unsqueeze(0).unsqueeze(0)
+    elif waveform.dim() == 2:
+        waveform = waveform.unsqueeze(0)
+    elif waveform.dim() > 3:
+        raise ValueError("Input waveform has too many dimensions")
+
+    # Convert to numpy for librosa processing
+    waveform_np = waveform.numpy()
+
+    # Process each channel
+    stretched_channels = []
+    for channel in waveform_np:
+        stretched = librosa.effects.time_stretch(channel, rate=rate)
+        stretched_channels.append(stretched)
+
+    # Stack channels and convert back to torch tensor
+    stretched_waveform = torch.from_numpy(np.stack(stretched_channels))
+
+    return stretched_waveform
+
 def dither_audio(waveform, bit_depth, noise_shaping):
     """
     Applies dithering to the waveform.
@@ -95,39 +128,6 @@ def dither_audio(waveform, bit_depth, noise_shaping):
     quantized_waveform = torch.round(quantized_waveform * max_val) / max_val
 
     return quantized_waveform
-
-def time_stretch(waveform, rate):
-    """
-    Stretches or compresses the waveform in time.
-
-    Args:
-        waveform (Tensor): The input waveform tensor.
-        rate (float): Rate to stretch the waveform (e.g., 2.0 doubles the length).
-
-    Returns:
-        Tensor: Time-stretched waveform.
-    """
-    # Ensure the input is 2D (channels, samples)
-    if waveform.dim() == 1:
-        waveform = waveform.unsqueeze(0).unsqueeze(0)
-    elif waveform.dim() == 2:
-        waveform = waveform.unsqueeze(0)
-    elif waveform.dim() > 3:
-        raise ValueError("Input waveform has too many dimensions")
-
-    # Convert to numpy for librosa processing
-    waveform_np = waveform.numpy()
-
-    # Process each channel
-    stretched_channels = []
-    for channel in waveform_np:
-        stretched = librosa.effects.time_stretch(channel, rate=rate)
-        stretched_channels.append(stretched)
-
-    # Stack channels and convert back to torch tensor
-    stretched_waveform = torch.from_numpy(np.stack(stretched_channels))
-
-    return stretched_waveform
 
 def pad_audio(waveform, pad_left, pad_right, pad_mode):
     """
