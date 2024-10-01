@@ -67,7 +67,7 @@ class PitchFeatureExtractor(FeatureExtractorBase):
         return (feature, feature_pipe)
 
 class PitchAbstraction(RyanOnTheInside):
-    CATEGORY="RyanOnTheInside/FlexFeatures/Audio"
+    CATEGORY="RyanOnTheInside/FlexFeatures/Audio/Pitch"
 
 class PitchRangeNode(PitchAbstraction):
     @classmethod

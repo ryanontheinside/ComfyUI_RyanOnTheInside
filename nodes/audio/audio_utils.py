@@ -1,188 +1,100 @@
-import numpy as np
 import torch
+import torchaudio
+import torchaudio.transforms as T
+import torchaudio.functional as F
+import torch.nn.functional as nnf
 import librosa
-import cv2
-import matplotlib.pyplot as plt
-
 import numpy as np
-import librosa
-import torch
-import cv2
-import matplotlib.pyplot as plt
 
+#utility functions
+def pad_audio(waveform, pad_left, pad_right, pad_mode):
+    return nnf.pad(waveform, (pad_left, pad_right), mode=pad_mode)
 
+def normalize_volume(waveform, target_level):
+    rms = torch.sqrt(torch.mean(waveform ** 2))
+    current_db = 20 * torch.log10(rms + 1e-6)
+    gain_db = target_level - current_db.item()
+    gain = 10 ** (gain_db / 20)
+    return waveform * gain
 
+def resample_audio(waveform, orig_sample_rate, new_sample_rate):
+    resampler = T.Resample(orig_freq=orig_sample_rate, new_freq=new_sample_rate)
+    return resampler(waveform)
 
-class BaseAudioProcessor:
-    def __init__(self, audio, num_frames, height, width, frame_rate):
-        self.audio = audio['waveform'].squeeze(0).mean(axis=0).cpu().numpy()  # Convert to mono and numpy array
-        self.sample_rate = audio['sample_rate']
-        self.num_frames = num_frames
-        self.height = height
-        self.width = width
-        self.frame_rate = frame_rate
-        
-        self.audio_duration = len(self.audio) / self.sample_rate
-        self.frame_duration = 1 / self.frame_rate if self.frame_rate > 0 else self.audio_duration / self.num_frames
+def merge_channels(waveform1, waveform2):
+    min_length = min(waveform1.shape[-1], waveform2.shape[-1])
+    waveform1 = waveform1[..., :min_length]
+    waveform2 = waveform2[..., :min_length]
+    return torch.cat([waveform1, waveform2], dim=0)
 
-    def _normalize(self, data):
-        return (data - data.min()) / (data.max() - data.min())
+def split_channels(waveform):
+    return [waveform[i:i+1, :] for i in range(waveform.shape[0])]
 
-    def _enhance_contrast(self, data, power=0.3):
-        return np.power(data, power)
+def concatenate_audio(waveform1, waveform2):
+    return torch.cat([waveform1, waveform2], dim=-1)
 
-    def _resize(self, data, new_width, new_height):
-        return cv2.resize(data, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
+def combine_audio(waveform1, waveform2, weight1=1.0, weight2=1.0):
+    max_length = max(waveform1.shape[-1], waveform2.shape[-1])
+    
+    if waveform1.shape[-1] < max_length:
+        waveform1 = nnf.pad(waveform1, (0, max_length - waveform1.shape[-1]))
+    
+    if waveform2.shape[-1] < max_length:
+        waveform2 = nnf.pad(waveform2, (0, max_length - waveform2.shape[-1]))
+    
+    combined_waveform = (waveform1 * weight1) + (waveform2 * weight2)
+    
+    max_amplitude = torch.max(torch.abs(combined_waveform))
+    if max_amplitude > 1.0:
+        combined_waveform = combined_waveform / max_amplitude
+    
+    return combined_waveform
 
-    def _get_audio_frame(self, frame_index):
-        start_time = frame_index * self.frame_duration
-        end_time = (frame_index + 1) * self.frame_duration
-        start_sample = int(start_time * self.sample_rate)
-        end_sample = int(end_time * self.sample_rate)
-        return self.audio[start_sample:end_sample]
+def pitch_shift_audio(waveform, sample_rate, n_steps):
+    return F.pitch_shift(waveform, sample_rate, n_steps=n_steps)
 
-class AudioVisualizer(BaseAudioProcessor):  
-    def create_spectrogram(self):
+def fade_audio(waveform, sample_rate, fade_in_duration, fade_out_duration, shape):
+    fade_in_samples = int(fade_in_duration * sample_rate)
+    fade_out_samples = int(fade_out_duration * sample_rate)
+    fader = T.Fade(
+        fade_in_len=fade_in_samples,
+        fade_out_len=fade_out_samples,
+        fade_shape=shape
+    )
+    return fader(waveform)
 
-        frames = []
-        for i in range(self.num_frames):
-            audio_frame = self._get_audio_frame(i)
-            
-            n_fft = min(2048, len(audio_frame))
-            S = librosa.stft(audio_frame, n_fft=n_fft)
-            S_db = librosa.amplitude_to_db(np.abs(S), ref=np.max)
-            
-            S_db_normalized = self._normalize(S_db)
-            S_db_enhanced = self._enhance_contrast(S_db_normalized)
-            
-            S_db_resized = self._resize(S_db_enhanced, self.width, self.height)
-            frames.append(S_db_resized)
+def apply_gain(waveform, gain_db):
+    gain_factor = 10 ** (gain_db / 20)
+    return waveform * gain_factor
 
-        frames = np.stack(frames, axis=0)
+def dither_audio(waveform, bit_depth, noise_shaping):
+    density_function = "TPDF" if noise_shaping == "triangular" else "RPDF"
+    noise_shaping_flag = noise_shaping == "triangular"
+    
+    dithered_waveform = F.dither(
+        waveform,
+        density_function=density_function,
+        noise_shaping=noise_shaping_flag
+    )
 
-        return torch.from_numpy(frames).float()
+    max_val = 2 ** (bit_depth - 1) - 1
+    quantized_waveform = torch.clamp(dithered_waveform, -1.0, 1.0)
+    return torch.round(quantized_waveform * max_val) / max_val
 
-    def create_waveform(self):
+def time_stretch(waveform, rate):
+    if waveform.dim() == 1:
+        waveform = waveform.unsqueeze(0).unsqueeze(0)
+    elif waveform.dim() == 2:
+        waveform = waveform.unsqueeze(0)
+    elif waveform.dim() > 3:
+        raise ValueError("Input waveform has too many dimensions")
+    
+    waveform_np = waveform.squeeze(0).numpy()
+    
+    stretched_channels = []
+    for channel in waveform_np:
+        stretched = librosa.effects.time_stretch(channel, rate=rate)
+        stretched_channels.append(stretched)
+    
+    return torch.from_numpy(np.stack(stretched_channels)).unsqueeze(0)
 
-        frames = []
-        for i in range(self.num_frames):
-            audio_frame = self._get_audio_frame(i)
-            
-            plt.figure(figsize=(self.width / 100, self.height / 100), dpi=100)
-            plt.plot(audio_frame)
-            plt.axis('off')
-            plt.tight_layout(pad=0)
-            
-            plt.gcf().canvas.draw()
-            frame = np.frombuffer(plt.gcf().canvas.tostring_rgb(), dtype=np.uint8)
-            frame = frame.reshape(self.height, self.width, 3)
-            frames.append(frame)
-            plt.close()
-
-        frames = np.stack(frames, axis=0)
-
-        return torch.from_numpy(frames).float() / 255.0
-
-    def create_mfcc(self):
-
-        frames = []
-        for i in range(self.num_frames):
-            audio_frame = self._get_audio_frame(i)
-            
-            mfccs = librosa.feature.mfcc(y=audio_frame, sr=self.sample_rate, n_mfcc=self.height)
-            mfccs_normalized = self._normalize(mfccs)
-            mfccs_enhanced = self._enhance_contrast(mfccs_normalized)
-            
-            mfccs_resized = self._resize(mfccs_enhanced, self.width, self.height)
-            frames.append(mfccs_resized)
-
-        frames = np.stack(frames, axis=0)
-
-        return torch.from_numpy(frames).float()
-
-    def create_chroma(self):
-
-        frames = []
-        for i in range(self.num_frames):
-            audio_frame = self._get_audio_frame(i)
-            
-            chroma = librosa.feature.chroma_stft(y=audio_frame, sr=self.sample_rate)
-            chroma_normalized = self._normalize(chroma)
-            chroma_enhanced = self._enhance_contrast(chroma_normalized)
-            
-            chroma_resized = self._resize(chroma_enhanced, self.width, self.height)
-            frames.append(chroma_resized)
-
-        frames = np.stack(frames, axis=0)
-
-        return torch.from_numpy(frames).float()
-
-    def create_tonnetz(self):
-
-        frames = []
-        for i in range(self.num_frames):
-            audio_frame = self._get_audio_frame(i)
-            
-            tonnetz = librosa.feature.tonnetz(y=audio_frame, sr=self.sample_rate)
-            tonnetz_normalized = self._normalize(tonnetz)
-            tonnetz_enhanced = self._enhance_contrast(tonnetz_normalized)
-            
-            tonnetz_resized = self._resize(tonnetz_enhanced, self.width, self.height)
-            frames.append(tonnetz_resized)
-
-        frames = np.stack(frames, axis=0)
-
-        return torch.from_numpy(frames).float()
-
-    def create_spectral_centroid(self):
-
-        frames = []
-        for i in range(self.num_frames):
-            audio_frame = self._get_audio_frame(i)
-            
-            centroid = librosa.feature.spectral_centroid(y=audio_frame, sr=self.sample_rate)
-            centroid_normalized = self._normalize(centroid)
-            centroid_enhanced = self._enhance_contrast(centroid_normalized)
-            
-            centroid_resized = self._resize(centroid_enhanced, self.width, self.height)
-            frames.append(centroid_resized)
-
-        frames = np.stack(frames, axis=0)
-
-        return torch.from_numpy(frames).float()
-
-class AudioFeatureExtractor(BaseAudioProcessor):
-    def __init__(self, audio, num_frames, frame_rate, feature_type='amplitude_envelope'):
-        super().__init__(audio, num_frames, None, None, frame_rate)
-        self.feature_type = feature_type
-
-    def extract(self):
-        if self.feature_type == 'amplitude_envelope':
-            return self._amplitude_envelope()
-        elif self.feature_type == 'rms_energy':
-            return self._rms_energy()
-        elif self.feature_type == 'spectral_centroid':
-            return self._spectral_centroid()
-        elif self.feature_type == 'onset_detection':
-            return self._onset_detection()
-        elif self.feature_type == 'chroma_features':
-            return self._chroma_features()
-        else:
-            raise ValueError("Unsupported feature type")
-
-#TODO HANDLE NO MASKS
-#TODO HANDLE FRAME MASK COUNT MISMATCH
-    def _amplitude_envelope(self):
-        return np.array([np.max(np.abs(self._get_audio_frame(i))) for i in range(self.num_frames)])
-
-    def _rms_energy(self):
-        return np.array([np.sqrt(np.mean(self._get_audio_frame(i)**2)) for i in range(self.num_frames)])
-
-    def _spectral_centroid(self):
-        return np.array([np.mean(librosa.feature.spectral_centroid(y=self._get_audio_frame(i), sr=self.sample_rate)[0]) for i in range(self.num_frames)])
-
-    def _onset_detection(self):
-        return np.array([np.mean(librosa.onset.onset_strength(y=self._get_audio_frame(i), sr=self.sample_rate)) for i in range(self.num_frames)])
-
-    def _chroma_features(self):
-        return np.array([np.mean(librosa.feature.chroma_stft(y=self._get_audio_frame(i), sr=self.sample_rate), axis=1) for i in range(self.num_frames)])

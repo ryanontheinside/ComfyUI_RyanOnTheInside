@@ -58,7 +58,25 @@ from .nodes.audio.audio_nodes import (
     AudioFilter,
     EmptyMaskFromAudio,
     EmptyImageFromAudio,
-    
+
+)
+
+from .nodes.audio.audio_nodes_effects import (
+    AudioPitchShift,
+    AudioTimeStretch,
+    AudioDither,
+    AudioGain,
+    AudioFade,
+)
+
+from .nodes.audio.audio_nodes_utility import (
+    AudioPad,
+    AudioChannelMerge,
+    AudioChannelSplit,
+    AudioResample,
+    AudioVolumeNormalization,
+    AudioCombine,
+    AudioConcatenate
 )
 
 from .nodes.flex.feature_extractors import(
@@ -136,6 +154,7 @@ from .nodes.utility_nodes import (
 
 from .nodes.images.image_utility_nodes import (
     DyeImage,
+    
 )
 
 from .nodes.masks.flex_masks import (
@@ -178,6 +197,7 @@ from .nodes.video.flex_video import (
     FlexVideoSpeed,
     FlexVideoDirection,
     FlexVideoFrameBlend,
+    FlexVideoSeek,
 )
 
 from .nodes.depth.depth_base import(
@@ -225,7 +245,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexVideoSpeed":              FlexVideoSpeed,
     "FlexVideoDirection":          FlexVideoDirection,
     "FlexVideoFrameBlend":         FlexVideoFrameBlend,
-
+    "FlexVideoSeek":               FlexVideoSeek,
     ###temporal
     "MaskMorph":                    MaskMorph,
     "MaskTransform":                MaskTransform,
@@ -277,6 +297,18 @@ NODE_CLASS_MAPPINGS = {
     "AudioFilter":                  AudioFilter,
     "EmptyMaskFromAudio":           EmptyMaskFromAudio,
     "EmptyImageFromAudio":          EmptyImageFromAudio,
+    "AudioCombine":                 AudioCombine,
+    "AudioConcatenate":             AudioConcatenate,
+    "AudioPitchShift":              AudioPitchShift,
+    "AudioTimeStretch":             AudioTimeStretch,
+    "AudioDither":                  AudioDither,
+    "AudioGain":                   AudioGain,
+    "AudioFade":                   AudioFade,
+    "AudioPad":                   AudioPad,
+    "AudioChannelMerge":           AudioChannelMerge,
+    "AudioChannelSplit":           AudioChannelSplit,
+    "AudioResample":               AudioResample,
+    "AudioVolumeNormalization":    AudioVolumeNormalization,
 
     #features   
     "AudioFeatureExtractor":        AudioFeatureExtractor,
@@ -360,6 +392,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "FlexVideoSpeed":            "**BETA** Flex Video Speed",
     "FlexVideoDirection":        "Flex Video Direction",
     "FlexVideoFrameBlend":       "**BETA**Flex Video Frame Blend",
+    "FlexVideoSeek":            "Flex Video Seek",
+
 
     "MaskMorph": "Temporal Mask Morph",
     "MaskTransform":"Temporal Mask Transform",

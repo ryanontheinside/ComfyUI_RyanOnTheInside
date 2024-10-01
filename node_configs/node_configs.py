@@ -1338,3 +1338,111 @@ add_node_config("FlexVideoFrameBlend", {
 This node creates a frame blending effect, where each frame is blended with the next frame. The strength of the blend is modulated by the input feature values, allowing for dynamic motion blur effects.
 """
 })
+
+add_node_config("FlexVideoSeek", {
+    "TOP_DESCRIPTION": "Applies a seeking effect to video frames based on feature values.",
+    "ADDITIONAL_INFO": """
+- `images`: Input video frames (IMAGE type)
+- `feature`: Feature used to modulate the seeking effect (FEATURE type)
+- `strength`: Overall strength of the seeking effect (0.0 to 2.0)
+- `feature_mode`: How the feature modulates the parameter ("relative" or "absolute")
+- `feature_param`: Parameter to be modulated by the feature
+- `feature_threshold`: Minimum feature value to apply the effect (0.0 to 1.0)
+- `seek_speed`: Speed of the seeking effect (0.0 to 5.0)
+
+This node creates a dynamic seeking effect in the video based on the input feature values. The seek_speed parameter controls how quickly the video seeks through frames, while the feature values modulate this speed over time. This can create interesting time manipulation effects, such as speeding up or slowing down different parts of the video based on audio features or other inputs.
+
+The strength parameter allows for overall control of the effect intensity, while feature_mode determines whether the feature values are applied relatively or absolutely to the base seek_speed.
+
+Use cases include:
+1. Creating music-reactive video effects where the video seeks based on audio features
+2. Generating time-lapse-like effects with variable speeds
+3. Producing glitch-like visuals by rapidly seeking through frames
+
+Note: This effect can significantly alter the temporal coherence of the video, so use it judiciously for artistic effects.
+"""
+})
+
+add_node_config("AudioPad", {
+    "TOP_DESCRIPTION": "Pads the audio waveform with specified values on the left and right sides.",
+    "ADDITIONAL_INFO": """
+- `audio`: Input audio to be padded (AUDIO type)
+- `pad_left`: Number of samples to pad on the left side (0 to 44100)
+- `pad_right`: Number of samples to pad on the right side (0 to 44100)
+- `pad_mode`: Method of padding ("constant", "reflect", "replicate", or "circular")
+
+This node allows you to add padding to the beginning and/or end of an audio waveform. It's useful for adjusting the length of audio clips or creating space for effects.
+"""
+})
+
+add_node_config("AudioVolumeNormalization", {
+    "TOP_DESCRIPTION": "Normalizes the volume of the audio to a target level.",
+    "ADDITIONAL_INFO": """
+- `audio`: Input audio to be normalized (AUDIO type)
+- `target_level`: Desired RMS level in decibels (-60.0 to 0.0 dB)
+
+This node adjusts the volume of the input audio to reach a specified target level. It's useful for ensuring consistent volume across different audio clips or adjusting the overall loudness of an audio sample.
+"""
+})
+
+add_node_config("AudioResample", {
+    "TOP_DESCRIPTION": "Resamples the audio to a new sample rate.",
+    "ADDITIONAL_INFO": """
+- `audio`: Input audio to be resampled (AUDIO type)
+- `new_sample_rate`: Desired new sample rate (8000 to 192000 Hz)
+
+This node changes the sample rate of the input audio. It's useful for matching sample rates between different audio sources or preparing audio for specific processing requirements.
+"""
+})
+
+add_node_config("AudioChannelMerge", {
+    "TOP_DESCRIPTION": "Merges two mono audio inputs into a stereo output.",
+    "ADDITIONAL_INFO": """
+- `audio1`: First input audio channel (AUDIO type)
+- `audio2`: Second input audio channel (AUDIO type)
+
+This node combines two mono audio inputs into a single stereo audio output. It's useful for creating stereo effects or combining separate audio tracks.
+"""
+})
+
+add_node_config("AudioChannelSplit", {
+    "TOP_DESCRIPTION": "Splits a stereo audio input into two mono outputs.",
+    "ADDITIONAL_INFO": """
+- `audio`: Input stereo audio to be split (AUDIO type)
+
+This node separates a stereo audio input into two mono audio outputs. It's useful for processing individual channels separately or extracting a single channel from a stereo recording.
+"""
+})
+
+add_node_config("AudioTimeStretch", {
+    "TOP_DESCRIPTION": "Stretches or compresses the audio in time without changing its pitch.",
+    "ADDITIONAL_INFO": """
+- `audio`: Input audio to be time-stretched (AUDIO type)
+- `rate`: Time stretching factor (0.5 to 2.0)
+
+This node changes the duration of the audio without altering its pitch. A rate greater than 1.0 speeds up the audio, while a rate less than 1.0 slows it down. It's useful for adjusting the length of audio to fit a specific duration or creating time-based effects.
+"""
+})
+
+add_node_config("AudioConcatenate", {
+    "TOP_DESCRIPTION": "Concatenates two audio inputs end-to-end.",
+    "ADDITIONAL_INFO": """
+- `audio1`: First input audio (AUDIO type)
+- `audio2`: Second input audio (AUDIO type)
+
+This node joins two audio inputs sequentially, with the second audio following the first. It's useful for combining multiple audio clips into a single, longer audio stream.
+"""
+})
+
+add_node_config("AudioCombine", {
+    "TOP_DESCRIPTION": "Combines two audio inputs by mixing them together with specified weights.",
+    "ADDITIONAL_INFO": """
+- `audio1`: First input audio (AUDIO type)
+- `audio2`: Second input audio (AUDIO type)
+- `weight1`: Weight for the first audio input (0.0 to 1.0)
+- `weight2`: Weight for the second audio input (0.0 to 1.0)
+
+This node mixes two audio inputs together, allowing you to control the contribution of each input to the final output. It's useful for creating layered audio effects or blending different audio sources.
+"""
+})
+
