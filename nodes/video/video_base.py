@@ -21,7 +21,7 @@ class FlexVideoBase(RyanOnTheInside, ABC):
             }
         }
 
-    CATEGORY = "RyanOnTheInside/VideoEffects"
+    CATEGORY = "RyanOnTheInside/FlexVideo"
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "apply_effect"
     

@@ -20,7 +20,7 @@ class FlexImageBase(RyanOnTheInside, ABC):
             }
         }
 
-    CATEGORY = "RyanOnTheInside/ImageEffects"
+    CATEGORY = "RyanOnTheInside/FlexImage"
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "apply_effect"
 

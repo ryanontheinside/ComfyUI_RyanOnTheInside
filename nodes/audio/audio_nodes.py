@@ -1,14 +1,13 @@
 import torch
 import numpy as np
 from scipy.ndimage import zoom
-from .audio_utils import AudioVisualizer
+from .audio_processor_legacy import AudioVisualizer
 from scipy import signal
 import comfy.model_management as mm
 import folder_paths
 import os
 from ... import RyanOnTheInside
 from ..flex.feature_pipe import FeaturePipe
-from ... import RyanOnTheInside
 
 
 
@@ -31,7 +30,7 @@ class DownloadOpenUnmixModel(AudioNodeBase):
 
     RETURN_TYPES = ("OPEN_UNMIX_MODEL",)
     FUNCTION = "download_and_load_model"
-    CATEGORY = "RyanOnTheInside/Audio"
+    CATEGORY = "RyanOnTheInside/Audio/AudioSeparation"
 
     def download_and_load_model(self, model_name):
         device = mm.get_torch_device()
@@ -71,7 +70,7 @@ class AudioSeparator(AudioNodeBase):
     RETURN_TYPES = ("AUDIO", "AUDIO", "AUDIO", "AUDIO", "AUDIO", "FEATURE_PIPE")
     RETURN_NAMES = ("audio", "drums_audio", "vocals_audio", "bass_audio", "other_audio", "feature_pipe")
     FUNCTION = "process_audio"
-
+    CATEGORY = "RyanOnTheInside/Audio/AudioSeparation"
     def process_audio(self, model, audio, video_frames, frame_rate):
         waveform = audio['waveform']
         sample_rate = audio['sample_rate']
@@ -132,7 +131,7 @@ class AudioFilter(AudioNodeBase):
     DESCRIPTION = """Applies frequency filters to audio:
 - `audio`: Input audio to be filtered
 - `filters`: Frequency filters to be applied (FREQUENCY_FILTER type)"""
-
+    CATEGORY = "RyanOnTheInside/Audio/Filters"
     def apply_filters(self, audio, filters):
         audio_np = audio['waveform'].cpu().numpy().squeeze(0)
         sample_rate = audio['sample_rate']
@@ -233,6 +232,7 @@ class FrequencyFilterPreset(AudioNodeBase):
 
     RETURN_TYPES = ("FREQUENCY_FILTER",)
     FUNCTION = "create_preset_filter_chain"
+    CATEGORY = "RyanOnTheInside/Audio/Filters"
 
     def create_preset_filter_chain(self, preset, previous_filter=None):
         new_filters = self.get_preset_filters(preset)
@@ -300,6 +300,7 @@ class FrequencyFilterCustom(AudioNodeBase):
 
     RETURN_TYPES = ("FREQUENCY_FILTER",)
     FUNCTION = "create_filter"
+    CATEGORY = "RyanOnTheInside/Audio/Filters"
 
     def create_filter(self, filter_type, order, cutoff, previous_filter=None):
         filter_params = {
@@ -339,6 +340,7 @@ class AudioFeatureVisualizer(AudioNodeBase):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "visualize_audio_feature"
     CATEGORY = "audio"
+    CATEGORY = "RyanOnTheInside/Audio/Filters"
 
     def visualize_audio_feature(self, audio, video_frames, visualization_type, frame_rate):
         num_frames, height, width, _ = video_frames.shape
@@ -377,12 +379,14 @@ class EmptyImageFromAudio(AudioNodeBase):
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "create_empty_image"
+    CATEGORY = "RyanOnTheInside/Audio/Utility"
 
     def create_empty_image(self, audio, frame_rate, height, width):
         empty_image = self.create_empty_tensor(audio, frame_rate, height, width, channels=3)
         return (empty_image,)
 
 class EmptyMaskFromAudio(AudioNodeBase):
+
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -396,7 +400,10 @@ class EmptyMaskFromAudio(AudioNodeBase):
 
     RETURN_TYPES = ("MASK",)
     FUNCTION = "create_empty_mask"
+    CATEGORY = "RyanOnTheInside/Audio/Utility"
 
     def create_empty_mask(self, audio, frame_rate, height, width):
         empty_mask = self.create_empty_tensor(audio, frame_rate, height, width, channels=1)
         return (empty_mask,)
+    
+
