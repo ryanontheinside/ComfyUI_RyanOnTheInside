@@ -95,6 +95,7 @@ from .nodes.flex.feature_extractors_audio import(
     PitchRangePresetNode,
     PitchRangeByNoteNode,
     PitchFeatureExtractor,
+    RhythmFeatureExtractor,
 )
 
 from .nodes.flex.feature_extractors_midi import(
@@ -155,7 +156,7 @@ from .nodes.utility_nodes import (
 
 from .nodes.images.image_utility_nodes import (
     DyeImage,
-    
+    ImageCASBatch,
 )
 
 from .nodes.masks.flex_masks import (
@@ -191,7 +192,8 @@ from .nodes.images.flex_images import (
     FlexImageTiltShift,
     FlexImageParallax,
     FlexImageContrast,
-
+    FlexImageWarp,
+    FlexImageVignette,
 )
 
 from .nodes.video.flex_video import (
@@ -223,9 +225,13 @@ from .nodes.flex.feature_modulation import (
     FeatureMath,
     FeatureRebase,
     FeatureTruncateOrExtend,
+    FeatureAccumulate,
 )
 
-
+from .nodes.audio.flex_audio import (
+    FlexAudioPitchShift,
+    FlexAudioTimeStretch,
+)
 
 import os
 import folder_paths
@@ -288,6 +294,10 @@ NODE_CLASS_MAPPINGS = {
     #"FlexMaskNormalLighting":       FlexMaskNormalLighting,
     # "FlexMaskDepthChamberRelative": FlexMaskDepthChamberRelative,
 
+
+    #flex audio
+    "FlexAudioPitchShift":          FlexAudioPitchShift,
+    "FlexAudioTimeStretch":        FlexAudioTimeStretch,
     #audio  
     "AudioSeparator":               AudioSeparator,
     "DownloadOpenUnmixModel":       DownloadOpenUnmixModel,
@@ -314,6 +324,7 @@ NODE_CLASS_MAPPINGS = {
     #features   
     "AudioFeatureExtractor":        AudioFeatureExtractor,
     "PitchFeatureExtractor":        PitchFeatureExtractor,
+    "RhythmFeatureExtractor":       RhythmFeatureExtractor,
     "PitchRange":                   PitchRangeNode,
     "PitchRangePreset":             PitchRangePresetNode,
     "PitchRangeByNoteNode":         PitchRangeByNoteNode,
@@ -346,7 +357,7 @@ NODE_CLASS_MAPPINGS = {
     "PreviewFeature":               PreviewFeature,
     "FeatureRebase":                FeatureRebase,
     "FeatureTruncateOrExtend":      FeatureTruncateOrExtend,
-
+    "FeatureAccumulate":             FeatureAccumulate,
     #images
     'FlexImageEdgeDetect':          FlexImageEdgeDetect,
     "FlexImagePosterize":           FlexImagePosterize,
@@ -359,7 +370,8 @@ NODE_CLASS_MAPPINGS = {
     "FlexImageTiltShift":           FlexImageTiltShift,
     "FlexImageParallax":            FlexImageParallax,
     "FlexImageContrast":            FlexImageContrast,
-
+    "FlexImageWarp":               FlexImageWarp,
+    "FlexImageVignette":           FlexImageVignette,
     #opacity xp 
     # "FlexDepthBasedMaskOpacity":  FlexDepthBasedMaskOpacity,
     # "DepthBasedMaskOpacity":      DepthBasedMaskOpacity,
@@ -371,6 +383,7 @@ NODE_CLASS_MAPPINGS = {
 
     #garb   
     "DyeImage":                     DyeImage,
+    "ImageCASBatch":                ImageCASBatch,
     "MovingShape":                  MovingShape,
     "_mfc":                         _mfc,
     "TextMaskNode":                 TextMaskNode,
@@ -436,6 +449,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "MotionFeatureNode":"Motion Feature",
 
     "FeatureMixer":                 "FeatureMod Mixer",
+    "FeatureAccumulate":            "FeatureMod Accumulate",
     "FeatureCombine":               "FeatureMod Combine",
     "FeatureOscillator":            "FeatureMod Oscillator",
     "FeatureScaler":                "FeatureMod Scaler",
@@ -446,6 +460,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
 
     "DyeImage" : "Dye Image",
+    "ImageCASBatch": "Image Contrast Adaptive Sharpen Batch",
     "ImageIntervalSelectPercentage":  "Image Interval Select %"
     # "FlexImageAdjustment":"Flex Image Adjustment",
     # "FlexImageFilter":"Flex Image Filter",

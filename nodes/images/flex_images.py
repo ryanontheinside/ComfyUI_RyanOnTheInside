@@ -476,3 +476,139 @@ class FlexImageContrast(FlexImageBase):
             result *= original_luminosity / current_luminosity
 
         return np.clip(result, 0, 1)
+
+import numpy as np
+import cv2
+
+class FlexImageWarp(FlexImageBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "warp_type": (["noise", "twist", "bulge"], {"default": "noise"}),
+                "warp_strength": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
+                "center_x": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "center_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "radius": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.01}),
+            },
+            "optional": {
+                "warp_frequency": ("FLOAT", {"default": 5.0, "min": 0.1, "max": 20.0, "step": 0.1}),
+                "warp_octaves": ("INT", {"default": 3, "min": 1, "max": 5, "step": 1}),
+                "warp_seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+            }
+        }
+
+    @classmethod
+    def get_modifiable_params(cls):
+        return ["warp_strength", "center_x", "center_y", "radius", "warp_frequency", "warp_octaves", "warp_seed", "None"]
+
+    def apply_effect_internal(self, image: np.ndarray, warp_type: str, warp_strength: float, 
+                              center_x: float, center_y: float, radius: float, 
+                              warp_frequency: float = 5.0, warp_octaves: int = 3, 
+                              warp_seed: int = 0, **kwargs) -> np.ndarray:
+        h, w = image.shape[:2]
+        center = (int(w * center_x), int(h * center_y))
+        
+        # Create meshgrid
+        y, x = np.mgrid[0:h, 0:w].astype(np.float32)
+        
+        # Calculate distance from center
+        dx = x - center[0]
+        dy = y - center[1]
+        dist = np.sqrt(dx**2 + dy**2)
+        
+        # Create a mask based on the radius
+        max_dist = np.sqrt(w**2 + h**2)
+        mask = np.clip(1 - dist / (radius * max_dist), 0, 1)
+        
+        if warp_type == "noise":
+            # Generate noise for warping
+            np.random.seed(warp_seed)
+            noise = np.zeros((h, w, 2))
+            for _ in range(warp_octaves):
+                freq = warp_frequency * (2 ** _)
+                amp = warp_strength / (2 ** _)
+                noise += amp * np.random.rand(h, w, 2) * np.sin(freq * np.stack((y, x)) / np.array([h, w]))
+            
+            x_warped = x + noise[:,:,0] * w * mask
+            y_warped = y + noise[:,:,1] * h * mask
+            
+        elif warp_type == "twist":
+            angle = np.arctan2(dy, dx)
+            twist = warp_strength * dist * mask
+            x_warped = x + np.sin(angle + twist) * dist - dx
+            y_warped = y - np.cos(angle + twist) * dist - dy
+            
+        elif warp_type == "bulge":
+            bulge = 1 + warp_strength * mask
+            x_warped = center[0] + dx * bulge
+            y_warped = center[1] + dy * bulge
+        
+        else:
+            raise ValueError(f"Unknown warp type: {warp_type}")
+        
+        # Ensure warped coordinates are within image bounds
+        x_warped = np.clip(x_warped, 0, w-1)
+        y_warped = np.clip(y_warped, 0, h-1)
+        
+        # Remap image
+        warped = cv2.remap(image, x_warped, y_warped, cv2.INTER_LINEAR)
+        
+        return warped
+    
+
+class FlexImageVignette(FlexImageBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "intensity": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "radius": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.01}),
+                "feather": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "center_x": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "center_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            }
+        }
+
+    @classmethod
+    def get_modifiable_params(cls):
+        return ["intensity", "radius", "feather", "center_x", "center_y", "None"]
+
+    def apply_effect_internal(self, image: np.ndarray, intensity: float, radius: float, feather: float, 
+                              center_x: float, center_y: float, **kwargs) -> np.ndarray:
+        h, w = image.shape[:2]
+        
+        # Create coordinate grids
+        y, x = np.ogrid[:h, :w]
+        center = (int(w * center_x), int(h * center_y))
+        
+        # Calculate distance from center
+        dist = np.sqrt((x - center[0])**2 + (y - center[1])**2)
+        
+        # Normalize distance
+        max_dist = np.sqrt((max(center[0], w - center[0]))**2 + (max(center[1], h - center[1]))**2)
+        normalized_dist = dist / max_dist
+        
+        # Apply radius
+        normalized_dist = normalized_dist / radius
+        
+        # Create vignette mask
+        mask = 1 - np.clip(normalized_dist, 0, 1)
+        
+        # Apply feathering
+        mask = np.clip((mask - (1 - feather)) / feather, 0, 1)
+        
+        # Apply intensity
+        mask = mask * intensity + (1 - intensity)
+        
+        # Reshape mask to match image dimensions
+        mask = mask.reshape(h, w, 1)
+        
+        # Apply vignette
+        result = image * mask
+        
+        return np.clip(result, 0, 1)

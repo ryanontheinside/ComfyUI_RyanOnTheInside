@@ -81,6 +81,10 @@ def time_stretch(waveform, rate):
     elif waveform.dim() > 3:
         raise ValueError("Input waveform has too many dimensions")
 
+    # Move tensor to CPU if it's on GPU
+    device = waveform.device
+    waveform = waveform.cpu()
+
     # Convert to numpy for librosa processing
     waveform_np = waveform.numpy()
 
@@ -92,6 +96,9 @@ def time_stretch(waveform, rate):
 
     # Stack channels and convert back to torch tensor
     stretched_waveform = torch.from_numpy(np.stack(stretched_channels))
+
+    # Move the tensor back to the original device
+    stretched_waveform = stretched_waveform.to(device)
 
     return stretched_waveform
 

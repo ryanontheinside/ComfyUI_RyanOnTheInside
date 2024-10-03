@@ -107,7 +107,7 @@ class FeatureMixer(FeatureModulationBase):
                 "smoothing": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "rise_detection_threshold": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05}),
-                "rise_smoothing_factor": ("FLOAT", {"default": 0.5, "min": 0.1, "max": 2.0, "step": 0.05}),
+                "rise_smoothing_factor": ("FLOAT", {"default": 0.5, "min": 0.1, "max": 5.0, "step": 0.05}),
                 **super().INPUT_TYPES()["required"],  # Include the invert_output option
             }
         }
@@ -525,4 +525,49 @@ class FeatureTruncateOrExtend(FeatureModulationBase):
             adjusted_values = source_values
 
         processed_feature = self.create_processed_feature(feature, adjusted_values, "TruncatedOrExtended", invert_output)
+        return (processed_feature, self.visualize(processed_feature))
+    
+
+class FeatureAccumulate(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "start": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "end": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "skip_thresholded": ("BOOLEAN", {"default": False}),
+                **super().INPUT_TYPES()["required"],
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE", "IMAGE")
+    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    FUNCTION = "accumulate"
+
+    def accumulate(self, feature, start, end, threshold, skip_thresholded, invert_output):
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        # Apply threshold and accumulate values
+        accumulated = []
+        current_sum = 0
+        for v in values:
+            if v >= threshold:
+                current_sum += v
+                accumulated.append(current_sum)
+            else:
+                if skip_thresholded:
+                    accumulated.append(v)  # Keep original value
+                else:
+                    accumulated.append(current_sum)  # Keep previous accumulated value
+        
+        # Normalize accumulated values between start and end
+        min_val, max_val = min(accumulated), max(accumulated)
+        if min_val == max_val:
+            normalized = [start for _ in accumulated]
+        else:
+            normalized = [start + (v - min_val) * (end - start) / (max_val - min_val) for v in accumulated]
+        
+        processed_feature = self.create_processed_feature(feature, normalized, "Accumulated", invert_output)
         return (processed_feature, self.visualize(processed_feature))

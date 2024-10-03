@@ -69,14 +69,16 @@ class FlexVideoSeek(FlexVideoBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["seek_speed"]
+        return ["seek"]
 
     @classmethod
     def INPUT_TYPES(cls):
         inputs = super().INPUT_TYPES()
-        inputs["required"].update({
-            "seek_speed": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 5.0, "step": 0.1}),
-        })
+
+        # Override the feature_mode input to remove the "absolute" option
+        inputs["required"]["feature_mode"] = (["relative"], {"default": "relative"})
+        # Add the new reverse parameter
+        inputs["required"]["reverse"] = ("BOOLEAN", {"default": False})
         return inputs
 
     FUNCTION = "apply_effect"
@@ -85,33 +87,40 @@ class FlexVideoSeek(FlexVideoBase):
         self,
         video: np.ndarray,
         feature_values: np.ndarray,
-        seek_speed: float,
+        reverse: bool,
         **kwargs,
     ) -> np.ndarray:
         num_frames = video.shape[0]
         processed_video = np.empty_like(video)
-        # Get strength from kwargs
         strength = kwargs.get('strength', 1.0)
-        # Compute cumulative feature values to determine frame positions
-        feature_values_clipped = np.clip(feature_values, 0.0, 1.0)  # Ensure values are between 0 and 1
-        adjusted_speeds = feature_values_clipped * seek_speed  * strength# Adjust speeds according to feature values
+        seek_speed = 1.0
 
-        # Normalize adjusted speeds to ensure total frames match input
+        # Reverse the video if the reverse parameter is True
+        if reverse:
+            video = video[::-1]
+
+        # Clip feature values between 0 and 1
+        feature_values_clipped = np.clip(feature_values, 0.0, 1.0)
+
+        # Apply seek_speed to feature values
+        adjusted_speeds = feature_values_clipped * seek_speed * strength
+
+        # Ensure the total adjusted speed matches the number of frames
         total_speed = np.sum(adjusted_speeds)
         if total_speed == 0:
-            adjusted_speeds = np.ones(num_frames) * (num_frames / num_frames)
+            adjusted_speeds = np.ones(num_frames)
         else:
-            adjusted_speeds = adjusted_speeds / total_speed * (num_frames - 1)
+            adjusted_speeds = adjusted_speeds / total_speed * num_frames
 
-        cumulative_speeds = np.cumsum(adjusted_speeds)
+        # Calculate cumulative frame positions
+        cumulative_positions = np.cumsum(adjusted_speeds)
 
-        # Map frame indices based on cumulative speeds
-        frame_indices = np.clip(cumulative_speeds.astype(int), 0, num_frames - 1)
+        # Map frame indices based on cumulative positions
+        frame_indices = np.clip(cumulative_positions.astype(int), 0, num_frames - 1)
 
-        # Ensure the output video has the same number of frames
+        # Create the processed video by selecting frames based on the mapped indices
         for idx in range(num_frames):
-            frame_idx = frame_indices[idx]
-            processed_video[idx] = video[frame_idx]
+            processed_video[idx] = video[frame_indices[idx]]
 
         return processed_video
 
