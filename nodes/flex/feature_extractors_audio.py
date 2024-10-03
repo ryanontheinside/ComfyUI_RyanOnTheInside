@@ -1,5 +1,6 @@
-from .feature_extractors import FeatureExtractorBase
-from .features_audio import AudioFeature, PitchFeature, PitchRange, BaseFeature
+from .feature_extractors import FeatureExtractorBase, FirstFeature
+from .feature_pipe import FeaturePipe
+from .features_audio import AudioFeature, PitchFeature, PitchRange, BaseFeature, RhythmFeature
 from ... import RyanOnTheInside
 
 class AudioFeatureExtractor(FeatureExtractorBase):
@@ -24,6 +25,39 @@ class AudioFeatureExtractor(FeatureExtractorBase):
 
     def extract_feature(self, audio, feature_pipe, extraction_method):
         feature = AudioFeature(extraction_method, audio, feature_pipe.frame_count, feature_pipe.frame_rate, extraction_method)
+        feature.extract()
+        return (feature, feature_pipe)
+
+class RhythmFeatureExtractor(FirstFeature):
+    @classmethod
+    def feature_type(cls) -> type[BaseFeature]:
+        return RhythmFeature
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "audio": ("AUDIO",),
+                "time_signature": ("INT", {"default": 4, "min": 1, "max": 12, "step": 1}),
+            },
+        }
+
+    RETURN_TYPES = ("FEATURE", "FEATURE_PIPE")
+    FUNCTION = "extract_feature"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Audio/Rhythm"
+
+    def extract_feature(self, audio, extraction_method, time_signature, frame_rate, video_frames):
+        feature_pipe = FeaturePipe(frame_rate, video_frames)
+        feature = RhythmFeature(
+            feature_name=extraction_method,
+            audio=audio,
+            frame_count=feature_pipe.frame_count,
+            frame_rate=feature_pipe.frame_rate,
+            feature_type=extraction_method,
+            time_signature=time_signature
+        )
         feature.extract()
         return (feature, feature_pipe)
 

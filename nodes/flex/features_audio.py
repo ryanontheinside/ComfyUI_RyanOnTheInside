@@ -124,6 +124,156 @@ class AudioFeature(BaseAudioFeature):
             normalized = np.zeros_like(feature_array)
         self.features[self.feature_name] = normalized.tolist()
 
+import numpy as np
+import librosa
+
+class RhythmFeature(BaseAudioFeature):
+    def __init__(self, feature_name, audio, frame_count, frame_rate, feature_type='beat_locations', time_signature=4):
+        super().__init__(feature_name, audio, frame_count, frame_rate)
+        self.feature_type = feature_type
+        self.available_features = self.get_extraction_methods()
+        self.feature_name = feature_type
+        self.time_signature = time_signature  # Default to 4/4 time
+        self._prepare_audio()
+
+    @classmethod
+    def get_extraction_methods(cls):
+        return [
+            'beat_locations',
+            'tempo',
+            'onset_strength',
+            'beat_emphasis',
+            'syncopation',
+            'rhythm_regularity',
+            'down_beats',
+            'up_beats'
+        ]
+
+    def extract(self):
+        self.features = {}
+        
+        # Extract basic rhythm features
+        tempo, beat_frames = librosa.beat.beat_track(y=self.audio_array, sr=self.sample_rate)
+        onset_env = librosa.onset.onset_strength(y=self.audio_array, sr=self.sample_rate)
+        
+        # Calculate features based on the selected feature_type
+        if self.feature_type == 'beat_locations':
+            self._extract_beat_locations(beat_frames)
+        elif self.feature_type == 'tempo':
+            self._extract_tempo(tempo)
+        elif self.feature_type == 'onset_strength':
+            self._extract_onset_strength(onset_env)
+        elif self.feature_type == 'beat_emphasis':
+            self._extract_beat_emphasis(beat_frames, onset_env)
+        elif self.feature_type == 'syncopation':
+            self._extract_syncopation(beat_frames, onset_env)
+        elif self.feature_type == 'rhythm_regularity':
+            self._extract_rhythm_regularity(beat_frames)
+        elif self.feature_type in ['down_beats', 'up_beats']:
+            self._extract_beat_types(beat_frames)
+        else:
+            raise ValueError(f"Unsupported feature type: {self.feature_type}")
+
+        self._normalize_features()
+        return self
+
+    def _extract_beat_locations(self, beat_frames):
+        beat_times = librosa.frames_to_time(beat_frames, sr=self.sample_rate)
+        beat_sequence = np.zeros(self.frame_count)
+        for beat_time in beat_times:
+            frame_index = int(beat_time * self.frame_rate)
+            if frame_index < self.frame_count:
+                beat_sequence[frame_index] = 1
+        self.features[self.feature_name] = beat_sequence.tolist()
+
+    def _extract_tempo(self, tempo):
+        # For simplicity, we'll use a constant tempo for all frames
+        self.features[self.feature_name] = [tempo] * self.frame_count
+
+    def _extract_onset_strength(self, onset_env):
+        # Resample onset strength to match frame count
+        resampled_onset = np.interp(
+            np.linspace(0, len(onset_env), self.frame_count),
+            np.arange(len(onset_env)),
+            onset_env
+        )
+        self.features[self.feature_name] = resampled_onset.tolist()
+
+    def _extract_beat_emphasis(self, beat_frames, onset_env):
+        beat_emphasis = np.zeros(self.frame_count)
+        for beat in beat_frames:
+            if beat < len(onset_env):
+                emphasis = onset_env[beat]
+                frame_index = int(librosa.frames_to_time(beat, sr=self.sample_rate) * self.frame_rate)
+                if frame_index < self.frame_count:
+                    beat_emphasis[frame_index] = emphasis
+        self.features[self.feature_name] = beat_emphasis.tolist()
+
+    def _extract_syncopation(self, beat_frames, onset_env):
+        # A simple syncopation measure: difference between actual onsets and expected beat locations
+        expected_beats = np.zeros_like(onset_env)
+        expected_beats[beat_frames] = 1
+        syncopation = np.abs(onset_env - expected_beats)
+        
+        # Resample to match frame count
+        resampled_syncopation = np.interp(
+            np.linspace(0, len(syncopation), self.frame_count),
+            np.arange(len(syncopation)),
+            syncopation
+        )
+        self.features[self.feature_name] = resampled_syncopation.tolist()
+
+    def _extract_rhythm_regularity(self, beat_frames):
+        # Measure regularity by calculating the standard deviation of inter-beat intervals
+        ibi = np.diff(librosa.frames_to_time(beat_frames, sr=self.sample_rate))
+        regularity = 1 / (1 + np.std(ibi))  # Invert so that higher values mean more regular
+        self.features[self.feature_name] = [regularity] * self.frame_count
+
+    def _extract_beat_types(self, beat_frames):
+        beat_times = librosa.frames_to_time(beat_frames, sr=self.sample_rate)
+        down_beats = np.zeros(self.frame_count)
+        up_beats = np.zeros(self.frame_count)
+        
+        for i, beat_time in enumerate(beat_times):
+            frame_index = int(beat_time * self.frame_rate)
+            if frame_index < self.frame_count:
+                if i % self.time_signature == 0:
+                    down_beats[frame_index] = 1  # Down beat
+                else:
+                    up_beats[frame_index] = 1  # Up beat
+        
+        self.features['down_beats'] = down_beats.tolist()
+        self.features['up_beats'] = up_beats.tolist()
+
+    def _normalize_features(self):
+        if self.feature_type in ['down_beats', 'up_beats']:
+            # For beat types, we want to keep the original binary values
+            self.features[self.feature_type] = self.features[self.feature_type]
+        else:
+            feature_array = np.array(self.features[self.feature_name], dtype=np.float32)
+            min_val = np.min(feature_array)
+            max_val = np.max(feature_array)
+            if max_val > min_val:
+                normalized = (feature_array - min_val) / (max_val - min_val)
+            else:
+                normalized = np.zeros_like(feature_array)
+            self.features[self.feature_name] = normalized.tolist()
+
+    def get_rhythm_feature(self, frame_index):
+        if self.features is None:
+            self.extract()
+
+        if self.feature_type in ['down_beats', 'up_beats']:
+            value = self.features[self.feature_type][frame_index]
+            beat_type = self.feature_type.rstrip('s')  # Remove 's' to get "down_beat" or "up_beat"
+            return {
+                'value': value,
+                'beat_type': beat_type if value > 0 else "no_beat"
+            }
+        else:
+            return {
+                'normalized': self.features[self.feature_name][frame_index]
+            }
 
 class PitchFeature(BaseAudioFeature):
     def __init__(
