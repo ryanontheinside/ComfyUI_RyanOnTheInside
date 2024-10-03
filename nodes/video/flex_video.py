@@ -1,5 +1,13 @@
 import numpy as np
+import torch
 from .video_base import FlexVideoBase
+from ..flex.feature_pipe import FeaturePipe
+from scipy.interpolate import interp1d
+from ..masks.mask_utils import calculate_optical_flow
+import cv2
+import comfy.model_management as mm
+
+from .flex_video_speed import FlexVideoSpeed
 
 class FlexVideoDirection(FlexVideoBase):
 
@@ -57,22 +65,19 @@ class FlexVideoDirection(FlexVideoBase):
 
         return processed_video
 
-class FlexVideoSpeed(FlexVideoBase):
+class FlexVideoSeek(FlexVideoBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["max_speed_percent"]
+        return ["seek_speed"]
 
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "feature_pipe": ("FEATURE_PIPE",),
-                "max_speed_percent": ("FLOAT", {"default": 500.0, "min": 1.0, "max": 1000.0, "step": 1.0}),
-                "duration_adjustment_method": (["Interpolate", "Truncate/Repeat"],),
-            }
-        }
+        inputs = super().INPUT_TYPES()
+        inputs["required"].update({
+            "seek_speed": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 5.0, "step": 0.1}),
+        })
+        return inputs
 
     FUNCTION = "apply_effect"
 
@@ -80,102 +85,52 @@ class FlexVideoSpeed(FlexVideoBase):
         self,
         video: np.ndarray,
         feature_values: np.ndarray,
-        max_speed_percent: float,
-        feature_pipe=None,
-        duration_adjustment_method="Interpolate",
+        seek_speed: float,
         **kwargs,
     ) -> np.ndarray:
-        strength = kwargs.get('strength', 1.0)
-        feature_mode = kwargs.get('feature_mode', 'relative')
         num_frames = video.shape[0]
-        original_frame_rate = feature_pipe.frame_rate
-        num_features = len(feature_values)
-
-        # Adjust video duration to match the number of features
-        if num_frames != num_features:
-            if duration_adjustment_method == "Interpolate":
-                video = self.interpolate_video(video, num_features)
-            else:  # "Truncate/Repeat"
-                video = self.truncate_or_repeat_video(video, num_features)
-            num_frames = num_features
-
-        # Convert max_speed_percent to a speed factor
-        max_speed_factor = max_speed_percent / 100.0
-
-        # Apply strength and feature_mode to adjust speed
-        if feature_mode == "relative":
-            # Feature value of 0.5 means original speed
-            speed_factors = 1.0 + (feature_values - 0.5) * 2 * (max_speed_factor - 1.0) * strength
-        else:  # "absolute"
-            # Feature values directly map to speed, scaled by max_speed_factor
-            speed_factors = feature_values * max_speed_factor * strength
-
-        # Ensure speed factors are within a reasonable range
-        speed_factors = np.clip(speed_factors, 1e-6, max_speed_factor)
-
-        # Compute time intervals between frames based on adjusted speed
-        time_intervals = 1.0 / (original_frame_rate * speed_factors)
-
-        # Compute cumulative time
-        cumulative_time = np.cumsum(time_intervals)
-        total_time = cumulative_time[-1]
-
-        # Generate new time stamps for the output frames
-        output_time_stamps = np.linspace(0, total_time, num_frames)
-
-        # Map output time stamps to input frame indices via interpolation
-        new_frame_indices = np.interp(output_time_stamps, cumulative_time, np.arange(num_frames))
-
-        # Interpolate frames
         processed_video = np.empty_like(video)
-        self.start_progress(len(new_frame_indices))
-        for idx, t in enumerate(new_frame_indices):
-            lower_idx = int(np.floor(t))
-            upper_idx = min(lower_idx + 1, num_frames - 1)
-            weight = t - lower_idx
-            processed_video[idx] = (1 - weight) * video[lower_idx] + weight * video[upper_idx]
-            self.update_progress()
-        self.end_progress()
-        return processed_video
-    
-    def interpolate_video(self, video: np.ndarray, target_frames: int) -> np.ndarray:
-        """Interpolate video to match the target number of frames."""
-        orig_frames = video.shape[0]
-        if orig_frames == target_frames:
-            return video
-        
-        new_video = np.empty((target_frames, *video.shape[1:]), dtype=video.dtype)
-        for i in range(target_frames):
-            t = i / (target_frames - 1) * (orig_frames - 1)
-            idx1, idx2 = int(t), min(int(t) + 1, orig_frames - 1)
-            weight = t - idx1
-            new_video[i] = (1 - weight) * video[idx1] + weight * video[idx2]
-        
-        return new_video
+        # Get strength from kwargs
+        strength = kwargs.get('strength', 1.0)
+        # Compute cumulative feature values to determine frame positions
+        feature_values_clipped = np.clip(feature_values, 0.0, 1.0)  # Ensure values are between 0 and 1
+        adjusted_speeds = feature_values_clipped * seek_speed  * strength# Adjust speeds according to feature values
 
-    def truncate_or_repeat_video(self, video: np.ndarray, target_frames: int) -> np.ndarray:
-        """Truncate or repeat video frames to match the target number of frames."""
-        orig_frames = video.shape[0]
-        if orig_frames == target_frames:
-            return video
-        
-        if orig_frames > target_frames:
-            return video[:target_frames]
+        # Normalize adjusted speeds to ensure total frames match input
+        total_speed = np.sum(adjusted_speeds)
+        if total_speed == 0:
+            adjusted_speeds = np.ones(num_frames) * (num_frames / num_frames)
         else:
-            repeats = target_frames // orig_frames
-            remainder = target_frames % orig_frames
-            return np.concatenate([np.tile(video, (repeats, 1, 1, 1)), video[:remainder]])
+            adjusted_speeds = adjusted_speeds / total_speed * (num_frames - 1)
+
+        cumulative_speeds = np.cumsum(adjusted_speeds)
+
+        # Map frame indices based on cumulative speeds
+        frame_indices = np.clip(cumulative_speeds.astype(int), 0, num_frames - 1)
+
+        # Ensure the output video has the same number of frames
+        for idx in range(num_frames):
+            frame_idx = frame_indices[idx]
+            processed_video[idx] = video[frame_idx]
+
+        return processed_video
+
+
 class FlexVideoFrameBlend(FlexVideoBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["blend_strength"]
+        return ["blend_strength", "frame_offset_ratio", "direction_bias", "blend_mode", "motion_blur_strength"]
 
     @classmethod
     def INPUT_TYPES(cls):
         inputs = super().INPUT_TYPES()
         inputs["required"].update({
             "blend_strength": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "frame_offset_ratio": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "direction_bias": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "blend_mode": (["normal", "additive", "multiply", "screen"],),
+            "motion_blur_strength": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
         })
         return inputs
 
@@ -186,6 +141,10 @@ class FlexVideoFrameBlend(FlexVideoBase):
         video: np.ndarray,
         feature_values: np.ndarray,
         blend_strength: float,
+        frame_offset_ratio: float,
+        direction_bias: float,
+        blend_mode: str,
+        motion_blur_strength: float,
         **kwargs,
     ) -> np.ndarray:
         num_frames = video.shape[0]
@@ -193,25 +152,56 @@ class FlexVideoFrameBlend(FlexVideoBase):
         feature_mode = kwargs.get('feature_mode', 'relative')
         processed_video = np.empty_like(video)
 
-        # Adjust blend strength based on feature values
+        # Adjust parameters based on feature values
         if feature_mode == "relative":
             adjusted_blend = blend_strength + (feature_values - 0.5) * 2 * strength
+            adjusted_offset_ratio = frame_offset_ratio + (feature_values - 0.5) * 2 * strength
+            adjusted_direction_bias = direction_bias + (feature_values - 0.5) * 2 * strength
+            adjusted_motion_blur = motion_blur_strength + (feature_values - 0.5) * 2 * strength
         else:  # "absolute"
             adjusted_blend = feature_values * strength
+            adjusted_offset_ratio = frame_offset_ratio * feature_values * strength
+            adjusted_direction_bias = direction_bias * feature_values * strength
+            adjusted_motion_blur = motion_blur_strength * feature_values * strength
 
         adjusted_blend = np.clip(adjusted_blend, 0.0, 1.0)
+        adjusted_offset_ratio = np.clip(adjusted_offset_ratio, 0.0, 1.0)
+        adjusted_direction_bias = np.clip(adjusted_direction_bias, 0.0, 1.0)
+        adjusted_motion_blur = np.clip(adjusted_motion_blur, 0.0, 1.0)
+
+        max_offset = num_frames // 2
+        frame_offsets = (adjusted_offset_ratio * max_offset).astype(int)
 
         self.start_progress(num_frames)
         for idx in range(num_frames):
             current_frame = video[idx]
-            if idx < num_frames - 1:
-                next_frame = video[idx + 1]
-            else:
-                next_frame = video[idx]  # Last frame, no next frame available
+            
+            forward_idx = min(idx + frame_offsets[idx], num_frames - 1)
+            backward_idx = max(idx - frame_offsets[idx], 0)
+            
+            forward_frame = video[forward_idx]
+            backward_frame = video[backward_idx]
 
-            alpha = adjusted_blend[idx]
-            blended_frame = (1 - alpha) * current_frame + alpha * next_frame
+            # Blend based on direction bias
+            blend_frame = adjusted_direction_bias[idx] * forward_frame + (1 - adjusted_direction_bias[idx]) * backward_frame
+            
+            # Apply blend mode
+            if blend_mode == "additive":
+                blended_frame = np.clip(current_frame + blend_frame * adjusted_blend[idx], 0.0, 1.0)
+            elif blend_mode == "multiply":
+                blended_frame = current_frame * (1 + (blend_frame - 0.5) * 2 * adjusted_blend[idx])
+            elif blend_mode == "screen":
+                blended_frame = 1 - (1 - current_frame) * (1 - blend_frame * adjusted_blend[idx])
+            else:  # normal blend
+                blended_frame = (1 - adjusted_blend[idx]) * current_frame + adjusted_blend[idx] * blend_frame
+
+            # Apply motion blur
+            if adjusted_motion_blur[idx] > 0:
+                blur_strength = int(adjusted_motion_blur[idx] * 10) * 2 + 1  # Ensure odd number
+                blended_frame = cv2.GaussianBlur(blended_frame, (blur_strength, blur_strength), 0)
+
             processed_video[idx] = np.clip(blended_frame, 0.0, 1.0)
+            
             self.update_progress()
         self.end_progress() 
 

@@ -18,7 +18,7 @@ import random
 from typing import List, Tuple
 import pymunk
 import cv2
-from ..audio.audio_utils import AudioFeatureExtractor
+from ..audio.audio_processor_legacy import AudioFeatureExtractor
 from ... import RyanOnTheInside
 
 
@@ -929,7 +929,7 @@ class FlexMaskBase(MaskBase):
             }
         }
 
-    CATEGORY = "RyanOnTheInside/AudioMasks"
+    CATEGORY = "RyanOnTheInside/FlexMasks"
     RETURN_TYPES = ("MASK",)
     FUNCTION = "main_function"
 

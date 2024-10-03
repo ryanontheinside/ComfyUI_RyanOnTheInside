@@ -1,7 +1,11 @@
 import torch
 from ..node_utilities import string_to_rgb 
+from ... import RyanOnTheInside
 
-class DyeImage:
+class ImageUtilityNode(RyanOnTheInside):
+    CATEGORY = "RyanOnTheInside/image/utility"
+
+class DyeImage(ImageUtilityNode):
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -15,7 +19,6 @@ class DyeImage:
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "dye_image"
-    CATEGORY = "image/color"
 
     def dye_image(self, image, source_rgb, target_rgb, tolerance):
         
@@ -29,3 +32,5 @@ class DyeImage:
         result[mask] = target.view(1, 1, 1, 3).expand_as(result)[mask]
 
         return (result,)
+
+

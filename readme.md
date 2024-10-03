@@ -20,12 +20,17 @@
   </tr>
   <tr>
     <td style="border: none; padding: 2px 2px 0 0;">
-      <img src="./assets/time.gif" width="300" alt="Time"><br>
-      <img src="./assets/plume_examples.gif" width="300" alt="Plume examples using two particle emitters" style="margin-top: 2px;">
+      <img src="./assets/slime.gif" width="300" alt="Time"><br>
+      </td>
+    <td>
+      <img src="./assets/tunnel_slime.gif" width="300" alt="Depth Chamber" style="margin-top: 2px;">
     </td>
-    <td style="border: none; padding: 2px 0 0 2px;"><img src="./assets/iris.gif" width="300" alt="Plume examples using two particle emitters"></td>
   </tr>
   <tr>
+  <td style="border: none; padding: 2px 0 0 2px;"><img src="./assets/proximity_calc_lava.gif" width="300" alt="Proximity Feature in Action"></td>
+  <td style="border: none; padding: 2px 2px 0 0;"><img src="./assets/playhead.gif" width="300" alt="Audio reactive playhead">
+  </tr><tr>
+  </td>
     <td colspan="2" style="border: none; padding: 2px 0 0 0;"><img src="./assets/earth.gif" width="600" alt="Earth particle collision"></td>
   </tr>
 </table>
@@ -33,7 +38,12 @@
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
 
 ##### 🆕 Recent Updates:
+- 9/30/23 - **FlexVideoSeek Node**: Added a new video manipulation node that allows for dynamic frame seeking based on feature inputs. This node enables creation of time-warping effects, music-reactive video manipulations, and other temporal distortions.
 
+- 9/30/23 - **Audio Utility and Effect Nodes**: Added a comprehensive set of audio processing nodes:
+  - Utility Nodes: AudioPad, AudioVolumeNormalization, AudioResample, AudioChannelMerge, AudioChannelSplit, AudioConcatenate, AudioCombine
+  - Effect Nodes: AudioPitchShift, AudioTimeStretch, AudioFade, AudioGain, AudioDither
+  These nodes provide powerful tools for manipulating and processing audio within ComfyUI workflows.
 - 9/28/24 - **Video TARGET**: Adds video as a feature target! While all feature targets are inherently *tiiime* based, this additional allows for *video-level* modulation as opposed to modulating individual frames to varying degrees over time. Novel!
 - 9/27/24 - MIDI feature bug fix
 - 9/25/24 - **FlexImageContrast**: Adds contrast and brightness to images, with an option to preserve luminosity.
