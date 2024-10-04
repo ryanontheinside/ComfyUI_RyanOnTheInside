@@ -873,6 +873,36 @@ Outputs:
 """
 })
 
+add_node_config("FeatureAccumulate", {
+    "TOP_DESCRIPTION": "Accumulates feature values over time, creating a cumulative effect.",
+    "ADDITIONAL_INFO": """
+- `feature`: Input feature to be accumulated (FEATURE type)
+- `start`: Starting value for the normalized output range (0.0 to 1.0)
+- `end`: Ending value for the normalized output range (0.0 to 1.0)
+- `threshold`: Minimum feature value to consider for accumulation (0.0 to 1.0)
+- `skip_thresholded`: If True, keeps original values below threshold; if False, maintains last accumulated value (BOOLEAN)
+- `invert_output`: Whether to invert the output feature values (BOOLEAN)
+
+This node accumulates feature values over time, creating a cumulative effect. It's useful for generating gradually increasing or decreasing effects based on feature intensity.
+
+The accumulation process works as follows:
+1. For each frame, if the feature value is above the threshold, it's added to the cumulative sum.
+2. If the value is below the threshold, the behavior depends on the `skip_thresholded` setting:
+   - If True, the original value is kept (useful for creating "gaps" in the effect).
+   - If False, the last accumulated value is maintained (for continuous effects).
+3. The accumulated values are then normalized to fit between the specified `start` and `end` values.
+
+Use cases include:
+1. Creating gradually intensifying effects based on audio features
+2. Generating cumulative motion effects in response to video analysis
+3. Producing threshold-based triggers that build up over time
+
+Outputs:
+- Processed FEATURE with accumulated values
+- Visualization of the accumulated feature (IMAGE type)
+"""
+})
+
 add_node_config("FeatureRebase", {
     "TOP_DESCRIPTION": "Rebases feature values within specified thresholds.",
     "ADDITIONAL_INFO": """
