@@ -141,3 +141,115 @@ class DepthShapeModifier(FlexExternalModulator):
             elif feature_param == "strength":
                 strength *= value
         return gradient_steepness, depth_min, depth_max, strength
+    
+
+import torch
+import torch.nn.functional as F
+import numpy as np
+from ... import RyanOnTheInside
+import cv2
+from skimage.feature import peak_local_max
+from skimage.segmentation import watershed
+from scipy import ndimage as ndi
+import math
+
+
+class DepthShapeModifierPrecise(FlexExternalModulator):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "depth_map": ("IMAGE",),
+                "mask": ("MASK",),
+                "gradient_steepness": ("FLOAT", {"default": 2.0, "min": 0.1, "max": 10.0, "step": 0.1}),
+                "depth_min": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "depth_max": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "modify_depth"
+    CATEGORY = "RyanOnTheInside/DepthModifiers"
+
+    def modify_depth(self, depth_map, mask, gradient_steepness, depth_min, depth_max, strength):
+        device = depth_map.device
+        mask = mask.to(device).bool()
+        
+        b, h, w, c = depth_map.shape
+
+        modified_depths = []
+        for i in range(b):
+            mask_i = mask[i].cpu().numpy().astype(np.uint8)
+
+            # Compute the Euclidean distance transform
+            distance = cv2.distanceTransform(mask_i, cv2.DIST_L2, 5)
+
+            # Find local maxima in distance transform
+            coordinates = peak_local_max(distance, min_distance=1, labels=mask_i)
+            local_maxi = np.zeros_like(distance, dtype=bool)
+            local_maxi[coordinates[:, 0], coordinates[:, 1]] = True
+
+            markers = ndi.label(local_maxi)[0]
+
+            # Apply the watershed algorithm to segment the particles
+            labels = watershed(-distance, markers, mask=mask_i)
+
+            sphere_gradients = torch.zeros((h, w), device=device)
+
+            # Convert labels to torch tensor
+            labels_torch = torch.from_numpy(labels).to(device)
+            num_labels = labels_torch.max().item()
+
+            for label in range(1, num_labels + 1):
+                # Create a mask for this label
+                component_mask = (labels_torch == label)
+                ys, xs = component_mask.nonzero(as_tuple=True)
+                if len(xs) == 0 or len(ys) == 0:
+                    continue  # Skip if no pixels found
+
+                center_x = torch.mean(xs.float())
+                center_y = torch.mean(ys.float())
+
+                # Calculate approximate radius
+                radius = torch.sqrt(component_mask.sum().float() / math.pi)
+
+                # Generate spherical gradient
+                y_grid, x_grid = torch.meshgrid(torch.arange(h, device=device), torch.arange(w, device=device), indexing='ij')
+                distances = torch.sqrt((y_grid - center_y) ** 2 + (x_grid - center_x) ** 2)
+                sphere_gradient = torch.clamp(1 - (distances / radius) ** gradient_steepness, 0, 1)
+
+                # Apply gradient only to this component
+                sphere_gradients += sphere_gradient * component_mask.float()
+
+            # Scale gradient to depth range
+            depth_gradient = depth_min + sphere_gradients * (depth_max - depth_min)
+
+            # Apply gradient to depth map
+            modified_depth = depth_map[i].clone()
+            depth_gradient = depth_gradient.unsqueeze(-1).repeat(1, 1, c)
+            modified_depth = torch.where(mask[i].unsqueeze(-1).repeat(1, 1, c),
+                                         depth_gradient,
+                                         modified_depth)
+
+            # Blend modified depth with original depth
+            blend_mask = (mask[i].unsqueeze(-1) * strength).repeat(1, 1, c)
+            modified_depth = depth_map[i] * (1 - blend_mask) + modified_depth * blend_mask
+            modified_depths.append(modified_depth)
+
+        result = torch.stack(modified_depths, dim=0)
+        return (result,)
+
+    def modify_feature_param(self, feature, feature_param, gradient_steepness, depth_min, depth_max, strength):
+        frames = feature.frame_count
+        for i in range(frames):
+            value = feature.get_value_at_frame(i)
+            if feature_param == "gradient_steepness":
+                gradient_steepness *= value
+            elif feature_param == "depth_min":
+                depth_min += value
+            elif feature_param == "depth_max":
+                depth_max -= value
+            elif feature_param == "strength":
+                strength *= value
+        return gradient_steepness, depth_min, depth_max, strength

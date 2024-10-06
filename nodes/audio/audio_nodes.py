@@ -14,10 +14,13 @@ from ..flex.feature_pipe import FeaturePipe
 class AudioNodeBase(RyanOnTheInside):
     CATEGORY= "RyanOnTheInside/Audio"
     @staticmethod
-    def create_empty_tensor(audio, frame_rate, height, width, channels):
+    def create_empty_tensor(audio, frame_rate, height, width, channels=None):
         audio_duration = audio['waveform'].shape[-1] / audio['sample_rate']
         num_frames = int(audio_duration * frame_rate)
-        return torch.zeros((num_frames, height, width, channels), dtype=torch.float32)
+        if channels is None:
+            return torch.zeros((num_frames, height, width), dtype=torch.float32)
+        else:
+            return torch.zeros((num_frames, height, width, channels), dtype=torch.float32)
 
 class DownloadOpenUnmixModel(AudioNodeBase):
     @classmethod
@@ -403,7 +406,28 @@ class EmptyMaskFromAudio(AudioNodeBase):
     CATEGORY = "RyanOnTheInside/Audio/Utility"
 
     def create_empty_mask(self, audio, frame_rate, height, width):
-        empty_mask = self.create_empty_tensor(audio, frame_rate, height, width, channels=1)
+        empty_mask = self.create_empty_tensor(audio, frame_rate, height, width)
         return (empty_mask,)
     
+#TODO
+class EmptyImageAndMaskFromAudio(AudioNodeBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "audio": ("AUDIO",),
+                "frame_rate": ("FLOAT", {"default": 30, "min": 0.1, "max": 120, "step": 0.1}),
+                "height": ("INT", {"default": 512, "min": 16, "max": 4096, "step": 1}),
+                "width": ("INT", {"default": 512, "min": 16, "max": 4096, "step": 1}),
+            }
+        }
 
+    RETURN_TYPES = ("IMAGE", "MASK")
+    RETURN_NAMES = ("empty_image", "empty_mask")
+    FUNCTION = "create_empty_image_and_mask"
+    CATEGORY = "RyanOnTheInside/Audio/Utility"
+
+    def create_empty_image_and_mask(self, audio, frame_rate, height, width):
+        empty_image = self.create_empty_tensor(audio, frame_rate, height, width, channels=3)
+        empty_mask = self.create_empty_tensor(audio, frame_rate, height, width)
+        return (empty_image, empty_mask)
