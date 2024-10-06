@@ -1,5 +1,5 @@
 import numpy as np
-from .mask_base import ParticleSystemMaskBase
+from .mask_base_particle_system import ParticleSystemMaskBase
 from typing import List, Tuple
 import cv2
 from ... import RyanOnTheInside
@@ -59,6 +59,71 @@ class ParticleEmissionMask(ParticleSystemMaskBase):
 
 class ParticleSystemModulatorBase(RyanOnTheInside):
     CATEGORY="RyanOnTheInside/ParticleSystemMasks"
+
+class EmitterModulationBase(ParticleSystemModulatorBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "start_frame": ("INT", {"default": 0, "min": 0, "max": 1000, "step": 1}),
+                "end_frame": ("INT", {"default": 0, "min": 0, "max": 1000, "step": 1}),
+                "effect_duration": ("INT", {"default": 0, "min": 0, "max": 1000, "step": 1}),
+                "temporal_easing": (["ease_in_out", "linear", "bounce", "elastic", "none"],),
+                "palindrome": ("BOOLEAN", {"default": False}),
+                "random": ("BOOLEAN", {"default": False}),
+            },
+            "optional": {
+                "previous_modulation": ("EMITTER_MODULATION",),
+                "feature": ("FEATURE",),
+            }
+        }
+
+    RETURN_TYPES = ("EMITTER_MODULATION",)
+    FUNCTION = "create_modulation"
+
+    def create_modulation(self, start_frame, end_frame, effect_duration, temporal_easing, palindrome, random, previous_modulation=None, feature=None):
+        modulation = {
+            "start_frame": start_frame,
+            "end_frame": end_frame,
+            "effect_duration": effect_duration,
+            "temporal_easing": temporal_easing,
+            "palindrome": palindrome,
+            "random": random,
+            "feature": feature,
+        }
+
+        modulation_type = self.__class__.__name__
+
+        if previous_modulation is None:
+            modulation_chain = []
+        else:
+            modulation_chain = previous_modulation.copy()
+            # Check if this type of modulation already exists in the chain
+            if any(m.get("type") == modulation_type for m in modulation_chain):
+                raise ValueError(f"A {modulation_type} already exists in the chain.")
+
+        modulation["type"] = modulation_type
+        modulation_chain.append(modulation)
+        return (modulation_chain,)
+
+class EmitterEmissionRateModulation(EmitterModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "target_emission_rate": ("FLOAT", {"default": 50.0, "min": 0.1, "max": 100.0, "step": 0.1}),
+            },
+            "optional": super().INPUT_TYPES()["optional"],
+        }
+
+    FUNCTION = "create_emission_rate_modulation"
+
+    def create_emission_rate_modulation(self, target_emission_rate, **kwargs):
+        modulation_chain = super().create_modulation(**kwargs)[0]
+        modulation_chain[-1]["target_emission_rate"] = target_emission_rate
+        return (modulation_chain,)
+
 
 class Vortex(ParticleSystemModulatorBase):
     @classmethod
@@ -151,7 +216,7 @@ class ParticleEmitter(ParticleSystemModulatorBase):
                 "particle_spread": ("FLOAT", {"default": 30.0, "min": 0.0, "max": 360.0, "step": 1.0}),
                 "particle_size": ("FLOAT", {"default": 17.4, "min": 1.0, "max": 400.0, "step": 0.1}),
                 "particle_speed": ("FLOAT", {"default": 330.0, "min": 1.0, "max": 1000.0, "step": 1.0}),
-                "emission_rate": ("FLOAT", {"default": 10.0, "min": 0.1, "max": 100.0, "step": 0.1}),
+                "emission_rate": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 100.0, "step": 0.1}),
                 "color": ("STRING", {"default": "(255,255,255)"}),
                 "initial_plume": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "start_frame": ("INT", {"default": 0, "min": 0, "max": 10000, "step": 1}),
@@ -163,6 +228,7 @@ class ParticleEmitter(ParticleSystemModulatorBase):
                 "emitter_movement": ("EMITTER_MOVEMENT",),
                 "spring_joint_setting": ("SPRING_JOINT_SETTING",),
                 "particle_modulation":("PARTICLE_MODULATION",),
+                "emitter_modulation": ("EMITTER_MODULATION",),
             }
         }
 
@@ -172,7 +238,8 @@ class ParticleEmitter(ParticleSystemModulatorBase):
     def create_emitter(self, emitter_x, emitter_y, particle_direction, particle_spread, 
                        particle_size, particle_speed, emission_rate, color, initial_plume,
                        start_frame, end_frame, emission_radius, previous_emitter=None, 
-                       emitter_movement=None, spring_joint_setting=None, particle_modulation=None):
+                       emitter_movement=None, spring_joint_setting=None, particle_modulation=None,
+                       emitter_modulation=None):
         emitter = {
             "emitter_x": emitter_x,
             "emitter_y": emitter_y,
@@ -196,6 +263,9 @@ class ParticleEmitter(ParticleSystemModulatorBase):
         
         if particle_modulation:
             emitter["particle_modulation"]  = particle_modulation
+
+        if emitter_modulation:
+            emitter["emitter_modulation"] = emitter_modulation
 
         if previous_emitter is None:
             emitter_list = [emitter]

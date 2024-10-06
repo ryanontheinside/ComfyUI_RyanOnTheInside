@@ -5,6 +5,7 @@ import torch
 from io import BytesIO
 from PIL import Image
 import random
+from ..node_utilities import apply_easing
 
 class FeatureModulationBase(RyanOnTheInside):
     CATEGORY = "RyanOnTheInside/FlexFeatures/FeatureModulators"
@@ -571,3 +572,63 @@ class FeatureAccumulate(FeatureModulationBase):
         
         processed_feature = self.create_processed_feature(feature, normalized, "Accumulated", invert_output)
         return (processed_feature, self.visualize(processed_feature))
+    
+
+
+import numpy as np
+from scipy.interpolate import interp1d
+
+class FeatureContiguousInterpolate(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "start": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "end": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "easing": (["linear", "ease_in_quad", "ease_out_quad", "ease_in_out_quad", 
+                            "ease_in_cubic", "ease_out_cubic", "ease_in_out_cubic",
+                            "ease_in_quart", "ease_out_quart", "ease_in_out_quart"],),
+                **super().INPUT_TYPES()["required"],
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE", "IMAGE")
+    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    FUNCTION = "interpolate"
+
+    def interpolate(self, feature, threshold, start, end, easing, invert_output):
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        # Identify contiguous segments
+        segments = []
+        current_segment = []
+        for i, v in enumerate(values):
+            if v >= threshold:
+                if not current_segment or v == values[current_segment[-1]]:
+                    current_segment.append(i)
+                else:
+                    if len(current_segment) > 1:
+                        segments.append(current_segment)
+                    current_segment = [i]
+            else:
+                if current_segment:
+                    if len(current_segment) > 1:
+                        segments.append(current_segment)
+                    current_segment = []
+        if current_segment and len(current_segment) > 1:
+            segments.append(current_segment)
+
+        # Apply interpolation to segments
+        interpolated = values.copy()
+        for segment in segments:
+            segment_length = len(segment)
+            t = np.linspace(0, 1, segment_length)
+            interpolated_values = apply_easing(t, start, end, easing)
+            for i, idx in enumerate(segment):
+                interpolated[idx] = interpolated_values[i]
+
+        processed_feature = self.create_processed_feature(feature, interpolated, "Interpolated", invert_output)
+        return (processed_feature, self.visualize(processed_feature))
+

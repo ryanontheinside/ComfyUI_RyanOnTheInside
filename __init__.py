@@ -134,6 +134,7 @@ from .nodes.masks.particle_system_masks import (
     ParticleColorModulation,
     ParticleSizeModulation,
     ParticleSpeedModulation,
+    EmitterEmissionRateModulation,
     )
 
 from .nodes.masks.mask_utility_nodes import (
@@ -212,6 +213,7 @@ from .nodes.depth.depth_base import(
 from .nodes.flex.feature_externals import (
     FeatureToWeightsStrategy,
     DepthShapeModifier,
+    DepthShapeModifierPrecise,
 )
 
 from .nodes.flex.feature_modulation import (
@@ -226,6 +228,8 @@ from .nodes.flex.feature_modulation import (
     FeatureRebase,
     FeatureTruncateOrExtend,
     FeatureAccumulate,
+    FeatureContiguousInterpolate,
+
 )
 
 from .nodes.audio.flex_audio import (
@@ -277,7 +281,7 @@ NODE_CLASS_MAPPINGS = {
     "ParticleColorModulation":      ParticleColorModulation,
     "ParticleSizeModulation":       ParticleSizeModulation,
     "ParticleSpeedModulation":      ParticleSpeedModulation,
-
+    "EmitterEmissionRateModulation":EmitterEmissionRateModulation,
 
     #flex masks 
     "FlexMaskMorph":                FlexMaskMorph,
@@ -345,7 +349,7 @@ NODE_CLASS_MAPPINGS = {
     "DepthRippleEffect":            DepthRippleEffect,
     "DepthBlender":                 DepthBlender,
     "DepthShapeModifier":           DepthShapeModifier,
-
+    "DepthShapeModifierPrecise":   DepthShapeModifierPrecise,
     #feature modulation
     "FeatureMixer":                 FeatureMixer,
     "FeatureCombine":               FeatureCombine,
@@ -358,6 +362,7 @@ NODE_CLASS_MAPPINGS = {
     "FeatureRebase":                FeatureRebase,
     "FeatureTruncateOrExtend":      FeatureTruncateOrExtend,
     "FeatureAccumulate":             FeatureAccumulate,
+    "FeatureContiguousInterpolate":  FeatureContiguousInterpolate,
     #images
     'FlexImageEdgeDetect':          FlexImageEdgeDetect,
     "FlexImagePosterize":           FlexImagePosterize,

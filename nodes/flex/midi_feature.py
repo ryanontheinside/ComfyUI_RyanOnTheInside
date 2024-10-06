@@ -68,8 +68,9 @@ class MIDIFeature(BaseFeature):
 
             current_time += msg.time
             frame_index = int(current_time * self.frame_rate)
-            if frame_index >= self.frame_count:
-                break
+            # Remove the following lines to prevent early termination
+            # if frame_index >= self.frame_count:
+            #     break
 
             value = self.process_message(msg, current_time, note_on_times, active_notes, note_counts, modulation_data)
             if value is not None:
@@ -77,7 +78,6 @@ class MIDIFeature(BaseFeature):
                 time_points.append(current_time)
 
         return self.finalize_attribute(attribute_values, time_points, note_counts, modulation_data)
-
     def process_message(self, msg, current_time, note_on_times, active_notes, note_counts, modulation_data):
         frame_index = int(current_time * self.frame_rate)
 
@@ -99,7 +99,8 @@ class MIDIFeature(BaseFeature):
         if msg.type == 'note_on' and (not self.notes or msg.note in self.notes):
             note_on_times[msg.note] = current_time
             active_notes.add(msg.note)
-            note_counts[frame_index:] += 1
+            if frame_index < self.frame_count:
+                note_counts[frame_index:] += 1
 
             if not self.chord_only or (self.chord_only and active_notes == self.notes):
                 return self.get_attribute_value_for_message(msg, 'on')
@@ -107,12 +108,13 @@ class MIDIFeature(BaseFeature):
         elif msg.type == 'note_off' and msg.note in note_on_times:
             if msg.note in active_notes:
                 active_notes.remove(msg.note)
+            if frame_index < self.frame_count:
+                note_counts[frame_index:] -= 1
+            duration = current_time - note_on_times[msg.note]
+            del note_on_times[msg.note]
 
             if not self.chord_only or (self.chord_only and len(active_notes) == 0):
-                value = self.get_attribute_value_for_message(msg, 'off', current_time - note_on_times[msg.note])
-                note_counts[frame_index:] -= 1
-                del note_on_times[msg.note]
-                return value
+                return self.get_attribute_value_for_message(msg, 'off', duration)
 
         return None
 
