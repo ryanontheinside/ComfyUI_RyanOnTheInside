@@ -38,9 +38,14 @@
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
 
 ##### 🆕 Recent Updates:
+- 10/12/24 - **A LOT**: I added a lot of new nodes, fixed a lot of bugs, and cleaned up a lot of the code. I will be detailing the cool stuff on YouTube at some point in this timeline  of ours
+  - **FeatureContiguousInterpolate**: Interpolates contiguous segments of a feature that meet a threshold criteria.
+  - **FeatureRebase**: Rebases feature values within specified thresholds.
+  - **Latents as flex feature targets**: WORK IN PROGRESS Base class for latent nodes, providing a common interface and functionality for various latent operations.
+  - **Audio Utility and Effect Nodes**: Added an incomplete set of audio processing nodes.
+  - **And more**
 - 10/3/24 - **FeatureAccumulate**: Adds a new feature modifier that accumulates feature values over time, creating a cumulative effect.
 - 9/30/23 - **FlexVideoSeek Node**: Added a new video manipulation node that allows for dynamic frame seeking based on feature inputs. This node enables creation of time-warping effects, music-reactive video manipulations, and other temporal distortions.
-
 - 9/30/23 - **Audio Utility and Effect Nodes**: Added a comprehensive set of audio processing nodes:
   - Utility Nodes: AudioPad, AudioVolumeNormalization, AudioResample, AudioChannelMerge, AudioChannelSplit, AudioConcatenate, AudioCombine
   - Effect Nodes: AudioPitchShift, AudioTimeStretch, AudioFade, AudioGain, AudioDither

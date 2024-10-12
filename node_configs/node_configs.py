@@ -903,6 +903,36 @@ Outputs:
 """
 })
 
+add_node_config("FeatureContiguousInterpolate", {
+    "TOP_DESCRIPTION": "Applies interpolation to contiguous segments of a feature that meet a threshold criteria.",
+    "ADDITIONAL_INFO": """
+- `feature`: Input feature to be processed (FEATURE type)
+- `threshold`: Minimum value for a feature point to be considered part of a segment (0.0 to 1.0)
+- `start`: Starting value for the interpolation (0.0 to 1.0)
+- `end`: Ending value for the interpolation (0.0 to 1.0)
+- `easing`: Easing function to apply to the interpolation. Options include various easing types like linear, quadratic, cubic, and quartic easings (in, out, and in-out variants)
+- `fade_out`: Number of frames over which to fade out after each segment (0 to 100)
+- `invert_output`: Whether to invert the output feature values (True/False)
+
+This node identifies contiguous segments in the input feature where values are above the specified threshold. It then applies interpolation to these segments, transforming the values from the start value to the end value using the chosen easing function. After each segment, it can optionally apply a fade-out effect.
+
+Key features:
+1. Segment identification based on threshold
+2. Flexible interpolation with various easing functions
+3. Optional fade-out after each segment
+4. Visualization of the processed feature
+
+Use cases include:
+1. Smoothing out feature transitions in audio-reactive animations
+2. Creating more dynamic and interesting feature curves for visual effects
+3. Emphasizing specific segments of a feature while de-emphasizing others
+
+Outputs:
+- Processed FEATURE with interpolated segments
+- Visualization of the interpolated feature (IMAGE type)
+"""
+})
+
 add_node_config("FeatureRebase", {
     "TOP_DESCRIPTION": "Rebases feature values within specified thresholds.",
     "ADDITIONAL_INFO": """

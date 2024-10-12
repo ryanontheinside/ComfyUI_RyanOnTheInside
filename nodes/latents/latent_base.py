@@ -10,7 +10,7 @@ from tqdm import tqdm
 from comfy.utils import ProgressBar
 from ... import RyanOnTheInside
 
-#NOTE work in progress
+#NOTE work in progress, not even close to being finished
 class FlexLatentBase(RyanOnTheInside, ABC):
     @classmethod
     def INPUT_TYPES(cls):
