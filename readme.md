@@ -28,7 +28,7 @@
   </tr>
   <tr>
   <td style="border: none; padding: 2px 0 0 2px;"><img src="./assets/proximity_calc_lava.gif" width="300" alt="Proximity Feature in Action"></td>
-  <td style="border: none; padding: 2px 2px 0 0;"><img src="./assets/playhead.gif" width="300" alt="Audio reactive playhead">
+  <td style="border: none; padding: 2px 2px 0 0;"><img src="./assets/playhead1.gif" width="300" alt="Audio reactive playhead">
   </tr><tr>
   </td>
     <td colspan="2" style="border: none; padding: 2px 0 0 0;"><img src="./assets/earth.gif" width="600" alt="Earth particle collision"></td>
