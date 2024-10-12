@@ -741,49 +741,96 @@ class FlexMaskDepthChamberRelative(FlexMaskBase):
 
         return (output_masks_tensor,)
 
-#TODO
-# class FlexMaskVoronoiShape(FlexMaskBase):
-#     @classmethod
-#     def INPUT_TYPES(cls):
-#         return {
-#             **super().INPUT_TYPES(),
-#             "required": {
-#                 **super().INPUT_TYPES()["required"],
-#                 "max_num_points": ("INT", {"default": 50, "min": 4, "max": 1000, "step": 1}),
-#                 "max_point_jitter": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.01}),
-#                 "shape_type": (get_available_shapes(),),
-#                 "max_shape_size": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-#                 "control_mode": (["num_points", "point_jitter", "shape_size", "all"],),
-#             }
-#         }
+class FlexMaskInterpolate(FlexMaskBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "mask_b": ("MASK",),
+                "interpolation_method": ([
+                    "linear", "ease_in", "ease_out", "ease_in_out",
+                    "cubic", "sigmoid", "radial",
+                    "distance_transform", "random_noise"
+                ],),
+                "invert_mask_b": ("BOOLEAN", {"default": False}),
+                "blend_mode": (["normal", "add", "multiply", "overlay", "soft_light"],),
+            }
+        }
 
-#     def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, 
-#                      max_num_points: int, max_point_jitter: float, shape_type: str, 
-#                      max_shape_size: float, control_mode: str, **kwargs) -> np.ndarray:
-#         if control_mode == "num_points" or control_mode == "all":
-#             num_points = max(4, int(max_num_points * feature_value * strength))
-#         else:
-#             num_points = max_num_points
+    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, 
+                     mask_b: torch.Tensor, interpolation_method: str, invert_mask_b: bool,
+                     blend_mode: str, **kwargs) -> np.ndarray:
+        frame_index = kwargs.get('frame_index', 0)
+        mask_b_frame = mask_b[frame_index].numpy()
 
-#         if control_mode == "point_jitter" or control_mode == "all":
-#             point_jitter = max_point_jitter * feature_value * strength
-#         else:
-#             point_jitter = max_point_jitter
+        if invert_mask_b:
+            mask_b_frame = 1.0 - mask_b_frame
 
-#         if control_mode == "shape_size" or control_mode == "all":
-#             shape_size = max_shape_size * feature_value * strength
-#         else:
-#             shape_size = max_shape_size
-        
-#         return generate_voronoi_shapes_mask(mask.shape[:2], num_points, point_jitter, shape_type, shape_size)
+        # Ensure masks are in the same shape
+        if mask.shape != mask_b_frame.shape:
+            mask_b_frame = cv2.resize(mask_b_frame, (mask.shape[1], mask.shape[0]), interpolation=cv2.INTER_LINEAR)
 
-#     def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, 
-#                       invert, subtract_original, grow_with_blur, max_num_points, 
-#                       max_point_jitter, shape_type, max_shape_size, control_mode, **kwargs):
-#         return (self.apply_mask_operation(masks, feature, feature_pipe, strength, 
-#                                           feature_threshold, invert, subtract_original, 
-#                                           grow_with_blur, max_num_points=max_num_points, 
-#                                           max_point_jitter=max_point_jitter, 
-#                                           shape_type=shape_type, 
-#                                           max_shape_size=max_shape_size, 
-#                                           control_mode=control_mode, **kwargs),)
+        # Compute interpolation alpha based on feature_value and strength
+        alpha = np.clip(feature_value * strength, 0.0, 1.0)
+
+        # Apply interpolation method to compute weight
+        if interpolation_method == "linear":
+            weight = alpha
+        elif interpolation_method == "ease_in":
+            weight = alpha ** 2
+        elif interpolation_method == "ease_out":
+            weight = 1 - (1 - alpha) ** 2
+        elif interpolation_method == "ease_in_out":
+            weight = alpha ** 2 / (alpha ** 2 + (1 - alpha) ** 2 + 1e-6)
+        elif interpolation_method == "cubic":
+            weight = 3 * alpha ** 2 - 2 * alpha ** 3
+        elif interpolation_method == "sigmoid":
+            weight = 1 / (1 + np.exp(-12 * (alpha - 0.5)))
+        elif interpolation_method == "radial":
+            # Create a radial gradient centered in the mask
+            height, width = mask.shape
+            X, Y = np.meshgrid(np.linspace(-1, 1, width), np.linspace(-1, 1, height))
+            distance = np.sqrt(X**2 + Y**2)
+            weight = np.clip(1 - distance / np.sqrt(2), 0, 1) * alpha
+        elif interpolation_method == "distance_transform":
+            # Use distance transform on mask to calculate weights
+            distance = cv2.distanceTransform((mask * 255).astype(np.uint8), cv2.DIST_L2, 5)
+            max_dist = distance.max() if distance.max() != 0 else 1.0
+            weight = (1 - distance / max_dist) * alpha
+        elif interpolation_method == "random_noise":
+            # Use random noise as weight
+            random_noise = np.random.rand(*mask.shape)
+            weight = random_noise * alpha
+        else:
+            weight = alpha
+
+        # Apply blending modes
+        if blend_mode == "normal":
+            interpolated_mask = (1 - weight) * mask + weight * mask_b_frame
+        elif blend_mode == "add":
+            interpolated_mask = np.clip(mask + mask_b_frame * weight, 0, 1)
+        elif blend_mode == "multiply":
+            interpolated_mask = mask * (mask_b_frame * weight + (1 - weight) * 1)
+        elif blend_mode == "overlay":
+            overlay = np.where(mask < 0.5, 2 * mask * (mask_b_frame * weight), 1 - 2 * (1 - mask) * (1 - mask_b_frame * weight))
+            interpolated_mask = overlay
+        elif blend_mode == "soft_light":
+            soft_light = (1 - (1 - mask) * (1 - mask_b_frame * weight))
+            interpolated_mask = soft_light
+        else:
+            interpolated_mask = (1 - weight) * mask + weight * mask_b_frame
+
+        interpolated_mask = np.clip(interpolated_mask, 0.0, 1.0)
+        return interpolated_mask.astype(np.float32)
+
+    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold,
+                      invert, subtract_original, grow_with_blur, mask_b, 
+                      interpolation_method, invert_mask_b, blend_mode, **kwargs):
+        return (self.apply_mask_operation(masks, feature, feature_pipe, strength,
+                                          feature_threshold, invert, subtract_original,
+                                          grow_with_blur, mask_b=mask_b,
+                                          interpolation_method=interpolation_method,
+                                          invert_mask_b=invert_mask_b,
+                                          blend_mode=blend_mode, **kwargs),)

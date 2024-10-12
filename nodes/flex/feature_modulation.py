@@ -590,6 +590,7 @@ class FeatureContiguousInterpolate(FeatureModulationBase):
                 "easing": (["linear", "ease_in_quad", "ease_out_quad", "ease_in_out_quad", 
                             "ease_in_cubic", "ease_out_cubic", "ease_in_out_cubic",
                             "ease_in_quart", "ease_out_quart", "ease_in_out_quart"],),
+                "fade_out": ("INT", {"default": 0, "min": 0, "max": 100, "step": 1}),
                 **super().INPUT_TYPES()["required"],
             }
         }
@@ -598,7 +599,7 @@ class FeatureContiguousInterpolate(FeatureModulationBase):
     RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
     FUNCTION = "interpolate"
 
-    def interpolate(self, feature, threshold, start, end, easing, invert_output):
+    def interpolate(self, feature, threshold, start, end, easing, fade_out, invert_output):
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
         
         # Identify contiguous segments
@@ -606,28 +607,39 @@ class FeatureContiguousInterpolate(FeatureModulationBase):
         current_segment = []
         for i, v in enumerate(values):
             if v >= threshold:
-                if not current_segment or v == values[current_segment[-1]]:
-                    current_segment.append(i)
-                else:
-                    if len(current_segment) > 1:
-                        segments.append(current_segment)
-                    current_segment = [i]
+                current_segment.append(i)
             else:
                 if current_segment:
-                    if len(current_segment) > 1:
-                        segments.append(current_segment)
+                    segments.append(current_segment)
                     current_segment = []
-        if current_segment and len(current_segment) > 1:
+        if current_segment:
             segments.append(current_segment)
 
-        # Apply interpolation to segments
+        # Apply interpolation to segments and add fade-out
         interpolated = values.copy()
         for segment in segments:
             segment_length = len(segment)
+            
+            # Calculate the interpolation for the segment
             t = np.linspace(0, 1, segment_length)
             interpolated_values = apply_easing(t, start, end, easing)
+            
+            # Apply the interpolation to the segment
             for i, idx in enumerate(segment):
                 interpolated[idx] = interpolated_values[i]
+            
+            # Apply fade-out after the segment
+            if fade_out > 0:
+                fade_out_start = segment[-1] + 1
+                fade_out_end = min(fade_out_start + fade_out, len(values))
+                fade_out_length = fade_out_end - fade_out_start
+                
+                if fade_out_length > 0:
+                    t_fade = np.linspace(0, 1, fade_out_length)
+                    fade_out_values = apply_easing(t_fade, end, start, easing)
+                    
+                    for i, idx in enumerate(range(fade_out_start, fade_out_end)):
+                        interpolated[idx] = fade_out_values[i]
 
         processed_feature = self.create_processed_feature(feature, interpolated, "Interpolated", invert_output)
         return (processed_feature, self.visualize(processed_feature))

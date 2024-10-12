@@ -165,6 +165,7 @@ class DepthShapeModifierPrecise(FlexExternalModulator):
                 "depth_min": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "depth_max": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "composite_method": (["linear","depth_aware", "add", "subtract", "multiply", "divide", "screen", "overlay"],),
             }
         }
 
@@ -172,7 +173,7 @@ class DepthShapeModifierPrecise(FlexExternalModulator):
     FUNCTION = "modify_depth"
     CATEGORY = "RyanOnTheInside/DepthModifiers"
 
-    def modify_depth(self, depth_map, mask, gradient_steepness, depth_min, depth_max, strength):
+    def modify_depth(self, depth_map, mask, gradient_steepness, depth_min, depth_max, strength, composite_method):
         device = depth_map.device
         mask = mask.to(device).bool()
         
@@ -225,20 +226,43 @@ class DepthShapeModifierPrecise(FlexExternalModulator):
             # Scale gradient to depth range
             depth_gradient = depth_min + sphere_gradients * (depth_max - depth_min)
 
-            # Apply gradient to depth map
-            modified_depth = depth_map[i].clone()
-            depth_gradient = depth_gradient.unsqueeze(-1).repeat(1, 1, c)
-            modified_depth = torch.where(mask[i].unsqueeze(-1).repeat(1, 1, c),
-                                         depth_gradient,
-                                         modified_depth)
-
-            # Blend modified depth with original depth
-            blend_mask = (mask[i].unsqueeze(-1) * strength).repeat(1, 1, c)
-            modified_depth = depth_map[i] * (1 - blend_mask) + modified_depth * blend_mask
+            # Apply composite method
+            modified_depth = self.apply_composite_method(depth_map[i], depth_gradient, mask[i], composite_method, strength)
             modified_depths.append(modified_depth)
 
         result = torch.stack(modified_depths, dim=0)
         return (result,)
+
+    def apply_composite_method(self, original_depth, depth_gradient, mask, method, strength):
+        mask = mask.unsqueeze(-1).repeat(1, 1, original_depth.shape[-1])
+        depth_gradient = depth_gradient.unsqueeze(-1).repeat(1, 1, original_depth.shape[-1])
+        
+        if method == "linear":
+            return original_depth * (1 - mask * strength) + depth_gradient * mask * strength
+        elif method == "add":
+            return torch.clamp(original_depth + depth_gradient * mask * strength, 0, 1)
+        elif method == "subtract":
+            return torch.clamp(original_depth - depth_gradient * mask * strength, 0, 1)
+        elif method == "multiply":
+            return original_depth * (1 + (depth_gradient - 1) * mask * strength)
+        elif method == "divide":
+            return original_depth / (1 + (1/depth_gradient - 1) * mask * strength)
+        elif method == "screen":
+            return 1 - (1 - original_depth) * (1 - depth_gradient * mask * strength)
+        elif method == "overlay":
+            condition = original_depth <= 0.5
+            result = torch.where(
+                condition,
+                2 * original_depth * depth_gradient,
+                1 - 2 * (1 - original_depth) * (1 - depth_gradient)
+            )
+            return original_depth * (1 - mask * strength) + result * mask * strength
+        elif method == "depth_aware":
+            # Only use depth_gradient where it's greater than original_depth (closer to camera)
+            result = torch.where(depth_gradient > original_depth, depth_gradient, original_depth)
+            return original_depth * (1 - mask * strength) + result * mask * strength
+        else:
+            raise ValueError(f"Unknown composite method: {method}")
 
     def modify_feature_param(self, feature, feature_param, gradient_steepness, depth_min, depth_max, strength):
         frames = feature.frame_count
@@ -253,3 +277,5 @@ class DepthShapeModifierPrecise(FlexExternalModulator):
             elif feature_param == "strength":
                 strength *= value
         return gradient_steepness, depth_min, depth_max, strength
+
+
