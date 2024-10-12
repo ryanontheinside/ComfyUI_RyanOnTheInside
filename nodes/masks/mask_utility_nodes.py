@@ -267,3 +267,45 @@ class _mfc:
         mask_image = mask.unsqueeze(-1).repeat(1, 1, 1, 3)
         
         return (mask, mask_image)
+    
+
+class MaskCompositePlus:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "mask1": ("MASK",),
+                "mask2": ("MASK",),
+                "operation": (["add", "subtract", "multiply", "divide", "min", "max", "pixel_wise_min", "pixel_wise_max"],),
+            },
+        }
+
+    RETURN_TYPES = ("MASK",)
+    FUNCTION = "composite_masks"
+    CATEGORY = "RyanOnTheInside/masks/"
+
+    def composite_masks(self, mask1, mask2, operation):
+        # Ensure masks have the same shape
+        if mask1.shape != mask2.shape:
+            raise ValueError("Masks must have the same shape")
+
+        if operation == "add":
+            result = torch.clamp(mask1 + mask2, 0, 1)
+        elif operation == "subtract":
+            result = torch.clamp(mask1 - mask2, 0, 1)
+        elif operation == "multiply":
+            result = mask1 * mask2
+        elif operation == "divide":
+            result = torch.where(mask2 != 0, mask1 / mask2, mask1)
+        elif operation == "min":
+            result = torch.min(mask1, mask2)
+        elif operation == "max":
+            result = torch.max(mask1, mask2)
+        elif operation == "pixel_wise_min":
+            result = torch.where(mask1 < mask2, mask1, mask2)
+        elif operation == "pixel_wise_max":
+            result = torch.where(mask1 > mask2, mask1, mask2)
+        else:
+            raise ValueError(f"Unknown operation: {operation}")
+
+        return (result,)

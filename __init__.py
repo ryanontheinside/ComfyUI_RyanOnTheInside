@@ -141,6 +141,7 @@ from .nodes.masks.mask_utility_nodes import (
     _mfc, 
     TextMaskNode, 
     MovingShape,
+    MaskCompositePlus,
 )
 
 from .nodes.utility_nodes import (
@@ -173,6 +174,7 @@ from .nodes.masks.flex_masks import (
     FlexMaskRandomShapes,
     FlexMaskDepthChamber,
    # FlexMaskDepthChamberRelative, #NOTE work in progress
+    FlexMaskInterpolate,
 
 )
 
@@ -237,6 +239,13 @@ from .nodes.audio.flex_audio import (
     FlexAudioTimeStretch,
 )
 
+from .nodes.latents.latent_base import (
+    FlexLatentInterpolate,
+    EmbeddingGuidedLatentInterpolate,
+)
+
+from .nodes.preprocessors.pose import PoseInterpolator
+
 import os
 import folder_paths
 
@@ -251,7 +260,12 @@ folder_paths.add_model_folder_path("midi_files", midi_path)
 os.makedirs(midi_path, exist_ok=True)
 
 NODE_CLASS_MAPPINGS = {
-    
+    #NOTE: PoseInterpolator is not working yet
+    #"PoseInterpolator": PoseInterpolator,
+
+    #latents
+    "FlexLatentInterpolate":       FlexLatentInterpolate,
+    "EmbeddingGuidedLatentInterpolate": EmbeddingGuidedLatentInterpolate,
     #video
     "FlexVideoSpeed":              FlexVideoSpeed,
     "FlexVideoDirection":          FlexVideoDirection,
@@ -263,6 +277,7 @@ NODE_CLASS_MAPPINGS = {
     "MaskMath":                     MaskMath,
     "MaskRings":                    MaskRings,
     "MaskWarp":                     MaskWarp,
+
 
 
     #optical flow   
@@ -297,7 +312,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexMaskDepthChamber":         FlexMaskDepthChamber,
     #"FlexMaskNormalLighting":       FlexMaskNormalLighting,
     # "FlexMaskDepthChamberRelative": FlexMaskDepthChamberRelative,
-
+    "FlexMaskInterpolate":          FlexMaskInterpolate,
 
     #flex audio
     "FlexAudioPitchShift":          FlexAudioPitchShift,
@@ -392,6 +407,7 @@ NODE_CLASS_MAPPINGS = {
     "MovingShape":                  MovingShape,
     "_mfc":                         _mfc,
     "TextMaskNode":                 TextMaskNode,
+    "MaskCompositePlus":                MaskCompositePlus,
 
     #utility nodes
     "ImageChunk":                   ImageChunks, 
