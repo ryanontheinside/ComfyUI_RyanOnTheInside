@@ -38,6 +38,7 @@
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
 
 ##### 🆕 Recent Updates:
+- 10/13/24 - **Depthflow Nodes Compatibility**: Exciting news! The Depthflow Nodes pack by akatz-ai is now compatible with my feature system, opening up new possibilities for dynamic parallax animations!
 - 10/12/24 - **A LOT**: I added a lot of new nodes, fixed a lot of bugs, and cleaned up a lot of the code. I will be detailing the cool stuff on YouTube at some point in this timeline  of ours
   - **FeatureContiguousInterpolate**: Interpolates contiguous segments of a feature that meet a threshold criteria.
   - **FeatureRebase**: Rebases feature values within specified thresholds.
@@ -74,10 +75,11 @@ Getting started with the RyanOnTheInside node pack is easy:
 3. Check out the example workflows on Civitai to see how different features can be used.
 
 ### Example and Tutorial Workflows on Civitai
-
-For a range of example and tutorial workflows showcasing the capabilities of this node pack, visit my Civitai profile:
-
+There are many example workflows in this repo, but for the most current, and with all attendent required assets, visit my Civitai profile:
 [RyanOnTheInside Civitai Profile](https://civitai.com/user/RyanOnTheInside)
+
+For tutorials on these nodes and more, check out my YouTube channel. Production value low, information dense af:
+[RyanOnTheInside YouTube Channel](https://www.youtube.com/@RyanOnTheInside)
 
 ## ❓ Help and Documentation
 
@@ -113,6 +115,25 @@ Dynamic control over various aspects of your workflow:
 - Apply time-based transformations to masks and images
 - Create evolving animations with various effects (erosion, dilation, warping)
 - Customize with easing functions and palindrome support
+
+## 🤝 Compatible Node Packs
+
+I'm thrilled to announce that external node packs are now compatible with my feature system! One standout example is the Depthflow Nodes pack by akatz-ai.
+
+### 🌊 Depthflow Nodes
+
+The [Depthflow Nodes pack](https://github.com/akatz-ai/ComfyUI-Depthflow-Nodes) brings the power of parallax animations to ComfyUI, allowing you to turn 2D images into stunning 2.5D animations. What's even more exciting is that it's fully compatible with my feature system!
+
+Key features of Depthflow Nodes:
+- Create complex parallax animations from images and depth maps
+- Various motion presets for quick setup
+- Fine-grained control with individual motion components
+
+By combining Depthflow Nodes with my feature system, you can create dynamic, responsive parallax animations that react to audio, MIDI, motion, and more. This collaboration opens up a world of creative possibilities for your ComfyUI workflows!
+
+Check out the [Depthflow Nodes repository](https://github.com/akatz-ai/ComfyUI-Depthflow-Nodes) for more information and installation instructions.
+
+
 
 ## 📚 Detailed Documentation
 
