@@ -3,6 +3,15 @@ import torch.nn.functional as F
 import numpy  as np
 from ... import RyanOnTheInside
 import cv2
+import torch
+import torch.nn.functional as F
+import numpy as np
+from ... import RyanOnTheInside
+import cv2
+from skimage.feature import peak_local_max
+from skimage.segmentation import watershed
+from scipy import ndimage as ndi
+import math
 
 class FlexExternalModulator(RyanOnTheInside):
     CATEGORY = "RyanOnTheInside/FlexExternalMod"
@@ -40,8 +49,6 @@ class FeatureToWeightsStrategy(FlexExternalModulator):
 
 
         return (weights_strategy,)
-
-
 
 
 #TODO: sub somthing else
@@ -143,17 +150,6 @@ class DepthShapeModifier(FlexExternalModulator):
         return gradient_steepness, depth_min, depth_max, strength
     
 
-import torch
-import torch.nn.functional as F
-import numpy as np
-from ... import RyanOnTheInside
-import cv2
-from skimage.feature import peak_local_max
-from skimage.segmentation import watershed
-from scipy import ndimage as ndi
-import math
-
-
 class DepthShapeModifierPrecise(FlexExternalModulator):
     @classmethod
     def INPUT_TYPES(cls):
@@ -165,7 +161,7 @@ class DepthShapeModifierPrecise(FlexExternalModulator):
                 "depth_min": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "depth_max": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "composite_method": (["linear","depth_aware", "add", "subtract", "multiply", "divide", "screen", "overlay"],),
+                "composite_method": (["linear","depth_aware", "add", "subtract", "multiply", "divide", "screen", "overlay", "protrude"],),
             }
         }
 
@@ -226,6 +222,10 @@ class DepthShapeModifierPrecise(FlexExternalModulator):
             # Scale gradient to depth range
             depth_gradient = depth_min + sphere_gradients * (depth_max - depth_min)
 
+            # Store depth_min and depth_max as instance variables
+            self.depth_min = depth_min
+            self.depth_max = depth_max
+
             # Apply composite method
             modified_depth = self.apply_composite_method(depth_map[i], depth_gradient, mask[i], composite_method, strength)
             modified_depths.append(modified_depth)
@@ -237,7 +237,25 @@ class DepthShapeModifierPrecise(FlexExternalModulator):
         mask = mask.unsqueeze(-1).repeat(1, 1, original_depth.shape[-1])
         depth_gradient = depth_gradient.unsqueeze(-1).repeat(1, 1, original_depth.shape[-1])
         
-        if method == "linear":
+        if method == "protrude":
+            # Calculate the difference between depth_gradient and original_depth
+            difference = depth_gradient - original_depth
+            
+            # Only apply positive differences (protrusions)
+            positive_difference = torch.clamp(difference, min=0)
+            
+            # Scale the protrusion by strength
+            scaled_protrusion = positive_difference * strength
+            
+            # Add the scaled protrusion to the original depth
+            protrusion = original_depth + scaled_protrusion
+            
+            # Create a mask for areas where original_depth is within the valid range
+            valid_range_mask = (original_depth >= self.depth_min) & (original_depth <= self.depth_max)
+            
+            # Apply the protrusion only where the mask is active and original_depth is within the valid range
+            return torch.where(mask & valid_range_mask, protrusion, original_depth)
+        elif method == "linear":
             return original_depth * (1 - mask * strength) + depth_gradient * mask * strength
         elif method == "add":
             return torch.clamp(original_depth + depth_gradient * mask * strength, 0, 1)
@@ -277,5 +295,3 @@ class DepthShapeModifierPrecise(FlexExternalModulator):
             elif feature_param == "strength":
                 strength *= value
         return gradient_steepness, depth_min, depth_max, strength
-
-

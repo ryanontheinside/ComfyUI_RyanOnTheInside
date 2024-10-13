@@ -58,6 +58,7 @@ from .nodes.audio.audio_nodes import (
     AudioFilter,
     EmptyMaskFromAudio,
     EmptyImageFromAudio,
+    EmptyImageAndMaskFromAudio,
 
 )
 
@@ -216,6 +217,7 @@ from .nodes.flex.feature_externals import (
     FeatureToWeightsStrategy,
     DepthShapeModifier,
     DepthShapeModifierPrecise,
+    # DepthMapProtrusion
 )
 
 from .nodes.flex.feature_modulation import (
@@ -316,7 +318,7 @@ NODE_CLASS_MAPPINGS = {
 
     #flex audio
     "FlexAudioPitchShift":          FlexAudioPitchShift,
-    "FlexAudioTimeStretch":        FlexAudioTimeStretch,
+    "FlexAudioTimeStretch":         FlexAudioTimeStretch,
     #audio  
     "AudioSeparator":               AudioSeparator,
     "DownloadOpenUnmixModel":       DownloadOpenUnmixModel,
@@ -327,14 +329,15 @@ NODE_CLASS_MAPPINGS = {
     "AudioFilter":                  AudioFilter,
     "EmptyMaskFromAudio":           EmptyMaskFromAudio,
     "EmptyImageFromAudio":          EmptyImageFromAudio,
+    "EmptyImageAndMaskFromAudio":   EmptyImageAndMaskFromAudio,
     "AudioCombine":                 AudioCombine,
     "AudioConcatenate":             AudioConcatenate,
     "AudioPitchShift":              AudioPitchShift,
     "AudioTimeStretch":             AudioTimeStretch,
     "AudioDither":                  AudioDither,
-    "AudioGain":                   AudioGain,
+    "AudioGain":                    AudioGain,
     "AudioFade":                   AudioFade,
-    "AudioPad":                   AudioPad,
+    "AudioPad":                     AudioPad,
     "AudioChannelMerge":           AudioChannelMerge,
     "AudioChannelSplit":           AudioChannelSplit,
     "AudioResample":               AudioResample,
@@ -365,6 +368,7 @@ NODE_CLASS_MAPPINGS = {
     "DepthBlender":                 DepthBlender,
     "DepthShapeModifier":           DepthShapeModifier,
     "DepthShapeModifierPrecise":   DepthShapeModifierPrecise,
+    # "DepthMapProtrusion":          DepthMapProtrusion,
     #feature modulation
     "FeatureMixer":                 FeatureMixer,
     "FeatureCombine":               FeatureCombine,
