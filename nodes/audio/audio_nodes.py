@@ -8,7 +8,8 @@ import folder_paths
 import os
 from ... import RyanOnTheInside
 from ..flex.feature_pipe import FeaturePipe
-
+import hashlib
+import torchaudio
 
 
 class AudioNodeBase(RyanOnTheInside):
@@ -337,6 +338,38 @@ class AudioFeatureVisualizer(AudioNodeBase):
                     "spectral_centroid"
                     ],),
                 "frame_rate": ("FLOAT", {"default": 30, "min": 0.1, "max": 120, "step": 0.1}),
+                "x_axis": ([
+                    "time", 
+                    "mel", 
+                    "log", 
+                    "frames", 
+                    "off", 
+                    "chroma", 
+                    None
+                    ],),
+                "y_axis": ([
+                    "linear", 
+                    "log", 
+                    "mel", 
+                    "chroma", 
+                    "tonnetz", 
+                    "frames", 
+                    "off", 
+                    None
+                    ],),
+                "cmap": ([
+                    "magma", 
+                    "inferno", 
+                    "plasma", 
+                    "viridis", 
+                    "gray", 
+                    "coolwarm", 
+                    "cividis", 
+                    "jet", 
+                    "hot", 
+                    "cubehelix", 
+                    "Blues"
+                    ],),
             },
         }
 
@@ -345,10 +378,10 @@ class AudioFeatureVisualizer(AudioNodeBase):
     CATEGORY = "audio"
     CATEGORY = "RyanOnTheInside/Audio/Filters"
 
-    def visualize_audio_feature(self, audio, video_frames, visualization_type, frame_rate):
+    def visualize_audio_feature(self, audio, video_frames, visualization_type, frame_rate, x_axis, y_axis, cmap):
         num_frames, height, width, _ = video_frames.shape
 
-        visualizer = AudioVisualizer(audio, num_frames, height, width, frame_rate)
+        visualizer = AudioVisualizer(audio, num_frames, height, width, frame_rate, x_axis, y_axis, cmap)
         
         if visualization_type == "waveform":
             mask = visualizer.create_waveform()
@@ -365,7 +398,6 @@ class AudioFeatureVisualizer(AudioNodeBase):
         else:
             raise ValueError(f"Unsupported visualization type: {visualization_type}")
 
-
         return (mask,)   
 
 class EmptyImageFromAudio(AudioNodeBase):
@@ -380,13 +412,15 @@ class EmptyImageFromAudio(AudioNodeBase):
             }
         }
 
-    RETURN_TYPES = ("IMAGE",)
+    RETURN_TYPES = ("IMAGE", "INT")
+    RETURN_NAMES = ("empty_image", "frame_count")
     FUNCTION = "create_empty_image"
     CATEGORY = "RyanOnTheInside/Audio/Utility"
 
     def create_empty_image(self, audio, frame_rate, height, width):
         empty_image = self.create_empty_tensor(audio, frame_rate, height, width, channels=3)
-        return (empty_image,)
+        frame_count = empty_image.shape[0]
+        return (empty_image, frame_count)
 
 class EmptyMaskFromAudio(AudioNodeBase):
 
@@ -401,14 +435,62 @@ class EmptyMaskFromAudio(AudioNodeBase):
             }
         }
 
-    RETURN_TYPES = ("MASK",)
+    RETURN_TYPES = ("MASK", "INT")
+    RETURN_NAMES = ("empty_mask", "frame_count")
     FUNCTION = "create_empty_mask"
     CATEGORY = "RyanOnTheInside/Audio/Utility"
 
     def create_empty_mask(self, audio, frame_rate, height, width):
         empty_mask = self.create_empty_tensor(audio, frame_rate, height, width)
-        return (empty_mask,)
-    
+        frame_count = empty_mask.shape[0]
+        return (empty_mask, frame_count)
+
+# class FlexLoadAudio(AudioNodeBase):
+#     @classmethod
+#     def INPUT_TYPES(cls):
+#         input_dir = folder_paths.get_input_directory()
+#         files = folder_paths.filter_files_content_types(os.listdir(input_dir), ["audio", "video"])
+#         return {
+#             "required": {
+#                 "audio": (sorted(files), {"audio_upload": True}),
+#                 "frame_rate": ("FLOAT", {"default": 30, "min": 0.1, "max": 120, "step": 0.1}),
+#                 "height": ("INT", {"default": 512, "min": 16, "max": 4096, "step": 1}),
+#                 "width": ("INT", {"default": 512, "min": 16, "max": 4096, "step": 1}),
+#             }
+#         }
+
+#     RETURN_TYPES = ("AUDIO", "IMAGE", "MASK")
+#     RETURN_NAMES = ("audio", "empty_image", "empty_mask")
+#     FUNCTION = "load_and_create_empty"
+#     CATEGORY = "RyanOnTheInside/Audio/Utility"
+
+#     def load_and_create_empty(self, audio, frame_rate, height, width):
+#         audio_path = folder_paths.get_annotated_filepath(audio)
+#         waveform, sample_rate = torchaudio.load(audio_path)
+#         audio_data = {"waveform": waveform.unsqueeze(0), "sample_rate": sample_rate, "frame_rate": frame_rate}
+        
+#         # Create empty image and mask
+#         audio_duration = waveform.shape[-1] / sample_rate
+#         num_frames = int(audio_duration * frame_rate)
+#         empty_image = torch.zeros((num_frames, height, width, 3), dtype=torch.float32)
+#         empty_mask = torch.zeros((num_frames, height, width), dtype=torch.float32)
+        
+#         return (audio_data, empty_image, empty_mask)
+
+#     @classmethod
+#     def IS_CHANGED(cls, audio):
+#         image_path = folder_paths.get_annotated_filepath(audio)
+#         m = hashlib.sha256()
+#         with open(image_path, 'rb') as f:
+#             m.update(f.read())
+#         return m.digest().hex()
+
+#     @classmethod
+#     def VALIDATE_INPUTS(cls, audio):
+#         if not folder_paths.exists_annotated_filepath(audio):
+#             return "Invalid audio file: {}".format(audio)
+#         return True
+        
 #TODO
 class EmptyImageAndMaskFromAudio(AudioNodeBase):
     @classmethod
@@ -417,17 +499,19 @@ class EmptyImageAndMaskFromAudio(AudioNodeBase):
             "required": {
                 "audio": ("AUDIO",),
                 "frame_rate": ("FLOAT", {"default": 30, "min": 0.1, "max": 120, "step": 0.1}),
-                "height": ("INT", {"default": 512, "min": 16, "max": 4096, "step": 1}),
                 "width": ("INT", {"default": 512, "min": 16, "max": 4096, "step": 1}),
+                "height": ("INT", {"default": 512, "min": 16, "max": 4096, "step": 1}),
+                
             }
         }
 
-    RETURN_TYPES = ("IMAGE", "MASK")
-    RETURN_NAMES = ("empty_image", "empty_mask")
+    RETURN_TYPES = ("IMAGE", "MASK", "INT")
+    RETURN_NAMES = ("empty_image", "empty_mask", "frame_count")
     FUNCTION = "create_empty_image_and_mask"
     CATEGORY = "RyanOnTheInside/Audio/Utility"
 
     def create_empty_image_and_mask(self, audio, frame_rate, height, width):
         empty_image = self.create_empty_tensor(audio, frame_rate, height, width, channels=3)
         empty_mask = self.create_empty_tensor(audio, frame_rate, height, width)
-        return (empty_image, empty_mask)
+        frame_count = empty_image.shape[0]
+        return (empty_image, empty_mask, frame_count)
