@@ -196,3 +196,57 @@ def apply_hue_shift(image: np.ndarray, intensity: float, preserve_luminosity: bo
         adjusted *= original_luminosity / adjusted_luminosity
     
     return np.clip(adjusted, 0, 1)
+
+
+
+
+def warp_affine(image: np.ndarray, M: np.ndarray) -> np.ndarray:
+    height, width = image.shape[:2]
+    return cv2.warpAffine(image, M, (width, height), borderMode=cv2.BORDER_REPLICATE)
+
+def translate_image(image: np.ndarray, x_value: float, y_value: float) -> np.ndarray:
+    M = np.float32([[1, 0, x_value],
+                    [0, 1, y_value]])
+    return warp_affine(image, M)
+
+def rotate_image(image: np.ndarray, angle: float) -> np.ndarray:
+    height, width = image.shape[:2]
+    
+    # Find the bounding box of non-zero pixels
+    rows = np.any(image, axis=(1, 2))
+    cols = np.any(image, axis=(0, 2))
+    ymin, ymax = np.where(rows)[0][[0, -1]] if np.any(rows) else (0, height-1)
+    xmin, xmax = np.where(cols)[0][[0, -1]] if np.any(cols) else (0, width-1)
+    
+    center_y = int((ymin + ymax) / 2)
+    center_x = int((xmin + xmax) / 2)
+    
+    M = cv2.getRotationMatrix2D((center_x, center_y), angle, 1.0)
+    
+    rotated = np.zeros_like(image)
+    
+    image_rotated = cv2.warpAffine(image, M, (width, height), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+    rotated = np.maximum(rotated, image_rotated)
+    
+    return rotated
+
+def scale_image(image: np.ndarray, scale_x: float, scale_y: float) -> np.ndarray:
+    height, width = image.shape[:2]
+    center_x, center_y = width / 2, height / 2
+    
+    M = np.float32([
+        [scale_x, 0, center_x * (1 - scale_x)],
+        [0, scale_y, center_y * (1 - scale_y)]
+    ])
+    
+    return warp_affine(image, M)
+
+def transform_image(image: np.ndarray, transform_type: str, x_value: float, y_value: float) -> np.ndarray:
+    if transform_type == "translate":
+        return translate_image(image, x_value, y_value)
+    elif transform_type == "rotate":
+        return rotate_image(image, x_value)
+    elif transform_type == "scale":
+        return scale_image(image, 1 + x_value, 1 + y_value)
+    else:
+        raise ValueError(f"Unknown transform type: {transform_type}")

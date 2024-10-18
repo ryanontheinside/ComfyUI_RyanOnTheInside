@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from scipy.ndimage import zoom
-from .audio_processor_legacy import AudioVisualizer
+from .audio_processor_legacy import AudioVisualizer, PygameAudioVisualizer
 from scipy import signal
 import comfy.model_management as mm
 import folder_paths
@@ -370,6 +370,10 @@ class AudioFeatureVisualizer(AudioNodeBase):
                     "cubehelix", 
                     "Blues"
                     ],),
+                "visualizer": ([
+                    "pygame",
+                    "matplotlib"
+                    ],),
             },
         }
 
@@ -378,10 +382,12 @@ class AudioFeatureVisualizer(AudioNodeBase):
     CATEGORY = "audio"
     CATEGORY = "RyanOnTheInside/Audio/Filters"
 
-    def visualize_audio_feature(self, audio, video_frames, visualization_type, frame_rate, x_axis, y_axis, cmap):
+    def visualize_audio_feature(self, audio, video_frames, visualization_type, frame_rate, x_axis, y_axis, cmap, visualizer):
         num_frames, height, width, _ = video_frames.shape
-
-        visualizer = AudioVisualizer(audio, num_frames, height, width, frame_rate, x_axis, y_axis, cmap)
+        if visualizer == "pygame":  
+            visualizer = PygameAudioVisualizer(audio, num_frames, height, width, frame_rate)
+        elif visualizer == "matplotlib":
+            visualizer = AudioVisualizer(audio, num_frames, height, width, frame_rate, x_axis, y_axis, cmap)
         
         if visualization_type == "waveform":
             mask = visualizer.create_waveform()
@@ -398,7 +404,7 @@ class AudioFeatureVisualizer(AudioNodeBase):
         else:
             raise ValueError(f"Unsupported visualization type: {visualization_type}")
 
-        return (mask,)   
+        return (mask,)  
 
 class EmptyImageFromAudio(AudioNodeBase):
     @classmethod

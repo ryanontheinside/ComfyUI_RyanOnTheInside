@@ -494,6 +494,80 @@ add_node_config("FeatureExtractorBase", {
 """
 })
 
+add_node_config("ManualFeatureFromPipe", {
+    "TOP_DESCRIPTION": "Creates a manual feature based on specified frame numbers and values from an existing feature pipe.",
+    "ADDITIONAL_INFO": """
+- `feature_pipe`: Input feature pipe (FEATURE_PIPE type)
+- `frame_numbers`: Comma-separated list of frame numbers (e.g., "0,10,20")
+- `values`: Comma-separated list of corresponding values for each frame number (e.g., "0.0,0.5,1.0")
+- `last_value`: Value for the last frame of the sequence
+- `interpolation_method`: Method for interpolating between specified values:
+  - "none": No interpolation, uses exact values at specified frames
+  - "linear": Linear interpolation between specified points
+  - "ease_in": Ease-in interpolation for smoother starts
+  - "ease_out": Ease-out interpolation for smoother endings
+
+This node allows you to create a custom feature by specifying values at certain frame numbers and interpolating between them. It's useful for creating precise, manually-defined features that can be used to modulate other effects.
+
+The interpolation methods provide different ways to transition between the specified values:
+- "none" keeps the value constant until the next specified frame
+- "linear" creates a straight line between points
+- "ease_in" starts slow and accelerates
+- "ease_out" starts fast and decelerates
+
+Note: The number of frame numbers must match the number of values provided.
+"""
+})
+
+add_node_config("ManualFeatureNode", {
+    "TOP_DESCRIPTION": "Creates a manual feature with specified start and end values over a range of frames.",
+    "ADDITIONAL_INFO": """
+- `frame_rate`: Frame rate of the video (1.0 to 120.0 fps)
+- `start_frame`: First frame of the feature (0 or greater)
+- `end_frame`: Last frame of the feature (greater than start_frame)
+- `start_value`: Initial value of the feature (0.0 to 1.0)
+- `end_value`: Final value of the feature (0.0 to 1.0)
+- `width`: Width of the video frames (1 or greater)
+- `height`: Height of the video frames (1 or greater)
+- `interpolation_method`: Method for interpolating between start and end values:
+  - "linear": Linear interpolation
+  - "nearest": Nearest neighbor interpolation
+  - "ease_in": Ease-in interpolation for smoother starts
+  - "ease_out": Ease-out interpolation for smoother endings
+
+This node creates a manual feature that transitions from a start value to an end value over a specified range of frames. It's useful for creating simple, controlled features that can be used to modulate other effects.
+
+The interpolation methods provide different ways to transition between the start and end values:
+- "linear" creates a straight line between points
+- "nearest" uses the closest value (start or end)
+- "ease_in" starts slow and accelerates
+- "ease_out" starts fast and decelerates
+
+The node also creates a feature pipe with empty video frames, which can be used in conjunction with other nodes that require a feature pipe input.
+"""
+})
+
+add_node_config("ManualFeaturePipe", {
+    "TOP_DESCRIPTION": "Creates an empty feature pipe with specified parameters.",
+    "ADDITIONAL_INFO": """
+- `frame_rate`: Frame rate of the video (1.0 fps or greater)
+- `frame_count`: Total number of frames in the sequence (1 or greater)
+- `width`: Width of the video frames (1 or greater)
+- `height`: Height of the video frames (1 or greater)
+
+This node creates an empty feature pipe with the specified parameters. It's particularly useful when you need a feature pipe for other nodes but don't have actual video frames or when you want to create a custom feature pipe for manual feature creation.
+
+The feature pipe contains empty (zero-filled) tensors for each frame, which can be used as placeholders in workflows that require a feature pipe input. This is especially helpful when working with manual features or when you need to simulate a video sequence without actual video data.
+
+Typical use cases include:
+1. Creating a base for manual feature creation
+2. Providing a placeholder feature pipe for nodes that require it
+3. Setting up a workflow structure before actual video data is available
+
+Note: While this node creates empty video frames, it doesn't affect the functionality of feature-based operations, as most feature extractors and manipulators work independently of the actual video content.
+"""
+})
+
 add_node_config("TimeFeatureNode", {
     "TOP_DESCRIPTION": "Produces a feature that changes over time based on the selected effect type. This can be used to create dynamic, time-varying mask modulations.",
     "ADDITIONAL_INFO": """

@@ -7,3 +7,4 @@ matplotlib
 openunmix
 mido
 torchaudio
+pygame

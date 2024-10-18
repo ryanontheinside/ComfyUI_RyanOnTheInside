@@ -5,7 +5,7 @@ from torch.hub import download_url_to_file, get_dir
 import folder_paths
 import traceback
 import torch
-from vfi_utils import preprocess_frames, postprocess_frames
+from .vfi_utils import preprocess_frames, postprocess_frames
 from .video_base import FlexVideoBase
 import numpy as np
 from ..flex.feature_pipe import FeaturePipe
