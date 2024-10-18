@@ -1,10 +1,13 @@
 from .feature_pipe import FeaturePipe
 from ... import RyanOnTheInside
-from .features import TimeFeature, DepthFeature, ColorFeature, BrightnessFeature, MotionFeature, AreaFeature, BaseFeature
+from .features import ManualFeature, TimeFeature, DepthFeature, ColorFeature, BrightnessFeature, MotionFeature, AreaFeature, BaseFeature
 from abc import ABC, abstractmethod
 from tqdm import tqdm
 from comfy.utils import ProgressBar
 import typing
+import numpy as np
+import torch
+from scipy.interpolate import interp1d
 
 class FeatureExtractorBase(RyanOnTheInside, ABC):
     @classmethod
@@ -49,7 +52,118 @@ class FeatureExtractorBase(RyanOnTheInside, ABC):
         self.total_steps = 0
     CATEGORY="RyanOnTheInside/FlexFeatures"
 
-#    
+class ManualFeatureNode(FeatureExtractorBase):
+    @classmethod
+    def feature_type(cls) -> type[BaseFeature]:
+        return ManualFeature  
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "frame_rate": ("FLOAT", {"default": 30.0, "min": 1.0, "max": 120.0, "step": 0.1}),
+                "start_frame": ("INT", {"default": 0, "min": 0}),
+                "end_frame": ("INT", {"default": 10, "min": 0}),
+                "start_value": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "end_value": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "width": ("INT", {"default": 1920, "min": 1}),
+                "height": ("INT", {"default": 1080, "min": 1}),
+                "interpolation_method": (["linear", "nearest", "ease_in", "ease_out"], {"default": "linear"}),
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE", "FEATURE_PIPE")
+    FUNCTION = "create_feature"
+
+    def create_feature(self, frame_rate, start_frame, end_frame, start_value, end_value, width, height, interpolation_method, extraction_method):
+        total_frames = end_frame - start_frame
+        if total_frames <= 0:
+            raise ValueError("End frame must be greater than start frame.")
+
+        # Create a batch of empty tensors for the feature pipe in BHWC format
+        video_frames = torch.zeros((total_frames, height, width, 3), dtype=torch.float32)  # Assuming 3 channels for RGB
+
+        feature_pipe = FeaturePipe(frame_rate, video_frames)
+        manual_feature = ManualFeature("manual_feature", feature_pipe.frame_rate, feature_pipe.frame_count,
+                                       start_frame, end_frame, start_value, end_value, method=interpolation_method)
+        
+        manual_feature.extract()
+        
+        return (manual_feature, feature_pipe)
+
+class ManualFeatureFromPipe(FeatureExtractorBase):
+    @classmethod
+    def feature_type(cls) -> type[BaseFeature]:
+        return ManualFeature  
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature_pipe": ("FEATURE_PIPE",),
+                "frame_numbers": ("STRING", {"default": "0,10,20"}),  # Example default
+                "values": ("STRING", {"default": "0.0,0.5,1.0"}),    # Example default
+                "last_value": ("FLOAT", {"default": 1.0}),           # New parameter for the last frame
+                "interpolation_method": (["none", "linear", "ease_in", "ease_out"], {"default": "none"}),
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE", "FEATURE_PIPE")
+    FUNCTION = "create_feature_from_pipe"
+
+    def create_feature_from_pipe(self, feature_pipe, frame_numbers, values, last_value, interpolation_method):
+        # Parse the comma-separated lists
+        frame_numbers = list(map(int, frame_numbers.split(',')))
+        values = list(map(float, values.split(',')))
+
+        # Check if the number of frame numbers matches the number of values
+        if len(frame_numbers) != len(values):
+            raise ValueError("The number of frame numbers must match the number of values.")
+
+        # Append the last frame index to frame_numbers
+        frame_numbers.append(feature_pipe.frame_count - 1)
+        values.append(last_value)
+
+        # Create a ManualFeature
+        manual_feature = ManualFeature("manual_feature_from_pipe", feature_pipe.frame_rate, feature_pipe.frame_count,
+                                       frame_numbers[0], frame_numbers[-1], values[0], values[-1], method=interpolation_method)
+
+        # Initialize the data array
+        manual_feature.data = np.zeros(feature_pipe.frame_count, dtype=np.float32)
+
+        # Apply interpolation
+        if interpolation_method == 'none':
+            for frame, value in zip(frame_numbers, values):
+                if 0 <= frame < feature_pipe.frame_count:
+                    manual_feature.data[frame] = value
+                else:
+                    raise ValueError(f"Frame number {frame} is out of bounds for the given feature pipe.")
+        else:
+            # Create interpolation function
+            if interpolation_method == 'linear':
+                f = interp1d(frame_numbers, values, kind='linear', fill_value="extrapolate")
+            elif interpolation_method == 'ease_in':
+                f = self.ease_in_interpolation(frame_numbers, values)
+            elif interpolation_method == 'ease_out':
+                f = self.ease_out_interpolation(frame_numbers, values)
+            else:
+                raise ValueError(f"Unsupported interpolation method: {interpolation_method}")
+
+            # Apply interpolation to the entire range
+            manual_feature.data = f(np.arange(feature_pipe.frame_count))
+
+        return (manual_feature, feature_pipe)
+
+    def ease_in_interpolation(self, x, y):
+        def ease_in(t):
+            return (t - x[0]) / (x[-1] - x[0]) ** 2 * (y[-1] - y[0]) + y[0]
+        return interp1d(x, y, kind='linear', fill_value="extrapolate", bounds_error=False)
+
+    def ease_out_interpolation(self, x, y):
+        def ease_out(t):
+            return 1 - (1 - (t - x[0]) / (x[-1] - x[0])) ** 2 * (y[-1] - y[0]) + y[0]
+        return interp1d(x, y, kind='linear', fill_value="extrapolate", bounds_error=False)
+     
 class FirstFeature(FeatureExtractorBase):
 
     @classmethod
@@ -202,7 +316,6 @@ class MotionFeatureNode(FirstFeature):
 
         return (motion_feature, feature_pipe)
     
-
 class AreaFeatureNode(FirstFeature):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
@@ -228,3 +341,9 @@ class AreaFeatureNode(FirstFeature):
                                    masks, feature_type=extraction_method, threshold=threshold)
         area_feature.extract()
         return (area_feature, feature_pipe)
+    
+
+
+
+
+

@@ -38,6 +38,8 @@
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
 
 ##### 🆕 Recent Updates:
+- 10/18/24 - **Manual Feature**: create features manually.
+- 10/18/24 - **Flex image transform and more**: Transform images with your features!
 - 10/13/24 - **Depthflow Nodes Compatibility**: Exciting news! The Depthflow Nodes pack by akatz-ai is now compatible with my feature system, opening up new possibilities for dynamic parallax animations!
 - 10/12/24 - **A LOT**: I added a lot of new nodes, fixed a lot of bugs, and cleaned up a lot of the code. I will be detailing the cool stuff on YouTube at some point in this timeline  of ours
   - **FeatureContiguousInterpolate**: Interpolates contiguous segments of a feature that meet a threshold criteria.

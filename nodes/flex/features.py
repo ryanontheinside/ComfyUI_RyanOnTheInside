@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import cv2
 from ..masks.mask_utils import calculate_optical_flow
+from scipy.interpolate import interp1d, make_interp_spline
 
 class BaseFeature(ABC):
     def __init__(self, name, feature_type, frame_rate, frame_count):
@@ -51,6 +52,61 @@ class BaseFeature(ABC):
                     self.features[key] = 1 - self.features[key]
         self.inverted = not self.inverted
         return self
+    
+class ManualFeature(BaseFeature):
+    def __init__(self, name, frame_rate, frame_count, start_frame, end_frame, start_value, end_value, method='linear'):
+        super().__init__(name, "manual", frame_rate, frame_count)
+        self.start_frame = start_frame
+        self.end_frame = end_frame
+        self.start_value = start_value
+        self.end_value = end_value
+        self.method = method
+
+    @classmethod
+    def get_extraction_methods(cls):
+        return ["manual"]
+
+    def extract(self):
+        # Initialize data with zeros
+        self.data = np.zeros(self.frame_count)
+        
+        # Ensure start_frame and end_frame are within bounds
+        if 0 <= self.start_frame < self.end_frame <= self.frame_count:
+            x = np.array([self.start_frame, self.end_frame])
+            y = np.array([self.start_value, self.end_value])
+
+            if self.method == 'linear':
+                f = interp1d(x, y, kind='linear', fill_value="extrapolate")
+            elif self.method == 'nearest':
+                f = interp1d(x, y, kind='nearest', fill_value="extrapolate")
+            elif self.method == 'cubic':
+                if len(x) >= 4:  # Ensure enough points for cubic
+                    f = make_interp_spline(x, y, k=3)
+                else:
+                    raise ValueError("Cubic interpolation requires at least four data points.")
+            elif self.method == 'ease_in':
+                f = self.ease_in_interpolation(x, y)
+            elif self.method == 'ease_out':
+                f = self.ease_out_interpolation(x, y)
+            else:
+                raise ValueError(f"Unsupported interpolation method: {self.method}")
+
+            # Apply interpolation
+            self.data[self.start_frame:self.end_frame] = f(np.arange(self.start_frame, self.end_frame))
+        else:
+            raise ValueError("Start and end frames must be within the range of frame count.")
+        
+        return self
+
+    def ease_in_interpolation(self, x, y):
+        def ease_in(t):
+            return (t - x[0]) / (x[1] - x[0]) ** 2 * (y[1] - y[0]) + y[0]
+        return ease_in
+
+    def ease_out_interpolation(self, x, y):
+        def ease_out(t):
+            return 1 - (1 - (t - x[0]) / (x[1] - x[0])) ** 2 * (y[1] - y[0]) + y[0]
+        return ease_out
 
 class TimeFeature(BaseFeature):
     def __init__(self, name, frame_rate, frame_count, effect_type='smooth', speed=1.0, offset=0.0):
@@ -474,3 +530,4 @@ class AreaFeature(BaseFeature):
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 
 #TODO volume feature
+

@@ -77,6 +77,7 @@ from .nodes.audio.audio_nodes_utility import (
     AudioResample,
     AudioVolumeNormalization,
     AudioCombine,
+    AudioSubtract,
     AudioConcatenate,
     AudioDither,
 )
@@ -88,6 +89,8 @@ from .nodes.flex.feature_extractors import(
     BrightnessFeatureNode,
     MotionFeatureNode,
     AreaFeatureNode,
+    ManualFeatureNode,
+    ManualFeatureFromPipe,
 )
 
 from .nodes.flex.feature_extractors_audio import(
@@ -198,6 +201,7 @@ from .nodes.images.flex_images import (
     FlexImageContrast,
     FlexImageWarp,
     FlexImageVignette,
+    FlexImageTransform
 )
 
 from .nodes.video.flex_video import (
@@ -244,7 +248,11 @@ from .nodes.audio.flex_audio import (
 from .nodes.latents.latent_base import (
     FlexLatentInterpolate,
     EmbeddingGuidedLatentInterpolate,
+    FlexLatentBlend,
+    FlexLatentNoise,
 )
+
+from .nodes.flex.feature_pipe import ManualFeaturePipe
 
 from .nodes.preprocessors.pose import PoseInterpolator
 
@@ -265,9 +273,13 @@ NODE_CLASS_MAPPINGS = {
     #NOTE: PoseInterpolator is not working yet
     #"PoseInterpolator": PoseInterpolator,
 
+    "ManualFeaturePipe": ManualFeaturePipe,
+    "ManualFeatureFromPipe": ManualFeatureFromPipe,
     #latents
     "FlexLatentInterpolate":       FlexLatentInterpolate,
     "EmbeddingGuidedLatentInterpolate": EmbeddingGuidedLatentInterpolate,
+    "FlexLatentBlend":               FlexLatentBlend,
+    "FlexLatentNoise":               FlexLatentNoise,
     #video
     "FlexVideoSpeed":              FlexVideoSpeed,
     "FlexVideoDirection":          FlexVideoDirection,
@@ -331,6 +343,7 @@ NODE_CLASS_MAPPINGS = {
     "EmptyImageFromAudio":          EmptyImageFromAudio,
     "EmptyImageAndMaskFromAudio":   EmptyImageAndMaskFromAudio,
     "AudioCombine":                 AudioCombine,
+    "AudioSubtract":                AudioSubtract,
     "AudioConcatenate":             AudioConcatenate,
     "AudioPitchShift":              AudioPitchShift,
     "AudioTimeStretch":             AudioTimeStretch,
@@ -352,6 +365,8 @@ NODE_CLASS_MAPPINGS = {
     "PitchRangeByNoteNode":         PitchRangeByNoteNode,
     "MIDILoadAndExtract":           MIDILoadAndExtract,
     "TimeFeatureNode":              TimeFeatureNode,
+    "ManualFeatureNode":            ManualFeatureNode,
+    "ManualFeatureFromPipe":        ManualFeatureFromPipe,
     "DepthFeatureNode":             DepthFeatureNode,
     "ColorFeatureNode":             ColorFeatureNode,
     "BrightnessFeatureNode":        BrightnessFeatureNode,
@@ -394,8 +409,9 @@ NODE_CLASS_MAPPINGS = {
     "FlexImageTiltShift":           FlexImageTiltShift,
     "FlexImageParallax":            FlexImageParallax,
     "FlexImageContrast":            FlexImageContrast,
-    "FlexImageWarp":               FlexImageWarp,
-    "FlexImageVignette":           FlexImageVignette,
+    "FlexImageWarp":                FlexImageWarp,
+    "FlexImageVignette":            FlexImageVignette,
+    "FlexImageTransform":           FlexImageTransform,
     #opacity xp 
     # "FlexDepthBasedMaskOpacity":  FlexDepthBasedMaskOpacity,
     # "DepthBasedMaskOpacity":      DepthBasedMaskOpacity,
@@ -459,7 +475,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
   
     "AudioSeparator": "Audio Separator",
 
-    "AudioFeatureVisualizer": "Audio Feature Visualizer" ,
+    "AudioFeatureVisualizer": "Audio Feature Visualizer ***BETA***" ,
     "Frequency Filter Custom": "Frequency Filter Custom",
     "Frequency Filter Preset": "Frequency Filter Preset",
     "AudioFilter": "Audio Filter",

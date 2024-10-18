@@ -158,7 +158,37 @@ class AudioCombine(AudioUtility):
         sample_rate = audio1['sample_rate']
         combined_waveform = combine_audio(audio1['waveform'], audio2['waveform'], weight1, weight2)
         return ({"waveform": combined_waveform, "sample_rate": sample_rate},)
-    
+
+class AudioSubtract(AudioUtility):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "audio1": ("AUDIO",),
+                "audio2": ("AUDIO",),
+            }
+        }
+
+    RETURN_TYPES = ("AUDIO",)
+    FUNCTION = "subtract_audio_node"
+
+    def subtract_audio_node(self, audio1, audio2):
+        if audio1['sample_rate'] != audio2['sample_rate']:
+            raise ValueError("Both audio inputs must have the same sample rate")
+
+        sample_rate = audio1['sample_rate']
+        waveform1 = audio1['waveform']
+        waveform2 = audio2['waveform']
+
+        # Ensure both waveforms have the same length
+        if waveform1.shape[1] != waveform2.shape[1]:
+            max_length = max(waveform1.shape[1], waveform2.shape[1])
+            waveform1 = torch.nn.functional.pad(waveform1, (0, max_length - waveform1.shape[1]))
+            waveform2 = torch.nn.functional.pad(waveform2, (0, max_length - waveform2.shape[1]))
+
+        subtracted_waveform = waveform1 - waveform2
+        return ({"waveform": subtracted_waveform, "sample_rate": sample_rate},)
+
 
 class AudioDither(AudioUtility):
     @classmethod

@@ -3,7 +3,7 @@ import torch
 import librosa
 import cv2
 import matplotlib.pyplot as plt
-
+from comfy.utils import ProgressBar
 import numpy as np
 import librosa
 import torch
@@ -24,7 +24,18 @@ class BaseAudioProcessor:
         
         self.audio_duration = len(self.audio) / self.sample_rate
         self.frame_duration = 1 / self.frame_rate if self.frame_rate > 0 else self.audio_duration / self.num_frames
+        self.progress_bar = None
 
+    def start_progress(self, total_steps, desc="Processing"):
+        self.progress_bar = ProgressBar(total_steps)
+
+    def update_progress(self):
+        if self.progress_bar:
+            self.progress_bar.update(1)
+
+    def end_progress(self):
+        self.progress_bar = None
+    
     def _normalize(self, data):
         return (data - data.min()) / (data.max() - data.min())
 
@@ -57,7 +68,6 @@ class AudioVisualizer(BaseAudioProcessor):
         self.cmap = cmap
 
     def _generate_frame(self, data):
-        """Helper method to create frames using librosa's specshow with better visual appeal."""
         fig, ax = plt.subplots(figsize=(self.width / 100, self.height / 100), dpi=100)
         librosa.display.specshow(data, sr=self.sample_rate, x_axis=self.x_axis, y_axis=self.y_axis, cmap=self.cmap, ax=ax)
         if self.x_axis == 'off':
@@ -67,14 +77,22 @@ class AudioVisualizer(BaseAudioProcessor):
         plt.tight_layout(pad=0)
         
         fig.canvas.draw()
+        
+        # Get the actual dimensions of the rendered figure
+        width, height = fig.canvas.get_width_height()
+        
         frame = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        frame = frame.reshape(self.height, self.width, 3)
+        frame = frame.reshape(height, width, 3)
+        
+        # Resize the frame to match the desired dimensions
+        frame = cv2.resize(frame, (self.width, self.height), interpolation=cv2.INTER_AREA)
         
         plt.close(fig)
         return frame
 
     def create_spectrogram(self):
         frames = []
+        self.start_progress(self.num_frames, "Creating Spectrogram")
         for i in range(self.num_frames):
             audio_frame = self._get_audio_frame(i)
             n_fft = min(2048, len(audio_frame))
@@ -82,12 +100,15 @@ class AudioVisualizer(BaseAudioProcessor):
             S_db = librosa.amplitude_to_db(np.abs(S), ref=np.max)
             frame = self._generate_frame(S_db)
             frames.append(frame)
+            self.update_progress()
+        self.end_progress()
 
         frames = np.stack(frames, axis=0)
         return torch.from_numpy(frames).float() / 255.0
 
     def create_waveform(self):
         frames = []
+        self.start_progress(self.num_frames, "Creating Waveform")
         for i in range(self.num_frames):
             audio_frame = self._get_audio_frame(i)
             
@@ -100,171 +121,80 @@ class AudioVisualizer(BaseAudioProcessor):
             plt.tight_layout(pad=0)
             
             fig.canvas.draw()
+            
+            # Get the actual dimensions of the rendered figure
+            width, height = fig.canvas.get_width_height()
+            
             frame = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-            frame = frame.reshape(self.height, self.width, 3)
+            frame = frame.reshape(height, width, 3)
+            
+            # Resize the frame to match the desired dimensions
+            frame = cv2.resize(frame, (self.width, self.height), interpolation=cv2.INTER_AREA)
+            
             frames.append(frame)
             plt.close(fig)
+            self.update_progress()
+        self.end_progress()
 
         frames = np.stack(frames, axis=0)
         return torch.from_numpy(frames).float() / 255.0
 
     def create_mfcc(self):
         frames = []
+        self.start_progress(self.num_frames, "Creating MFCC")
         for i in range(self.num_frames):
             audio_frame = self._get_audio_frame(i)
             mfccs = librosa.feature.mfcc(y=audio_frame, sr=self.sample_rate, n_mfcc=20)
             frame = self._generate_frame(mfccs)
             frames.append(frame)
+            self.update_progress()
+        self.end_progress()
 
         frames = np.stack(frames, axis=0)
         return torch.from_numpy(frames).float() / 255.0
 
     def create_chroma(self):
         frames = []
+        self.start_progress(self.num_frames, "Creating Chroma")
         for i in range(self.num_frames):
             audio_frame = self._get_audio_frame(i)
             chroma = librosa.feature.chroma_stft(y=audio_frame, sr=self.sample_rate)
             frame = self._generate_frame(chroma)
             frames.append(frame)
+            self.update_progress()
+        self.end_progress()
 
         frames = np.stack(frames, axis=0)
         return torch.from_numpy(frames).float() / 255.0
 
     def create_tonnetz(self):
         frames = []
+        self.start_progress(self.num_frames, "Creating Tonnetz")
         for i in range(self.num_frames):
             audio_frame = self._get_audio_frame(i)
             tonnetz = librosa.feature.tonnetz(y=audio_frame, sr=self.sample_rate)
             frame = self._generate_frame(tonnetz)
             frames.append(frame)
+            self.update_progress()
+        self.end_progress()
 
         frames = np.stack(frames, axis=0)
         return torch.from_numpy(frames).float() / 255.0
 
     def create_spectral_centroid(self):
         frames = []
+        self.start_progress(self.num_frames, "Creating Spectral Centroid")
         for i in range(self.num_frames):
             audio_frame = self._get_audio_frame(i)
             centroid = librosa.feature.spectral_centroid(y=audio_frame, sr=self.sample_rate)
             frame = self._generate_frame(centroid)
             frames.append(frame)
+            self.update_progress()
+        self.end_progress()
 
         frames = np.stack(frames, axis=0)
         return torch.from_numpy(frames).float() / 255.0
     
-# class AudioVisualizer(BaseAudioProcessor):  
-#     def create_spectrogram(self):
-#         frames = []
-#         for i in range(self.num_frames):
-#             audio_frame = self._get_audio_frame(i)
-            
-#             n_fft = min(2048, len(audio_frame))
-#             S = librosa.stft(audio_frame, n_fft=n_fft)
-#             S_db = librosa.amplitude_to_db(np.abs(S), ref=np.max)
-            
-#             S_db_normalized = self._normalize(S_db)
-#             S_db_enhanced = self._enhance_contrast(S_db_normalized)
-            
-#             S_db_resized = self._resize(S_db_enhanced, self.width, self.height)
-#             S_db_resized = (S_db_resized * 255).astype(np.uint8)
-#             S_db_resized = np.repeat(S_db_resized[:, :, np.newaxis], 3, axis=2)  # Convert to RGB
-#             frames.append(S_db_resized)
-
-#         frames = np.stack(frames, axis=0)  # Shape: (B, H, W, C)
-#         return torch.from_numpy(frames).float() / 255.0  # Normalize to [0, 1]
-
-#     def create_waveform(self):
-
-#         frames = []
-#         for i in range(self.num_frames):
-#             audio_frame = self._get_audio_frame(i)
-            
-#             plt.figure(figsize=(self.width / 100, self.height / 100), dpi=100)
-#             plt.plot(audio_frame)
-#             plt.axis('off')
-#             plt.tight_layout(pad=0)
-            
-#             plt.gcf().canvas.draw()
-#             frame = np.frombuffer(plt.gcf().canvas.tostring_rgb(), dtype=np.uint8)
-#             frame = frame.reshape(self.height, self.width, 3)
-#             frames.append(frame)
-#             plt.close()
-
-#         frames = np.stack(frames, axis=0)
-
-#         return torch.from_numpy(frames).float() / 255.0
-
-#     def create_mfcc(self):
-#         frames = []
-#         for i in range(self.num_frames):
-#             audio_frame = self._get_audio_frame(i)
-
-#             mfccs = librosa.feature.mfcc(y=audio_frame, sr=self.sample_rate, n_mfcc=20)
-#             mfccs_normalized = self._normalize(mfccs)
-#             mfccs_enhanced = self._enhance_contrast(mfccs_normalized)
-
-#             mfccs_transposed = mfccs_enhanced.T
-#             mfccs_resized = self._resize(mfccs_transposed, self.width, self.height)
-#             mfccs_resized = (mfccs_resized * 255).astype(np.uint8)
-#             mfccs_resized = np.repeat(mfccs_resized[:, :, np.newaxis], 3, axis=2)  # Convert to RGB
-#             frames.append(mfccs_resized)
-
-#         frames = np.stack(frames, axis=0)
-#         return torch.from_numpy(frames).float() / 255.0  # Normalize to [0, 1]
-
-#     def create_chroma(self):
-#         frames = []
-#         for i in range(self.num_frames):
-#             audio_frame = self._get_audio_frame(i)
-
-#             chroma = librosa.feature.chroma_stft(y=audio_frame, sr=self.sample_rate)
-#             chroma_normalized = self._normalize(chroma)
-#             chroma_enhanced = self._enhance_contrast(chroma_normalized)
-
-#             chroma_transposed = chroma_enhanced.T
-#             chroma_resized = self._resize(chroma_transposed, self.width, self.height)
-#             chroma_resized = (chroma_resized * 255).astype(np.uint8)
-#             chroma_resized = np.repeat(chroma_resized[:, :, np.newaxis], 3, axis=2)  # Convert to RGB
-#             frames.append(chroma_resized)
-
-#         frames = np.stack(frames, axis=0)
-#         return torch.from_numpy(frames).float() / 255.0  # Normalize to [0, 1]
-
-#     def create_tonnetz(self):
-#         frames = []
-#         for i in range(self.num_frames):
-#             audio_frame = self._get_audio_frame(i)
-
-#             tonnetz = librosa.feature.tonnetz(y=audio_frame, sr=self.sample_rate)
-#             tonnetz_normalized = self._normalize(tonnetz)
-#             tonnetz_enhanced = self._enhance_contrast(tonnetz_normalized)
-
-#             tonnetz_transposed = tonnetz_enhanced.T
-#             tonnetz_resized = self._resize(tonnetz_transposed, self.width, self.height)
-#             tonnetz_resized = (tonnetz_resized * 255).astype(np.uint8)
-#             tonnetz_resized = np.repeat(tonnetz_resized[:, :, np.newaxis], 3, axis=2)  # Convert to RGB
-#             frames.append(tonnetz_resized)
-
-#         frames = np.stack(frames, axis=0)
-#         return torch.from_numpy(frames).float() / 255.0  # Normalize to [0, 1]
-
-#     def create_spectral_centroid(self):
-#         frames = []
-#         for i in range(self.num_frames):
-#             audio_frame = self._get_audio_frame(i)
-
-#             centroid = librosa.feature.spectral_centroid(y=audio_frame, sr=self.sample_rate)
-#             centroid_normalized = self._normalize(centroid)
-#             centroid_enhanced = self._enhance_contrast(centroid_normalized)
-
-#             centroid_transposed = centroid_enhanced.T
-#             centroid_resized = self._resize(centroid_transposed, self.width, self.height)
-#             centroid_resized = (centroid_resized * 255).astype(np.uint8)
-#             centroid_resized = np.repeat(centroid_resized[:, :, np.newaxis], 3, axis=2)  # Convert to RGB
-#             frames.append(centroid_resized)
-
-#         frames = np.stack(frames, axis=0)
-#         return torch.from_numpy(frames).float() / 255.0  # Normalize to [0, 1]
 
 class AudioFeatureExtractor(BaseAudioProcessor):
     def __init__(self, audio, num_frames, frame_rate, feature_type='amplitude_envelope'):
@@ -301,3 +231,242 @@ class AudioFeatureExtractor(BaseAudioProcessor):
 
     def _chroma_features(self):
         return np.array([np.mean(librosa.feature.chroma_stft(y=self._get_audio_frame(i), sr=self.sample_rate), axis=1) for i in range(self.num_frames)])
+
+import numpy as np
+import torch
+import pygame
+import librosa
+from comfy.utils import ProgressBar
+
+class PygameAudioVisualizer(BaseAudioProcessor):
+    def __init__(self, audio, num_frames, height, width, frame_rate, scroll_direction='left'):
+        super().__init__(audio, num_frames, height, width, frame_rate)
+        self.height = height
+        self.width = width
+        self.scroll_direction = scroll_direction.lower()
+        pygame.init()
+        # Create a Pygame surface for drawing
+        self.screen = pygame.Surface((self.width, self.height))
+        # Set up font for text rendering (if needed)
+        self.font = pygame.font.SysFont(None, 24)
+        # Precompute the full waveform
+        self.full_waveform = self.audio / np.max(np.abs(self.audio)) if np.max(np.abs(self.audio)) != 0 else self.audio
+        self.total_samples = len(self.full_waveform)
+
+    def _surface_to_array(self, surface):
+        # Convert Pygame surface to NumPy array
+        frame_array = pygame.surfarray.array3d(surface)
+        # Transpose to (H, W, C)
+        frame_array = np.transpose(frame_array, (1, 0, 2))
+        return frame_array
+
+    def create_waveform(self):
+        frames = []
+        self.start_progress(self.num_frames, "Creating Scrolling Waveform with Pygame")
+        samples_per_frame = int(self.total_samples / self.num_frames)
+        window_size = self.width  # Number of samples to display in one frame
+
+        for i in range(self.num_frames):
+            if self.scroll_direction == "left":
+                start_idx = i * samples_per_frame
+            elif self.scroll_direction == "right":
+                start_idx = self.total_samples - window_size - i * samples_per_frame
+            else:
+                start_idx = i * samples_per_frame  # Default to left scroll
+
+            end_idx = start_idx + window_size
+            if end_idx > self.total_samples:
+                end_idx = self.total_samples
+                start_idx = max(0, end_idx - window_size)  # Adjust start_idx to maintain window size
+
+            waveform_window = self.full_waveform[start_idx:end_idx]
+            frame_surface = self._generate_waveform_frame(waveform_window)
+            frame_array = self._surface_to_array(frame_surface)
+            frames.append(frame_array)
+            self.update_progress()
+        self.end_progress()
+        frames = np.stack(frames, axis=0)  # Shape: (B, H, W, C)
+        frames = frames.astype(np.uint8)
+        return torch.from_numpy(frames)
+
+    def _generate_waveform_frame(self, waveform):
+        self.screen.fill((0, 0, 0))  # Clear the screen with black background
+
+        middle = self.height // 2
+        x_scale = self.width / len(waveform)
+        # Generate points for the waveform
+        points = []
+        for idx in range(len(waveform)):
+            x = int(idx * x_scale)
+            y = middle - int(waveform[idx] * middle)
+            points.append((x, y))
+        if len(points) > 1:
+            # Draw the waveform on the surface
+            pygame.draw.lines(self.screen, (255, 255, 255), False, points, 1)
+        return self.screen.copy()
+
+    def create_spectrogram(self):
+        frames = []
+        self.start_progress(self.num_frames, "Creating Spectrogram with Pygame")
+        for i in range(self.num_frames):
+            audio_frame = self._get_audio_frame(i)
+            frame_surface = self._generate_spectrogram_frame(audio_frame)
+            frame_array = self._surface_to_array(frame_surface)
+            frames.append(frame_array)
+            self.update_progress()
+        self.end_progress()
+        frames = np.stack(frames, axis=0)  # Shape: (B, H, W, C)
+        frames = frames.astype(np.uint8)
+        return torch.from_numpy(frames)
+
+    def _generate_spectrogram_frame(self, audio_frame):
+        self.screen.fill((0, 0, 0))  # Clear the screen
+        # Compute spectrogram
+        n_fft = min(2048, len(audio_frame))
+        hop_length = n_fft // 4
+        S = np.abs(librosa.stft(audio_frame, n_fft=n_fft, hop_length=hop_length))
+        S_db = librosa.amplitude_to_db(S, ref=np.max)
+        S_db = (S_db + 80) / 80  # Normalize to [0,1]
+
+        height, width = S_db.shape
+        spectrogram_surface = pygame.Surface((width, height))
+        for x in range(width):
+            for y in range(height):
+                intensity = int(S_db[y, x] * 255)
+                spectrogram_surface.set_at((x, y), (intensity, intensity, intensity))
+
+        # Scale spectrogram to desired size
+        spectrogram_surface = pygame.transform.scale(spectrogram_surface, (self.width, self.height))
+        self.screen.blit(spectrogram_surface, (0, 0))
+        return self.screen.copy()
+
+    def create_mfcc(self):
+        frames = []
+        self.start_progress(self.num_frames, "Creating MFCC with Pygame")
+        for i in range(self.num_frames):
+            audio_frame = self._get_audio_frame(i)
+            frame_surface = self._generate_mfcc_frame(audio_frame)
+            frame_array = self._surface_to_array(frame_surface)
+            frames.append(frame_array)
+            self.update_progress()
+        self.end_progress()
+        frames = np.stack(frames, axis=0)
+        frames = frames.astype(np.uint8)
+        return torch.from_numpy(frames)
+
+    def _generate_mfcc_frame(self, audio_frame):
+        self.screen.fill((0, 0, 0))  # Clear the screen
+        # Compute MFCCs
+        mfccs = librosa.feature.mfcc(y=audio_frame, sr=self.sample_rate, n_mfcc=20)
+        mfccs = (mfccs - np.min(mfccs)) / (np.max(mfccs) - np.min(mfccs))  # Normalize to [0,1]
+
+        height, width = mfccs.shape
+        mfcc_surface = pygame.Surface((width, height))
+        for x in range(width):
+            for y in range(height):
+                intensity = int(mfccs[y, x] * 255)
+                mfcc_surface.set_at((x, y), (intensity, intensity, intensity))
+
+        # Scale MFCC to desired size
+        mfcc_surface = pygame.transform.scale(mfcc_surface, (self.width, self.height))
+        self.screen.blit(mfcc_surface, (0, 0))
+        return self.screen.copy()
+
+    def create_chroma(self):
+        frames = []
+        self.start_progress(self.num_frames, "Creating Chroma with Pygame")
+        for i in range(self.num_frames):
+            audio_frame = self._get_audio_frame(i)
+            frame_surface = self._generate_chroma_frame(audio_frame)
+            frame_array = self._surface_to_array(frame_surface)
+            frames.append(frame_array)
+            self.update_progress()
+        self.end_progress()
+        frames = np.stack(frames, axis=0)
+        frames = frames.astype(np.uint8)
+        return torch.from_numpy(frames)
+
+    def _generate_chroma_frame(self, audio_frame):
+        self.screen.fill((0, 0, 0))  # Clear the screen
+        # Compute Chroma features
+        chromagram = librosa.feature.chroma_stft(y=audio_frame, sr=self.sample_rate)
+        chromagram = (chromagram - np.min(chromagram)) / (np.max(chromagram) - np.min(chromagram))  # Normalize to [0,1]
+
+        height, width = chromagram.shape
+        chroma_surface = pygame.Surface((width, height))
+        for x in range(width):
+            for y in range(height):
+                intensity = int(chromagram[y, x] * 255)
+                chroma_surface.set_at((x, y), (intensity, intensity, intensity))
+
+        # Scale Chroma to desired size
+        chroma_surface = pygame.transform.scale(chroma_surface, (self.width, self.height))
+        self.screen.blit(chroma_surface, (0, 0))
+        return self.screen.copy()
+
+    def create_tonnetz(self):
+        frames = []
+        self.start_progress(self.num_frames, "Creating Tonnetz with Pygame")
+        for i in range(self.num_frames):
+            audio_frame = self._get_audio_frame(i)
+            frame_surface = self._generate_tonnetz_frame(audio_frame)
+            frame_array = self._surface_to_array(frame_surface)
+            frames.append(frame_array)
+            self.update_progress()
+        self.end_progress()
+        frames = np.stack(frames, axis=0)
+        frames = frames.astype(np.uint8)
+        return torch.from_numpy(frames)
+
+    def _generate_tonnetz_frame(self, audio_frame):
+        self.screen.fill((0, 0, 0))  # Clear the screen
+        # Compute Tonnetz
+        tonnetz = librosa.feature.tonnetz(y=audio_frame, sr=self.sample_rate)
+        tonnetz = (tonnetz - np.min(tonnetz)) / (np.max(tonnetz) - np.min(tonnetz))  # Normalize to [0,1]
+
+        height, width = tonnetz.shape
+        tonnetz_surface = pygame.Surface((width, height))
+        for x in range(width):
+            for y in range(height):
+                intensity = int(tonnetz[y, x] * 255)
+                tonnetz_surface.set_at((x, y), (intensity, intensity, intensity))
+
+        # Scale Tonnetz to desired size
+        tonnetz_surface = pygame.transform.scale(tonnetz_surface, (self.width, self.height))
+        self.screen.blit(tonnetz_surface, (0, 0))
+        return self.screen.copy()
+
+    def create_spectral_centroid(self):
+        frames = []
+        self.start_progress(self.num_frames, "Creating Spectral Centroid with Pygame")
+        for i in range(self.num_frames):
+            audio_frame = self._get_audio_frame(i)
+            frame_surface = self._generate_spectral_centroid_frame(audio_frame)
+            frame_array = self._surface_to_array(frame_surface)
+            frames.append(frame_array)
+            self.update_progress()
+        self.end_progress()
+        frames = np.stack(frames, axis=0)
+        frames = frames.astype(np.uint8)
+        return torch.from_numpy(frames)
+
+    def _generate_spectral_centroid_frame(self, audio_frame):
+        self.screen.fill((0, 0, 0))  # Clear the screen
+        # Compute Spectral Centroid
+        centroid = librosa.feature.spectral_centroid(y=audio_frame, sr=self.sample_rate)
+        centroid = (centroid - np.min(centroid)) / (np.max(centroid) - np.min(centroid))  # Normalize to [0,1]
+
+        height, width = centroid.shape
+        centroid_surface = pygame.Surface((width, height))
+        for x in range(width):
+            for y in range(height):
+                intensity = int(centroid[y, x] * 255)
+                centroid_surface.set_at((x, y), (intensity, intensity, intensity))
+
+        # Scale Centroid to desired size
+        centroid_surface = pygame.transform.scale(centroid_surface, (self.width, self.height))
+        self.screen.blit(centroid_surface, (0, 0))
+        return self.screen.copy()
+
+    def __del__(self):
+        pygame.quit()
