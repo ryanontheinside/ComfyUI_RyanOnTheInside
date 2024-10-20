@@ -62,6 +62,13 @@ from .nodes.audio.audio_nodes import (
 
 )
 
+from .nodes.audio.flex_audio_visualizer import ( 
+    FlexAudioVisualizerBar,
+    FlexAudioVisualizerCircleDeform,
+    FlexAudioVisualizerCircular,
+    FlexAudioVisualizerFreqAmplitude
+)
+
 from .nodes.audio.audio_nodes_effects import (
     AudioPitchShift,
     AudioTimeStretch,
@@ -163,6 +170,7 @@ from .nodes.utility_nodes import (
 from .nodes.images.image_utility_nodes import (
     DyeImage,
     ImageCASBatch,
+    ImageScaleToTarget
 )
 
 from .nodes.masks.flex_masks import (
@@ -331,6 +339,13 @@ NODE_CLASS_MAPPINGS = {
     #flex audio
     "FlexAudioPitchShift":          FlexAudioPitchShift,
     "FlexAudioTimeStretch":         FlexAudioTimeStretch,
+
+    #flex audio visualizers
+    "FlexAudioVisualizerBar":       FlexAudioVisualizerBar,
+    "FlexAudioVisualizerCircleDeform": FlexAudioVisualizerCircleDeform,
+    "FlexAudioVisualizerCircular":  FlexAudioVisualizerCircular,
+    "FlexAudioVisualizerFreqAmplitude": FlexAudioVisualizerFreqAmplitude,
+
     #audio  
     "AudioSeparator":               AudioSeparator,
     "DownloadOpenUnmixModel":       DownloadOpenUnmixModel,
@@ -424,6 +439,7 @@ NODE_CLASS_MAPPINGS = {
     #garb   
     "DyeImage":                     DyeImage,
     "ImageCASBatch":                ImageCASBatch,
+    "ImageScaleToTarget":           ImageScaleToTarget,
     "MovingShape":                  MovingShape,
     "_mfc":                         _mfc,
     "TextMaskNode":                 TextMaskNode,
