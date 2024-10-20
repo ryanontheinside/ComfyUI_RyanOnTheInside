@@ -1580,3 +1580,134 @@ This node mixes two audio inputs together, allowing you to control the contribut
 """
 })
 
+add_node_config("FlexAudioVisualizerBar", {
+    "TOP_DESCRIPTION": "Creates a bar-based audio visualization.",
+    "ADDITIONAL_INFO": """
+- `audio`: Input audio to visualize (AUDIO type)
+- `frame_rate`: Frame rate of the output visualization (1.0 to 240.0 fps)
+- `screen_width`: Width of the output visualization (100 to 1920 pixels)
+- `screen_height`: Height of the output visualization (100 to 1080 pixels)
+- `strength`: Overall strength of the visualization effect (0.0 to 1.0)
+- `feature_param`: Parameter to modulate based on the optional feature input
+- `feature_mode`: Mode of feature modulation ("relative" or "absolute")
+- `curvature`: Curvature of the bars (0.0 to 50.0)
+- `separation`: Separation between bars (0.0 to 100.0 pixels)
+- `max_height`: Maximum height of the bars (10.0 to 2000.0 pixels)
+- `min_height`: Minimum height of the bars (0.0 to 500.0 pixels)
+- `num_bars`: Number of bars in the visualization (1 to 1024)
+- `smoothing`: Smoothing factor for bar movement (0.0 to 1.0)
+- `rotation`: Rotation angle of the entire visualization (0.0 to 360.0 degrees)
+- `position_y`: Vertical position of the visualization (0.0 to 1.0, where 0.5 is center)
+- `reflect`: Whether to reflect the bars vertically (True/False)
+
+Optional inputs:
+- `opt_feature`: Optional feature to modulate visualization parameters (FEATURE type)
+
+This node creates a dynamic bar-based audio visualization. The bars react to the audio input, with their height representing the audio intensity across different frequency ranges. The visualization can be customized with various parameters to achieve different visual styles and effects.
+"""
+})
+
+add_node_config("FlexAudioVisualizerFreqAmplitude", {
+    "TOP_DESCRIPTION": "Creates a frequency amplitude visualization of audio.",
+    "ADDITIONAL_INFO": """
+- `audio`: Input audio to visualize (AUDIO type)
+- `frame_rate`: Frame rate of the output visualization (1.0 to 240.0 fps)
+- `screen_width`: Width of the output visualization (100 to 1920 pixels)
+- `screen_height`: Height of the output visualization (100 to 1080 pixels)
+- `strength`: Overall strength of the visualization effect (0.0 to 1.0)
+- `feature_param`: Parameter to modulate based on the optional feature input
+- `feature_mode`: Mode of feature modulation ("relative" or "absolute")
+- `max_frequency`: Maximum frequency to visualize (20.0 to 20000.0 Hz)
+- `min_frequency`: Minimum frequency to visualize (20.0 to 20000.0 Hz)
+- `smoothing`: Smoothing factor for frequency amplitude changes (0.0 to 1.0)
+- `fft_size`: Size of the Fast Fourier Transform window (256 to 8192, in steps of 256)
+- `position_y`: Vertical position of the visualization (0.0 to 1.0, where 0.5 is center)
+- `reflect`: Whether to reflect the visualization vertically (True/False)
+- `curve_smoothing`: Smoothing factor for the curve shape (0.0 to 1.0)
+- `rotation`: Rotation angle of the entire visualization (0.0 to 360.0 degrees)
+
+Optional inputs:
+- `opt_feature`: Optional feature to modulate visualization parameters (FEATURE type)
+
+This node creates a frequency amplitude visualization of the input audio. It displays the amplitude of different frequency ranges over time, creating a dynamic waveform-like visualization. The visualization can be customized with various parameters to achieve different visual styles and effects.
+"""
+})
+
+add_node_config("FlexAudioVisualizerCircular", {
+    "TOP_DESCRIPTION": "Creates a circular audio visualization.",
+    "ADDITIONAL_INFO": """
+- `audio`: Input audio to visualize (AUDIO type)
+- `frame_rate`: Frame rate of the output visualization (1.0 to 240.0 fps)
+- `screen_width`: Width of the output visualization (100 to 1920 pixels)
+- `screen_height`: Height of the output visualization (100 to 1080 pixels)
+- `strength`: Overall strength of the visualization effect (0.0 to 1.0)
+- `feature_param`: Parameter to modulate based on the optional feature input
+- `feature_mode`: Mode of feature modulation ("relative" or "absolute")
+- `max_frequency`: Maximum frequency to visualize (20.0 to 20000.0 Hz)
+- `min_frequency`: Minimum frequency to visualize (20.0 to 20000.0 Hz)
+- `smoothing`: Smoothing factor for frequency amplitude changes (0.0 to 1.0)
+- `fft_size`: Size of the Fast Fourier Transform window (256 to 8192, in steps of 256)
+- `num_points`: Number of points in the circular visualization (3 to 1000)
+- `radius`: Radius of the circular visualization (10.0 to 1000.0 pixels)
+- `line_width`: Width of the lines in the visualization (1 to 10 pixels)
+- `rotation`: Rotation angle of the entire visualization (0.0 to 360.0 degrees)
+
+Optional inputs:
+- `opt_feature`: Optional feature to modulate visualization parameters (FEATURE type)
+
+This node creates a circular audio visualization. It represents the audio frequency spectrum as a circular shape, with the radius changing based on the amplitude of different frequency ranges. The visualization can be customized with various parameters to achieve different visual styles and effects.
+"""
+})
+
+add_node_config("FlexAudioVisualizerCircleDeform", {
+    "TOP_DESCRIPTION": "Creates a deforming circle audio visualization.",
+    "ADDITIONAL_INFO": """
+- `audio`: Input audio to visualize (AUDIO type)
+- `frame_rate`: Frame rate of the output visualization (1.0 to 240.0 fps)
+- `screen_width`: Width of the output visualization (100 to 1920 pixels)
+- `screen_height`: Height of the output visualization (100 to 1080 pixels)
+- `strength`: Overall strength of the visualization effect (0.0 to 1.0)
+- `feature_param`: Parameter to modulate based on the optional feature input
+- `feature_mode`: Mode of feature modulation ("relative" or "absolute")
+- `max_frequency`: Maximum frequency to visualize (20.0 to 20000.0 Hz)
+- `min_frequency`: Minimum frequency to visualize (20.0 to 20000.0 Hz)
+- `smoothing`: Smoothing factor for frequency amplitude changes (0.0 to 1.0)
+- `fft_size`: Size of the Fast Fourier Transform window (256 to 8192, in steps of 256)
+- `num_points`: Number of points in the circular visualization (3 to 1000)
+- `base_radius`: Base radius of the circle before deformation (10.0 to 1000.0 pixels)
+- `amplitude_scale`: Scale factor for the deformation amplitude (1.0 to 1000.0)
+- `line_width`: Width of the lines in the visualization (1 to 10 pixels)
+- `rotation`: Rotation angle of the entire visualization (0.0 to 360.0 degrees)
+
+Optional inputs:
+- `opt_feature`: Optional feature to modulate visualization parameters (FEATURE type)
+
+This node creates a deforming circle audio visualization. It starts with a base circular shape and then deforms it based on the audio frequency spectrum. The deformation is applied radially, creating a dynamic, organic-looking visualization that responds to the audio input. The visualization can be customized with various parameters to achieve different visual styles and effects.
+"""
+})
+
+add_node_config("ImageScaleToTarget", {
+    "TOP_DESCRIPTION": "Scales an input image to match the dimensions of a target image.",
+    "ADDITIONAL_INFO": """
+- `image`: Input image to be scaled (IMAGE type)
+- `target_image`: Image whose dimensions will be used as the target size (IMAGE type)
+- `upscale_method`: Method used for upscaling. Options include:
+  - "nearest-exact": Nearest neighbor interpolation
+  - "bilinear": Bilinear interpolation
+  - "area": Area interpolation
+  - "bicubic": Bicubic interpolation
+  - "lanczos": Lanczos interpolation
+- `crop`: Cropping method to use if aspect ratios don't match. Options are:
+  - "disabled": No cropping
+  - "center": Center crop
+
+This node scales the input image to match the dimensions of the target image. If the target image has a width or height of 0, the node will calculate the missing dimension to maintain the aspect ratio of the input image.
+
+The upscale_method parameter allows you to choose the interpolation method for scaling, which can affect the quality and characteristics of the output image.
+
+If the aspect ratios of the input and target images don't match, you can use the crop parameter to determine how to handle the mismatch. The "center" option will crop the scaled image from the center to match the target dimensions.
+
+Outputs:
+- Scaled IMAGE matching the dimensions of the target image
+"""
+})

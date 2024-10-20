@@ -518,7 +518,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
     "DyeImage" : "Dye Image",
     "ImageCASBatch": "Image Contrast Adaptive Sharpen Batch",
-    "ImageIntervalSelectPercentage":  "Image Interval Select %"
+    "ImageIntervalSelectPercentage":  "Image Interval Select %",
+    "ImageScaleToTarget": "Upscale To Target",
     # "FlexImageAdjustment":"Flex Image Adjustment",
     # "FlexImageFilter":"Flex Image Filter",
     # "FlexImageBlend":"Flex Image Blend",
