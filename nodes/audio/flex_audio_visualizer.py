@@ -27,17 +27,8 @@ class BaseAudioProcessor:
 
         self.audio_duration = len(self.audio) / self.sample_rate
         self.frame_duration = 1 / self.frame_rate if self.frame_rate > 0 else self.audio_duration / self.num_frames
-        self.progress_bar = None
 
-    def start_progress(self, total_steps, desc="Processing"):
-        self.progress_bar = ProgressBar(total_steps)
-
-    def update_progress(self):
-        if self.progress_bar:
-            self.progress_bar.update(1)
-
-    def end_progress(self):
-        self.progress_bar = None
+        self.spectrum = None  # Initialize spectrum
 
     def _normalize(self, data):
         return (data - data.min()) / (data.max() - data.min())
@@ -54,6 +45,47 @@ class BaseAudioProcessor:
         start_sample = int(start_time * self.sample_rate)
         end_sample = int(end_time * self.sample_rate)
         return self.audio[start_sample:end_sample]
+
+    def compute_spectrum(self, frame_index, fft_size, min_frequency, max_frequency):
+        audio_frame = self._get_audio_frame(frame_index)
+        if len(audio_frame) < fft_size:
+            audio_frame = np.pad(audio_frame, (0, fft_size - len(audio_frame)), mode='constant')
+
+        # Apply window function
+        window = np.hanning(len(audio_frame))
+        audio_frame = audio_frame * window
+
+        # Compute FFT
+        spectrum = np.abs(np.fft.rfft(audio_frame, n=fft_size))
+
+        # Extract desired frequency range
+        freqs = np.fft.rfftfreq(fft_size, d=1.0 / self.sample_rate)
+        freq_indices = np.where((freqs >= min_frequency) & (freqs <= max_frequency))[0]
+        spectrum = spectrum[freq_indices]
+
+        # Check if spectrum is not empty
+        if spectrum.size > 0:
+            # Apply logarithmic scaling
+            spectrum = np.log1p(spectrum)
+
+            # Normalize
+            max_spectrum = np.max(spectrum)
+            if max_spectrum != 0:
+                spectrum = spectrum / max_spectrum
+            else:
+                spectrum = np.zeros_like(spectrum)
+        else:
+            # Return zeros if spectrum is empty
+            spectrum = np.zeros(1)
+
+        return spectrum
+
+    def update_spectrum(self, new_spectrum, smoothing):
+        if self.spectrum is None or len(self.spectrum) != len(new_spectrum):
+            self.spectrum = np.zeros(len(new_spectrum))
+
+        # Apply smoothing
+        self.spectrum = smoothing * self.spectrum + (1 - smoothing) * new_spectrum
 
 class FlexAudioVisualizerBase(RyanOnTheInside, ABC):
     @classmethod
@@ -98,9 +130,11 @@ class FlexAudioVisualizerBase(RyanOnTheInside, ABC):
 
     def modulate_param(self, param_name, param_value, feature_value, strength, mode):
         if mode == "relative":
-            return param_value * (1 + (feature_value - 0.5) * strength)
+            modulated_value = param_value * (1 + (feature_value - 0.5) * strength * 2)
         else:  # absolute
-            return param_value * feature_value * strength
+            modulated_value = param_value * feature_value * strength
+        # Ensure type consistency
+        return type(param_value)(modulated_value)
 
     def apply_effect(self, audio, frame_rate, screen_width, screen_height, strength, feature_param, feature_mode, opt_feature=None, **kwargs):
         # Calculate num_frames based on audio duration and frame_rate
@@ -116,20 +150,24 @@ class FlexAudioVisualizerBase(RyanOnTheInside, ABC):
         self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 
         for i in range(num_frames):
-            # Always get audio data for visualization
-            self.get_audio_data(processor, i, **kwargs)
+            # Make a copy of kwargs for this frame to avoid altering original parameters
+            frame_kwargs = kwargs.copy()
 
-            # Modulate parameters based on feature only if opt_feature is provided
-            if opt_feature is not None:
+            # Get audio data for visualization (does not return feature_value)
+            self.get_audio_data(processor, i, **frame_kwargs)
+
+            # Modulate parameters only if opt_feature is provided
+            if opt_feature is not None and feature_param != "None":
                 feature_value = opt_feature.get_value_at_frame(i)
-                for param_name in self.get_modifiable_params():
-                    if param_name in kwargs:
-                        if param_name == feature_param:
-                            kwargs[param_name] = self.modulate_param(param_name, kwargs[param_name],
-                                                                     feature_value, strength, feature_mode)
+                # Modulate the specified parameter
+                original_value = frame_kwargs[feature_param]
+                modulated_value = self.modulate_param(feature_param, original_value, feature_value, strength, feature_mode)
+                # Ensure the modulated value is within valid ranges
+                modulated_value = self.validate_param(feature_param, modulated_value)
+                frame_kwargs[feature_param] = modulated_value
 
-            # Generate the image for the current frame
-            image = self.draw(processor, **kwargs)
+            # Generate the image for the current frame using frame_kwargs
+            image = self.draw(processor, **frame_kwargs)
             result.append(image)
 
             self.update_progress()
@@ -144,13 +182,50 @@ class FlexAudioVisualizerBase(RyanOnTheInside, ABC):
 
         return (result_tensor,)
 
+    def validate_param(self, param_name, param_value):
+        """
+        Ensure that modulated parameter values stay within valid ranges.
+        """
+        valid_params = {
+            'fft_size': lambda x: max(256, int(2 ** np.round(np.log2(x)))) if x > 0 else 256,
+            'min_frequency': lambda x: max(20.0, min(x, 20000.0)),
+            'max_frequency': lambda x: max(20.0, min(x, 20000.0)),
+            'num_bars': lambda x: max(1, int(x)),
+            'smoothing': lambda x: np.clip(x, 0.0, 1.0),
+            'rotation': lambda x: x % 360.0,
+            'curvature': lambda x: max(0.0, x),
+            'separation': lambda x: max(0.0, x),
+            'max_height': lambda x: max(10.0, x),
+            'min_height': lambda x: max(0.0, x),
+            'position_y': lambda x: np.clip(x, 0.0, 1.0),
+            'reflect': lambda x: bool(x),
+            'line_width': lambda x: max(1, int(x)),
+            'radius': lambda x: max(1.0, x),
+            'base_radius': lambda x: max(1.0, x),
+            'amplitude_scale': lambda x: max(0.0, x),
+            # Add other parameters as needed
+        }
+
+        if param_name in valid_params:
+            return valid_params[param_name](param_value)
+        else:
+            return param_value
+
+    def rotate_image(self, image, angle):
+        """Rotate the image by the given angle."""
+        (h, w) = image.shape[:2]
+        center = (w / 2, h / 2)
+
+        M = cv2.getRotationMatrix2D(center, angle, 1.0)
+        rotated_image = cv2.warpAffine(image, M, (w, h))
+
+        return rotated_image
+
     @abstractmethod
     def get_audio_data(self, processor: BaseAudioProcessor, frame_index, **kwargs):
         """
         Abstract method to get audio data for visualization at a specific frame index.
-
-        Returns:
-        - feature_value: float, extracted feature value for modulation.
+        Should process the audio data required for visualization.
         """
         pass
 
@@ -158,7 +233,6 @@ class FlexAudioVisualizerBase(RyanOnTheInside, ABC):
     def draw(self, processor: BaseAudioProcessor, **kwargs) -> np.ndarray:
         """
         Abstract method to generate the image for the current frame.
-
         Returns:
         - image: numpy array of shape (H, W, 3).
         """
@@ -194,10 +268,10 @@ class FlexAudioVisualizerBar(FlexAudioVisualizerBase):
         self.bars = None
 
     def get_audio_data(self, processor: BaseAudioProcessor, frame_index, **kwargs):
-        audio_frame = processor._get_audio_frame(frame_index)
         num_bars = kwargs.get('num_bars')
         smoothing = kwargs.get('smoothing')
 
+        audio_frame = processor._get_audio_frame(frame_index)
         if len(audio_frame) == 0:
             data = np.zeros(num_bars)
         else:
@@ -301,16 +375,6 @@ class FlexAudioVisualizerBar(FlexAudioVisualizerBase):
 
         return image
 
-    def rotate_image(self, image, angle):
-        """Rotate the image by the given angle."""
-        (h, w) = image.shape[:2]
-        center = (w / 2, h / 2)
-
-        M = cv2.getRotationMatrix2D(center, angle, 1.0)
-        rotated_image = cv2.warpAffine(image, M, (w, h))
-
-        return rotated_image
-
 class FlexAudioVisualizerFreqAmplitude(FlexAudioVisualizerBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -337,49 +401,6 @@ class FlexAudioVisualizerFreqAmplitude(FlexAudioVisualizerBase):
 
     def __init__(self):
         super().__init__()
-        self.spectrum = None
-
-    def get_audio_data(self, processor: BaseAudioProcessor, frame_index, **kwargs):
-        fft_size = kwargs.get('fft_size')
-        smoothing = kwargs.get('smoothing')
-
-        audio_frame = processor._get_audio_frame(frame_index)
-
-        # Ensure audio_frame has the required length
-        if len(audio_frame) < fft_size:
-            audio_frame = np.pad(audio_frame, (0, fft_size - len(audio_frame)), mode='constant')
-
-        # Apply window function
-        window = np.hanning(len(audio_frame))
-        audio_frame = audio_frame * window
-
-        # Compute FFT
-        spectrum = np.abs(np.fft.rfft(audio_frame, n=fft_size))
-
-        # Extract desired frequency range
-        sample_rate = processor.sample_rate
-        freqs = np.fft.rfftfreq(fft_size, d=1.0 / sample_rate)
-        min_freq = kwargs.get('min_frequency')
-        max_freq = kwargs.get('max_frequency')
-        freq_indices = np.where((freqs >= min_freq) & (freqs <= max_freq))[0]
-        spectrum = spectrum[freq_indices]
-
-        # Apply logarithmic scaling
-        spectrum = np.log1p(spectrum)
-
-        # Normalize
-        if np.max(spectrum) != 0:
-            spectrum = spectrum / np.max(spectrum)
-
-        # Initialize spectrum if not done
-        if self.spectrum is None or len(self.spectrum) != len(spectrum):
-            self.spectrum = np.zeros(len(spectrum))
-
-        # Apply smoothing over time
-        self.spectrum = smoothing * self.spectrum + (1 - smoothing) * spectrum
-
-        # We don't need to return a feature value anymore
-        return None
 
     def smooth_curve(self, y, window_size):
         """Apply a moving average to smooth the curve."""
@@ -388,6 +409,21 @@ class FlexAudioVisualizerFreqAmplitude(FlexAudioVisualizerBase):
         box = np.ones(window_size) / window_size
         y_smooth = np.convolve(y, box, mode='same')
         return y_smooth
+
+    def get_audio_data(self, processor: BaseAudioProcessor, frame_index, **kwargs):
+        fft_size = kwargs.get('fft_size')
+        smoothing = kwargs.get('smoothing')
+        min_frequency = kwargs.get('min_frequency')
+        max_frequency = kwargs.get('max_frequency')
+
+        spectrum = processor.compute_spectrum(frame_index, fft_size, min_frequency, max_frequency)
+        num_points = len(spectrum)
+
+        # Update processor's spectrum with smoothing
+        processor.update_spectrum(spectrum, smoothing)
+
+        # We don't need to return a feature value
+        return None
 
     def draw(self, processor: BaseAudioProcessor, **kwargs):
         max_frequency = kwargs.get('max_frequency')
@@ -404,16 +440,17 @@ class FlexAudioVisualizerFreqAmplitude(FlexAudioVisualizerBase):
         max_amplitude = min(baseline_y, screen_height - baseline_y)
 
         # Apply curve smoothing if specified
+        spectrum = processor.spectrum
         if curve_smoothing > 0:
-            window_size = int(len(self.spectrum) * curve_smoothing)
+            window_size = int(len(spectrum) * curve_smoothing)
             if window_size % 2 == 0:
                 window_size += 1  # Make it odd
             if window_size > 2:
-                spectrum_smooth = self.smooth_curve(self.spectrum, window_size)
+                spectrum_smooth = self.smooth_curve(spectrum, window_size)
             else:
-                spectrum_smooth = self.spectrum
+                spectrum_smooth = spectrum
         else:
-            spectrum_smooth = self.spectrum
+            spectrum_smooth = spectrum
 
         # Compute amplitude
         amplitude = spectrum_smooth * max_amplitude
@@ -453,16 +490,6 @@ class FlexAudioVisualizerFreqAmplitude(FlexAudioVisualizerBase):
 
         return image
 
-    def rotate_image(self, image, angle):
-        """Rotate the image by the given angle."""
-        (h, w) = image.shape[:2]
-        center = (w / 2, h / 2)
-
-        M = cv2.getRotationMatrix2D(center, angle, 1.0)
-        rotated_image = cv2.warpAffine(image, M, (w, h))
-
-        return rotated_image
-
 class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -489,61 +516,34 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
 
     def __init__(self):
         super().__init__()
-        self.spectrum = None
 
     def get_audio_data(self, processor: BaseAudioProcessor, frame_index, **kwargs):
-        audio_frame = processor._get_audio_frame(frame_index)
         fft_size = kwargs.get('fft_size')
         smoothing = kwargs.get('smoothing')
-        num_points = round(kwargs.get('num_points'))  # Round to nearest integer
+        min_frequency = kwargs.get('min_frequency')
+        max_frequency = kwargs.get('max_frequency')
+        num_points = int(kwargs.get('num_points'))
 
-        if len(audio_frame) < fft_size:
-            audio_frame = np.pad(audio_frame, (0, fft_size - len(audio_frame)), mode='constant')
-
-        # Apply window function
-        window = np.hanning(len(audio_frame))
-        audio_frame = audio_frame * window
-
-        # Compute FFT
-        spectrum = np.abs(np.fft.rfft(audio_frame, n=fft_size))
-
-        # Extract desired frequency range
-        sample_rate = processor.sample_rate
-        freqs = np.fft.rfftfreq(fft_size, d=1.0 / sample_rate)
-        min_freq = kwargs.get('min_frequency')
-        max_freq = kwargs.get('max_frequency')
-        freq_indices = np.where((freqs >= min_freq) & (freqs <= max_freq))[0]
-        spectrum = spectrum[freq_indices]
-
-        # Apply logarithmic scaling
-        spectrum = np.log1p(spectrum)
-
-        # Normalize
-        if np.max(spectrum) != 0:
-            spectrum = spectrum / np.max(spectrum)
+        spectrum = processor.compute_spectrum(frame_index, fft_size, min_frequency, max_frequency)
 
         # Resample the spectrum to match the number of points
-        data = np.interp(
+        spectrum_resampled = np.interp(
             np.linspace(0, len(spectrum), num_points, endpoint=False),
             np.arange(len(spectrum)),
             spectrum,
         )
 
-        # Initialize spectrum if not done
-        if self.spectrum is None or len(self.spectrum) != num_points:
-            self.spectrum = np.zeros(num_points)
-
-        # Apply smoothing
-        self.spectrum = smoothing * self.spectrum + (1 - smoothing) * data
+        # Update processor's spectrum with smoothing
+        processor.update_spectrum(spectrum_resampled, smoothing)
 
         # Return mean spectrum value as feature_value
-        feature_value = np.mean(self.spectrum)
+        feature_value = np.mean(processor.spectrum)
         return feature_value
 
     def draw(self, processor: BaseAudioProcessor, **kwargs):
         max_frequency = kwargs.get('max_frequency')
         min_frequency = kwargs.get('min_frequency')
-        num_points = round(kwargs.get('num_points'))  # Round to nearest integer
+        num_points = int(kwargs.get('num_points'))
         radius = kwargs.get('radius')
         line_width = kwargs.get('line_width')
         rotation = kwargs.get('rotation') % 360
@@ -562,12 +562,10 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
         rotation_rad = np.deg2rad(rotation)
         angles += rotation_rad
 
-        # Ensure self.spectrum matches num_points
-        if len(self.spectrum) != num_points:
-            self.spectrum = np.interp(np.linspace(0, 1, num_points), np.linspace(0, 1, len(self.spectrum)), self.spectrum)
+        spectrum = processor.spectrum
 
         # Compute end points of lines based on spectrum data
-        for angle, amplitude in zip(angles, self.spectrum):
+        for angle, amplitude in zip(angles, spectrum):
             # Start point (on the circle)
             x_start = center_x + radius * np.cos(angle)
             y_start = center_y + radius * np.sin(angle)
@@ -615,64 +613,38 @@ class FlexAudioVisualizerCircleDeform(FlexAudioVisualizerBase):
 
     def __init__(self):
         super().__init__()
-        self.spectrum = None
 
     def get_audio_data(self, processor: BaseAudioProcessor, frame_index, **kwargs):
-        audio_frame = processor._get_audio_frame(frame_index)
         fft_size = kwargs.get('fft_size')
         smoothing = kwargs.get('smoothing')
-        num_points = round(kwargs.get('num_points'))  # Round to nearest integer
+        min_frequency = kwargs.get('min_frequency')
+        max_frequency = kwargs.get('max_frequency')
+        num_points = int(kwargs.get('num_points'))
 
-        if len(audio_frame) < fft_size:
-            audio_frame = np.pad(audio_frame, (0, fft_size - len(audio_frame)), mode='constant')
-
-        # Apply window function
-        window = np.hanning(len(audio_frame))
-        audio_frame = audio_frame * window
-
-        # Compute FFT
-        spectrum = np.abs(np.fft.rfft(audio_frame, n=fft_size))
-
-        # Extract desired frequency range
-        sample_rate = processor.sample_rate
-        freqs = np.fft.rfftfreq(fft_size, d=1.0 / sample_rate)
-        min_freq = kwargs.get('min_frequency')
-        max_freq = kwargs.get('max_frequency')
-        freq_indices = np.where((freqs >= min_freq) & (freqs <= max_freq))[0]
-        spectrum = spectrum[freq_indices]
+        spectrum = processor.compute_spectrum(frame_index, fft_size, min_frequency, max_frequency)
 
         # Check if spectrum is empty or contains only zeros
         if len(spectrum) == 0 or np.all(spectrum == 0):
             spectrum = np.zeros(num_points)
         else:
-            # Apply logarithmic scaling
-            spectrum = np.log1p(spectrum)
+            # Resample the spectrum to match the number of points
+            spectrum = np.interp(
+                np.linspace(0, len(spectrum), num_points, endpoint=False),
+                np.arange(len(spectrum)),
+                spectrum,
+            )
 
-            # Normalize
-            spectrum = spectrum / np.max(spectrum)
-
-        # Resample the spectrum to match the number of points
-        data = np.interp(
-            np.linspace(0, len(spectrum), num_points, endpoint=False),
-            np.arange(len(spectrum)),
-            spectrum,
-        )
-
-        # Initialize spectrum if not done
-        if self.spectrum is None or len(self.spectrum) != num_points:
-            self.spectrum = np.zeros(num_points)
-
-        # Apply smoothing
-        self.spectrum = smoothing * self.spectrum + (1 - smoothing) * data
+        # Update processor's spectrum with smoothing
+        processor.update_spectrum(spectrum, smoothing)
 
         # Return mean spectrum value as feature_value
-        feature_value = np.mean(self.spectrum)
+        feature_value = np.mean(processor.spectrum)
         return feature_value
 
     def draw(self, processor: BaseAudioProcessor, **kwargs):
         max_frequency = kwargs.get('max_frequency')
         min_frequency = kwargs.get('min_frequency')
-        num_points = round(kwargs.get('num_points'))  # Round to nearest integer
+        num_points = int(kwargs.get('num_points'))
         base_radius = kwargs.get('base_radius')
         amplitude_scale = kwargs.get('amplitude_scale')
         line_width = kwargs.get('line_width')
@@ -692,12 +664,14 @@ class FlexAudioVisualizerCircleDeform(FlexAudioVisualizerBase):
         rotation_rad = np.deg2rad(rotation)
         angles += rotation_rad
 
-        # Ensure self.spectrum matches num_points
-        if len(self.spectrum) != num_points:
-            self.spectrum = np.interp(np.linspace(0, 1, num_points), np.linspace(0, 1, len(self.spectrum)), self.spectrum)
+        spectrum = processor.spectrum
+
+        # Ensure spectrum has the same length as angles
+        if len(spectrum) != len(angles):
+            spectrum = np.interp(np.linspace(0, 1, len(angles)), np.linspace(0, 1, len(spectrum)), spectrum)
 
         # Compute radius for each point
-        radii = base_radius + self.spectrum * amplitude_scale
+        radii = base_radius + spectrum * amplitude_scale
 
         # Compute x and y coordinates
         x_values = center_x + radii * np.cos(angles)
