@@ -277,18 +277,17 @@ class FlexAudioVisualizerBar(FlexAudioVisualizerBase):
             color = (1.0, 1.0, 1.0)  # White color
 
             # Draw rectangle with optional curvature
-            if curvature > 0:
-                # Compute rectangle dimensions
-                rect_width = int(bar_width)
-                rect_height = int(y_end - y_start)
-                if rect_height == 0:
-                    continue
+            rect_width = max(1, int(bar_width))
+            rect_height = max(1, int(y_end - y_start))
+
+            if curvature > 0 and rect_width > 1 and rect_height > 1:
                 rect = np.zeros((rect_height, rect_width, 3), dtype=np.float32)
                 # Create mask for rounded rectangle
-                radius = int(curvature)
+                radius = max(1, min(int(curvature), rect_width // 2, rect_height // 2))
                 mask = np.full((rect_height, rect_width), 0, dtype=np.uint8)
-                cv2.rectangle(mask, (0, 0), (rect_width, rect_height), 255, -1)
-                mask = cv2.GaussianBlur(mask, (radius*2+1, radius*2+1), 0)
+                cv2.rectangle(mask, (0, 0), (rect_width - 1, rect_height - 1), 255, -1)
+                if radius > 1:
+                    mask = cv2.GaussianBlur(mask, (radius*2+1, radius*2+1), 0)
                 # Apply mask
                 rect[mask > 0] = color
                 # Place rect onto image
@@ -496,7 +495,7 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
         audio_frame = processor._get_audio_frame(frame_index)
         fft_size = kwargs.get('fft_size')
         smoothing = kwargs.get('smoothing')
-        num_points = kwargs.get('num_points')
+        num_points = round(kwargs.get('num_points'))  # Round to nearest integer
 
         if len(audio_frame) < fft_size:
             audio_frame = np.pad(audio_frame, (0, fft_size - len(audio_frame)), mode='constant')
@@ -544,7 +543,7 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
     def draw(self, processor: BaseAudioProcessor, **kwargs):
         max_frequency = kwargs.get('max_frequency')
         min_frequency = kwargs.get('min_frequency')
-        num_points = kwargs.get('num_points')
+        num_points = round(kwargs.get('num_points'))  # Round to nearest integer
         radius = kwargs.get('radius')
         line_width = kwargs.get('line_width')
         rotation = kwargs.get('rotation') % 360
@@ -562,6 +561,10 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
         angles = np.linspace(0, 2 * np.pi, num_points, endpoint=False)
         rotation_rad = np.deg2rad(rotation)
         angles += rotation_rad
+
+        # Ensure self.spectrum matches num_points
+        if len(self.spectrum) != num_points:
+            self.spectrum = np.interp(np.linspace(0, 1, num_points), np.linspace(0, 1, len(self.spectrum)), self.spectrum)
 
         # Compute end points of lines based on spectrum data
         for angle, amplitude in zip(angles, self.spectrum):
@@ -618,7 +621,7 @@ class FlexAudioVisualizerCircleDeform(FlexAudioVisualizerBase):
         audio_frame = processor._get_audio_frame(frame_index)
         fft_size = kwargs.get('fft_size')
         smoothing = kwargs.get('smoothing')
-        num_points = kwargs.get('num_points')
+        num_points = round(kwargs.get('num_points'))  # Round to nearest integer
 
         if len(audio_frame) < fft_size:
             audio_frame = np.pad(audio_frame, (0, fft_size - len(audio_frame)), mode='constant')
@@ -669,7 +672,7 @@ class FlexAudioVisualizerCircleDeform(FlexAudioVisualizerBase):
     def draw(self, processor: BaseAudioProcessor, **kwargs):
         max_frequency = kwargs.get('max_frequency')
         min_frequency = kwargs.get('min_frequency')
-        num_points = kwargs.get('num_points')
+        num_points = round(kwargs.get('num_points'))  # Round to nearest integer
         base_radius = kwargs.get('base_radius')
         amplitude_scale = kwargs.get('amplitude_scale')
         line_width = kwargs.get('line_width')
@@ -688,6 +691,10 @@ class FlexAudioVisualizerCircleDeform(FlexAudioVisualizerBase):
         angles = np.linspace(0, 2 * np.pi, num_points, endpoint=False)
         rotation_rad = np.deg2rad(rotation)
         angles += rotation_rad
+
+        # Ensure self.spectrum matches num_points
+        if len(self.spectrum) != num_points:
+            self.spectrum = np.interp(np.linspace(0, 1, num_points), np.linspace(0, 1, len(self.spectrum)), self.spectrum)
 
         # Compute radius for each point
         radii = base_radius + self.spectrum * amplitude_scale
