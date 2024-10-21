@@ -635,3 +635,50 @@ class FlexImageTransform(FlexImageBase):
     def apply_effect_internal(self, image: np.ndarray, transform_type: str, x_value: float, y_value: float, **kwargs) -> np.ndarray:
         return transform_image(image, transform_type, x_value, y_value)
 
+class FlexImageHueShift(FlexImageBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "hue_shift": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
+            },
+            "optional": {
+                "opt_mask": ("MASK",),
+            }
+        }
+
+    @classmethod
+    def get_modifiable_params(cls):
+        return ["hue_shift", "None"]
+
+    def apply_effect_internal(self, image: np.ndarray, hue_shift: float, opt_mask: np.ndarray = None, **kwargs) -> np.ndarray:
+        # Convert RGB to HSV
+        hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+
+        # Create a copy of the original HSV image
+        result_hsv = hsv_image.copy()
+
+        # Apply hue shift
+        result_hsv[:,:,0] = (result_hsv[:,:,0] + hue_shift / 2) % 180
+
+        if opt_mask is not None:
+            # Ensure mask has the same shape as the image
+            if opt_mask.shape[:2] != image.shape[:2]:
+                opt_mask = cv2.resize(opt_mask, (image.shape[1], image.shape[0]))
+
+            # Normalize mask to range [0, 1]
+            if opt_mask.max() > 1:
+                opt_mask = opt_mask / 255.0
+
+            # Expand mask dimensions to match HSV image
+            mask_3d = np.expand_dims(opt_mask, axis=2)
+
+            # Apply the mask
+            result_hsv = hsv_image * (1 - mask_3d) + result_hsv * mask_3d
+
+        # Convert back to RGB
+        result = cv2.cvtColor(result_hsv, cv2.COLOR_HSV2RGB)
+
+        return np.clip(result, 0, 1)
