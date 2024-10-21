@@ -1139,6 +1139,30 @@ NODE_CONFIGS["FlexImageBase"] = {
 """
 }
 
+add_node_config("FlexImageHueShift", {
+    "TOP_DESCRIPTION": "Applies a hue shift effect to the image, modulated by a selected feature.",
+    "ADDITIONAL_INFO": """
+- `hue_shift`: Amount of hue shift to apply (0.0 to 360.0 degrees). A value of 180 degrees will invert the hues.
+- `feature_param`: Parameter to modulate based on the feature. Options are "hue_shift" or "None".
+
+Optional inputs:
+- `opt_mask`: Optional mask to apply the effect selectively (MASK type)
+
+This node shifts the hues of the input image by the specified amount. The hue shift can be dynamically modulated by the input feature, allowing for time-varying color effects. The optional mask input allows for selective application of the effect to specific areas of the image.
+
+The hue shift is applied in the HSV color space, which means it affects the color of the image without changing its brightness or saturation. This can create interesting color transformation effects, such as:
+
+1. Subtle color grading by applying small hue shifts
+2. Creating psychedelic or surreal effects with large hue shifts
+3. Simulating color filters or gels used in photography and film
+4. Generating day-to-night transitions by shifting blues towards oranges
+
+When used with feature modulation, this node can create dynamic color effects that respond to audio, motion, or other extracted features, making it useful for creating reactive visuals or music videos.
+
+Note: Extreme hue shifts may produce unexpected colors, especially for hues that are close to the wrap-around point (red). For more natural-looking results, consider using smaller hue shift values or combining with other color adjustment effects.
+"""
+})
+
 add_node_config("FlexImageContrast", {
     "TOP_DESCRIPTION": "Adjusts the contrast and brightness of the image, with an option to preserve luminosity.",
     "ADDITIONAL_INFO": """
