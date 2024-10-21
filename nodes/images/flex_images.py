@@ -682,3 +682,72 @@ class FlexImageHueShift(FlexImageBase):
         result = cv2.cvtColor(result_hsv, cv2.COLOR_HSV2RGB)
 
         return np.clip(result, 0, 1)
+
+
+import numpy as np
+import cv2
+
+class FlexImageDepthWarp(FlexImageBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "warp_strength": ("FLOAT", {"default": 0.1, "min": -10.0, "max": 10.0, "step": 0.01}),
+            },
+            "optional": {
+                "depth_map": ("IMAGE",),
+            },
+        }
+
+    @classmethod
+    def get_modifiable_params(cls):
+        return ["warp_strength", "None"]
+
+    def apply_effect_internal(
+        self,
+        image: np.ndarray,
+        warp_strength: float,
+        depth_map: np.ndarray = None,
+        frame_index: int = 0,
+        **kwargs
+    ) -> np.ndarray:
+        h, w, _ = image.shape
+
+        if depth_map is not None:
+            # Extract the depth map for the current frame
+            depth_map_frame = depth_map[frame_index].cpu().numpy()
+
+            # Compute the depth value as the average of the 3 color channels
+            depth_map_gray = np.mean(depth_map_frame, axis=-1)
+
+            # Normalize the depth map to [0,1]
+            depth_map_normalized = depth_map_gray / np.max(depth_map_gray)
+
+            # Compute displacements based on depth
+            # warp_strength controls the maximum displacement in pixels
+            dx = warp_strength * (depth_map_normalized - 0.5) * w
+            dy = warp_strength * (depth_map_normalized - 0.5) * h
+
+            # Generate coordinate grid
+            x, y = np.meshgrid(np.arange(w), np.arange(h))
+
+            # Apply displacements
+            x_displaced = x + dx
+            y_displaced = y + dy
+
+            # Ensure coordinates are within image bounds
+            x_displaced = np.clip(x_displaced, 0, w - 1)
+            y_displaced = np.clip(y_displaced, 0, h - 1)
+
+            # Warp the image using remapping
+            map_x = x_displaced.astype(np.float32)
+            map_y = y_displaced.astype(np.float32)
+
+            warped_image = cv2.remap(image, map_x, map_y, interpolation=cv2.INTER_LINEAR)
+
+            return np.clip(warped_image, 0, 1)
+        else:
+            print("Warning: No depth map provided.")
+            return image

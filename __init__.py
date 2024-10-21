@@ -63,10 +63,8 @@ from .nodes.audio.audio_nodes import (
 )
 
 from .nodes.audio.flex_audio_visualizer import ( 
-    FlexAudioVisualizerBar,
-    FlexAudioVisualizerCircleDeform,
     FlexAudioVisualizerCircular,
-    FlexAudioVisualizerFreqAmplitude
+    FlexAudioVisualizerLine
 )
 
 from .nodes.audio.audio_nodes_effects import (
@@ -209,7 +207,9 @@ from .nodes.images.flex_images import (
     FlexImageContrast,
     FlexImageWarp,
     FlexImageVignette,
-    FlexImageTransform
+    FlexImageTransform,
+    FlexImageHueShift,
+    FlexImageDepthWarp,
 )
 
 from .nodes.video.flex_video import (
@@ -341,10 +341,8 @@ NODE_CLASS_MAPPINGS = {
     "FlexAudioTimeStretch":         FlexAudioTimeStretch,
 
     #flex audio visualizers
-    "FlexAudioVisualizerBar":       FlexAudioVisualizerBar,
-    "FlexAudioVisualizerCircleDeform": FlexAudioVisualizerCircleDeform,
     "FlexAudioVisualizerCircular":  FlexAudioVisualizerCircular,
-    "FlexAudioVisualizerFreqAmplitude": FlexAudioVisualizerFreqAmplitude,
+    "FlexAudioVisualizerLine":     FlexAudioVisualizerLine,
 
     #audio  
     "AudioSeparator":               AudioSeparator,
@@ -427,6 +425,8 @@ NODE_CLASS_MAPPINGS = {
     "FlexImageWarp":                FlexImageWarp,
     "FlexImageVignette":            FlexImageVignette,
     "FlexImageTransform":           FlexImageTransform,
+    "FlexImageHueShift":            FlexImageHueShift,
+    "FlexImageDepthWarp":           FlexImageDepthWarp,
     #opacity xp 
     # "FlexDepthBasedMaskOpacity":  FlexDepthBasedMaskOpacity,
     # "DepthBasedMaskOpacity":      DepthBasedMaskOpacity,
