@@ -99,6 +99,7 @@ class FlexAudioVisualizerBase(RyanOnTheInside, ABC):
                 "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "feature_param": (cls.get_modifiable_params(), {"default": cls.get_modifiable_params()[0]}),
                 "feature_mode": (["relative", "absolute"], {"default": "relative"}),
+                "audio_feature_param": (cls.get_modifiable_params(), {"default": "None"}),
                 "position_x": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "position_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
             },
@@ -138,7 +139,8 @@ class FlexAudioVisualizerBase(RyanOnTheInside, ABC):
         # Ensure type consistency
         return type(param_value)(modulated_value)
 
-    def apply_effect(self, audio, frame_rate, screen_width, screen_height, strength, feature_param, feature_mode, opt_feature=None, **kwargs):
+    def apply_effect(self, audio, frame_rate, screen_width, screen_height, strength, feature_param, feature_mode,
+                     audio_feature_param, opt_feature=None, **kwargs):
         # Calculate num_frames based on audio duration and frame_rate
         audio_duration = len(audio['waveform'].squeeze(0).mean(axis=0)) / audio['sample_rate']
         num_frames = int(audio_duration * frame_rate)
@@ -155,17 +157,29 @@ class FlexAudioVisualizerBase(RyanOnTheInside, ABC):
             # Make a copy of kwargs for this frame to avoid altering original parameters
             frame_kwargs = kwargs.copy()
 
-            # Get audio data for visualization (does not return feature_value)
-            feature_value = self.get_audio_data(processor, i, **frame_kwargs)
+            # Get audio data for visualization (returns audio_feature_value)
+            audio_feature_value = self.get_audio_data(processor, i, **frame_kwargs)
 
-            # Modulate parameters only if opt_feature is provided
-            if opt_feature is not None and feature_param != "None" and feature_value is not None:
-                # Modulate the specified parameter
-                original_value = frame_kwargs[feature_param]
-                modulated_value = self.modulate_param(feature_param, original_value, feature_value, strength, feature_mode)
+            # Modulate parameters based on opt_feature if provided
+            if opt_feature is not None and feature_param != "None":
+                # Get feature value from opt_feature
+                feature_value = opt_feature.get_value_at_frame(i)
+
+                if feature_value is not None:
+                    # Modulate the specified parameter using feature_value
+                    original_value = frame_kwargs[feature_param]
+                    modulated_value = self.modulate_param(feature_param, original_value, feature_value, strength, feature_mode)
+                    # Ensure the modulated value is within valid ranges
+                    modulated_value = self.validate_param(feature_param, modulated_value)
+                    frame_kwargs[feature_param] = modulated_value
+
+            # Modulate parameters based on audio feature value if audio_feature_param is set
+            if audio_feature_param != "None" and audio_feature_value is not None:
+                original_value = frame_kwargs[audio_feature_param]
+                modulated_value = self.modulate_param(audio_feature_param, original_value, audio_feature_value, strength, feature_mode)
                 # Ensure the modulated value is within valid ranges
-                modulated_value = self.validate_param(feature_param, modulated_value)
-                frame_kwargs[feature_param] = modulated_value
+                modulated_value = self.validate_param(audio_feature_param, modulated_value)
+                frame_kwargs[audio_feature_param] = modulated_value
 
             # Generate the image for the current frame using frame_kwargs
             image = self.draw(processor, **frame_kwargs)
