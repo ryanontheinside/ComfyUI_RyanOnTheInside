@@ -64,7 +64,7 @@ from .nodes.audio.audio_nodes import (
 
 from .nodes.audio.flex_audio_visualizer import ( 
     FlexAudioVisualizerCircular,
-    FlexAudioVisualizerLine
+    FlexAudioVisualizerLine,
 )
 
 from .nodes.audio.audio_nodes_effects import (
@@ -343,7 +343,6 @@ NODE_CLASS_MAPPINGS = {
     #flex audio visualizers
     "FlexAudioVisualizerCircular":  FlexAudioVisualizerCircular,
     "FlexAudioVisualizerLine":     FlexAudioVisualizerLine,
-
     #audio  
     "AudioSeparator":               AudioSeparator,
     "DownloadOpenUnmixModel":       DownloadOpenUnmixModel,

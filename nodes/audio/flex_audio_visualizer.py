@@ -4,6 +4,7 @@ import cv2
 from abc import ABC, abstractmethod
 from comfy.utils import ProgressBar
 from ... import RyanOnTheInside
+import matplotlib.pyplot as plt
 
 class BaseAudioProcessor:
     def __init__(self, audio, num_frames, height, width, frame_rate):
@@ -109,7 +110,7 @@ class FlexAudioVisualizerBase(RyanOnTheInside, ABC):
         }
 
     CATEGORY = "RyanOnTheInside/FlexAudioVisualizer"
-    RETURN_TYPES = ("IMAGE",)
+    RETURN_TYPES = ("IMAGE","MASK")
     FUNCTION = "apply_effect"
 
     def __init__(self):
@@ -192,10 +193,10 @@ class FlexAudioVisualizerBase(RyanOnTheInside, ABC):
         # Convert the list of numpy arrays to a single numpy array
         result_np = np.stack(result)  # Shape: (N, H, W, 3)
 
-        # Convert the numpy array to a PyTorch tensor and ensure it's in BHWC format
+        #lazy
         result_tensor = torch.from_numpy(result_np).float()
-
-        return (result_tensor,)
+        mask = result_tensor[:, :, :, 0]
+        return (result_tensor,mask,)
 
     def validate_param(self, param_name, param_value):
         """
@@ -622,4 +623,3 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
                 cv2.polylines(image, [points], isClosed=True, color=(1.0, 1.0, 1.0), thickness=line_width)
 
         return image
-
