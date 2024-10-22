@@ -38,6 +38,12 @@
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
 
 ##### 🆕 Recent Updates:
+- 10/20/24 - **Audio Visualization Nodes**: Added two new nodes for audio visualization:
+  - **FlexAudioVisualizerCircular**: Creates circular audio visualizations based on frequency or waveform data.
+  - **FlexAudioVisualizerLine**: Generates linear audio visualizations with customizable styles and parameters.
+- 10/20/24 - **ImageScaleToTarget**: New node that upscales images to match a target image's size.
+- 10/20/24 - **FlexImageHueShift**: Applies a hue shift effect to images, with optional feature modulation.
+- 10/20/24 - **FlexImageDepthWarp**: Warps images based on depth maps, creating pseudo-3D effects.
 - 10/18/24 - **Manual Feature**: create features manually.
 - 10/18/24 - **Flex image transform and more**: Transform images with your features!
 - 10/13/24 - **Depthflow Nodes Compatibility**: Exciting news! The Depthflow Nodes pack by akatz-ai is now compatible with my feature system, opening up new possibilities for dynamic parallax animations!

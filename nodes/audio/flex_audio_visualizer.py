@@ -267,7 +267,7 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
                 # Parameters common to both methods/features
                 "smoothing": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "rotation": ("FLOAT", {"default":0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
-                "position_y": ("FLOAT", {"default":0.5, "min":0.0, "max":1.0,"step":0.01}),
+                # "position_y": ("FLOAT", {"default":0.5, "min":0.0, "max":1.0,"step":0.01}),
                 # Additional parameters
                 "num_bars": ("INT", {"default":64, "min":1, "max":1024, "step":1}),
                 "max_height": ("FLOAT", {"default":200.0, "min":10.0, "max":2000.0, "step":10.0}),

@@ -1309,6 +1309,57 @@ This node creates a parallax effect by shifting pixels in the image based on the
 """
 })
 
+add_node_config("FlexImageHueShift", {
+    "TOP_DESCRIPTION": "Applies a hue shift effect to the image, modulated by a selected feature.",
+    "ADDITIONAL_INFO": """
+- `hue_shift`: Amount of hue shift to apply (0.0 to 360.0 degrees). A value of 180 degrees will invert the hues.
+- `feature_param`: Parameter to modulate based on the feature. Options are "hue_shift" or "None".
+
+Optional inputs:
+- `opt_mask`: Optional mask to apply the effect selectively (MASK type)
+
+This node shifts the hues of the input image by the specified amount. The hue shift can be dynamically modulated by the input feature, allowing for time-varying color effects. The optional mask input allows for selective application of the effect to specific areas of the image.
+
+The hue shift is applied in the HSV color space, which means it affects the color of the image without changing its brightness or saturation. This can create interesting color transformation effects, such as:
+
+1. Subtle color grading by applying small hue shifts
+2. Creating psychedelic or surreal effects with large hue shifts
+3. Simulating color filters or gels used in photography and film
+4. Generating day-to-night transitions by shifting blues towards oranges
+
+When used with feature modulation, this node can create dynamic color effects that respond to audio, motion, or other extracted features, making it useful for creating reactive visuals or music videos.
+
+Note: Extreme hue shifts may produce unexpected colors, especially for hues that are close to the wrap-around point (red). For more natural-looking results, consider using smaller hue shift values or combining with other color adjustment effects.
+"""
+})
+
+add_node_config("FlexImageDepthWarp", {
+    "TOP_DESCRIPTION": "Applies a depth-based warping effect to the image, modulated by a selected feature.",
+    "ADDITIONAL_INFO": """
+- `warp_strength`: Strength of the warping effect (-10.0 to 10.0). Negative values invert the warp direction.
+- `feature_param`: Parameter to modulate based on the feature. Options are "warp_strength" or "None".
+
+Optional inputs:
+- `depth_map`: Depth map for the input image (IMAGE type)
+
+This node applies a warping effect to the input image based on the provided depth map. The warping strength can be dynamically modulated by the input feature, allowing for time-varying distortion effects. The depth map is used to determine the amount of displacement for each pixel.
+
+The warping process works as follows:
+1. The depth map is normalized to the range [0, 1].
+2. Displacements are computed based on the depth values and the warp strength.
+3. The image is remapped using these displacements, creating a warped version of the original image.
+
+Use cases include:
+1. Creating pseudo-3D effects by warping 2D images based on depth information
+2. Simulating camera movements or parallax effects
+3. Generating dynamic distortions that respond to audio or other features
+
+When no depth map is provided, the node will return the original image without any warping applied.
+
+Note: The strength and nature of the warping effect can vary significantly depending on the depth map and warp strength. Experiment with different values to achieve the desired effect. Also, be aware that extreme warping can introduce artifacts or distortions in the image.
+"""
+})
+
 add_node_config("UtilityNode",{
     "BASE_DESCRIPTION":"Various Utils"
 })
@@ -1604,111 +1655,6 @@ This node mixes two audio inputs together, allowing you to control the contribut
 """
 })
 
-add_node_config("FlexAudioVisualizerBar", {
-    "TOP_DESCRIPTION": "Creates a bar-based audio visualization.",
-    "ADDITIONAL_INFO": """
-- `audio`: Input audio to visualize (AUDIO type)
-- `frame_rate`: Frame rate of the output visualization (1.0 to 240.0 fps)
-- `screen_width`: Width of the output visualization (100 to 1920 pixels)
-- `screen_height`: Height of the output visualization (100 to 1080 pixels)
-- `strength`: Overall strength of the visualization effect (0.0 to 1.0)
-- `feature_param`: Parameter to modulate based on the optional feature input
-- `feature_mode`: Mode of feature modulation ("relative" or "absolute")
-- `curvature`: Curvature of the bars (0.0 to 50.0)
-- `separation`: Separation between bars (0.0 to 100.0 pixels)
-- `max_height`: Maximum height of the bars (10.0 to 2000.0 pixels)
-- `min_height`: Minimum height of the bars (0.0 to 500.0 pixels)
-- `num_bars`: Number of bars in the visualization (1 to 1024)
-- `smoothing`: Smoothing factor for bar movement (0.0 to 1.0)
-- `rotation`: Rotation angle of the entire visualization (0.0 to 360.0 degrees)
-- `position_y`: Vertical position of the visualization (0.0 to 1.0, where 0.5 is center)
-- `reflect`: Whether to reflect the bars vertically (True/False)
-
-Optional inputs:
-- `opt_feature`: Optional feature to modulate visualization parameters (FEATURE type)
-
-This node creates a dynamic bar-based audio visualization. The bars react to the audio input, with their height representing the audio intensity across different frequency ranges. The visualization can be customized with various parameters to achieve different visual styles and effects.
-"""
-})
-
-add_node_config("FlexAudioVisualizerFreqAmplitude", {
-    "TOP_DESCRIPTION": "Creates a frequency amplitude visualization of audio.",
-    "ADDITIONAL_INFO": """
-- `audio`: Input audio to visualize (AUDIO type)
-- `frame_rate`: Frame rate of the output visualization (1.0 to 240.0 fps)
-- `screen_width`: Width of the output visualization (100 to 1920 pixels)
-- `screen_height`: Height of the output visualization (100 to 1080 pixels)
-- `strength`: Overall strength of the visualization effect (0.0 to 1.0)
-- `feature_param`: Parameter to modulate based on the optional feature input
-- `feature_mode`: Mode of feature modulation ("relative" or "absolute")
-- `max_frequency`: Maximum frequency to visualize (20.0 to 20000.0 Hz)
-- `min_frequency`: Minimum frequency to visualize (20.0 to 20000.0 Hz)
-- `smoothing`: Smoothing factor for frequency amplitude changes (0.0 to 1.0)
-- `fft_size`: Size of the Fast Fourier Transform window (256 to 8192, in steps of 256)
-- `position_y`: Vertical position of the visualization (0.0 to 1.0, where 0.5 is center)
-- `reflect`: Whether to reflect the visualization vertically (True/False)
-- `curve_smoothing`: Smoothing factor for the curve shape (0.0 to 1.0)
-- `rotation`: Rotation angle of the entire visualization (0.0 to 360.0 degrees)
-
-Optional inputs:
-- `opt_feature`: Optional feature to modulate visualization parameters (FEATURE type)
-
-This node creates a frequency amplitude visualization of the input audio. It displays the amplitude of different frequency ranges over time, creating a dynamic waveform-like visualization. The visualization can be customized with various parameters to achieve different visual styles and effects.
-"""
-})
-
-add_node_config("FlexAudioVisualizerCircular", {
-    "TOP_DESCRIPTION": "Creates a circular audio visualization.",
-    "ADDITIONAL_INFO": """
-- `audio`: Input audio to visualize (AUDIO type)
-- `frame_rate`: Frame rate of the output visualization (1.0 to 240.0 fps)
-- `screen_width`: Width of the output visualization (100 to 1920 pixels)
-- `screen_height`: Height of the output visualization (100 to 1080 pixels)
-- `strength`: Overall strength of the visualization effect (0.0 to 1.0)
-- `feature_param`: Parameter to modulate based on the optional feature input
-- `feature_mode`: Mode of feature modulation ("relative" or "absolute")
-- `max_frequency`: Maximum frequency to visualize (20.0 to 20000.0 Hz)
-- `min_frequency`: Minimum frequency to visualize (20.0 to 20000.0 Hz)
-- `smoothing`: Smoothing factor for frequency amplitude changes (0.0 to 1.0)
-- `fft_size`: Size of the Fast Fourier Transform window (256 to 8192, in steps of 256)
-- `num_points`: Number of points in the circular visualization (3 to 1000)
-- `radius`: Radius of the circular visualization (10.0 to 1000.0 pixels)
-- `line_width`: Width of the lines in the visualization (1 to 10 pixels)
-- `rotation`: Rotation angle of the entire visualization (0.0 to 360.0 degrees)
-
-Optional inputs:
-- `opt_feature`: Optional feature to modulate visualization parameters (FEATURE type)
-
-This node creates a circular audio visualization. It represents the audio frequency spectrum as a circular shape, with the radius changing based on the amplitude of different frequency ranges. The visualization can be customized with various parameters to achieve different visual styles and effects.
-"""
-})
-
-add_node_config("FlexAudioVisualizerCircleDeform", {
-    "TOP_DESCRIPTION": "Creates a deforming circle audio visualization.",
-    "ADDITIONAL_INFO": """
-- `audio`: Input audio to visualize (AUDIO type)
-- `frame_rate`: Frame rate of the output visualization (1.0 to 240.0 fps)
-- `screen_width`: Width of the output visualization (100 to 1920 pixels)
-- `screen_height`: Height of the output visualization (100 to 1080 pixels)
-- `strength`: Overall strength of the visualization effect (0.0 to 1.0)
-- `feature_param`: Parameter to modulate based on the optional feature input
-- `feature_mode`: Mode of feature modulation ("relative" or "absolute")
-- `max_frequency`: Maximum frequency to visualize (20.0 to 20000.0 Hz)
-- `min_frequency`: Minimum frequency to visualize (20.0 to 20000.0 Hz)
-- `smoothing`: Smoothing factor for frequency amplitude changes (0.0 to 1.0)
-- `fft_size`: Size of the Fast Fourier Transform window (256 to 8192, in steps of 256)
-- `num_points`: Number of points in the circular visualization (3 to 1000)
-- `base_radius`: Base radius of the circle before deformation (10.0 to 1000.0 pixels)
-- `amplitude_scale`: Scale factor for the deformation amplitude (1.0 to 1000.0)
-- `line_width`: Width of the lines in the visualization (1 to 10 pixels)
-- `rotation`: Rotation angle of the entire visualization (0.0 to 360.0 degrees)
-
-Optional inputs:
-- `opt_feature`: Optional feature to modulate visualization parameters (FEATURE type)
-
-This node creates a deforming circle audio visualization. It starts with a base circular shape and then deforms it based on the audio frequency spectrum. The deformation is applied radially, creating a dynamic, organic-looking visualization that responds to the audio input. The visualization can be customized with various parameters to achieve different visual styles and effects.
-"""
-})
 
 add_node_config("ImageScaleToTarget", {
     "TOP_DESCRIPTION": "Scales an input image to match the dimensions of a target image.",
@@ -1733,5 +1679,76 @@ If the aspect ratios of the input and target images don't match, you can use the
 
 Outputs:
 - Scaled IMAGE matching the dimensions of the target image
+"""
+})
+
+add_node_config("FlexAudioVisualizerCircular", {
+    "TOP_DESCRIPTION": "Creates a circular audio visualization based on frequency or waveform data.",
+    "ADDITIONAL_INFO": """
+- `visualization_method`: Choose between "bar" or "line" visualization styles.
+- `visualization_feature`: Select "frequency" or "waveform" as the data source.
+- `smoothing`: Amount of smoothing applied to the visualization (0.0 to 1.0).
+- `rotation`: Rotation angle of the visualization in degrees (0.0 to 360.0).
+- `num_points`: Number of points in the circular visualization (3 to 1000).
+- `fft_size`: Size of the FFT window for frequency analysis (256 to 8192).
+- `min_frequency`: Minimum frequency to visualize (20.0 to 20000.0 Hz).
+- `max_frequency`: Maximum frequency to visualize (20.0 to 20000.0 Hz).
+- `radius`: Radius of the circular visualization (10.0 to 1000.0 pixels).
+- `line_width`: Width of the lines in the visualization (1 to 10 pixels).
+- `amplitude_scale`: Scaling factor for the amplitude of the visualization (1.0 to 1000.0).
+- `base_radius`: Base radius for the line visualization method (10.0 to 1000.0 pixels).
+
+This node creates a circular audio visualization that can represent either frequency spectrum or waveform data. The visualization can be displayed as bars radiating from the center or as a continuous line forming a deformed circle.
+
+Key features:
+1. Two visualization methods: bar and line
+2. Option to visualize frequency spectrum or waveform data
+3. Customizable parameters for fine-tuning the visualization appearance
+4. Smoothing option for creating more fluid animations
+5. Rotation control for dynamic effects
+
+Use cases include:
+1. Creating circular audio reactive elements for music videos
+2. Generating abstract audio visualizations for live performances
+3. Producing unique audio-responsive graphics for multimedia installations
+
+The node outputs both the visualization image and a feature value representing the average amplitude, which can be used for further effects or processing.
+"""
+})
+
+add_node_config("FlexAudioVisualizerLine", {
+    "TOP_DESCRIPTION": "Creates a linear audio visualization based on frequency or waveform data.",
+    "ADDITIONAL_INFO": """
+- `visualization_method`: Choose between "bar" or "line" visualization styles.
+- `visualization_feature`: Select "frequency" or "waveform" as the data source.
+- `smoothing`: Amount of smoothing applied to the visualization (0.0 to 1.0).
+- `rotation`: Rotation angle of the visualization in degrees (0.0 to 360.0).
+- `num_bars`: Number of bars or points in the visualization (1 to 1024).
+- `max_height`: Maximum height of the visualization (10.0 to 2000.0 pixels).
+- `min_height`: Minimum height of the visualization (0.0 to 500.0 pixels).
+- `separation`: Separation between bars in the bar visualization method (0.0 to 100.0 pixels).
+- `curvature`: Curvature of the bar corners in the bar visualization method (0.0 to 50.0).
+- `reflect`: Whether to reflect the visualization vertically (True/False).
+- `curve_smoothing`: Amount of smoothing applied to the curve in the line visualization method (0.0 to 1.0).
+- `fft_size`: Size of the FFT window for frequency analysis (256 to 8192).
+- `min_frequency`: Minimum frequency to visualize (20.0 to 20000.0 Hz).
+- `max_frequency`: Maximum frequency to visualize (20.0 to 20000.0 Hz).
+
+This node creates a linear audio visualization that can represent either frequency spectrum or waveform data. The visualization can be displayed as vertical bars or as a continuous line.
+
+Key features:
+1. Two visualization methods: bar and line
+2. Option to visualize frequency spectrum or waveform data
+3. Customizable parameters for fine-tuning the visualization appearance
+4. Smoothing options for creating more fluid animations
+5. Reflection option for symmetrical visualizations
+6. Rotation control for dynamic effects
+
+Use cases include:
+1. Creating traditional-style audio visualizations for music players
+2. Generating audio-reactive lower thirds or borders for video content
+3. Producing customizable audio meters for recording or mixing applications
+
+The node outputs both the visualization image and a feature value representing the average amplitude, which can be used for further effects or processing.
 """
 })
