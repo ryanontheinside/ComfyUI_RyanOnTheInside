@@ -275,7 +275,7 @@ class OpticalFlowMaskBase(MaskBase, ABC):
         processed_masks = np.stack(result)
         return self.apply_mask_operation(processed_masks, masks, strength, **kwargs)
 
-#TODO  check if input mask is blank and just skip, then check children
+#TODO  SOON TO UPDATE TO SUB FLEXBASE. UNTIL THEN REFER TO IMAGES AUDIO OR VIDEO FOR EXAMPLES ON HOW TO EXTEND
 class FlexMaskBase(MaskBase):
     feature_threshold_default=0.0
     @classmethod
