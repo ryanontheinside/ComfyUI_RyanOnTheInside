@@ -11,12 +11,14 @@ class FlexImageBase(RyanOnTheInside, ABC):
         return {
             "required": {
                 "images": ("IMAGE",),
-                "feature": ("FEATURE",),
-                "feature_pipe": ("FEATURE_PIPE",),
                 "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "feature_param": (cls.get_modifiable_params(), {"default": cls.get_modifiable_params()[0]}),
                 "feature_mode": (["relative", "absolute"], {"default": "relative"}),
+            },
+            "optional": {
+                "opt_feature": ("FEATURE",),
+                "opt_feature_pipe": ("FEATURE_PIPE",),
             }
         }
 
@@ -49,27 +51,47 @@ class FlexImageBase(RyanOnTheInside, ABC):
         else:  # absolute
             return param_value * feature_value * strength
 
-    def apply_effect(self, images, feature, feature_pipe, strength, feature_threshold, feature_param, feature_mode, **kwargs):
-        num_frames = feature_pipe.frame_count
-        images_np = images.cpu().numpy()
+    def apply_effect(self, images, strength, feature_threshold, feature_param, feature_mode, opt_feature=None, opt_feature_pipe=None, **kwargs):
+        if (opt_feature is None) != (opt_feature_pipe is None):
+            raise ValueError("Both opt_feature and opt_feature_pipe must be provided together, or neither should be provided.")
 
-        self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
-
-        result = []
-        for i in range(num_frames):
-            image = images_np[i]
-            feature_value = feature.get_value_at_frame(i)
-            kwargs['frame_index'] = i
-            if feature_value >= feature_threshold:
-                processed_image = self.process_image(image, feature_value, strength, 
+        if opt_feature is None and opt_feature_pipe is None:
+            # If neither feature nor feature_pipe is provided, process all frames without modulation
+            num_frames = images.shape[0]
+            images_np = images.cpu().numpy()
+            
+            self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
+            
+            result = []
+            for i in range(num_frames):
+                processed_image = self.process_image(images_np[i], 0.5, strength, 
                                                      feature_param=feature_param, 
                                                      feature_mode=feature_mode, 
                                                      **kwargs)
-            else:
-                processed_image = image
+                result.append(processed_image)
+                self.update_progress()
+        else:
+            # Original behavior when both feature and feature_pipe are provided
+            num_frames = opt_feature_pipe.frame_count
+            images_np = images.cpu().numpy()
 
-            result.append(processed_image)
-            self.update_progress()
+            self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
+
+            result = []
+            for i in range(num_frames):
+                image = images_np[i]
+                feature_value = opt_feature.get_value_at_frame(i)
+                kwargs['frame_index'] = i
+                if feature_value >= feature_threshold:
+                    processed_image = self.process_image(image, feature_value, strength, 
+                                                         feature_param=feature_param, 
+                                                         feature_mode=feature_mode, 
+                                                         **kwargs)
+                else:
+                    processed_image = image
+
+                result.append(processed_image)
+                self.update_progress()
 
         self.end_progress()
 
