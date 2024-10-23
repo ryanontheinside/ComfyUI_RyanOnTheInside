@@ -38,7 +38,8 @@
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
 
 ##### 🆕 Recent Updates:
-- 10/20/24 - **Audio Visualization Nodes**: Added two new nodes for audio visualization:
+- 10/23/24 - **Flex Images Now Feature Optional**: You no longer need to specify a feature to use Flex Image nodes.
+- 10/20/24 - **Audio Visualization Nodes**: Over 1 TRILLION ways to customize!
   - **FlexAudioVisualizerCircular**: Creates circular audio visualizations based on frequency or waveform data.
   - **FlexAudioVisualizerLine**: Generates linear audio visualizations with customizable styles and parameters.
 - 10/20/24 - **ImageScaleToTarget**: New node that upscales images to match a target image's size.
