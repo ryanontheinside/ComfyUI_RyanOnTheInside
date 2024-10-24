@@ -9,14 +9,12 @@ from .image_utils import transform_image
 class FlexImageEdgeDetect(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "low_threshold": ("FLOAT", {"default": 100, "min": 0, "max": 255, "step": 1}),
-                "high_threshold": ("FLOAT", {"default": 200, "min": 0, "max": 255, "step": 1}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "low_threshold": ("FLOAT", {"default": 100, "min": 0, "max": 255, "step": 1}),
+            "high_threshold": ("FLOAT", {"default": 200, "min": 0, "max": 255, "step": 1}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -35,16 +33,14 @@ class FlexImageEdgeDetect(FlexImageBase):
 class FlexImagePosterize(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "max_levels": ("INT", {"default": 8, "min": 2, "max": 256, "step": 1}),
-                "dither_strength": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "channel_separation": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "gamma": ("FLOAT", {"default": 1.2, "min": 0.1, "max": 2.2, "step": 0.1}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "max_levels": ("INT", {"default": 8, "min": 2, "max": 256, "step": 1}),
+            "dither_strength": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "channel_separation": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "gamma": ("FLOAT", {"default": 1.2, "min": 0.1, "max": 2.2, "step": 0.1}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -90,19 +86,17 @@ class FlexImagePosterize(FlexImageBase):
 class FlexImageKaleidoscope(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "segments": ("INT", {"default": 8, "min": 2, "max": 32, "step": 1}),
-                "center_x": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "center_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "zoom": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.1}),
-                "rotation": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
-                "precession": ("FLOAT", {"default": 0.0, "min": -1.0, "max": 1.0, "step": 0.01}),
-                "speed": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 5.0, "step": 0.1}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "segments": ("INT", {"default": 8, "min": 2, "max": 32, "step": 1}),
+            "center_x": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "center_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "zoom": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.1}),
+            "rotation": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
+            "precession": ("FLOAT", {"default": 0.0, "min": -1.0, "max": 1.0, "step": 0.01}),
+            "speed": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 5.0, "step": 0.1}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -144,15 +138,13 @@ class FlexImageKaleidoscope(FlexImageBase):
 class FlexImageColorGrade(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "intensity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "mix": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "lut_file": ("STRING", {"default": ""}),
-            },
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "intensity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "mix": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "lut_file": ("STRING", {"default": ""}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -231,14 +223,12 @@ class FlexImageGlitch(FlexImageBase):
 class FlexImageChromaticAberration(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "shift_amount": ("FLOAT", {"default": 0.01, "min": 0.0, "max": 0.1, "step": 0.001}),
-                "angle": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "shift_amount": ("FLOAT", {"default": 0.01, "min": 0.0, "max": 0.1, "step": 0.001}),
+            "angle": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -262,13 +252,11 @@ class FlexImageChromaticAberration(FlexImageBase):
 class FlexImagePixelate(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "pixel_size": ("INT", {"default": 10, "min": 1, "max": 100, "step": 1}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "pixel_size": ("INT", {"default": 10, "min": 1, "max": 100, "step": 1}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -297,15 +285,13 @@ class FlexImagePixelate(FlexImageBase):
 class FlexImageBloom(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "threshold": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "blur_amount": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 50.0, "step": 0.1}),
-                "intensity": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "threshold": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "blur_amount": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 50.0, "step": 0.1}),
+            "intensity": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -327,18 +313,16 @@ class FlexImageBloom(FlexImageBase):
 class FlexImageTiltShift(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "blur_amount": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 50.0, "step": 0.1}),
-                "focus_position_x": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "focus_position_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "focus_width": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "focus_height": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "focus_shape": (["rectangle", "ellipse"], {"default": "rectangle"}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "blur_amount": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 50.0, "step": 0.1}),
+            "focus_position_x": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "focus_position_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "focus_width": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "focus_height": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "focus_shape": (["rectangle", "ellipse"], {"default": "rectangle"}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -373,17 +357,16 @@ class FlexImageTiltShift(FlexImageBase):
 class FlexImageParallax(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "shift_x": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
-                "shift_y": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
-                "shift_z": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
-            },
-            "optional": {"depth_map": ("IMAGE",),
-            },
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "shift_x": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
+            "shift_y": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
+            "shift_z": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
+        })
+        base_inputs["optional"].update({
+            "depth_map": ("IMAGE",),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -443,15 +426,13 @@ class FlexImageParallax(FlexImageBase):
 class FlexImageContrast(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "contrast": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.01}),
-                "brightness": ("FLOAT", {"default": 0.0, "min": -1.0, "max": 1.0, "step": 0.01}),
-                "preserve_luminosity": ("BOOLEAN", {"default": True}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "contrast": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.01}),
+            "brightness": ("FLOAT", {"default": 0.0, "min": -1.0, "max": 1.0, "step": 0.01}),
+            "preserve_luminosity": ("BOOLEAN", {"default": True}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -484,22 +465,20 @@ import cv2
 class FlexImageWarp(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "warp_type": (["noise", "twist", "bulge"], {"default": "noise"}),
-                "warp_strength": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
-                "center_x": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "center_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "radius": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.01}),
-            },
-            "optional": {
-                "warp_frequency": ("FLOAT", {"default": 5.0, "min": 0.1, "max": 20.0, "step": 0.1}),
-                "warp_octaves": ("INT", {"default": 3, "min": 1, "max": 5, "step": 1}),
-                "warp_seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "warp_type": (["noise", "twist", "bulge"], {"default": "noise"}),
+            "warp_strength": ("FLOAT", {"default": 0.1, "min": -1.0, "max": 1.0, "step": 0.01}),
+            "center_x": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "center_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "radius": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.01}),
+        })
+        base_inputs["optional"].update({
+            "warp_frequency": ("FLOAT", {"default": 5.0, "min": 0.1, "max": 20.0, "step": 0.1}),
+            "warp_octaves": ("INT", {"default": 3, "min": 1, "max": 5, "step": 1}),
+            "warp_seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -563,17 +542,15 @@ class FlexImageWarp(FlexImageBase):
 class FlexImageVignette(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "intensity": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "radius": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.01}),
-                "feather": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "center_x": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "center_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "intensity": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "radius": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.01}),
+            "feather": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "center_x": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "center_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -618,15 +595,13 @@ class FlexImageVignette(FlexImageBase):
 class FlexImageTransform(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "transform_type": (["translate", "rotate", "scale"],),
-                "x_value": ("FLOAT", {"default": 0.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
-                "y_value": ("FLOAT", {"default": 0.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "transform_type": (["translate", "rotate", "scale"],),
+            "x_value": ("FLOAT", {"default": 0.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
+            "y_value": ("FLOAT", {"default": 0.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -638,16 +613,14 @@ class FlexImageTransform(FlexImageBase):
 class FlexImageHueShift(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "hue_shift": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
-            },
-            "optional": {
-                "opt_mask": ("MASK",),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "hue_shift": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
+        })
+        base_inputs["optional"].update({
+            "opt_mask": ("MASK",),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -688,18 +661,15 @@ import numpy as np
 import cv2
 
 class FlexImageDepthWarp(FlexImageBase):
+
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "warp_strength": ("FLOAT", {"default": 0.1, "min": -10.0, "max": 10.0, "step": 0.01}),
-            },
-            "optional": {
-                "depth_map": ("IMAGE",),
-            },
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "warp_strength": ("FLOAT", {"default": 0.1, "min": -10.0, "max": 10.0, "step": 0.01}),
+            "depth_map": ("IMAGE",),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
