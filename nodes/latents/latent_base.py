@@ -6,6 +6,8 @@ from abc import ABC, abstractmethod
 from comfy.utils import ProgressBar
 from ... import RyanOnTheInside
 
+#NOTE: this is a work in progress, it sucks
+
 class FlexLatentBase(RyanOnTheInside, ABC):
     @classmethod
     def INPUT_TYPES(cls):
@@ -101,7 +103,7 @@ class FlexLatentInterpolate(FlexLatentBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["interpolation_mode", "None"]
+        return ["None"]
 
     def process_latent(self, latent: np.ndarray, **kwargs) -> np.ndarray:
         feature_value = kwargs['feature_value']
