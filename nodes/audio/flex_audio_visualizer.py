@@ -351,19 +351,28 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
         visualization_method = kwargs.get('visualization_method')
         screen_width = processor.width
         screen_height = processor.height
-
         rotation = kwargs.get('rotation') % 360
         position_y = kwargs.get('position_y')
         reflect = kwargs.get('reflect')
+        num_bars = kwargs.get('num_bars')  # Get the potentially modulated num_bars
 
         image = np.zeros((screen_height, screen_width, 3), dtype=np.float32)
+
+        # Ensure self.bars matches the current num_bars
+        if self.bars is None or len(self.bars) != num_bars:
+            if self.bars is not None:
+                # Interpolate existing data to match new num_bars
+                old_indices = np.linspace(0, 1, len(self.bars))
+                new_indices = np.linspace(0, 1, num_bars)
+                self.bars = np.interp(new_indices, old_indices, self.bars)
+            else:
+                self.bars = np.zeros(num_bars)
 
         if visualization_method == 'bar':
             curvature = kwargs.get('curvature')
             separation = kwargs.get('separation')
             max_height = kwargs.get('max_height')
             min_height = kwargs.get('min_height')
-            num_bars = len(self.bars)
 
             # Calculate bar width
             total_separation = separation * (num_bars - 1)
@@ -418,10 +427,11 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
                     cv2.rectangle(image, (x, y_start), (x_end, y_end), color, thickness=-1)
         elif visualization_method == 'line':
             curve_smoothing = kwargs.get('curve_smoothing')
+            max_height = kwargs.get('max_height')
+            min_height = kwargs.get('min_height')
 
             # Baseline Y position
             baseline_y = screen_height * position_y
-            max_amplitude = min(baseline_y, screen_height - baseline_y)
 
             # Apply curve smoothing if specified
             data = self.bars
@@ -437,7 +447,8 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
                 data_smooth = data
 
             # Compute amplitude
-            amplitude = data_smooth * max_amplitude
+            amplitude_range = max_height - min_height
+            amplitude = min_height + data_smooth * amplitude_range
 
             # X-axis
             num_points = len(amplitude)
@@ -623,3 +634,5 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
                 cv2.polylines(image, [points], isClosed=True, color=(1.0, 1.0, 1.0), thickness=line_width)
 
         return image
+
+
