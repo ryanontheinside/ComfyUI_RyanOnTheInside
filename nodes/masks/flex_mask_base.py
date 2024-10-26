@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import torch
 
-#TODO  SOON TO UPDATE TO SUB FLEXBASE. UNTIL THEN REFER TO ANYOTHER TARGET (images, audio, etc) FOR EXAMPLES ON HOW TO EXTEND
+#TODO  EVENTUALLY TO UPDATE TO SUB FLEXBASE. UNTIL THEN REFER TO ANYOTHER TARGET (images, audio, etc) FOR EXAMPLES ON HOW TO EXTEND
 class FlexMaskBase(MaskBase):
     feature_threshold_default=0.0
     @classmethod
