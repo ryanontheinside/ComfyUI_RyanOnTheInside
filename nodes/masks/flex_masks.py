@@ -1,4 +1,4 @@
-from .mask_base import FlexMaskBase
+from .flex_mask_base import FlexMaskBase
 from .mask_utils import morph_mask, warp_mask, transform_mask, combine_masks,apply_easing
 import math
 import numpy as np
