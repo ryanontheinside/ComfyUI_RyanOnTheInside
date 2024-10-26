@@ -286,7 +286,7 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["visualization_method", "visualization_feature", "smoothing", "rotation", "position_y",
+        return ["smoothing", "rotation", "position_y",
                 "num_bars", "max_height", "min_height", "separation", "curvature", "reflect",
                 "curve_smoothing", "fft_size", "min_frequency", "max_frequency", "None"]
 
@@ -507,7 +507,7 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["visualization_method", "visualization_feature", "smoothing", "rotation", "num_points",
+        return ["smoothing", "rotation", "num_points",
                 "fft_size", "min_frequency", "max_frequency", "radius", "line_width",
                 "amplitude_scale", "base_radius", "None"]
 

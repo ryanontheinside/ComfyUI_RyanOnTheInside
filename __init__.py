@@ -459,6 +459,9 @@ WEB_DIRECTORY = "./web/js"
 
 NODE_DISPLAY_NAME_MAPPINGS = {
 
+    "FlexAudioVisualizerCircular": "**BETA** Flex Audio Visualizer Circular",
+    "FlexAudioVisualizerLine": "**BETA** Flex Audio Visualizer Line",
+
     "FlexVideoSpeed":            "**BETA** Flex Video Speed",
     "FlexVideoDirection":        "Flex Video Direction",
     "FlexVideoFrameBlend":       "**BETA**Flex Video Frame Blend",
