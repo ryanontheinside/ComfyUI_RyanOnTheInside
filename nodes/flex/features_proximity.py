@@ -14,6 +14,9 @@ class ProximityFeature(BaseFeature):
         self.proximity_values = None
         self.normalization_method = normalization_method
 
+    def get_extraction_methods(self):
+        return ["normalization_method"]
+    
     def extract(self):
         from scipy.spatial.distance import cdist
         
