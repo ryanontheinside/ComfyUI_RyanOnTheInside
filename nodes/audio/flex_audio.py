@@ -1,13 +1,13 @@
 import torch
 import numpy as np
-from abc import ABC, abstractmethod
+from abc import  abstractmethod
 from tqdm import tqdm
 from comfy.utils import ProgressBar
 from ... import RyanOnTheInside
 from ..flex.flex_base import FlexBase
 from .audio_utils import pitch_shift, time_stretch
 
-class FlexAudioBase(FlexBase):
+class FlexAudioBase(FlexBase, RyanOnTheInside):
     @classmethod
     def INPUT_TYPES(cls):
         base_input_types = super().INPUT_TYPES()

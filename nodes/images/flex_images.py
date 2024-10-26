@@ -1,7 +1,7 @@
 import cv2
 import torch
 import numpy as np
-from .image_base import FlexImageBase
+from .flex_image_base import FlexImageBase
 from scipy.ndimage import gaussian_filter
 import torch.nn.functional as F
 from .image_utils import transform_image
