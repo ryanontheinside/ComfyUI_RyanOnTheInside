@@ -189,7 +189,6 @@ class AudioSubtract(AudioUtility):
         subtracted_waveform = waveform1 - waveform2
         return ({"waveform": subtracted_waveform, "sample_rate": sample_rate},)
 
-
 class AudioDither(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):

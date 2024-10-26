@@ -15,10 +15,7 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
                 **super().INPUT_TYPES()["required"],
                 "images": ("IMAGE",),
             },
-            "optional": {
-                "opt_feature": ("FEATURE",),
-                "opt_feature_pipe": ("FEATURE_PIPE",),
-            }
+            # Optional inputs are inherited from FlexBase
         }
 
     CATEGORY = "RyanOnTheInside/FlexImage"
@@ -50,11 +47,23 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
         else:  # absolute
             return param_value * feature_value * strength
 
-    def apply_effect(self, images, strength, feature_threshold, feature_param, feature_mode, feature=None, feature_pipe=None, **kwargs):
-        if (feature is None) != (feature_pipe is None):
-            raise ValueError("Both feature and feature_pipe must be provided together, or neither should be provided.")
+    def apply_effect(
+        self, 
+        images, 
+        strength, 
+        feature_threshold, 
+        feature_param, 
+        feature_mode, 
+        opt_feature=None, 
+        opt_feature_pipe=None, 
+        **kwargs
+    ):
+        if (opt_feature is None) != (opt_feature_pipe is None):
+            raise ValueError(
+                "Both opt_feature and opt_feature_pipe must be provided together, or neither should be provided."
+            )
 
-        if feature is None and feature_pipe is None:
+        if opt_feature is None and opt_feature_pipe is None:
             # Process all frames without modulation
             num_frames = images.shape[0]
             images_np = images.cpu().numpy()
@@ -75,7 +84,7 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
                 self.update_progress()
         else:
             # Process frames with modulation based on feature values
-            num_frames = feature_pipe.frame_count
+            num_frames = opt_feature_pipe.frame_count
             images_np = images.cpu().numpy()
 
             self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
@@ -83,7 +92,7 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
             result = []
             for i in range(num_frames):
                 image = images_np[i]
-                feature_value = feature.get_value_at_frame(i)
+                feature_value = opt_feature.get_value_at_frame(i)
                 kwargs['frame_index'] = i
                 if feature_value >= feature_threshold:
                     processed_image = self.process_image(
@@ -112,8 +121,15 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
 
         return (result_tensor,)
 
-    def process_image(self, image: np.ndarray, feature_value: float, strength: float,
-                      feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
+    def process_image(
+        self, 
+        image: np.ndarray, 
+        feature_value: float, 
+        strength: float,
+        feature_param: str, 
+        feature_mode: str, 
+        **kwargs
+    ) -> np.ndarray:
         # Modulate the selected parameter
         for param_name in self.get_modifiable_params():
             if param_name in kwargs and param_name == feature_param:

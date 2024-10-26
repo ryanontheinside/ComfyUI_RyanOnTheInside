@@ -150,7 +150,6 @@ class FlexAudioBase(RyanOnTheInside, ABC):
         """Apply the effect to the audio frame. To be implemented by child classes."""
         pass
 
-
 class FlexAudioPitchShift(FlexAudioBase):
     @classmethod
     def INPUT_TYPES(cls):
