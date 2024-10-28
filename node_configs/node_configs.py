@@ -1685,18 +1685,28 @@ Outputs:
 add_node_config("FlexAudioVisualizerCircular", {
     "TOP_DESCRIPTION": "Creates a circular audio visualization based on frequency or waveform data.",
     "ADDITIONAL_INFO": """
-- `visualization_method`: Choose between "bar" or "line" visualization styles.
-- `visualization_feature`: Select "frequency" or "waveform" as the data source.
-- `smoothing`: Amount of smoothing applied to the visualization (0.0 to 1.0).
-- `rotation`: Rotation angle of the visualization in degrees (0.0 to 360.0).
-- `num_points`: Number of points in the circular visualization (3 to 1000).
-- `fft_size`: Size of the FFT window for frequency analysis (256 to 8192).
-- `min_frequency`: Minimum frequency to visualize (20.0 to 20000.0 Hz).
-- `max_frequency`: Maximum frequency to visualize (20.0 to 20000.0 Hz).
-- `radius`: Radius of the circular visualization (10.0 to 1000.0 pixels).
-- `line_width`: Width of the lines in the visualization (1 to 10 pixels).
-- `amplitude_scale`: Scaling factor for the amplitude of the visualization (1.0 to 1000.0).
-- `base_radius`: Base radius for the line visualization method (10.0 to 1000.0 pixels).
+- `audio`: Input audio to visualize
+- `frame_rate`: Frame rate of the output visualization (1.0 to 240.0 fps)
+- `screen_width`: Width of the output visualization (100 to 1920 pixels)
+- `screen_height`: Height of the output visualization (100 to 1080 pixels)
+- `strength`: Strength of parameter modulation (0.0 to 1.0)
+- `feature_param`: Parameter to modulate based on the optional feature input
+- `feature_mode`: Mode of parameter modulation ("relative" or "absolute")
+- `audio_feature_param`: Parameter to modulate based on audio features
+- `position_x`: Horizontal position of the visualization center (0.0 to 1.0)
+- `position_y`: Vertical position of the visualization center (0.0 to 1.0)
+- `visualization_method`: Choose between "bar" or "line" visualization styles
+- `visualization_feature`: Select "frequency" or "waveform" as the data source
+- `smoothing`: Amount of smoothing applied to the visualization (0.0 to 1.0)
+- `rotation`: Rotation angle of the visualization in degrees (0.0 to 360.0)
+- `num_points`: Number of points in the circular visualization (3 to 1000)
+- `fft_size`: Size of the FFT window for frequency analysis (256 to 8192)
+- `min_frequency`: Minimum frequency to visualize (20.0 to 20000.0 Hz)
+- `max_frequency`: Maximum frequency to visualize (20.0 to 20000.0 Hz)
+- `radius`: Radius of the circular visualization (10.0 to 1000.0 pixels)
+- `line_width`: Width of the lines in the visualization (1 to 10 pixels)
+- `amplitude_scale`: Scaling factor for the amplitude (1.0 to 1000.0)
+- `base_radius`: Base radius for the visualization (10.0 to 1000.0 pixels)
 
 This node creates a circular audio visualization that can represent either frequency spectrum or waveform data. The visualization can be displayed as bars radiating from the center or as a continuous line forming a deformed circle.
 
@@ -1704,35 +1714,41 @@ Key features:
 1. Two visualization methods: bar and line
 2. Option to visualize frequency spectrum or waveform data
 3. Customizable parameters for fine-tuning the visualization appearance
-4. Smoothing option for creating more fluid animations
-5. Rotation control for dynamic effects
+4. Parameter modulation based on audio features or external inputs
+5. Adjustable position and rotation
+6. Outputs both visualization and mask
 
-Use cases include:
-1. Creating circular audio reactive elements for music videos
-2. Generating abstract audio visualizations for live performances
-3. Producing unique audio-responsive graphics for multimedia installations
-
-The node outputs both the visualization image and a feature value representing the average amplitude, which can be used for further effects or processing.
+The node outputs both an IMAGE tensor (visualization) and a MASK tensor that can be used for compositing.
 """
 })
 
 add_node_config("FlexAudioVisualizerLine", {
     "TOP_DESCRIPTION": "Creates a linear audio visualization based on frequency or waveform data.",
     "ADDITIONAL_INFO": """
-- `visualization_method`: Choose between "bar" or "line" visualization styles.
-- `visualization_feature`: Select "frequency" or "waveform" as the data source.
-- `smoothing`: Amount of smoothing applied to the visualization (0.0 to 1.0).
-- `rotation`: Rotation angle of the visualization in degrees (0.0 to 360.0).
-- `num_bars`: Number of bars or points in the visualization (1 to 1024).
-- `max_height`: Maximum height of the visualization (10.0 to 2000.0 pixels).
-- `min_height`: Minimum height of the visualization (0.0 to 500.0 pixels).
-- `separation`: Separation between bars in the bar visualization method (0.0 to 100.0 pixels).
-- `curvature`: Curvature of the bar corners in the bar visualization method (0.0 to 50.0).
-- `reflect`: Whether to reflect the visualization vertically (True/False).
-- `curve_smoothing`: Amount of smoothing applied to the curve in the line visualization method (0.0 to 1.0).
-- `fft_size`: Size of the FFT window for frequency analysis (256 to 8192).
-- `min_frequency`: Minimum frequency to visualize (20.0 to 20000.0 Hz).
-- `max_frequency`: Maximum frequency to visualize (20.0 to 20000.0 Hz).
+- `audio`: Input audio to visualize
+- `frame_rate`: Frame rate of the output visualization (1.0 to 240.0 fps)
+- `screen_width`: Width of the output visualization (100 to 1920 pixels)
+- `screen_height`: Height of the output visualization (100 to 1080 pixels)
+- `strength`: Strength of parameter modulation (0.0 to 1.0)
+- `feature_param`: Parameter to modulate based on the optional feature input
+- `feature_mode`: Mode of parameter modulation ("relative" or "absolute")
+- `audio_feature_param`: Parameter to modulate based on audio features
+- `position_x`: Horizontal position of the visualization (0.0 to 1.0)
+- `position_y`: Vertical position of the visualization (0.0 to 1.0)
+- `visualization_method`: Choose between "bar" or "line" visualization styles
+- `visualization_feature`: Select "frequency" or "waveform" as the data source
+- `smoothing`: Amount of smoothing applied to the visualization (0.0 to 1.0)
+- `rotation`: Rotation angle of the visualization in degrees (0.0 to 360.0)
+- `num_bars`: Number of bars or points in the visualization (1 to 1024)
+- `max_height`: Maximum height of the visualization (10.0 to 2000.0 pixels)
+- `min_height`: Minimum height of the visualization (0.0 to 500.0 pixels)
+- `separation`: Separation between bars (0.0 to 100.0 pixels)
+- `curvature`: Curvature of the bar corners (0.0 to 50.0)
+- `reflect`: Whether to reflect the visualization vertically
+- `curve_smoothing`: Amount of smoothing applied to the line visualization (0.0 to 1.0)
+- `fft_size`: Size of the FFT window for frequency analysis (256 to 8192)
+- `min_frequency`: Minimum frequency to visualize (20.0 to 20000.0 Hz)
+- `max_frequency`: Maximum frequency to visualize (20.0 to 20000.0 Hz)
 
 This node creates a linear audio visualization that can represent either frequency spectrum or waveform data. The visualization can be displayed as vertical bars or as a continuous line.
 
@@ -1740,15 +1756,10 @@ Key features:
 1. Two visualization methods: bar and line
 2. Option to visualize frequency spectrum or waveform data
 3. Customizable parameters for fine-tuning the visualization appearance
-4. Smoothing options for creating more fluid animations
-5. Reflection option for symmetrical visualizations
-6. Rotation control for dynamic effects
+4. Parameter modulation based on audio features or external inputs
+5. Reflection and rotation options
+6. Outputs both visualization and mask
 
-Use cases include:
-1. Creating traditional-style audio visualizations for music players
-2. Generating audio-reactive lower thirds or borders for video content
-3. Producing customizable audio meters for recording or mixing applications
-
-The node outputs both the visualization image and a feature value representing the average amplitude, which can be used for further effects or processing.
+The node outputs both an IMAGE tensor (visualization) and a MASK tensor that can be used for compositing.
 """
 })
