@@ -1163,6 +1163,34 @@ Note: Extreme hue shifts may produce unexpected colors, especially for hues that
 """
 })
 
+add_node_config("FlexImageHorizontalToVertical", {
+    "TOP_DESCRIPTION": "Converts horizontal images to vertical format with customizable background effects.",
+    "ADDITIONAL_INFO": """
+- Inherits base parameters from FlexImageBase:
+  - `images`: Input image sequence (IMAGE type)
+  - `feature`: Feature used to modulate the effect (FEATURE type)
+  - `strength`: Overall strength of the effect (0.0 to 1.0)
+  - `feature_threshold`: Minimum feature value to apply the effect (0.0 to 1.0)
+
+Additional Parameters:
+- `blur_amount`: Amount of blur for background when using blur effect (0.1 to 100.0)
+- `background_type`: Type of background effect to apply:
+  - "blur": Blurred version of original image
+  - "border": Solid color border
+  - "mirror": Mirrored version of the image
+  - "gradient": Gradient based on image colors
+  - "pixelate": Pixelated version of the image
+  - "waves": Wavy distortion effect
+- `border_color`: Color of the border when using border background type ("black" or "white")
+- `scale_factor`: Scale factor for the main image (0.1 to 2.0). Controls how large the original image appears in the vertical format.
+- `effect_strength`: Intensity of the background effect (0.0 to 2.0)
+
+This node converts horizontal images to a vertical 16:9 format while maintaining aspect ratio. It's particularly useful for adapting landscape content for vertical video platforms like TikTok, Instagram Reels, or YouTube Shorts.
+
+The node only processes images that are wider than they are tall (horizontal). Vertical images pass through unchanged.
+"""
+})
+
 add_node_config("FlexImageContrast", {
     "TOP_DESCRIPTION": "Adjusts the contrast and brightness of the image, with an option to preserve luminosity.",
     "ADDITIONAL_INFO": """

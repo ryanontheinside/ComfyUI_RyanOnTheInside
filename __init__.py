@@ -210,6 +210,7 @@ from .nodes.images.flex_images import (
     FlexImageTransform,
     FlexImageHueShift,
     FlexImageDepthWarp,
+    FlexImageHorizontalToVertical,
 )
 
 from .nodes.video.flex_video import (
@@ -426,6 +427,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexImageTransform":           FlexImageTransform,
     "FlexImageHueShift":            FlexImageHueShift,
     "FlexImageDepthWarp":           FlexImageDepthWarp,
+    "FlexImageHorizontalToVertical":FlexImageHorizontalToVertical,
     #opacity xp 
     # "FlexDepthBasedMaskOpacity":  FlexDepthBasedMaskOpacity,
     # "DepthBasedMaskOpacity":      DepthBasedMaskOpacity,

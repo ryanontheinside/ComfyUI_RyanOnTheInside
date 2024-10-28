@@ -721,3 +721,116 @@ class FlexImageDepthWarp(FlexImageBase):
         else:
             print("Warning: No depth map provided.")
             return image
+
+class FlexImageHorizontalToVertical(FlexImageBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "blur_amount": ("FLOAT", {"default": 30.0, "min": 0.1, "max": 100.0, "step": 0.1}),
+            "background_type": (["blur", "border", "mirror", "gradient", "pixelate", "waves"], {"default": "blur"}),
+            "border_color": (["black", "white"], {"default": "black"}),
+            "scale_factor": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.01}),  # Updated max to 2.0
+            "effect_strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.01}),
+        })
+        return base_inputs
+
+    @classmethod
+    def get_modifiable_params(cls):
+        return ["blur_amount", "scale_factor", "effect_strength", "None"]
+
+    def apply_effect_internal(self, image: np.ndarray, blur_amount: float, background_type: str, 
+                              border_color: str, scale_factor: float, effect_strength: float, **kwargs) -> np.ndarray:
+        # Ensure parameters are within valid ranges after modulation
+        blur_amount = max(0.1, blur_amount)
+        scale_factor = np.clip(scale_factor, 0.1, 2.0)  # Updated max to 2.0
+        effect_strength = np.clip(effect_strength, 0.0, 2.0)
+        
+        h, w = image.shape[:2]
+        
+        # Only process if image is horizontal
+        if w <= h:
+            return image
+                
+        # Calculate new dimensions maintaining aspect ratio
+        new_h = h
+        new_w = int(h * 9/16)  # Standard vertical aspect ratio (16:9 inverted)
+        
+        # Calculate scaling for the original image
+        scale = scale_factor * min(new_w / w, new_h / h)
+        scaled_w = int(w * scale)
+        scaled_h = int(h * scale)
+        
+        # Create base canvas
+        if border_color == "white":
+            result = np.ones((new_h, new_w, 3), dtype=np.float32)
+        else:  # black
+            result = np.zeros((new_h, new_w, 3), dtype=np.float32)
+                
+        # Apply background effect
+        if background_type == "blur":
+            background = cv2.resize(image, (new_w, new_h))
+            try:
+                background = cv2.GaussianBlur(background, (0, 0), blur_amount)
+            except cv2.error:
+                print(f"Warning: Blur failed with amount {blur_amount}, using minimum blur")
+                background = cv2.GaussianBlur(background, (0, 0), 0.1)
+            result = background
+                
+        elif background_type == "mirror":
+            # Create mirrored background
+            background = cv2.resize(image, (new_w, new_h))
+            flipped = cv2.flip(background, 1)
+            alpha = np.linspace(0, 1, new_w)
+            alpha = np.tile(alpha, (new_h, 1))
+            result = background * alpha[:,:,np.newaxis] + flipped * (1 - alpha[:,:,np.newaxis])
+                
+        elif background_type == "gradient":
+            # Create gradient background using original image colors
+            resized = cv2.resize(image, (new_w, new_h))
+            avg_color = np.mean(resized, axis=(0,1))
+            gradient = np.linspace(0, 1, new_h)[:,np.newaxis]
+            gradient = np.tile(gradient, (1, new_w))
+            for c in range(3):
+                result[:,:,c] = gradient * avg_color[c] * effect_strength
+                    
+        elif background_type == "pixelate":
+            # Create heavily pixelated background
+            pixel_size = max(1, int(20 * effect_strength))
+            small = cv2.resize(image, (new_w // pixel_size, new_h // pixel_size))
+            result = cv2.resize(small, (new_w, new_h), interpolation=cv2.INTER_NEAREST)
+                
+        elif background_type == "waves":
+            # Create wavy background
+            background = cv2.resize(image, (new_w, new_h))
+            y, x = np.mgrid[0:new_h, 0:new_w]
+            frequency = 0.05 * effect_strength
+            waves = np.sin(x * frequency) * 10 * effect_strength
+            for i in range(new_h):
+                shift = int(waves[i][0])
+                result[i] = np.roll(background[i], shift, axis=0)
+        
+        # Scale original image
+        scaled_image = cv2.resize(image, (scaled_w, scaled_h))
+        
+        # Calculate position to place scaled image
+        y_offset = (new_h - scaled_h) // 2
+        x_offset = (new_w - scaled_w) // 2
+
+        # Compute regions for placement, handling possible cropping
+        y_start_img = max(0, -y_offset)
+        y_end_img = scaled_h - max(0, (y_offset + scaled_h) - new_h)
+        x_start_img = max(0, -x_offset)
+        x_end_img = scaled_w - max(0, (x_offset + scaled_w) - new_w)
+
+        y_start_res = max(0, y_offset)
+        y_end_res = min(new_h, y_offset + scaled_h)
+        x_start_res = max(0, x_offset)
+        x_end_res = min(new_w, x_offset + scaled_w)
+
+        # Place the valid region of the scaled image onto the result
+        result[y_start_res:y_end_res, x_start_res:x_end_res] = scaled_image[y_start_img:y_end_img, x_start_img:x_end_img]
+        
+        return np.clip(result, 0, 1)
+
+     
