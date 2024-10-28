@@ -38,6 +38,7 @@
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
 
 ##### 🆕 Recent Updates:
+- 10/28/24 - **FlexImageHorizontalToVertical**: Converts horizontal images to vertical format with customizable background effects.
 - 10/23/24 - **Flex Images Now Feature Optional**: You no longer need to specify a feature to use Flex Image nodes.
 - 10/20/24 - **Audio Visualization Nodes**: Over 1 TRILLION ways to customize!
   - **FlexAudioVisualizerCircular**: Creates circular audio visualizations based on frequency or waveform data.
