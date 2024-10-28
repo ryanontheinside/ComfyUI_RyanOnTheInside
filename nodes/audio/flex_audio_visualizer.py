@@ -255,6 +255,46 @@ class FlexAudioVisualizerBase(RyanOnTheInside, ABC):
         """
         pass
 
+    def process_audio_data(self, processor: BaseAudioProcessor, frame_index, visualization_feature, num_points, smoothing, fft_size, min_frequency, max_frequency):
+        if visualization_feature == 'frequency':
+            spectrum = processor.compute_spectrum(frame_index, fft_size, min_frequency, max_frequency)
+
+            # Resample the spectrum to match the number of points
+            data = np.interp(
+                np.linspace(0, len(spectrum), num_points, endpoint=False),
+                np.arange(len(spectrum)),
+                spectrum,
+            )
+
+        elif visualization_feature == 'waveform':
+            audio_frame = processor._get_audio_frame(frame_index)
+            if len(audio_frame) < 1:
+                data = np.zeros(num_points)
+            else:
+                # Use the waveform data directly
+                data = np.interp(
+                    np.linspace(0, len(audio_frame), num_points, endpoint=False),
+                    np.arange(len(audio_frame)),
+                    audio_frame,
+                )
+                # Normalize the waveform to [-1, 1]
+                max_abs_value = np.max(np.abs(data))
+                if max_abs_value != 0:
+                    data = data / max_abs_value
+                else:
+                    data = np.zeros_like(data)
+        else:
+            data = np.zeros(num_points)
+
+        # Update processor's spectrum with smoothing
+        if processor.spectrum is None or len(processor.spectrum) != len(data):
+            processor.spectrum = np.zeros(len(data))
+        processor.update_spectrum(data, smoothing)
+
+        # Return updated data and feature value
+        feature_value = np.mean(np.abs(processor.spectrum))
+        return processor.spectrum.copy(), feature_value
+
 class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -297,54 +337,24 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
     def get_audio_data(self, processor: BaseAudioProcessor, frame_index, **kwargs):
         visualization_feature = kwargs.get('visualization_feature')
         smoothing = kwargs.get('smoothing')
+        num_bars = kwargs.get('num_bars')
 
-        if visualization_feature == 'frequency':
-            fft_size = kwargs.get('fft_size')
-            min_frequency = kwargs.get('min_frequency')
-            max_frequency = kwargs.get('max_frequency')
-            num_bars = kwargs.get('num_bars')
+        fft_size = kwargs.get('fft_size')
+        min_frequency = kwargs.get('min_frequency')
+        max_frequency = kwargs.get('max_frequency')
 
-            spectrum = processor.compute_spectrum(frame_index, fft_size, min_frequency, max_frequency)
+        # Use the base class method
+        self.bars, feature_value = self.process_audio_data(
+            processor,
+            frame_index,
+            visualization_feature,
+            num_bars,
+            smoothing,
+            fft_size,
+            min_frequency,
+            max_frequency
+        )
 
-            # Resample the spectrum to match the number of bars
-            data = np.interp(
-                np.linspace(0, len(spectrum), num_bars, endpoint=False),
-                np.arange(len(spectrum)),
-                spectrum,
-            )
-
-            if self.bars is None or len(self.bars) != num_bars:
-                self.bars = np.zeros(num_bars)
-
-            # Update the bar heights with smoothing
-            self.bars = smoothing * self.bars + (1 - smoothing) * data
-        elif visualization_feature == 'waveform':
-            num_bars = kwargs.get('num_bars')
-            audio_frame = processor._get_audio_frame(frame_index)
-            if len(audio_frame) < 1:
-                data = np.zeros(num_bars)
-            else:
-                # Use the waveform data directly
-                data = np.interp(
-                    np.linspace(0, len(audio_frame), num_bars, endpoint=False),
-                    np.arange(len(audio_frame)),
-                    audio_frame,
-                )
-                # Normalize the waveform to [-1, 1]
-                max_abs_value = np.max(np.abs(data))
-                if max_abs_value != 0:
-                    data = data / max_abs_value
-                else:
-                    data = np.zeros_like(data)
-
-                if self.bars is None or len(self.bars) != num_bars:
-                    self.bars = np.zeros(num_bars)
-
-                # Update the bar heights with smoothing
-                self.bars = smoothing * self.bars + (1 - smoothing) * data
-
-        # Return mean of bars as feature_value
-        feature_value = np.mean(np.abs(self.bars))
         return feature_value
 
     def draw(self, processor: BaseAudioProcessor, **kwargs):
@@ -368,11 +378,13 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
             else:
                 self.bars = np.zeros(num_bars)
 
+        max_height = kwargs.get('max_height')
+        min_height = kwargs.get('min_height')
+
         if visualization_method == 'bar':
             curvature = kwargs.get('curvature')
             separation = kwargs.get('separation')
-            max_height = kwargs.get('max_height')
-            min_height = kwargs.get('min_height')
+
 
             # Calculate bar width
             total_separation = separation * (num_bars - 1)
@@ -427,8 +439,7 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
                     cv2.rectangle(image, (x, y_start), (x_end, y_end), color, thickness=-1)
         elif visualization_method == 'line':
             curve_smoothing = kwargs.get('curve_smoothing')
-            max_height = kwargs.get('max_height')
-            min_height = kwargs.get('min_height')
+
 
             # Baseline Y position
             baseline_y = screen_height * position_y
@@ -530,45 +541,22 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
         smoothing = kwargs.get('smoothing')
         num_points = kwargs.get('num_points')
 
-        if visualization_feature == 'frequency':
-            fft_size = kwargs.get('fft_size')
-            min_frequency = kwargs.get('min_frequency')
-            max_frequency = kwargs.get('max_frequency')
+        fft_size = kwargs.get('fft_size')
+        min_frequency = kwargs.get('min_frequency')
+        max_frequency = kwargs.get('max_frequency')
 
-            spectrum = processor.compute_spectrum(frame_index, fft_size, min_frequency, max_frequency)
+        # Use the base class method
+        processor.spectrum, feature_value = self.process_audio_data(
+            processor,
+            frame_index,
+            visualization_feature,
+            num_points,
+            smoothing,
+            fft_size,
+            min_frequency,
+            max_frequency
+        )
 
-            # Resample the spectrum to match the number of points
-            data = np.interp(
-                np.linspace(0, len(spectrum), num_points, endpoint=False),
-                np.arange(len(spectrum)),
-                spectrum,
-            )
-
-        elif visualization_feature == 'waveform':
-            audio_frame = processor._get_audio_frame(frame_index)
-            if len(audio_frame) < 1:
-                data = np.zeros(num_points)
-            else:
-                # Use the waveform data directly
-                data = np.interp(
-                    np.linspace(0, len(audio_frame), num_points, endpoint=False),
-                    np.arange(len(audio_frame)),
-                    audio_frame,
-                )
-                # Normalize the waveform to [-1, 1]
-                max_abs_value = np.max(np.abs(data))
-                if max_abs_value != 0:
-                    data = data / max_abs_value
-                else:
-                    data = np.zeros_like(data)
-
-        # Update processor's spectrum with smoothing
-        if processor.spectrum is None or len(processor.spectrum) != len(data):
-            processor.spectrum = np.zeros(len(data))
-        processor.update_spectrum(data, smoothing)
-
-        # Return mean of spectrum as feature_value
-        feature_value = np.mean(np.abs(processor.spectrum))
         return feature_value
 
     def draw(self, processor: BaseAudioProcessor, **kwargs):
@@ -577,12 +565,17 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
         num_points = kwargs.get('num_points')
         screen_width = processor.width
         screen_height = processor.height
-
+        position_x = kwargs.get('position_x')
+        position_y = kwargs.get('position_y')
+        radius = kwargs.get('radius')
+        base_radius = kwargs.get('base_radius')
+        amplitude_scale = kwargs.get('amplitude_scale')
+        line_width = kwargs.get('line_width')
         image = np.zeros((screen_height, screen_width, 3), dtype=np.float32)
 
-        # Center of the screen
-        center_x = screen_width / 2
-        center_y = screen_height / 2
+        # Center based on position parameters
+        center_x = screen_width * position_x
+        center_y = screen_height * position_y
 
         # Angles for each point (with rotation)
         angles = np.linspace(0, 2 * np.pi, num_points, endpoint=False)
@@ -592,19 +585,15 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
         data = processor.spectrum
 
         if visualization_method == 'bar':
-            radius = kwargs.get('radius')
-            line_width = kwargs.get('line_width')
-
             # Compute end points of lines based on data
             for angle, amplitude in zip(angles, data):
-                # Start point (on the circle)
-                x_start = center_x + radius * np.cos(angle)
-                y_start = center_y + radius * np.sin(angle)
+                # Start point (on the base radius)
+                x_start = center_x + base_radius * np.cos(angle)
+                y_start = center_y + base_radius * np.sin(angle)
 
-                # End point (extended by amplitude)
-                extended_radius = radius + amplitude * radius
-                x_end = center_x + extended_radius * np.cos(angle)
-                y_end = center_y + extended_radius * np.sin(angle)
+                # End point (from base_radius, extending by amplitude_scale)
+                x_end = center_x + (base_radius + amplitude * amplitude_scale) * np.cos(angle)
+                y_end = center_y + (base_radius + amplitude * amplitude_scale) * np.sin(angle)
 
                 # Draw line
                 cv2.line(
@@ -615,13 +604,9 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
                     thickness=line_width,
                 )
         elif visualization_method == 'line':
-            base_radius = kwargs.get('base_radius')
-            amplitude_scale = kwargs.get('amplitude_scale')
-            line_width = kwargs.get('line_width')
-
-            # Compute radius for each point
+            # Compute points for the deformed circle
             radii = base_radius + data * amplitude_scale
-
+            
             # Compute x and y coordinates
             x_values = center_x + radii * np.cos(angles)
             y_values = center_y + radii * np.sin(angles)
@@ -634,5 +619,9 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
                 cv2.polylines(image, [points], isClosed=True, color=(1.0, 1.0, 1.0), thickness=line_width)
 
         return image
+
+
+
+
 
 
