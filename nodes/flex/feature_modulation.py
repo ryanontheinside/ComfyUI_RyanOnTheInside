@@ -540,6 +540,8 @@ class FeatureAccumulate(FeatureModulationBase):
                 "threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "skip_thresholded": ("BOOLEAN", {"default": False}),
                 **super().INPUT_TYPES()["required"],
+                "frames_window": ("INT", {"default": 0, "min": 0, "max": 9999}),
+                "deccumulate": ("BOOLEAN", {"default": False}),
             }
         }
 
@@ -547,21 +549,40 @@ class FeatureAccumulate(FeatureModulationBase):
     RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
     FUNCTION = "accumulate"
 
-    def accumulate(self, feature, start, end, threshold, skip_thresholded, invert_output):
+    def accumulate(self, feature, start, end, threshold, skip_thresholded, frames_window, deccumulate, invert_output):
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
-        
-        # Apply threshold and accumulate values
         accumulated = []
-        current_sum = 0
-        for v in values:
-            if v >= threshold:
-                current_sum += v
-                accumulated.append(current_sum)
-            else:
-                if skip_thresholded:
-                    accumulated.append(v)  # Keep original value
+        
+        if frames_window == 0:
+            frames_window = feature.frame_count
+
+        # Process values in windows
+        for i in range(0, len(values), frames_window):
+            window_values = values[i:i + frames_window]
+            window_accumulated = []
+            current_sum = 0
+            
+            # Determine direction for this window
+            reverse = deccumulate and (i // frames_window) % 2 == 1
+            
+            if reverse:
+                window_values = window_values[::-1]
+            
+            # Accumulate within window
+            for v in window_values:
+                if v >= threshold:
+                    current_sum += v
+                    window_accumulated.append(current_sum)
                 else:
-                    accumulated.append(current_sum)  # Keep previous accumulated value
+                    if skip_thresholded:
+                        window_accumulated.append(v)
+                    else:
+                        window_accumulated.append(current_sum)
+            
+            if reverse:
+                window_accumulated = window_accumulated[::-1]
+            
+            accumulated.extend(window_accumulated)
         
         # Normalize accumulated values between start and end
         min_val, max_val = min(accumulated), max(accumulated)
