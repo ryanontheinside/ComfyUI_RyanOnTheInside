@@ -6,11 +6,12 @@
 
 - 🎆 **Particle Systems**: Create mesmerizing, fluid-like effects
 - 🎵 **Audio & MIDI Processing**: Separate instruments and create audio-reactive visuals
-- 🎛️ **Flex Features**: Dynamic control over IPAdapters, Masks, and Images
+- 🎛️ **Flex Features**: Dynamic control over IPAdapters, Masks, Images, Videos, Audio, and more
 - 🌊 **Optical Flow**: Generate masks based on motion in videos
 - ⏳ **Temporal Effects**: Apply time-based transformations to masks and images
+- 🌊 **DEPTH Flow** 🌊: Use flex features to control depthflow nodes, adding parallax animations to your workflows!
 
-
+### **Developers**: if you're interested in extending the flex features into your own nodes, check out the [base-class-refactor](../../tree/base-class-refactor) branch and feel free to reach out. 
 
 
 <table style="border-collapse: collapse; border: none;">
@@ -80,9 +81,9 @@
 
 Getting started with the RyanOnTheInside node pack is easy:
 
-1. Install the node pack as described in the Installation section.
+1. Install the node pack as described in the [Installation](#installation) section.
 2. Open ComfyUI and look for nodes prefixed with "RyanOnTheInside" in the node browser.
-3. Check out the example workflows on Civitai to see how different features can be used.
+3. Check out the example workflows on Civitai and tutorials on YouTube to see how different features can be used.
 
 ### Example and Tutorial Workflows on Civitai
 There are many example workflows in this repo, but for the most current, and with all attendent required assets, visit my Civitai profile:
@@ -287,7 +288,7 @@ These temporal effects enable the creation of evolving, dynamic animations that 
 
 ## Installation
 
-Install via the ComfyUI Manager by searching for RyanOnTheInside, or...
+Install via the ComfyUI Manager by searching for RyanOnTheInside, or manually by...
 
 1. Navigate to your ComfyUI's `custom_nodes` directory
 2. Clone the repository:

@@ -230,7 +230,6 @@ from .nodes.flex.feature_externals import (
     FeatureToWeightsStrategy,
     DepthShapeModifier,
     DepthShapeModifierPrecise,
-    # DepthMapProtrusion
 )
 
 from .nodes.flex.feature_modulation import (
@@ -333,8 +332,6 @@ NODE_CLASS_MAPPINGS = {
     "FlexMaskEmanatingRings":       FlexMaskEmanatingRings,
     "FlexMaskRandomShapes":         FlexMaskRandomShapes,
     "FlexMaskDepthChamber":         FlexMaskDepthChamber,
-    #"FlexMaskNormalLighting":       FlexMaskNormalLighting,
-    # "FlexMaskDepthChamberRelative": FlexMaskDepthChamberRelative,
     "FlexMaskInterpolate":          FlexMaskInterpolate,
 
     #flex audio
@@ -428,9 +425,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexImageHueShift":            FlexImageHueShift,
     "FlexImageDepthWarp":           FlexImageDepthWarp,
     "FlexImageHorizontalToVertical":FlexImageHorizontalToVertical,
-    #opacity xp 
-    # "FlexDepthBasedMaskOpacity":  FlexDepthBasedMaskOpacity,
-    # "DepthBasedMaskOpacity":      DepthBasedMaskOpacity,
+
 
     #visulizers
     "ProximityVisualizer":          ProximityVisualizer,
@@ -524,9 +519,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ImageCASBatch": "Image Contrast Adaptive Sharpen Batch",
     "ImageIntervalSelectPercentage":  "Image Interval Select %",
     "ImageScaleToTarget": "Upscale To Target",
-    # "FlexImageAdjustment":"Flex Image Adjustment",
-    # "FlexImageFilter":"Flex Image Filter",
-    # "FlexImageBlend":"Flex Image Blend",
+
 }
 
 
