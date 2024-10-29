@@ -207,6 +207,7 @@ class FlexAudioVisualizerBase(RyanOnTheInside, ABC):
             'min_frequency': lambda x: max(20.0, min(x, 20000.0)),
             'max_frequency': lambda x: max(20.0, min(x, 20000.0)),
             'num_bars': lambda x: max(1, int(x)),
+            'num_points': lambda x: max(3, int(x)),
             'smoothing': lambda x: np.clip(x, 0.0, 1.0),
             'rotation': lambda x: x % 360.0,
             'curvature': lambda x: max(0.0, x),

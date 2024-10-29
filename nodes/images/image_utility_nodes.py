@@ -153,3 +153,4 @@ class ImageScaleToTarget(ImageUtilityNode):
             s = common_upscale(samples, width, height, upscale_method, crop)
             s = s.movedim(1,-1)
         return (s,)
+    
