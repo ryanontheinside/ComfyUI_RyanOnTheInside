@@ -267,6 +267,167 @@ class SplineFeatureModulator(FlexExternalModulator):
 
         return (masks_out, coord_str, out_floats, len(out_floats), coord_str)
 
+class SplineRhythmModulator(FlexExternalModulator):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "coordinates": ("STRING", {"multiline": False}),
+                "feature": ("FEATURE",),
+                "mask_width": ("INT", {"default": 512, "min": 8, "max": 4096, "step": 8}),
+                "mask_height": ("INT", {"default": 512, "min": 8, "max": 4096, "step": 8}),
+                "smoothing": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "direction": (["forward", "backward", "bounce"], {"default": "bounce"}),
+                "float_output_type": (["list", "pandas series", "tensor"], {"default": 'list'}),
+            },
+            "optional": {
+                "min_value": ("FLOAT", {"default": 0.0, "min": -10000.0, "max": 10000.0, "step": 0.01}),
+                "max_value": ("FLOAT", {"default": 1.0, "min": -10000.0, "max": 10000.0, "step": 0.01}),
+            }
+        }
+
+    RETURN_TYPES = ("MASK", "STRING", "FLOAT", "INT", "STRING",)
+    RETURN_NAMES = ("mask", "coord_str", "float", "count", "normalized_str",)
+    FUNCTION = "modulate_rhythm"
+    CATEGORY = "RyanOnTheInside/SplineRhythmModulator"
+
+    def modulate_rhythm(self, coordinates, feature, mask_width, mask_height, 
+                       smoothing, direction, float_output_type,
+                       min_value=0.0, max_value=1.0):
+        print("\n=== Starting SplineRhythmModulator.modulate_rhythm ===")
+        print(f"Input parameters: width={mask_width}, height={mask_height}")
+        print(f"Smoothing: {smoothing}, Direction: {direction}")
+        print(f"Value range: {min_value} to {max_value}")
+
+        import torch
+        import numpy as np
+        import json
+        from scipy.interpolate import interp1d
+        from scipy.ndimage import gaussian_filter1d
+
+        # Parse coordinates
+        print("\nParsing coordinates...")
+        try:
+            coordinates = json.loads(coordinates)
+            control_points = np.array([[point['x'], point['y']] for point in coordinates])
+            print(f"Number of control points: {len(control_points)}")
+            print(f"First point: {control_points[0]}, Last point: {control_points[-1]}")
+        except Exception as e:
+            print(f"Error parsing coordinates: {e}")
+            raise
+
+        # Get feature values
+        print("\nExtracting feature values...")
+        try:
+            frames = feature.frame_count
+            feature_values = np.array([feature.get_value_at_frame(i) for i in range(frames)])
+            print(f"Number of frames: {frames}")
+            print(f"Feature value range: {feature_values.min():.3f} to {feature_values.max():.3f}")
+        except Exception as e:
+            print(f"Error extracting feature values: {e}")
+            raise
+
+        # Apply smoothing
+        print("\nApplying smoothing...")
+        if smoothing > 0:
+            try:
+                sigma = smoothing * 2
+                feature_values = gaussian_filter1d(feature_values, sigma)
+                print(f"Smoothed value range: {feature_values.min():.3f} to {feature_values.max():.3f}")
+            except Exception as e:
+                print(f"Error in smoothing: {e}")
+                raise
+
+        # Normalize feature values
+        print("\nNormalizing feature values...")
+        try:
+            feature_range = feature_values.max() - feature_values.min()
+            if feature_range == 0:
+                print("Warning: Feature values have zero range!")
+                feature_values = np.zeros_like(feature_values)
+            else:
+                feature_values = (feature_values - feature_values.min()) / feature_range
+            print(f"Normalized value range: {feature_values.min():.3f} to {feature_values.max():.3f}")
+        except Exception as e:
+            print(f"Error in normalization: {e}")
+            raise
+
+        # Convert to path positions
+        print("\nConverting to path positions...")
+        try:
+            if direction == "forward":
+                path_positions = feature_values
+            elif direction == "backward":
+                path_positions = 1 - feature_values
+            else:  # bounce
+                path_positions = np.abs(2 * feature_values - 1)
+            print(f"Path positions range: {path_positions.min():.3f} to {path_positions.max():.3f}")
+        except Exception as e:
+            print(f"Error in path position conversion: {e}")
+            raise
+
+        # Interpolate points
+        print("\nInterpolating points...")
+        try:
+            t_orig = np.linspace(0, 1, len(control_points))
+            x_interp = interp1d(t_orig, control_points[:, 0], kind='linear', bounds_error=False, fill_value='extrapolate')
+            y_interp = interp1d(t_orig, control_points[:, 1], kind='linear', bounds_error=False, fill_value='extrapolate')
+            
+            sampled_x = x_interp(path_positions)
+            sampled_y = y_interp(path_positions)
+            print(f"Sampled points range: x({sampled_x.min():.1f} to {sampled_x.max():.1f}), y({sampled_y.min():.1f} to {sampled_y.max():.1f})")
+        except Exception as e:
+            print(f"Error in interpolation: {e}")
+            raise
+
+        # Normalize y-values
+        print("\nNormalizing y-values...")
+        try:
+            normalized_y_values = min_value + (sampled_y / (mask_height - 1)) * (max_value - min_value)
+            print(f"Normalized y-values range: {normalized_y_values.min():.3f} to {normalized_y_values.max():.3f}")
+        except Exception as e:
+            print(f"Error in y-value normalization: {e}")
+            raise
+
+        # Prepare output float
+        print("\nPreparing output float...")
+        try:
+            if float_output_type == 'list':
+                out_floats = normalized_y_values.tolist()
+                print(f"Output type: list, length: {len(out_floats)}")
+            elif float_output_type == 'pandas series':
+                import pandas as pd
+                out_floats = pd.Series(normalized_y_values)
+                print(f"Output type: pandas series, length: {len(out_floats)}")
+            elif float_output_type == 'tensor':
+                out_floats = torch.tensor(normalized_y_values, dtype=torch.float32)
+                print(f"Output type: tensor, shape: {out_floats.shape}")
+        except Exception as e:
+            print(f"Error preparing output float: {e}")
+            raise
+
+        # Create masks
+        print("\nCreating masks...")
+        try:
+            mask_tensors = []
+            for y in normalized_y_values:
+                mask = torch.full((mask_height, mask_width, 3), y, dtype=torch.float32)
+                mask_tensors.append(mask)
+            masks_out = torch.stack(mask_tensors)
+            masks_out = masks_out.mean(dim=-1)
+            print(f"Mask tensor shape: {masks_out.shape}")
+        except Exception as e:
+            print(f"Error creating masks: {e}")
+            raise
+
+        # Prepare output coordinates
+        sampled_coordinates = [{'x': float(x), 'y': float(y)} for x, y in zip(sampled_x, sampled_y)]
+        coord_str = json.dumps(sampled_coordinates)
+
+        return (masks_out, coord_str, out_floats, len(out_floats), coord_str)
+    
+
+    
 #TODO: sub somthing else
 #TODO: really, sub something else
 class DepthShapeModifier(FlexExternalModulator):
