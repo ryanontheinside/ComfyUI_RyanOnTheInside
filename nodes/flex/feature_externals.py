@@ -50,11 +50,225 @@ class FeatureToWeightsStrategy(FlexExternalModulator):
 
         return (weights_strategy,)
 
+class FeatureToSplineData(FlexExternalModulator):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "mask_width": ("INT", {"default": 512, "min": 8, "max": 4096, "step": 8}),
+                "mask_height": ("INT", {"default": 512, "min": 8, "max": 4096, "step": 8}),
+                "sampling_method": (
+                    [
+                        'path',
+                        'time',
+                        'controlpoints'
+                    ],
+                    {
+                        "default": 'time'
+                    }
+                ),
+                "interpolation": (
+                    [
+                        'cardinal',
+                        'monotone',
+                        'basis',
+                        'linear',
+                        'step-before',
+                        'step-after',
+                        'polar',
+                        'polar-reverse',
+                    ],
+                    {
+                        "default": 'cardinal'
+                    }
+                ),
+                "tension": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "repeat_output": ("INT", {"default": 1, "min": 1, "max": 4096, "step": 1}),
+                "float_output_type": (
+                    [
+                        'list',
+                        'pandas series',
+                        'tensor',
+                    ],
+                    {
+                        "default": 'list'
+                    }
+                ),
+            },
+            "optional": {
+                "min_value": ("FLOAT", {"default": 0.0, "min": -10000.0, "max": 10000.0, "step": 0.01}),
+                "max_value": ("FLOAT", {"default": 1.0, "min": -10000.0, "max": 10000.0, "step": 0.01}),
+            }
+        }
 
+    RETURN_TYPES = ("MASK", "STRING", "FLOAT", "INT", "STRING",)
+    RETURN_NAMES = ("mask", "coord_str", "float", "count", "normalized_str",)
+    FUNCTION = "convert"
+    CATEGORY = "RyanOnTheInside/FeatureToSplineData"
 
+    def convert(self, feature, mask_width, mask_height, sampling_method, interpolation,
+                tension, repeat_output, float_output_type, min_value=0.0, max_value=1.0):
+        import torch
+        import numpy as np
+        import json
 
+        
+        # Retrieve values from the feature
+        frames = feature.frame_count
+        values = [feature.get_value_at_frame(i) for i in range(frames)]
+
+        # Normalize feature values between min_value and max_value
+        normalized_y_values = [min_value + (v * (max_value - min_value)) for v in values]
+
+        # Set points_to_sample to frames
+        points_to_sample = frames
+
+        # Prepare x-coordinates scaled to the mask width
+        x_values = np.linspace(0, mask_width - 1, frames)
+
+        # Prepare y-values scaled to the mask height
+        y_values = [(1.0 - v) * (mask_height - 1) for v in normalized_y_values]
+
+        # Prepare output float based on the selected type
+        if float_output_type == 'list':
+            out_floats = normalized_y_values * repeat_output
+        elif float_output_type == 'pandas series':
+            try:
+                import pandas as pd
+            except ImportError:
+                raise Exception("FeatureToSplineData: pandas is not installed. Please install pandas to use this output_type.")
+            out_floats = pd.Series(normalized_y_values * repeat_output)
+        elif float_output_type == 'tensor':
+            out_floats = torch.tensor(normalized_y_values * repeat_output, dtype=torch.float32)
+        else:
+            raise ValueError(f"Unknown float_output_type: {float_output_type}")
+
+        # Create masks based on normalized y-values
+        mask_tensors = []
+        for y in normalized_y_values:
+            # Create a grayscale image with intensity y
+            mask = torch.full((mask_height, mask_width, 3), y, dtype=torch.float32)
+            mask_tensors.append(mask)
+
+        # Stack and process mask tensors
+        masks_out = torch.stack(mask_tensors)
+        masks_out = masks_out.repeat(repeat_output, 1, 1, 1)
+        masks_out = masks_out.mean(dim=-1)
+
+        # Prepare coordinate strings with coordinates scaled to mask dimensions
+        coordinates = [{'x': float(x), 'y': float(y)} for x, y in zip(x_values, y_values)]
+        coord_str = json.dumps(coordinates)
+        normalized_str = coord_str
+        count = len(out_floats)
+
+        return (masks_out, coord_str, out_floats, count, normalized_str)
+
+import torch
+import numpy as np
+import json
+from scipy.interpolate import interp1d
+
+class SplineFeatureModulator(FlexExternalModulator):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "coordinates": ("STRING", {"multiline": False}),
+                "feature": ("FEATURE",),
+                "mask_width": ("INT", {"default": 512, "min": 8, "max": 4096, "step": 8}),
+                "mask_height": ("INT", {"default": 512, "min": 8, "max": 4096, "step": 8}),
+                "min_speed": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 10.0, "step": 0.1}),
+                "max_speed": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.1}),
+                "float_output_type": (["list", "pandas series", "tensor"], {"default": 'list'}),
+            },
+            "optional": {
+                "min_value": ("FLOAT", {"default": 0.0, "min": -10000.0, "max": 10000.0, "step": 0.01}),
+                "max_value": ("FLOAT", {"default": 1.0, "min": -10000.0, "max": 10000.0, "step": 0.01}),
+            }
+        }
+
+    RETURN_TYPES = ("MASK", "STRING", "FLOAT", "INT", "STRING",)
+    RETURN_NAMES = ("mask", "coord_str", "float", "count", "normalized_str",)
+    FUNCTION = "modulate_spline"
+    CATEGORY = "RyanOnTheInside/SplineFeatureModulator"
+
+    def modulate_spline(self, coordinates, feature, mask_width, mask_height, 
+                       min_speed, max_speed, float_output_type,
+                       min_value=0.0, max_value=1.0):
+        import torch
+        import numpy as np
+        import json
+        from scipy.interpolate import interp1d
+
+        # Parse coordinates from JSON string
+        coordinates = json.loads(coordinates)
+        control_points = np.array([[point['x'], point['y']] for point in coordinates])
+
+        # Get feature values and frames
+        frames = feature.frame_count
+        feature_values = np.array([feature.get_value_at_frame(i) for i in range(frames)])
+
+        # Calculate speeds from feature values
+        # Positive features: min_speed to max_speed forward
+        # Negative features: min_speed to max_speed backward
+        speeds = np.where(
+            feature_values >= 0,
+            min_speed + (feature_values * (max_speed - min_speed)),  # Forward speeds
+            -(min_speed + (abs(feature_values) * (max_speed - min_speed)))  # Backward speeds
+        )
+
+        # Calculate cumulative positions along the path
+        cumulative_movement = np.cumsum(speeds)
+        # Normalize to [0, 1] range for path interpolation
+        total_movement = np.abs(cumulative_movement[-1])
+        if total_movement > 0:
+            path_positions = (cumulative_movement / total_movement) % 1.0
+        else:
+            path_positions = np.zeros_like(cumulative_movement)
+
+        # Interpolate control points
+        t_orig = np.linspace(0, 1, len(control_points))
+        x_interp = interp1d(t_orig, control_points[:, 0], kind='linear', bounds_error=False, fill_value='extrapolate')
+        y_interp = interp1d(t_orig, control_points[:, 1], kind='linear', bounds_error=False, fill_value='extrapolate')
+
+        # Sample points along the path
+        sampled_x = x_interp(path_positions)
+        sampled_y = y_interp(path_positions)
+
+        # Normalize y-values between min_value and max_value
+        normalized_y_values = min_value + (sampled_y / (mask_height - 1)) * (max_value - min_value)
+
+        # Prepare output float based on the selected type
+        if float_output_type == 'list':
+            out_floats = normalized_y_values.tolist()
+        elif float_output_type == 'pandas series':
+            try:
+                import pandas as pd
+            except ImportError:
+                raise Exception("SplineFeatureModulator: pandas is not installed.")
+            out_floats = pd.Series(normalized_y_values)
+        elif float_output_type == 'tensor':
+            out_floats = torch.tensor(normalized_y_values, dtype=torch.float32)
+
+        # Create masks based on normalized y-values
+        mask_tensors = []
+        for y in normalized_y_values:
+            mask = torch.full((mask_height, mask_width, 3), y, dtype=torch.float32)
+            mask_tensors.append(mask)
+
+        # Stack and process mask tensors
+        masks_out = torch.stack(mask_tensors)
+        masks_out = masks_out.mean(dim=-1)
+
+        # Prepare output coordinates
+        sampled_coordinates = [{'x': float(x), 'y': float(y)} for x, y in zip(sampled_x, sampled_y)]
+        coord_str = json.dumps(sampled_coordinates)
+
+        return (masks_out, coord_str, out_floats, len(out_floats), coord_str)
 
 #TODO: sub somthing else
+#TODO: really, sub something else
 class DepthShapeModifier(FlexExternalModulator):
     @classmethod
     def INPUT_TYPES(cls):
@@ -298,3 +512,4 @@ class DepthShapeModifierPrecise(FlexExternalModulator):
             elif feature_param == "strength":
                 strength *= value
         return gradient_steepness, depth_min, depth_max, strength
+    
