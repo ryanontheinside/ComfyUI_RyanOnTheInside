@@ -230,6 +230,7 @@ from .nodes.flex.feature_externals import (
     FeatureToWeightsStrategy,
     FeatureToSplineData,
     SplineFeatureModulator,
+    SplineRhythmModulator,
     DepthShapeModifier,
     DepthShapeModifierPrecise,
 )
@@ -248,6 +249,7 @@ from .nodes.flex.feature_modulation import (
     FeatureAccumulate,
     FeatureContiguousInterpolate,
     FeatureRenormalize,
+    FeatureRhythmSmoother,
 )
 
 from .nodes.audio.flex_audio import (
@@ -392,6 +394,7 @@ NODE_CLASS_MAPPINGS = {
     "FeatureToWeightsStrategy":     FeatureToWeightsStrategy,
     "FeatureToSplineData":         FeatureToSplineData,
     "SplineFeatureModulator":      SplineFeatureModulator,
+    "SplineRhythmModulator":      SplineRhythmModulator,
     "DepthInjection":               DepthInjection,
     "DepthRippleEffect":            DepthRippleEffect,
     "DepthBlender":                 DepthBlender,
