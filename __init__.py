@@ -228,6 +228,8 @@ from .nodes.depth.depth_base import(
 
 from .nodes.flex.feature_externals import (
     FeatureToWeightsStrategy,
+    FeatureToSplineData,
+    SplineFeatureModulator,
     DepthShapeModifier,
     DepthShapeModifierPrecise,
 )
@@ -245,7 +247,7 @@ from .nodes.flex.feature_modulation import (
     FeatureTruncateOrExtend,
     FeatureAccumulate,
     FeatureContiguousInterpolate,
-
+    FeatureRenormalize,
 )
 
 from .nodes.audio.flex_audio import (
@@ -388,6 +390,8 @@ NODE_CLASS_MAPPINGS = {
     "AreaFeatureNode":              AreaFeatureNode,
 
     "FeatureToWeightsStrategy":     FeatureToWeightsStrategy,
+    "FeatureToSplineData":         FeatureToSplineData,
+    "SplineFeatureModulator":      SplineFeatureModulator,
     "DepthInjection":               DepthInjection,
     "DepthRippleEffect":            DepthRippleEffect,
     "DepthBlender":                 DepthBlender,
@@ -407,6 +411,8 @@ NODE_CLASS_MAPPINGS = {
     "FeatureTruncateOrExtend":      FeatureTruncateOrExtend,
     "FeatureAccumulate":             FeatureAccumulate,
     "FeatureContiguousInterpolate":  FeatureContiguousInterpolate,
+    "FeatureRenormalize":           FeatureRenormalize,
+    
     #images
     'FlexImageEdgeDetect':          FlexImageEdgeDetect,
     "FlexImagePosterize":           FlexImagePosterize,

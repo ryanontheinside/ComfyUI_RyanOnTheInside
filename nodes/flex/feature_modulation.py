@@ -423,6 +423,7 @@ class FeatureFade(FeatureModulationBase):
         processed_feature = self.create_processed_feature(feature1, combined, "Faded", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
+#NOTE: this class is technically redundant to FeatureMixer, but it's kept for clarity and ease of use.
 class FeatureRebase(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -453,6 +454,39 @@ class FeatureRebase(FeatureModulationBase):
             normalized = [(v - min_val) / (max_val - min_val) for v in rebased_values]
         
         processed_feature = self.create_processed_feature(feature, normalized, "Rebased", invert_output)
+        return (processed_feature, self.visualize(processed_feature))
+
+class FeatureRenormalize(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "lower_threshold": ("FLOAT", {"default": 0.0, "min": -10000.0, "max": 10000.0, "step": 0.01}),
+                "upper_threshold": ("FLOAT", {"default": 1.0, "min": -10000.0, "max": 10000.0, "step": 0.01}),
+                **super().INPUT_TYPES()["required"],
+            }
+        }
+    RETURN_TYPES = ("FEATURE", "IMAGE")
+    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    FUNCTION = "renormalize"
+
+    def renormalize(self, feature, lower_threshold, upper_threshold, invert_output):
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        # Calculate the range for normalization
+        range_size = upper_threshold - lower_threshold
+        
+        # Normalize values to fit between lower and upper threshold
+        if max(values) == min(values):
+            normalized = [lower_threshold for _ in values]  # All values are the same
+        else:
+            normalized = [
+                lower_threshold + (range_size * (v - min(values)) / (max(values) - min(values)))
+                for v in values
+            ]
+        
+        processed_feature = self.create_processed_feature(feature, normalized, "Renormalized", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
 class PreviewFeature(FeatureModulationBase):
