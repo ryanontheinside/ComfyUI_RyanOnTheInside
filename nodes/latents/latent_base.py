@@ -87,6 +87,27 @@ class FlexLatentBase(RyanOnTheInside, ABC):
     def process_latent(self, latent: np.ndarray, **kwargs) -> np.ndarray:
         """Process the latent using subclass-specific logic."""
 
+    def spherical_interpolation(self, latent1, latent2, t):
+        # Flatten the latents
+        latent1_flat = latent1.flatten()
+        latent2_flat = latent2.flatten()
+
+        # Compute dot product and norms
+        dot = np.dot(latent1_flat, latent2_flat)
+        norm1 = np.linalg.norm(latent1_flat)
+        norm2 = np.linalg.norm(latent2_flat)
+        denominator = norm1 * norm2 + 1e-8  # Avoid division by zero
+        omega = np.arccos(np.clip(dot / denominator, -1.0, 1.0))
+
+        if np.isclose(omega, 0):
+            return latent1
+        else:
+            sin_omega = np.sin(omega)
+            coef1 = np.sin((1 - t) * omega) / sin_omega
+            coef2 = np.sin(t * omega) / sin_omega
+            result = coef1 * latent1 + coef2 * latent2
+            return result.reshape(latent1.shape)
+
 # custom_nodes/ComfyUI_RyanOnTheInside/nodes/latents/flex_latent_interpolate.py
 
 import numpy as np
@@ -133,50 +154,7 @@ class FlexLatentInterpolate(FlexLatentBase):
         else:  # Spherical interpolation
             result = self.spherical_interpolation(latent, latent_2_np, t)
         return result
-
-    def spherical_interpolation(self, latent1, latent2, t):
-        # Flatten the latents
-        latent1_flat = latent1.flatten()
-        latent2_flat = latent2.flatten()
-
-        # Compute dot product and norms
-        dot = np.dot(latent1_flat, latent2_flat)
-        norm1 = np.linalg.norm(latent1_flat)
-        norm2 = np.linalg.norm(latent2_flat)
-        denominator = norm1 * norm2 + 1e-8  # Avoid division by zero
-        omega = np.arccos(np.clip(dot / denominator, -1.0, 1.0))
-
-        if np.isclose(omega, 0):
-            return latent1
-        else:
-            sin_omega = np.sin(omega)
-            coef1 = np.sin((1 - t) * omega) / sin_omega
-            coef2 = np.sin(t * omega) / sin_omega
-            result = coef1 * latent1 + coef2 * latent2
-            return result.reshape(latent1.shape)
         
-# custom_nodes/ComfyUI_RyanOnTheInside/nodes/latents/embedding_guided_latent_interpolate.py
-
-    def spherical_interpolation(self, latent1, latent2, t):
-        # Flatten the latents
-        latent1_flat = latent1.flatten()
-        latent2_flat = latent2.flatten()
-
-        # Compute dot product and norms
-        dot = np.dot(latent1_flat, latent2_flat)
-        norm1 = np.linalg.norm(latent1_flat)
-        norm2 = np.linalg.norm(latent2_flat)
-        denominator = norm1 * norm2 + 1e-8  # Avoid division by zero
-        omega = np.arccos(np.clip(dot / denominator, -1.0, 1.0))
-
-        if np.isclose(omega, 0):
-            return latent1
-        else:
-            sin_omega = np.sin(omega)
-            coef1 = np.sin((1 - t) * omega) / sin_omega
-            coef2 = np.sin(t * omega) / sin_omega
-            result = coef1 * latent1 + coef2 * latent2
-            return result.reshape(latent1.shape)
 
 import numpy as np
 

@@ -322,6 +322,41 @@ class FrequencyFilterCustom(AudioNodeBase):
         else:
             return ([filter_params],)
 
+class FrequencyRange(AudioNodeBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "low_cutoff": ("FLOAT", {"default": 20, "min": 20, "max": 20000, "step": 1}),
+                "high_cutoff": ("FLOAT", {"default": 20000, "min": 20, "max": 20000, "step": 1}),
+                "order": ("INT", {"default": 4, "min": 1, "max": 10, "step": 1}),
+            },
+            "optional": {
+                "previous_range": ("FREQUENCY_RANGE",),
+            },
+        }
+
+    RETURN_TYPES = ("FREQUENCY_RANGE",)
+    FUNCTION = "create_frequency_range"
+    CATEGORY = "RyanOnTheInside/Audio/FrequencyBands"
+
+    def create_frequency_range(self, low_cutoff, high_cutoff, order, previous_range=None):
+        range_params = {
+            "type": "bandpass",
+            "order": order,
+            "low_cutoff": low_cutoff,
+            "high_cutoff": high_cutoff,
+        }
+
+        if previous_range:
+            if isinstance(previous_range, list):
+                previous_range.append(range_params)
+                return (previous_range,)
+            else:
+                return ([previous_range, range_params],)
+        else:
+            return ([range_params],)
+        
 class AudioFeatureVisualizer(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):

@@ -276,3 +276,114 @@ def combine_audio(waveform1, waveform2, weight1=0.5, weight2=0.5):
         combined_waveform = combined_waveform / max_amplitude
 
     return combined_waveform
+
+def calculate_amplitude_envelope(audio, frame_count, frame_rate):
+    # Calculate the amplitude envelope of the audio signal
+    waveform = audio['waveform']
+    sample_rate = audio['sample_rate']
+
+    # Ensure waveform is a NumPy array for processing
+    if isinstance(waveform, torch.Tensor):
+        waveform = waveform.cpu().numpy()
+
+    # Calculate frame length in samples
+    frame_length = int(sample_rate / frame_rate)
+
+    amplitude_envelope = []
+    for i in range(frame_count):
+        start = i * frame_length
+        end = start + frame_length
+        frame = waveform[start:end]
+        if len(frame) == 0:
+            amplitude = 0
+        else:
+            amplitude = np.max(np.abs(frame))
+        amplitude_envelope.append(amplitude)
+
+    return amplitude_envelope
+
+def calculate_rms_energy(audio, frame_count, frame_rate):
+    # Calculate the RMS energy of the audio signal
+    waveform = audio['waveform']
+    sample_rate = audio['sample_rate']
+
+    # Ensure waveform is a NumPy array for processing
+    if isinstance(waveform, torch.Tensor):
+        waveform = waveform.cpu().numpy()
+
+    # Calculate frame length in samples
+    frame_length = int(sample_rate / frame_rate)
+
+    rms_energy = []
+    for i in range(frame_count):
+        start = i * frame_length
+        end = start + frame_length
+        frame = waveform[start:end]
+        if len(frame) == 0:
+            rms = 0
+        else:
+            rms = np.sqrt(np.mean(frame ** 2))
+        rms_energy.append(rms)
+
+    return rms_energy
+
+def calculate_spectral_flux(audio, frame_count, frame_rate):
+    y = audio['waveform']
+    sr = audio['sample_rate']
+    hop_length = int(sr / frame_rate)
+    spectral_flux = []
+    prev_spectrum = None
+    for i in range(0, len(y), hop_length):
+        frame = y[i:i+hop_length]
+        spectrum = np.abs(np.fft.fft(frame))
+        if prev_spectrum is not None:
+            flux = np.sum((spectrum - prev_spectrum) ** 2)
+            spectral_flux.append(flux)
+        else:
+            spectral_flux.append(0)
+        prev_spectrum = spectrum
+    # Normalize
+    spectral_flux = np.array(spectral_flux)
+    spectral_flux = spectral_flux / np.max(spectral_flux)
+    return spectral_flux[:frame_count]
+
+def calculate_zero_crossing_rate(audio, frame_count, frame_rate):
+    """
+    Calculate the Zero Crossing Rate (ZCR) of the audio signal.
+
+    Parameters:
+    - audio: Dictionary containing 'waveform' and 'sample_rate'.
+    - frame_count: Total number of frames to process.
+    - frame_rate: Number of frames per second.
+
+    Returns:
+    - zero_crossing_rates: List of ZCR values for each frame.
+    """
+    waveform = audio['waveform']
+    sample_rate = audio['sample_rate']
+
+    # Ensure waveform is a NumPy array for processing
+    if isinstance(waveform, torch.Tensor):
+        waveform = waveform.cpu().numpy()
+
+    # Flatten the waveform in case it's stereo or multi-channel
+    if waveform.ndim > 1:
+        waveform = np.mean(waveform, axis=0)
+
+    # Calculate frame length in samples
+    frame_length = int(sample_rate / frame_rate)
+
+    zero_crossing_rates = []
+    for i in range(frame_count):
+        start = i * frame_length
+        end = start + frame_length
+        frame = waveform[start:end]
+        if len(frame) == 0:
+            zcr = 0.0
+        else:
+            # Calculate zero crossings
+            zero_crossings = np.where(np.diff(np.sign(frame)))[0]
+            zcr = len(zero_crossings) / frame_length
+        zero_crossing_rates.append(zcr)
+
+    return zero_crossing_rates
