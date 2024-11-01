@@ -55,6 +55,7 @@ from .nodes.audio.audio_nodes import (
     AudioFeatureVisualizer,
     FrequencyFilterCustom,
     FrequencyFilterPreset,
+    FrequencyRange,
     AudioFilter,
     EmptyMaskFromAudio,
     EmptyImageFromAudio,
@@ -249,7 +250,6 @@ from .nodes.flex.feature_modulation import (
     FeatureAccumulate,
     FeatureContiguousInterpolate,
     FeatureRenormalize,
-    FeatureRhythmSmoother,
 )
 
 from .nodes.audio.flex_audio import (
@@ -263,6 +263,8 @@ from .nodes.latents.latent_base import (
     FlexLatentBlend,
     FlexLatentNoise,
 )
+
+from .nodes.latents.latent_frequency_blender import LatentFrequencyBlender
 
 from .nodes.flex.feature_pipe import ManualFeaturePipe
 
@@ -292,6 +294,7 @@ NODE_CLASS_MAPPINGS = {
     "EmbeddingGuidedLatentInterpolate": EmbeddingGuidedLatentInterpolate,
     "FlexLatentBlend":               FlexLatentBlend,
     "FlexLatentNoise":               FlexLatentNoise,
+    "LatentFrequencyBlender":       LatentFrequencyBlender,
     #video
     "FlexVideoSpeed":              FlexVideoSpeed,
     "FlexVideoDirection":          FlexVideoDirection,
@@ -352,6 +355,7 @@ NODE_CLASS_MAPPINGS = {
     "AudioFeatureVisualizer":       AudioFeatureVisualizer,
     "FrequencyFilterCustom":        FrequencyFilterCustom,
     "FrequencyFilterPreset":        FrequencyFilterPreset,
+    "FrequencyRange":               FrequencyRange,
     "AudioFilter":                  AudioFilter,
     "EmptyMaskFromAudio":           EmptyMaskFromAudio,
     "EmptyImageFromAudio":          EmptyImageFromAudio,
