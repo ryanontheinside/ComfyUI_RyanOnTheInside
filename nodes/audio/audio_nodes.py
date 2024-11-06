@@ -120,6 +120,60 @@ class AudioSeparator(AudioNodeBase):
             feature_pipe,
         )
 
+#to be primary in version2    
+class AudioSeparatorSimple(AudioNodeBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "model": ("OPEN_UNMIX_MODEL",),
+                "audio": ("AUDIO",),
+            }
+        }
+
+    RETURN_TYPES = ("AUDIO", "AUDIO", "AUDIO", "AUDIO", "AUDIO")
+    RETURN_NAMES = ("audio", "drums_audio", "vocals_audio", "bass_audio", "other_audio")
+    FUNCTION = "process_audio"
+    CATEGORY = "RyanOnTheInside/Audio/AudioSeparation"
+
+    def process_audio(self, model, audio):
+        waveform = audio['waveform']
+        sample_rate = audio['sample_rate']
+
+        if waveform.dim() == 3:
+            waveform = waveform.squeeze(0) 
+        if waveform.dim() == 1:
+            waveform = waveform.unsqueeze(0)  # Add channel dimension if mono
+        if waveform.shape[0] != 2:
+            waveform = waveform.repeat(2, 1)  # Duplicate mono to stereo if necessary
+            
+        waveform = waveform.unsqueeze(0)
+
+        # Move to appropriate device
+        device = next(model.parameters()).device
+        waveform = waveform.to(device)
+
+        # Perform separation
+        estimates = model(waveform)
+
+        # Create isolated audio objects
+        isolated_audio = {}
+        target_indices = {'drums': 1, 'vocals': 0, 'bass': 2, 'other': 3}
+        for target, index in target_indices.items():
+            target_waveform = estimates[:, index, :, :]
+            isolated_audio[target] = {
+                'waveform': target_waveform.cpu(),
+                'sample_rate': sample_rate
+            }
+
+        return (
+            audio,
+            isolated_audio['drums'],
+            isolated_audio['vocals'],
+            isolated_audio['bass'],
+            isolated_audio['other']
+        )
+
 class AudioFilter(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):

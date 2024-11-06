@@ -38,7 +38,11 @@
 
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
 
-##### 🆕 Recent Updates:
+<details>
+<summary><h3>🆕 Recent Updates:</h3></summary>
+
+- 11/6/24 - **Some cleanup in prep for v2**: Control CogVideo by converting features to spline data
+- 11/1/24 - **Feature to Spline Data**: Control CogVideo by convert features to spline data
 - 10/28/24 - **FlexImageHorizontalToVertical**: Converts horizontal images to vertical format with customizable background effects.
 - 10/23/24 - **Flex Images Now Feature Optional**: You no longer need to specify a feature to use Flex Image nodes.
 - 10/20/24 - **Audio Visualization Nodes**: Over 1 TRILLION ways to customize!
@@ -76,6 +80,8 @@
 - 8/30/24 - **FlexMaskEmanatingRings**: Create dynamic, expanding ring patterns emanating from mask edges.
 - 8/30/24 - **FlexMaskWavePropagation**: Simulate wave-like distortions propagating from mask boundaries.
 - 8/29/24 - **Added feature reactivity to paricle simulations**
+
+</details>
 
 ## 🚀 Quick Start
 
