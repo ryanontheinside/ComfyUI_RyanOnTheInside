@@ -5,7 +5,7 @@ import folder_paths
 from server import PromptServer
 from aiohttp import web
 import shutil
-from .midi_feature import MIDIFeature
+from .features_midi import MIDIFeature
 from .feature_extractors import FeatureExtractorBase
 
 class MIDILoadAndExtract(FeatureExtractorBase):

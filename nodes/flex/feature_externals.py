@@ -105,7 +105,6 @@ class FeatureToSplineData(FlexExternalModulator):
     RETURN_TYPES = ("MASK", "STRING", "FLOAT", "INT", "STRING",)
     RETURN_NAMES = ("mask", "coord_str", "float", "count", "normalized_str",)
     FUNCTION = "convert"
-    CATEGORY = "RyanOnTheInside/FeatureToSplineData"
 
     def convert(self, feature, mask_width, mask_height, sampling_method, interpolation,
                 tension, repeat_output, float_output_type, min_value=0.0, max_value=1.0):
@@ -289,7 +288,6 @@ class SplineRhythmModulator(FlexExternalModulator):
     RETURN_TYPES = ("MASK", "STRING", "FLOAT", "INT", "STRING",)
     RETURN_NAMES = ("mask", "coord_str", "float", "count", "normalized_str",)
     FUNCTION = "modulate_rhythm"
-    CATEGORY = "RyanOnTheInside/SplineRhythmModulator"
 
     def modulate_rhythm(self, coordinates, feature, mask_width, mask_height, 
                        smoothing, direction, float_output_type,

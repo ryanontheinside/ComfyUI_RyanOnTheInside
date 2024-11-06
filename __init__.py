@@ -50,6 +50,7 @@ from .nodes.masks.temporal_masks import (
 
 from .nodes.audio.audio_nodes import (
     AudioSeparator, 
+    AudioSeparatorSimple,
     DownloadOpenUnmixModel,
     # DownloadCREPEModel,
     AudioFeatureVisualizer,
@@ -101,6 +102,7 @@ from .nodes.flex.feature_extractors import(
 
 from .nodes.flex.feature_extractors_audio import(
     AudioFeatureExtractor,
+    AudioFeatureExtractorFirst,
     PitchRangeNode,
     PitchRangePresetNode,
     PitchRangeByNoteNode,
@@ -350,6 +352,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexAudioVisualizerLine":     FlexAudioVisualizerLine,
     #audio  
     "AudioSeparator":               AudioSeparator,
+    "AudioSeparatorSimple":      AudioSeparatorSimple,
     "DownloadOpenUnmixModel":       DownloadOpenUnmixModel,
     # "DownloadCREPEModel":           DownloadCREPEModel,
     "AudioFeatureVisualizer":       AudioFeatureVisualizer,
@@ -376,6 +379,7 @@ NODE_CLASS_MAPPINGS = {
 
     #features   
     "AudioFeatureExtractor":        AudioFeatureExtractor,
+    "AudioFeatureExtractorFirst": AudioFeatureExtractorFirst,
     "PitchFeatureExtractor":        PitchFeatureExtractor,
     "RhythmFeatureExtractor":       RhythmFeatureExtractor,
     "PitchRange":                   PitchRangeNode,
@@ -532,6 +536,10 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ImageCASBatch": "Image Contrast Adaptive Sharpen Batch",
     "ImageIntervalSelectPercentage":  "Image Interval Select %",
     "ImageScaleToTarget": "Upscale To Target",
+
+    "FeatureToSplineData": "***BETA*** Feature To Spline Data",
+    "SplineFeatureModulator": "***BETA*** Spline Feature Modulator",
+    "SplineRhythmModulator": "***BETA*** Spline Rhythm Modulator",
 
 }
 

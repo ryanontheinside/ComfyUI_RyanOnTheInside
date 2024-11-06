@@ -2,6 +2,7 @@ from .feature_extractors import FeatureExtractorBase, FirstFeature
 from .feature_pipe import FeaturePipe
 from .features_audio import AudioFeature, PitchFeature, PitchRange, BaseFeature, RhythmFeature
 from ... import RyanOnTheInside
+from ..audio.audio_nodes import AudioNodeBase
 
 class AudioFeatureExtractor(FeatureExtractorBase):
     @classmethod
@@ -27,6 +28,43 @@ class AudioFeatureExtractor(FeatureExtractorBase):
         feature = AudioFeature(extraction_method, audio, feature_pipe.frame_count, feature_pipe.frame_rate, extraction_method)
         feature.extract()
         return (feature, feature_pipe)
+
+#todo: create base class in prep for version 2
+class AudioFeatureExtractorFirst(FeatureExtractorBase):
+    @classmethod
+    def feature_type(cls) -> type[BaseFeature]:
+        return AudioFeature
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "audio": ("AUDIO",),
+                "width": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 64}),
+                "height": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 64}),
+                "frame_rate": ("FLOAT", {"default": 30.0, "min": 0.1, "max": 240.0, "step": 0.1}),
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE", "FEATURE_PIPE", "INT")
+    RETURN_NAMES = ("feature", "feature_pipe", "frame_count")
+    FUNCTION = "extract_feature"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Audio"
+
+    def extract_feature(self, audio, width, height, frame_rate, extraction_method):
+        empty_frames = AudioNodeBase.create_empty_tensor(audio, frame_rate, height, width, channels=3)
+        feature_pipe = FeaturePipe(frame_rate, empty_frames)
+        feature = AudioFeature(
+            feature_name=extraction_method,
+            audio=audio,
+            frame_count=feature_pipe.frame_count,
+            frame_rate=feature_pipe.frame_rate,
+            feature_type=extraction_method
+        )
+        feature.extract()
+        return (feature, feature_pipe, feature_pipe.frame_count)
 
 class RhythmFeatureExtractor(FirstFeature):
     @classmethod
