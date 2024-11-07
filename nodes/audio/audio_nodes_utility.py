@@ -136,7 +136,7 @@ class AudioConcatenate(AudioUtility):
         concatenated_waveform = concatenate_audio(audio1['waveform'], audio2['waveform'])
         return ({"waveform": concatenated_waveform, "sample_rate": sample_rate},)
 
-class AudioCombine(AudioUtility):
+class Audio_Combine(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
         return {

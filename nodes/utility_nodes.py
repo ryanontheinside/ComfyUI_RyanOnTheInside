@@ -141,7 +141,7 @@ class VideoChunks(UtilityNode):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "chunk_images_into_grids"
 
-class ImageShuffle(UtilityNode):
+class Image_Shuffle(UtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -171,7 +171,7 @@ class ImageShuffle(UtilityNode):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "shuffle_images"
 
-class ImageShuffle(UtilityNode):
+class Image_Shuffle(UtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
         return {
