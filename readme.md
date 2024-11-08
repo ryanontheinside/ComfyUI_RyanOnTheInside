@@ -40,7 +40,7 @@
 
 <details>
 <summary><h3>🆕 Recent Updates:</h3></summary>
-
+- 11/8/24 - **DOOM**: Will it run DOOM? Yes. Yes it will.
 - 11/6/24 - **Some cleanup in prep for v2**: Control CogVideo by converting features to spline data
 - 11/1/24 - **Feature to Spline Data**: Control CogVideo by convert features to spline data
 - 10/28/24 - **FlexImageHorizontalToVertical**: Converts horizontal images to vertical format with customizable background effects.
