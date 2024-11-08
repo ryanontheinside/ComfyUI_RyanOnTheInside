@@ -272,6 +272,8 @@ from .nodes.flex.feature_pipe import ManualFeaturePipe
 
 from .nodes.preprocessors.pose import PoseInterpolator
 
+from .nodes.doom.doom import Doom
+
 import os
 import folder_paths
 
@@ -288,6 +290,7 @@ os.makedirs(midi_path, exist_ok=True)
 NODE_CLASS_MAPPINGS = {
     #NOTE: PoseInterpolator is not working yet
     #"PoseInterpolator": PoseInterpolator,
+    "Doom": Doom,
 
     "ManualFeaturePipe": ManualFeaturePipe,
     "ManualFeatureFromPipe": ManualFeatureFromPipe,
