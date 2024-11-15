@@ -108,7 +108,7 @@ class ManualFeatureNode(FeatureExtractorBase):
 
         return manual_feature
 
-    def create_feature(self, frame_rate, frame_count, frame_numbers, values, last_value, width, height, interpolation_method, extraction_method):
+    def create_feature(self, frame_rate, frame_count, frame_numbers, values, last_value, width, height, interpolation_method):
         # Parse inputs
         frame_numbers = list(map(int, frame_numbers.split(',')))
         values = list(map(float, values.split(',')))
