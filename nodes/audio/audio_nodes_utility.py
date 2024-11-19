@@ -189,6 +189,46 @@ class AudioSubtract(AudioUtility):
         subtracted_waveform = waveform1 - waveform2
         return ({"waveform": subtracted_waveform, "sample_rate": sample_rate},)
 
+class AudioInfo(AudioUtility):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "audio": ("AUDIO",),
+            }
+        }
+
+    RETURN_TYPES = ("FLOAT", "INT", "INT", "INT", "FLOAT", "FLOAT", "FLOAT", "STRING")
+    RETURN_NAMES = ("duration_seconds", "sample_rate", "num_channels", "num_samples", 
+                   "max_amplitude", "mean_amplitude", "rms_amplitude", "bit_depth")
+    FUNCTION = "get_audio_info"
+
+    def get_audio_info(self, audio):
+        waveform, sample_rate = audio['waveform'], audio['sample_rate']
+        
+        # Calculate basic properties
+        num_channels = waveform.shape[1]
+        num_samples = waveform.shape[2]
+        duration_seconds = num_samples / sample_rate
+        
+        # Calculate amplitude statistics
+        max_amplitude = float(torch.max(torch.abs(waveform)))
+        mean_amplitude = float(torch.mean(torch.abs(waveform)))
+        rms_amplitude = float(torch.sqrt(torch.mean(waveform ** 2)))
+        
+        # Get bit depth from dtype
+        bit_depth = str(waveform.dtype)
+        
+        return (
+            duration_seconds,
+            sample_rate,
+            num_channels,
+            num_samples,
+            max_amplitude,
+            mean_amplitude,
+            rms_amplitude,
+            bit_depth
+        )
 
 class AudioDither(AudioUtility):
     @classmethod
