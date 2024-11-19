@@ -87,6 +87,7 @@ from .nodes.audio.audio_nodes_utility import (
     AudioSubtract,
     AudioConcatenate,
     AudioDither,
+    AudioInfo,
 )
 
 from .nodes.flex.feature_extractors import(
@@ -372,6 +373,7 @@ NODE_CLASS_MAPPINGS = {
     "AudioPitchShift":              AudioPitchShift,
     "AudioTimeStretch":             AudioTimeStretch,
     "AudioDither":                  AudioDither,
+    "AudioInfo":                    AudioInfo,
     "AudioGain":                    AudioGain,
     "AudioFade":                   AudioFade,
     "AudioPad":                     AudioPad,
