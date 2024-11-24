@@ -1,7 +1,9 @@
 from .node_configs.node_configs import CombinedMeta
 from collections import OrderedDict
+import os
+import folder_paths
 
-#allows for central management and inheritance of class variables for help documentation
+#NOTE: allows for central management and inheritance of class variables for help documentation
 class RyanOnTheInside(metaclass=CombinedMeta):
     @classmethod
     def get_description(cls):
@@ -275,8 +277,16 @@ from .nodes.preprocessors.pose import PoseInterpolator
 
 from .nodes.doom.doom import Doom
 
-import os
-import folder_paths
+
+HAS_ADVANCED_LIVE_PORTRAIT = os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-AdvancedLivePortrait"))
+
+if HAS_ADVANCED_LIVE_PORTRAIT:
+    from .nodes.flex.flex_advanced_live_portrait import FlexExpressionEditor
+else:
+    print("ComfyUI-AdvancedLivePortrait not found. FlexExpressionEditor will not be available. Install ComfyUI-AdvancedLivePortrait and restart ComfyUI.")
+
+
+
 
 # Get the directory of the current file
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -291,6 +301,7 @@ os.makedirs(midi_path, exist_ok=True)
 NODE_CLASS_MAPPINGS = {
     #NOTE: PoseInterpolator is not working yet
     #"PoseInterpolator": PoseInterpolator,
+
     "Doom": Doom,
 
     "ManualFeaturePipe": ManualFeaturePipe,
@@ -548,7 +559,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
 }
 
-
+if HAS_ADVANCED_LIVE_PORTRAIT:
+    NODE_CLASS_MAPPINGS["FlexExpressionEditor"] = FlexExpressionEditor
 
 
 import re
