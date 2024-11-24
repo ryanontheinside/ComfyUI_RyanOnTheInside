@@ -10,6 +10,7 @@
 - 🌊 **Optical Flow**: Generate masks based on motion in videos
 - ⏳ **Temporal Effects**: Apply time-based transformations to masks and images
 - 🌊 **DEPTH Flow** 🌊: Use flex features to control depthflow nodes, adding parallax animations to your workflows!
+- 🎭 **AdvancedLivePortrait** 🎭: Use flex features to control facial animation expressions! 
 
 ### **Developers**: if you're interested in extending the flex features into your own nodes, check out the [base-class-refactor](../../tree/base-class-refactor) branch and feel free to reach out. 
 
@@ -41,6 +42,7 @@
 <details>
 <summary><h3>🆕 Recent Updates:</h3></summary>
 
+- 11/20/24 - **AdvancedLivePortrait Compatibility**: Exciting news! The AdvancedLivePortrait nodes are now compatible with our feature system, enabling dynamic control over facial animations!
 - 11/19/24 - **AudioInfo**: Added a node that returns audio information, including duration, sample rate, number of channels, number of samples, max amplitude, mean amplitude, and RMS amplitude.
 - 11/8/24 - **DOOM**: Will it run DOOM? Yes. Yes it will.
 - 11/6/24 - **Some cleanup in prep for v2**: Control CogVideo by converting features to spline data
@@ -139,7 +141,17 @@ Dynamic control over various aspects of your workflow:
 
 ## 🤝 Compatible Node Packs
 
-I'm thrilled to announce that external node packs are now compatible with my feature system! One standout example is the Depthflow Nodes pack by akatz-ai.
+I'm thrilled to announce that external node packs are now compatible with my feature system! Here are some notable examples:
+
+### 🎭 AdvancedLivePortrait
+
+The [AdvancedLivePortrait nodes](https://github.com/Fannovel16/ComfyUI-AdvancedLivePortrait) bring powerful facial animation capabilities to ComfyUI, and now they're fully compatible with our feature system! This means you can create dynamic, responsive facial animations that react to audio, MIDI, motion, and more.
+
+Key features when combined with our system:
+- Control facial expressions using audio features
+- Sync lip movements with speech or music
+- Create dynamic emotional responses based on various inputs
+- Modulate animation parameters in real-time
 
 ### 🌊 Depthflow Nodes
 
