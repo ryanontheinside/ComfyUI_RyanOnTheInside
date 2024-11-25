@@ -112,6 +112,8 @@ For detailed information on each and every node, click the ❓ icon present in t
 Particles are now reactive!
 
 [Depthflow compatible!](https://github.com/akatz-ai/ComfyUI-Depthflow-Nodes)
+[Live Portrait Compatible!!](https://github.com/PowerHouseMan/ComfyUI-AdvancedLivePortrait)
+
 ### 🎛️ Flex Features
 Dynamic control over various aspects of your workflow:
 - Modulate IPAdapters, Masks, Images, and Particles based on extracted features
