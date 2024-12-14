@@ -42,6 +42,7 @@
 <details>
 <summary><h3>🆕 Recent Updates:</h3></summary>
 
+- 12/14/24 - **FeatureToFloat**: Convert features to float data. 
 - 11/20/24 - **AdvancedLivePortrait Compatibility**: Exciting news! The AdvancedLivePortrait nodes are now compatible with our feature system, enabling dynamic control over facial animations!
 - 11/19/24 - **AudioInfo**: Added a node that returns audio information, including duration, sample rate, number of channels, number of samples, max amplitude, mean amplitude, and RMS amplitude.
 - 11/8/24 - **DOOM**: Will it run DOOM? Yes. Yes it will.

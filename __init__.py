@@ -239,6 +239,7 @@ from .nodes.flex.feature_externals import (
     SplineRhythmModulator,
     DepthShapeModifier,
     DepthShapeModifierPrecise,
+    FeatureToFloat,
 )
 
 from .nodes.flex.feature_modulation import (
@@ -418,6 +419,7 @@ NODE_CLASS_MAPPINGS = {
     "FeatureToWeightsStrategy":     FeatureToWeightsStrategy,
     "FeatureToSplineData":         FeatureToSplineData,
     "SplineFeatureModulator":      SplineFeatureModulator,
+    "FeatureToFloat":              FeatureToFloat,
     "SplineRhythmModulator":      SplineRhythmModulator,
     "DepthInjection":               DepthInjection,
     "DepthRippleEffect":            DepthRippleEffect,
