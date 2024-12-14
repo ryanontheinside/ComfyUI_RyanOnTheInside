@@ -424,7 +424,24 @@ class SplineRhythmModulator(FlexExternalModulator):
 
         return (masks_out, coord_str, out_floats, len(out_floats), coord_str)
     
+class FeatureToFloat(FlexExternalModulator):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+            }
+        }   
+    
+    RETURN_TYPES = ("FLOAT",)
+    FUNCTION = "get_audio_weights"
+    CATEGORY = "RyanOnTheInside/Audio"
 
+    def get_audio_weights(self, feature):
+        data = []
+        for i in range(feature.frame_count):
+            data.append(feature.get_value_at_frame(i))
+        return (data,) 
     
 #TODO: sub somthing else
 #TODO: really, sub something else
