@@ -278,6 +278,7 @@ from .nodes.preprocessors.pose import PoseInterpolator
 
 from .nodes.doom.doom import Doom
 
+from .nodes.misc.misc_nodes import WhisperToPromptTravel
 
 HAS_ADVANCED_LIVE_PORTRAIT = os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-AdvancedLivePortrait"))
 
@@ -304,6 +305,7 @@ NODE_CLASS_MAPPINGS = {
     #"PoseInterpolator": PoseInterpolator,
 
     "Doom": Doom,
+    "WhisperToPromptTravel": WhisperToPromptTravel,
 
     "ManualFeaturePipe": ManualFeaturePipe,
     "ManualFeatureFromPipe": ManualFeatureFromPipe,
