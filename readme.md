@@ -1,8 +1,12 @@
 # ComfyUI RyanOnTheInside Node Pack
 
 ## Overview
-### RyanOnTheInside node pack introduces dynamic features to ComfyUI:
-  **Dynamic Reactivity**: Almost all nodes in this pack can be made to react to audio, MIDI, motion, time, color, depth, brightness, and more, allowing for incredibly dynamic and responsive workflows. If a node prefixed with  FLEX, then this  reactivity is central to its functionality.**
+### These nodes react to **everything**, including audio.
+  </td>
+    <td colspan="2" style="border: none; padding: 2px 0 0 0;"><img src="./assets/EverythingReactivitycomfyu.gif" width="600" alt="Earth particle collision"></td>
+  </tr>
+ 
+ **Everything Reactivity**: Almost all nodes in this pack can be made to react to audio, MIDI, motion, time, color, depth, brightness, and **more**, allowing for incredibly dynamic and responsive workflows. If a node prefixed with  FLEX, then this reactivity is central to its functionality.**
 
 - 🎆 **Particle Systems**: Create mesmerizing, fluid-like effects
 - 🎵 **Audio & MIDI Processing**: Separate instruments and create audio-reactive visuals
@@ -22,25 +26,22 @@
   </tr>
   <tr>
     <td style="border: none; padding: 2px 2px 0 0;">
-      <img src="./assets/slime.gif" width="300" alt="Time"><br>
+      <img src="./assets/compressed/slime.gif" width="300" alt="Time"><br>
       </td>
     <td>
-      <img src="./assets/tunnel_slime.gif" width="300" alt="Depth Chamber" style="margin-top: 2px;">
+      <img src="./assets/compressed/tunnel_slime.gif" width="300" alt="Depth Chamber" style="margin-top: 2px;">
     </td>
   </tr>
   <tr>
-  <td style="border: none; padding: 2px 0 0 2px;"><img src="./assets/proximity_calc_lava.gif" width="300" alt="Proximity Feature in Action"></td>
+  <td style="border: none; padding: 2px 0 0 2px;"><img src="./assets/compressed/proximity_calc_lava.gif" width="300" alt="Proximity Feature in Action"></td>
   <td style="border: none; padding: 2px 2px 0 0;"><img src="./assets/playhead1.gif" width="300" alt="Audio reactive playhead">
   </tr><tr>
-  </td>
-    <td colspan="2" style="border: none; padding: 2px 0 0 0;"><img src="./assets/earth.gif" width="600" alt="Earth particle collision"></td>
-  </tr>
+
 </table>
 
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
 
-<details>
-<summary><h3>🆕 Recent Updates:</h3></summary>
+<details><summary><h3>🆕 Recent Updates:</h3></summary>
 
 - 12/14/24 - **FeatureToFloat**: Convert features to float data. 
 - 11/20/24 - **AdvancedLivePortrait Compatibility**: Exciting news! The AdvancedLivePortrait nodes are now compatible with our feature system, enabling dynamic control over facial animations!
@@ -345,6 +346,7 @@ Contributions are welcome! Both to the code and EXAMPLE WORKFLOWS!!! If you'd li
 5. Submit a pull request to the main repository
 
 ## License
+The choice of license is out of my hands for the time being, but this will change soon.
 
 This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).
 
