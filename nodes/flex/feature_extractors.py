@@ -1,6 +1,6 @@
 from .feature_pipe import FeaturePipe
 from ... import RyanOnTheInside
-from .features import ManualFeature, TimeFeature, DepthFeature, ColorFeature, BrightnessFeature, MotionFeature, AreaFeature, BaseFeature
+from .features import ManualFeature, WhisperFeature, TimeFeature, DepthFeature, ColorFeature, BrightnessFeature, MotionFeature, AreaFeature, BaseFeature
 from abc import ABC, abstractmethod
 from tqdm import tqdm
 from comfy.utils import ProgressBar
@@ -339,8 +339,6 @@ class AreaFeatureNode(FirstFeature):
         area_feature.extract()
         return (area_feature, feature_pipe)
     
-
-
 
 
 

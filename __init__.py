@@ -103,6 +103,15 @@ from .nodes.flex.feature_extractors import(
     ManualFeatureFromPipe,
 )
 
+from .nodes.flex.feature_extractors_whisper import( 
+    WhisperFeatureNode,
+    TriggerBuilder,
+    TriggerCombiner,
+    ContextModifier,
+    WhisperToPromptTravel,
+    WhisperTextRenderer,
+)
+
 from .nodes.flex.feature_extractors_audio import(
     AudioFeatureExtractor,
     AudioFeatureExtractorFirst,
@@ -278,8 +287,6 @@ from .nodes.preprocessors.pose import PoseInterpolator
 
 from .nodes.doom.doom import Doom
 
-from .nodes.misc.misc_nodes import WhisperToPromptTravel
-
 HAS_ADVANCED_LIVE_PORTRAIT = os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-AdvancedLivePortrait"))
 
 if HAS_ADVANCED_LIVE_PORTRAIT:
@@ -417,6 +424,11 @@ NODE_CLASS_MAPPINGS = {
     "LocationFromPoint":            LocationFromPoint,
     "LocationTransform":            LocationTransform,
     "AreaFeatureNode":              AreaFeatureNode,
+    "WhisperFeature":               WhisperFeatureNode,
+    "TriggerBuilder":               TriggerBuilder,
+    "TriggerCombiner":              TriggerCombiner,
+    "ContextModifier":              ContextModifier,
+    "WhisperTextRenderer":         WhisperTextRenderer,
 
     "FeatureToWeightsStrategy":     FeatureToWeightsStrategy,
     "FeatureToSplineData":         FeatureToSplineData,
