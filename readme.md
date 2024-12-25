@@ -2,19 +2,14 @@
 
 ## Overview
 ### These nodes react to **everything**, including audio.
-  </td>
-    <td colspan="2" style="border: none; padding: 2px 0 0 0;">
-      <video width="600" autoplay loop muted playsinline>
-        <source src="https://github.com/user-attachments/assets/d0527ec7-5d24-443b-8ad1-19043ed564ed" type="video/mp4">
-      </video>
-    </td>
-  </tr>
- 
- **Everything Reactivity**: Almost all nodes in this pack can be made to react to audio, MIDI, motion, time, color, depth, brightness, and **more**, allowing for incredibly dynamic and responsive workflows. If a node prefixed with  FLEX, then this reactivity is central to its functionality.**
 
-- 🎆 **Particle Systems**: Create mesmerizing, fluid-like effects
+<img src="https://github.com/user-attachments/assets/f451e7a4-924f-4719-ba19-178674447924" style="width: 600px;" alt="Everything Reactivity">
+
+**Everything Reactivity**: Almost all nodes in this pack can be made to react to audio, MIDI, motion, time, color, depth, brightness, and **more**, allowing for incredibly dynamic and responsive workflows. If a node prefixed with  FLEX, then this reactivity is central to its functionality.**
+
+- 💪 **Flex Features**: Dynamic control over IPAdapters, Masks, Images, Videos, Audio, and more
 - 🎵 **Audio & MIDI Processing**: Separate instruments and create audio-reactive visuals
-- 🎛️ **Flex Features**: Dynamic control over IPAdapters, Masks, Images, Videos, Audio, and more
+- 🎆 **Particle Systems**: Create mesmerizing, fluid-like effects
 - 🌊 **Optical Flow**: Generate masks based on motion in videos
 - ⏳ **Temporal Effects**: Apply time-based transformations to masks and images
 - 🌊 **DEPTH Flow** 🌊: Use flex features to control depthflow nodes, adding parallax animations to your workflows!
@@ -22,48 +17,31 @@
 
 ### **Developers**: if you're interested in extending the flex features into your own nodes, check out the [base-class-refactor](../../tree/base-class-refactor) branch and feel free to reach out. 
 
-
 <table style="border-collapse: collapse; border: none;">
   <tr>
     <td style="border: none; padding: 0 2px 2px 0;">
-      <video width="300" autoplay loop muted playsinline>
-        <source src="https://github.com/user-attachments/assets/f9a7c5fc-034d-4019-a587-10ab016e2db6" type="video/mp4">
-      </video>
+      <img src="https://github.com/user-attachments/assets/e73d566a-0bce-4e71-a047-a8a1734b68c8" style="width: 300px;" alt="Particle Systems">
     </td>
     <td style="border: none; padding: 0 0 2px 2px;">
-      <video width="300" autoplay loop muted playsinline>
-        <source src="https://github.com/user-attachments/assets/218ef31b-0803-4d0a-b3bf-de5f847d8759" type="video/mp4">
-      </video>
+      <img src="https://github.com/user-attachments/assets/8072877f-131e-492d-ae4c-163b70274bdd" style="width: 300px;" alt="Optical Flow">
     </td>
   </tr>
   <tr>
     <td style="border: none; padding: 2px 0 0 2px;">
-      <video width="300" autoplay loop muted playsinline>
-        <source src="https://github.com/user-attachments/assets/9cf529fe-d9c7-4c7c-896d-b969fec43c48" type="video/mp4">
-      </video>
+      <img src="https://github.com/user-attachments/assets/5ef3117b-17e0-4d99-8bd2-839c68f26c61" style="width: 300px;" alt="Proximity Calc">
     </td>
     <td style="border: none; padding: 2px 2px 0 0;">
-      <video width="300" autoplay loop muted playsinline>
-        <source src="https://github.com/user-attachments/assets/9701157d-77ad-4786-99fd-f796d70c9c83" type="video/mp4">
-      </video>
+      <img src="https://github.com/user-attachments/assets/3ef053b2-8e9b-4bfe-9e59-2a2c77ef8aff" style="width: 300px;" alt="Playhead">
     </td>
   </tr>
   <tr>
     <td style="border: none; padding: 2px 2px 0 0;">
-      <video width="300" autoplay loop muted playsinline>
-        <source src="https://github.com/user-attachments/assets/0e01fd25-cf8e-4ab1-be04-82e792c65551" type="video/mp4">
-      </video>
+      <img src="https://github.com/user-attachments/assets/3076b639-cf07-4b19-a50e-2e2e9332db85" style="width: 300px;" alt="Slime">
     </td>
     <td>
-      <video width="300" autoplay loop muted playsinline>
-        <source src="https://github.com/user-attachments/assets/79cc73ad-b8dc-4c1e-a962-3f3fd5e26894" type="video/mp4">
-      </video>
+      <img src="https://github.com/user-attachments/assets/a46436cd-16e6-483e-8a8d-ea5ee301c487" style="width: 300px;" alt="Tunnel Slime">
     </td>
   </tr>
-  
-
-  <tr>
-
 </table>
 
 *Examples showcasing various effects using particle emitters, vortices, and other node features*
