@@ -3,7 +3,11 @@
 ## Overview
 ### These nodes react to **everything**, including audio.
   </td>
-    <td colspan="2" style="border: none; padding: 2px 0 0 0;"><img src="./assets/EverythingReactivitycomfyu.gif" width="600" alt="Earth particle collision"></td>
+    <td colspan="2" style="border: none; padding: 2px 0 0 0;">
+      <video width="600" autoplay loop muted playsinline>
+        <source src="https://github.com/user-attachments/assets/d0527ec7-5d24-443b-8ad1-19043ed564ed" type="video/mp4">
+      </video>
+    </td>
   </tr>
  
  **Everything Reactivity**: Almost all nodes in this pack can be made to react to audio, MIDI, motion, time, color, depth, brightness, and **more**, allowing for incredibly dynamic and responsive workflows. If a node prefixed with  FLEX, then this reactivity is central to its functionality.**
@@ -21,21 +25,44 @@
 
 <table style="border-collapse: collapse; border: none;">
   <tr>
-    <td style="border: none; padding: 0 2px 2px 0;"><img src="./assets/particle_systems.gif" width="300" alt="RyanOnTheInside particle demo header"></td>
-    <td style="border: none; padding: 0 0 2px 2px;"><img src="./assets/optical_flow.gif" width="300" alt="RyanOnTheInside optical flow demo"></td>
-  </tr>
-  <tr>
-    <td style="border: none; padding: 2px 2px 0 0;">
-      <img src="./assets/compressed/slime.gif" width="300" alt="Time"><br>
-      </td>
-    <td>
-      <img src="./assets/compressed/tunnel_slime.gif" width="300" alt="Depth Chamber" style="margin-top: 2px;">
+    <td style="border: none; padding: 0 2px 2px 0;">
+      <video width="300" autoplay loop muted playsinline>
+        <source src="https://github.com/user-attachments/assets/f9a7c5fc-034d-4019-a587-10ab016e2db6" type="video/mp4">
+      </video>
+    </td>
+    <td style="border: none; padding: 0 0 2px 2px;">
+      <video width="300" autoplay loop muted playsinline>
+        <source src="https://github.com/user-attachments/assets/218ef31b-0803-4d0a-b3bf-de5f847d8759" type="video/mp4">
+      </video>
     </td>
   </tr>
   <tr>
-  <td style="border: none; padding: 2px 0 0 2px;"><img src="./assets/compressed/proximity_calc_lava.gif" width="300" alt="Proximity Feature in Action"></td>
-  <td style="border: none; padding: 2px 2px 0 0;"><img src="./assets/playhead1.gif" width="300" alt="Audio reactive playhead">
-  </tr><tr>
+    <td style="border: none; padding: 2px 0 0 2px;">
+      <video width="300" autoplay loop muted playsinline>
+        <source src="https://github.com/user-attachments/assets/9cf529fe-d9c7-4c7c-896d-b969fec43c48" type="video/mp4">
+      </video>
+    </td>
+    <td style="border: none; padding: 2px 2px 0 0;">
+      <video width="300" autoplay loop muted playsinline>
+        <source src="https://github.com/user-attachments/assets/9701157d-77ad-4786-99fd-f796d70c9c83" type="video/mp4">
+      </video>
+    </td>
+  </tr>
+  <tr>
+    <td style="border: none; padding: 2px 2px 0 0;">
+      <video width="300" autoplay loop muted playsinline>
+        <source src="https://github.com/user-attachments/assets/0e01fd25-cf8e-4ab1-be04-82e792c65551" type="video/mp4">
+      </video>
+    </td>
+    <td>
+      <video width="300" autoplay loop muted playsinline>
+        <source src="https://github.com/user-attachments/assets/79cc73ad-b8dc-4c1e-a962-3f3fd5e26894" type="video/mp4">
+      </video>
+    </td>
+  </tr>
+  
+
+  <tr>
 
 </table>
 
