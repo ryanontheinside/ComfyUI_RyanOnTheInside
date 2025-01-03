@@ -24,8 +24,8 @@ class FlexMaskBase(FlexBase, MaskBase):
         
         # Add feature-specific inputs
         required.update({
-            "feature": ("FEATURE",),
-            "feature_pipe": ("FEATURE_PIPE",),
+            "feature_param": (cls.get_modifiable_params(),),
+            "feature_mode": (["relative", "absolute"], {"default": "relative"}),
         })
         
         # Merge optional inputs
@@ -47,6 +47,12 @@ class FlexMaskBase(FlexBase, MaskBase):
         # Initialize both parent classes
         FlexBase.__init__(self)
         MaskBase.__init__(self)
+
+    @classmethod
+    @abstractmethod
+    def get_modifiable_params(cls):
+        """Return a list of parameter names that can be modulated."""
+        return ["None"]
 
     @abstractmethod
     def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:

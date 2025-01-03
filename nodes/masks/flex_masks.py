@@ -295,10 +295,10 @@ class FlexMaskBinary(FlexMaskBase):
 
     def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, mask_strength, invert, subtract_original, grow_with_blur, **kwargs):
         # Call the parent class's apply_mask_operation with all parameters
-        return self.apply_mask_operation(
+        return (self.apply_mask_operation(
             masks, feature, feature_pipe, strength, feature_threshold, mask_strength,
             invert, subtract_original, grow_with_blur, **kwargs
-        )
+        ),)
 
 class FlexMaskWavePropagation(FlexMaskBase):
     @classmethod
@@ -399,10 +399,10 @@ class FlexMaskWavePropagation(FlexMaskBase):
 
     def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, mask_strength, invert, subtract_original, grow_with_blur, **kwargs):
         # Call the parent class's apply_mask_operation with all parameters
-        return self.apply_mask_operation(
+        return (self.apply_mask_operation(
             masks, feature, feature_pipe, strength, feature_threshold, mask_strength,
             invert, subtract_original, grow_with_blur, **kwargs
-        )
+        ),)
 
 class FlexMaskEmanatingRings(FlexMaskBase):
     @classmethod
