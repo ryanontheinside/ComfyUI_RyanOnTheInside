@@ -219,110 +219,111 @@ class FlexMaskVoronoiScheduled(FlexMaskBase):
 class FlexMaskBinary(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
+        base_inputs = super().INPUT_TYPES()
+        base_required = base_inputs["required"]
+        
+        # Add our specific inputs
+        base_required.update({
+            "threshold": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "method": (["simple", "adaptive", "hysteresis", "edge"],),
+            "max_smoothing": ("INT", {"default": 21, "min": 0, "max": 51, "step": 2}),
+            "max_edge_enhancement": ("FLOAT", {"default": 2.0, "min": 0.0, "max": 10.0, "step": 0.1}),
+            "use_epsilon": ("BOOLEAN", {"default": False}),
+        })
+        
         return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "threshold": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "method": (["simple", "adaptive", "hysteresis", "edge"],),
-                "max_smoothing": ("INT", {"default": 21, "min": 0, "max": 51, "step": 2}),
-                "max_edge_enhancement": ("FLOAT", {"default": 2.0, "min": 0.0, "max": 10.0, "step": 0.1}),
-                "feature_param": (["threshold", "none", "smoothing", "edge_enhancement"],),
-                "use_epsilon": ("BOOLEAN", {"default": False}),
-            }
+            "required": base_required,
+            "optional": base_inputs.get("optional", {})
         }
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, threshold: float, 
-                     method: str, max_smoothing: int, max_edge_enhancement: float, 
-                     feature_param: str, use_epsilon: bool, **kwargs) -> np.ndarray:
-        mask = mask.astype(np.float32)
-        mask = np.clip(mask, 0, 1)
+    @classmethod
+    def get_modifiable_params(cls):
+        """Return parameters that can be modulated by features"""
+        return ["threshold", "max_smoothing", "max_edge_enhancement", "None"]
 
-        # Apply smoothing
-        if feature_param == "smoothing":
-            smoothing = int(max_smoothing * feature_value * strength)
-        else:
-            smoothing = int(max_smoothing * 0.5)
+    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
+        # Get parameters that might be modulated
+        threshold = kwargs.get('threshold', 0.5)
+        max_smoothing = kwargs.get('max_smoothing', 21)
+        max_edge_enhancement = kwargs.get('max_edge_enhancement', 2.0)
+        method = kwargs.get('method', 'simple')
+        use_epsilon = kwargs.get('use_epsilon', False)
+        feature_param = kwargs.get('feature_param', 'None')
+        feature_mode = kwargs.get('feature_mode', 'relative')
         
-        if smoothing > 0:
-            mask = cv2.GaussianBlur(mask, (smoothing * 2 + 1, smoothing * 2 + 1), 0)
+        # Apply feature modulation to the selected parameter
+        if feature_param != 'None':
+            if feature_param == 'threshold':
+                threshold = self.modulate_param('threshold', threshold, feature_value, strength, feature_mode)
+            elif feature_param == 'max_smoothing':
+                max_smoothing = int(self.modulate_param('max_smoothing', max_smoothing, feature_value, strength, feature_mode))
+            elif feature_param == 'max_edge_enhancement':
+                max_edge_enhancement = self.modulate_param('max_edge_enhancement', max_edge_enhancement, feature_value, strength, feature_mode)
 
-        # Apply edge enhancement
-        if feature_param == "edge_enhancement":
-            edge_enhancement = max_edge_enhancement * feature_value * strength
-        else:
-            edge_enhancement = max_edge_enhancement * 0.5
-        
-        if edge_enhancement > 0:
-            laplacian = cv2.Laplacian(mask, cv2.CV_32F, ksize=3)
-            mask = np.clip(mask + edge_enhancement * laplacian, 0, 1)
+        # Ensure parameters stay within valid ranges
+        threshold = np.clip(threshold, 0.0, 1.0)
+        max_smoothing = np.clip(max_smoothing, 0, 51)
+        max_smoothing = max_smoothing + (1 - max_smoothing % 2)  # Ensure odd number
+        max_edge_enhancement = np.clip(max_edge_enhancement, 0.0, 10.0)
 
-        # Adjust threshold
-        if feature_param == "threshold":
-            adjusted_threshold = threshold + (feature_value - 0.5) * strength * 0.5
-        else:
-            adjusted_threshold = threshold
-        adjusted_threshold = max(0.0, min(1.0, adjusted_threshold))
+        # Process the mask based on method
+        if method == 'simple':
+            return np.where(mask > threshold, 1.0, 0.0)
+        elif method == 'adaptive':
+            # Apply adaptive thresholding
+            mask_8bit = (mask * 255).astype(np.uint8)
+            block_size = max_smoothing
+            C = threshold * 10  # Scale threshold for adaptive method
+            binary_mask = cv2.adaptiveThreshold(mask_8bit, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, block_size, C)
+            return binary_mask.astype(float) / 255.0
+        elif method == 'hysteresis':
+            # Apply hysteresis thresholding (similar to Canny edge detection thresholding)
+            low_threshold = threshold * 0.5
+            high_threshold = threshold
+            strong_edges = mask > high_threshold
+            weak_edges = (mask >= low_threshold) & (mask <= high_threshold)
+            return strong_edges.astype(float) + weak_edges.astype(float) * 0.5
+        else:  # edge
+            # Apply edge detection with enhancement
+            mask_8bit = (mask * 255).astype(np.uint8)
+            edges = cv2.Canny(mask_8bit, int(threshold * 255 * 0.5), int(threshold * 255))
+            if max_edge_enhancement > 1.0:
+                kernel_size = int(max_edge_enhancement)
+                kernel = np.ones((kernel_size, kernel_size), np.uint8)
+                edges = cv2.dilate(edges, kernel, iterations=1)
+            return edges.astype(float) / 255.0
 
-        if method == "simple":
-            if use_epsilon:
-                epsilon = 1e-7  # Small value to avoid exact comparisons
-                binary_mask = ((mask > adjusted_threshold + epsilon) | 
-                               (abs(mask - adjusted_threshold) < epsilon)).astype(np.float32)
-            else:
-                binary_mask = (mask > adjusted_threshold).astype(np.float32)
-        elif method == "adaptive":
-            mask_uint8 = (mask * 255).astype(np.uint8)
-            binary_mask = cv2.adaptiveThreshold(
-                mask_uint8,
-                1,
-                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY,
-                11,  # block size
-                2    # C constant
-            ).astype(np.float32)
-        elif method == "hysteresis":
-            low_threshold = max(0, adjusted_threshold - 0.1)
-            high_threshold = min(1, adjusted_threshold + 0.1)
-            low_mask = mask > low_threshold
-            high_mask = mask > high_threshold
-            binary_mask = cv2.connectedComponents((high_mask * 255).astype(np.uint8))[1]
-            binary_mask = ((binary_mask > 0) & low_mask).astype(np.float32)
-        elif method == "edge":
-            mask_uint8 = (mask * 255).astype(np.uint8)
-            edges = cv2.Canny(mask_uint8, 
-                              int(adjusted_threshold * 255 * 0.5), 
-                              int(adjusted_threshold * 255 * 1.5))
-            binary_mask = edges.astype(np.float32) / 255.0
-
-        return binary_mask
-
-    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, invert, 
-                      subtract_original, grow_with_blur, threshold, method, max_smoothing, 
-                      max_edge_enhancement, feature_param, use_epsilon, **kwargs):
-        return (self.apply_mask_operation(masks, feature, feature_pipe, strength, feature_threshold, 
-                                          invert, subtract_original, grow_with_blur, 
-                                          threshold=threshold, method=method, 
-                                          max_smoothing=max_smoothing, 
-                                          max_edge_enhancement=max_edge_enhancement, 
-                                          feature_param=feature_param,
-                                          use_epsilon=use_epsilon, **kwargs),)
+    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, mask_strength, invert, subtract_original, grow_with_blur, **kwargs):
+        # Call the parent class's apply_mask_operation with all parameters
+        return self.apply_mask_operation(
+            masks, feature, feature_pipe, strength, feature_threshold, mask_strength,
+            invert, subtract_original, grow_with_blur, **kwargs
+        )
 
 class FlexMaskWavePropagation(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
-        cls.feature_threshold_default = 0.25
+        base_inputs = super().INPUT_TYPES()
+        base_required = base_inputs["required"]
+        
+        # Add our specific inputs
+        base_required.update({
+            "wave_speed": ("FLOAT", {"default": 50.0, "min": 0.1, "max": 100.0, "step": 0.5}),
+            "wave_amplitude": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.05}),
+            "wave_decay": ("FLOAT", {"default": 5.0, "min": 0.9, "max": 10.0, "step": 0.001}),
+            "wave_frequency": ("FLOAT", {"default": 0.1, "min": 0.01, "max": 10.0, "step": 0.01}),
+            "max_wave_field": ("FLOAT", {"default": 750.0, "min": 10.0, "max": 10000.0, "step": 10.0}),
+        })
+        
         return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "wave_speed": ("FLOAT", {"default": 50.0, "min": 0.1, "max": 100.0, "step": 0.5}),
-                "wave_amplitude": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.05}),
-                "wave_decay": ("FLOAT", {"default": 5.0, "min": 0.9, "max": 10.0, "step": 0.001}),
-                "wave_frequency": ("FLOAT", {"default": 0.1, "min": 0.01, "max": 10.0, "step": 0.01}),
-                "max_wave_field": ("FLOAT", {"default": 750.0, "min": 10.0, "max": 10000.0, "step": 10.0}),
-            }
+            "required": base_required,
+            "optional": base_inputs.get("optional", {})
         }
+
+    @classmethod
+    def get_modifiable_params(cls):
+        """Return parameters that can be modulated by features"""
+        return ["wave_speed", "wave_amplitude", "wave_decay", "wave_frequency", "None"]
 
     def __init__(self):
         super().__init__()
@@ -330,62 +331,78 @@ class FlexMaskWavePropagation(FlexMaskBase):
         self.frame_count = 0
 
     def process_mask_below_threshold(self, mask, feature_value, strength, **kwargs):
+        """Reset wave field when below threshold"""
         self.wave_field = None
         self.frame_count = 0
         return mask
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, 
-                     wave_speed: float, wave_amplitude: float, wave_decay: float, 
-                     wave_frequency: float, max_wave_field: float, **kwargs) -> np.ndarray:
-        height, width = mask.shape
+    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
+        # Get parameters that might be modulated
+        wave_speed = kwargs.get('wave_speed', 50.0)
+        wave_amplitude = kwargs.get('wave_amplitude', 1.0)
+        wave_decay = kwargs.get('wave_decay', 5.0)
+        wave_frequency = kwargs.get('wave_frequency', 0.1)
+        max_wave_field = kwargs.get('max_wave_field', 750.0)
+        feature_param = kwargs.get('feature_param', 'None')
+        feature_mode = kwargs.get('feature_mode', 'relative')
+        frame_index = kwargs.get('frame_index', 0)
         
+        # Apply feature modulation to the selected parameter
+        if feature_param != 'None':
+            if feature_param == 'wave_speed':
+                wave_speed = self.modulate_param('wave_speed', wave_speed, feature_value, strength, feature_mode)
+            elif feature_param == 'wave_amplitude':
+                wave_amplitude = self.modulate_param('wave_amplitude', wave_amplitude, feature_value, strength, feature_mode)
+            elif feature_param == 'wave_decay':
+                wave_decay = self.modulate_param('wave_decay', wave_decay, feature_value, strength, feature_mode)
+            elif feature_param == 'wave_frequency':
+                wave_frequency = self.modulate_param('wave_frequency', wave_frequency, feature_value, strength, feature_mode)
+
+        # Ensure parameters stay within valid ranges
+        wave_speed = np.clip(wave_speed, 0.1, 100.0)
+        wave_amplitude = np.clip(wave_amplitude, 0.1, 2.0)
+        wave_decay = np.clip(wave_decay, 0.9, 10.0)
+        wave_frequency = np.clip(wave_frequency, 0.01, 10.0)
+        max_wave_field = np.clip(max_wave_field, 10.0, 10000.0)
+
+        # Initialize or update wave field
         if self.wave_field is None:
-            self.wave_field = np.zeros((height, width), dtype=np.float32)
+            self.wave_field = np.zeros_like(mask)
+            self.frame_count = 0
         
-        # Find mask boundary
-        kernel = np.ones((3,3), np.uint8)
-        boundary = cv2.dilate(mask.astype(np.uint8), kernel, iterations=1) - mask.astype(np.uint8)
+        # Update frame count
+        self.frame_count = frame_index
+
+        # Create wave propagation
+        dt = 1.0 / 30.0  # Assuming 30 fps
+        wave_field = self.wave_field.copy()
         
-        # Reset wave field where the mask is not present
-        self.wave_field[mask == 0] *= wave_decay
+        # Add new waves from mask
+        wave_field += mask * wave_amplitude * np.sin(2 * np.pi * wave_frequency * self.frame_count * dt)
         
-        # Emit wave from boundary and propagate
-        self.wave_field += boundary * feature_value * wave_amplitude
-        self.wave_field = cv2.GaussianBlur(self.wave_field, (0, 0), sigmaX=wave_speed)
+        # Apply wave equation
+        laplacian = cv2.Laplacian(wave_field, cv2.CV_32F)
+        wave_field += wave_speed * dt * laplacian
         
         # Apply decay
-        self.wave_field *= wave_decay
+        wave_field *= np.exp(-wave_decay * dt)
         
-        # Normalize wave field if it exceeds max_wave_field
-        max_value = np.max(np.abs(self.wave_field))
-        if max_value > max_wave_field:
-            self.wave_field *= (max_wave_field / max_value)
+        # Clip to prevent instability
+        wave_field = np.clip(wave_field, -max_wave_field, max_wave_field)
         
-        time_factor = self.frame_count * wave_frequency
-        wave_pattern = np.sin(self.wave_field + time_factor) * 0.5 + 0.5
+        # Store updated wave field
+        self.wave_field = wave_field
         
-        # Combine with original mask
-        result_mask = np.clip(mask + wave_pattern * strength, 0, 1)
-        
-        # Print debug information
-        print(f"Frame: {self.frame_count}")
-        print(f"Wave field min/max: {self.wave_field.min():.4f} / {self.wave_field.max():.4f}")
-        print(f"Wave pattern min/max: {wave_pattern.min():.4f} / {wave_pattern.max():.4f}")
-        print(f"Result mask min/max: {result_mask.min():.4f} / {result_mask.max():.4f}")
-        print("---")
-        
-        self.frame_count += 1
-        
-        return result_mask.astype(np.float32)
+        # Normalize output to [0, 1] range
+        result = (wave_field - wave_field.min()) / (wave_field.max() - wave_field.min() + 1e-8)
+        return result
 
-    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, 
-                      invert, subtract_original, grow_with_blur, **kwargs):
-        # Reset wave_field and frame_count for each new feature input
-        self.wave_field = None
-        self.frame_count = 0
-        return (self.apply_mask_operation(masks, feature, feature_pipe, strength, 
-                                          feature_threshold, invert, subtract_original, 
-                                          grow_with_blur, **kwargs),)
+    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, mask_strength, invert, subtract_original, grow_with_blur, **kwargs):
+        # Call the parent class's apply_mask_operation with all parameters
+        return self.apply_mask_operation(
+            masks, feature, feature_pipe, strength, feature_threshold, mask_strength,
+            invert, subtract_original, grow_with_blur, **kwargs
+        )
 
 class FlexMaskEmanatingRings(FlexMaskBase):
     @classmethod
