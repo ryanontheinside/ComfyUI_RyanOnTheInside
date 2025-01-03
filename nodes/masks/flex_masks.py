@@ -1,13 +1,11 @@
-from .mask_base import FlexMaskBase
+from .flex_mask_base import FlexMaskBase
 from .mask_utils import morph_mask, warp_mask, transform_mask, combine_masks,apply_easing
 import math
 import numpy as np
 from .voronoi_noise import VoronoiNoise #NOTE credit for Voronoi goes to Alan Huang https://github.com/alanhuang67/
 from comfy.model_management import get_torch_device
 import cv2
-from .mask_base import FlexMaskBase
 from scipy.ndimage import distance_transform_edt
-from .mask_base import FlexMaskBase
 from .shape_utils import create_shape_mask, get_available_shapes
 import torch
 from typing import List

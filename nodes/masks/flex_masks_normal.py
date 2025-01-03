@@ -1,8 +1,9 @@
 import numpy as np
 import torch
 import cv2
-from .mask_base import FlexMaskBase
+from .flex_mask_base import FlexMaskBase
 
+#NOTE: this is a work in progress, it sucks
 class FlexMaskNormalBase(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):

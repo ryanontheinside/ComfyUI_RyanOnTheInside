@@ -69,8 +69,6 @@ class AudioGain(AudioEffect):
         amplified_waveform = apply_gain(waveform, gain_db)
         return ({"waveform": amplified_waveform, "sample_rate": sample_rate},)
 
-
-
 class AudioTimeStretch(AudioEffect):
     @classmethod
     def INPUT_TYPES(cls):

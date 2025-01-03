@@ -1,91 +1,36 @@
-# custom_nodes/ComfyUI_RyanOnTheInside/nodes/latents/latent_base.py
-
+from .flex_latent_base import FlexLatentBase
 import numpy as np
-import torch
-from abc import ABC, abstractmethod
-from comfy.utils import ProgressBar
-from ... import RyanOnTheInside
 
-#NOTE: this is a work in progress, it sucks
-
-class FlexLatentBase(RyanOnTheInside, ABC):
+class FlexLatentInterpolate(FlexLatentBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "latents": ("LATENT",),
-                "feature": ("FEATURE",),
-                "feature_pipe": ("FEATURE_PIPE",),
-                "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "feature_param": (cls.get_modifiable_params(), {"default": cls.get_modifiable_params()[0]}),
-                "feature_mode": (["relative", "absolute"], {"default": "relative"}),
-            }
-        }
-
-    CATEGORY = "RyanOnTheInside/FlexLatent"
-    RETURN_TYPES = ("LATENT",)
-    FUNCTION = "apply_effect"
-
-    def __init__(self):
-        self.progress_bar = None
-
-    def start_progress(self, total_steps, desc="Processing"):
-        self.progress_bar = ProgressBar(total_steps)
-
-    def update_progress(self):
-        if self.progress_bar:
-            self.progress_bar.update(1)
-
-    def end_progress(self):
-        self.progress_bar = None
+        inputs = super().INPUT_TYPES()
+        inputs["required"].update({
+            "latent_2": ("LATENT",),
+            "interpolation_mode": (["Linear", "Spherical"], {"default": "Linear"}),
+        })
+        return inputs
 
     @classmethod
-    @abstractmethod
     def get_modifiable_params(cls):
-        """Return a list of parameter names that can be modulated."""
-        return []
+        return ["None"]
 
-    def modulate_param(self, param_name, param_value, feature_value, strength, mode):
-        if mode == "relative":
-            return param_value * (1 + (feature_value - 0.5) * strength)
-        else:  # absolute
-            return param_value * feature_value * strength
+    def apply_effect_internal(self, latent: np.ndarray, **kwargs) -> np.ndarray:
+        feature_value = kwargs['feature_value']
+        strength = kwargs['strength']
+        latent_2 = kwargs['latent_2']
+        interpolation_mode = kwargs['interpolation_mode']
+        frame_index = kwargs['frame_index']
 
-    def apply_effect(self, latents, feature, feature_pipe, strength, feature_threshold, feature_param, feature_mode, **kwargs):
-        num_frames = feature_pipe.frame_count
-        latents_np = latents["samples"].cpu().numpy()
+        latent_2_np = latent_2["samples"].cpu().numpy()[frame_index]
 
-        self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
-
-        result = []
-        for i in range(num_frames):
-            latent = latents_np[i]
-            feature_value = feature.get_value_at_frame(i)
-            kwargs['frame_index'] = i
-            kwargs['feature_value'] = feature_value
-            kwargs['strength'] = strength
-            kwargs['feature_param'] = feature_param
-            kwargs['feature_mode'] = feature_mode
-
-            if feature_value >= feature_threshold:
-                processed_latent = self.process_latent(latent, **kwargs)
-            else:
-                processed_latent = latent
-
-            result.append(processed_latent)
-            self.update_progress()
-
-        self.end_progress()
-
-        result_np = np.stack(result)
-        result_tensor = torch.from_numpy(result_np).float()
-
-        return ({"samples": result_tensor},)
-
-    @abstractmethod
-    def process_latent(self, latent: np.ndarray, **kwargs) -> np.ndarray:
-        """Process the latent using subclass-specific logic."""
+        # Perform interpolation
+        t = np.clip(feature_value * strength, 0.0, 1.0)
+        if interpolation_mode == "Linear":
+            result = (1 - t) * latent + t * latent_2_np
+        else:  # Spherical interpolation
+            result = self.spherical_interpolation(latent, latent_2_np, t)
+        return result
 
     def spherical_interpolation(self, latent1, latent2, t):
         # Flatten the latents
@@ -108,56 +53,6 @@ class FlexLatentBase(RyanOnTheInside, ABC):
             result = coef1 * latent1 + coef2 * latent2
             return result.reshape(latent1.shape)
 
-# custom_nodes/ComfyUI_RyanOnTheInside/nodes/latents/flex_latent_interpolate.py
-
-import numpy as np
-
-class FlexLatentInterpolate(FlexLatentBase):
-    @classmethod
-    def INPUT_TYPES(cls):
-        inputs = super().INPUT_TYPES()
-        inputs["required"].update({
-            "latent_2": ("LATENT",),
-            "interpolation_mode": (["Linear", "Spherical"], {"default": "Linear"}),
-        })
-        return inputs
-
-    @classmethod
-    def get_modifiable_params(cls):
-        return ["None"]
-
-    def process_latent(self, latent: np.ndarray, **kwargs) -> np.ndarray:
-        feature_value = kwargs['feature_value']
-        strength = kwargs['strength']
-        feature_param = kwargs['feature_param']
-        feature_mode = kwargs['feature_mode']
-        latent_2 = kwargs['latent_2']
-        interpolation_mode = kwargs['interpolation_mode']
-
-        # Modulate any parameters if needed
-        if feature_param in self.get_modifiable_params():
-            modulated_value = self.modulate_param(
-                feature_param,
-                kwargs.get(feature_param, 0),
-                feature_value,
-                strength,
-                feature_mode
-            )
-            kwargs[feature_param] = modulated_value
-
-        latent_2_np = latent_2["samples"].cpu().numpy()[kwargs['frame_index']]
-
-        # Perform interpolation
-        t = np.clip(feature_value * strength, 0.0, 1.0)
-        if interpolation_mode == "Linear":
-            result = (1 - t) * latent + t * latent_2_np
-        else:  # Spherical interpolation
-            result = self.spherical_interpolation(latent, latent_2_np, t)
-        return result
-        
-
-import numpy as np
-
 class EmbeddingGuidedLatentInterpolate(FlexLatentBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -174,27 +69,14 @@ class EmbeddingGuidedLatentInterpolate(FlexLatentBase):
     def get_modifiable_params(cls):
         return ["interpolation_mode", "None"]
 
-    def process_latent(self, latent: np.ndarray, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, latent: np.ndarray, **kwargs) -> np.ndarray:
         feature_value = kwargs['feature_value']
         strength = kwargs['strength']
-        feature_param = kwargs['feature_param']
-        feature_mode = kwargs['feature_mode']
         latent_2 = kwargs['latent_2']
         embedding_1 = kwargs['embedding_1']
         embedding_2 = kwargs['embedding_2']
         interpolation_mode = kwargs['interpolation_mode']
         frame_index = kwargs['frame_index']
-
-        # Modulate any parameters if needed
-        if feature_param in self.get_modifiable_params():
-            modulated_value = self.modulate_param(
-                feature_param,
-                kwargs.get(feature_param, 0),
-                feature_value,
-                strength,
-                feature_mode
-            )
-            kwargs[feature_param] = modulated_value
 
         latent_2_np = latent_2["samples"].cpu().numpy()[frame_index]
         embedding_1_np = embedding_1.cpu().numpy()[frame_index]
@@ -239,7 +121,6 @@ class EmbeddingGuidedLatentInterpolate(FlexLatentBase):
             coef2 = np.sin(t * omega) / sin_omega
             result = coef1 * latent1 + coef2 * latent2
             return result.reshape(latent1.shape)
-        
 
 class FlexLatentBlend(FlexLatentBase):
     @classmethod
@@ -256,7 +137,7 @@ class FlexLatentBlend(FlexLatentBase):
     def get_modifiable_params(cls):
         return ["blend_strength", "None"]
 
-    def process_latent(self, latent: np.ndarray, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, latent: np.ndarray, **kwargs) -> np.ndarray:
         feature_value = kwargs['feature_value']
         strength = kwargs['strength']
         feature_param = kwargs['feature_param']
@@ -301,7 +182,7 @@ class FlexLatentBlend(FlexLatentBase):
         else:
             # Default to Add if mode is unrecognized
             return latent1 + latent2
-        
+
 class FlexLatentNoise(FlexLatentBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -316,7 +197,7 @@ class FlexLatentNoise(FlexLatentBase):
     def get_modifiable_params(cls):
         return ["noise_level", "None"]
 
-    def process_latent(self, latent: np.ndarray, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, latent: np.ndarray, **kwargs) -> np.ndarray:
         feature_value = kwargs['feature_value']
         strength = kwargs['strength']
         feature_param = kwargs['feature_param']
@@ -333,7 +214,7 @@ class FlexLatentNoise(FlexLatentBase):
                 strength,
                 feature_mode
             )
-            # Ensure noise_level remains within [0, 1]
+            # Ensure noise_level remains within [0.0, 1.0]
             noise_level = np.clip(noise_level, 0.0, 1.0)
 
         # Generate noise
@@ -348,3 +229,4 @@ class FlexLatentNoise(FlexLatentBase):
         result = latent + noise
 
         return result
+

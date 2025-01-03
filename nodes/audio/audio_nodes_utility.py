@@ -229,7 +229,6 @@ class AudioInfo(AudioUtility):
             rms_amplitude,
             bit_depth
         )
-
 class AudioDither(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):

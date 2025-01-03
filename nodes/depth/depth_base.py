@@ -1,24 +1,22 @@
 import torch
 import numpy as np
 from abc import ABC, abstractmethod
-from tqdm import tqdm
 from comfy.utils import ProgressBar
 from ... import RyanOnTheInside
+from ..flex.flex_base import FlexBase
 import cv2
 
-class FlexDepthBase(RyanOnTheInside, ABC):
+#NOTE: in hindsight, much of this would have been better suited as mask-based operations
+class FlexDepthBase(RyanOnTheInside, FlexBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
+            **super().INPUT_TYPES(),
             "required": {
+                **super().INPUT_TYPES()["required"],
                 "depth_maps": ("IMAGE",),
-                "feature": ("FEATURE",),
-                "feature_pipe": ("FEATURE_PIPE",),
-                "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "feature_param": (cls.get_modifiable_params(), {"default": cls.get_modifiable_params()[0]}),
-                "feature_mode": (["relative", "absolute"], {"default": "relative"}),
-            }
+            },
+            # Optional inputs are inherited from FlexBase
         }
 
     CATEGORY = "RyanOnTheInside/DepthEffects"
@@ -26,16 +24,6 @@ class FlexDepthBase(RyanOnTheInside, ABC):
     FUNCTION = "apply_effect"
 
     def __init__(self):
-        self.progress_bar = None
-
-    def start_progress(self, total_steps, desc="Processing"):
-        self.progress_bar = ProgressBar(total_steps)
-
-    def update_progress(self):
-        if self.progress_bar:
-            self.progress_bar.update(1)
-
-    def end_progress(self):
         self.progress_bar = None
 
     @classmethod
@@ -50,27 +38,64 @@ class FlexDepthBase(RyanOnTheInside, ABC):
         else:  # absolute
             return param_value * feature_value * strength
 
-    def apply_effect(self, depth_maps, feature, feature_pipe, strength, feature_threshold, feature_param, feature_mode, **kwargs):
-        num_frames = feature_pipe.frame_count
+    def apply_effect(
+        self,
+        depth_maps,
+        strength,
+        feature_threshold,
+        feature_param,
+        feature_mode,
+        opt_feature=None,
+        opt_feature_pipe=None,
+        **kwargs
+    ):
+        if (opt_feature is None) != (opt_feature_pipe is None):
+            raise ValueError(
+                "Both opt_feature and opt_feature_pipe must be provided together, or neither should be provided."
+            )
+
+        num_frames = depth_maps.shape[0]
         depth_maps_np = depth_maps.cpu().numpy()
 
-        self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
+        if opt_feature is None and opt_feature_pipe is None:
+            self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 
-        result = []
-        for i in range(num_frames):
-            depth_map = depth_maps_np[i]
-            feature_value = feature.get_value_at_frame(i)
-            kwargs['frame_index'] = i
-            if feature_value >= feature_threshold:
-                processed_depth_map = self.process_depth_map(depth_map, feature_value, strength, 
-                                                             feature_param=feature_param, 
-                                                             feature_mode=feature_mode, 
-                                                             **kwargs)
-            else:
-                processed_depth_map = depth_map
+            result = []
+            for i in range(num_frames):
+                processed_depth_map = self.process_depth_map(
+                    depth_maps_np[i],
+                    0.5,  # Default feature value when no feature is provided
+                    strength,
+                    feature_param=feature_param,
+                    feature_mode=feature_mode,
+                    frame_index=i,
+                    **kwargs
+                )
+                result.append(processed_depth_map)
+                self.update_progress()
+        else:
+            num_frames = opt_feature_pipe.frame_count
+            self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 
-            result.append(processed_depth_map)
-            self.update_progress()
+            result = []
+            for i in range(num_frames):
+                depth_map = depth_maps_np[i]
+                feature_value = opt_feature.get_value_at_frame(i)
+                kwargs['frame_index'] = i
+                if feature_value >= feature_threshold:
+                    processed_depth_map = self.process_depth_map(
+                        depth_map,
+                        feature_value,
+                        strength,
+                        feature_param=feature_param,
+                        feature_mode=feature_mode,
+                        **kwargs
+                    )
+                else:
+                    processed_depth_map = depth_map
+
+                result.append(processed_depth_map)
+                self.update_progress()
 
         self.end_progress()
 
@@ -81,20 +106,30 @@ class FlexDepthBase(RyanOnTheInside, ABC):
         result_tensor = torch.from_numpy(result_np).float()
 
         # Ensure the tensor is in BHWC format
-        if result_tensor.shape[1] != depth_maps.shape[1]:  # Adjust as needed
+        if result_tensor.shape[1] != depth_maps.shape[1]:
             result_tensor = result_tensor.permute(0, 2, 3, 1)
 
         return (result_tensor,)
 
-    def process_depth_map(self, depth_map: np.ndarray, feature_value: float, strength: float, 
-                          feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
+    def process_depth_map(
+        self,
+        depth_map: np.ndarray,
+        feature_value: float,
+        strength: float,
+        feature_param: str,
+        feature_mode: str,
+        **kwargs
+    ) -> np.ndarray:
         # Modulate the selected parameter
         for param_name in self.get_modifiable_params():
-            if param_name in kwargs:
-                if param_name == feature_param:
-                    kwargs[param_name] = self.modulate_param(param_name, kwargs[param_name], 
-                                                             feature_value, strength, feature_mode)
-        
+            if param_name in kwargs and param_name == feature_param:
+                kwargs[param_name] = self.modulate_param(
+                    param_name,
+                    kwargs[param_name],
+                    feature_value,
+                    strength,
+                    feature_mode
+                )
         # Call the child class's implementation
         return self.apply_effect_internal(depth_map, **kwargs)
 
@@ -284,3 +319,5 @@ class DepthRippleEffect(FlexDepthBase):
         modified_depth = np.clip(modified_depth, 0.0, 1.0)
 
         return modified_depth
+
+

@@ -263,7 +263,7 @@ from .nodes.audio.flex_audio import (
     FlexAudioTimeStretch,
 )
 
-from .nodes.latents.latent_base import (
+from .nodes.latents.flex_latents import (
     FlexLatentInterpolate,
     EmbeddingGuidedLatentInterpolate,
     FlexLatentBlend,

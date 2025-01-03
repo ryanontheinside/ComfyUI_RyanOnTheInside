@@ -585,8 +585,7 @@ class EmptyMaskFromAudio(AudioNodeBase):
 #         if not folder_paths.exists_annotated_filepath(audio):
 #             return "Invalid audio file: {}".format(audio)
 #         return True
-        
-#TODO
+
 class EmptyImageAndMaskFromAudio(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
