@@ -1,4 +1,4 @@
-from .latent_base import FlexLatentBase
+from .flex_latent_base import FlexLatentBase
 import torch
 import numpy as np
 from scipy.signal import butter, sosfilt

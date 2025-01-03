@@ -41,7 +41,7 @@ class FlexMaskBase(FlexBase, MaskBase):
 
     CATEGORY = "RyanOnTheInside/FlexMasks"
     RETURN_TYPES = ("MASK",)
-    FUNCTION = "main_function"
+    FUNCTION = "apply_effect"
 
     def __init__(self):
         # Initialize both parent classes
@@ -69,29 +69,53 @@ class FlexMaskBase(FlexBase, MaskBase):
         """
         pass
 
-    def apply_mask_operation(self, masks, feature, feature_pipe, strength, feature_threshold, mask_strength, invert, subtract_original, grow_with_blur, **kwargs):
-        """Apply mask operation with feature modulation.
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
+        """Internal implementation for the Flex system.
         
-        This method combines the FlexBase feature modulation pipeline with MaskBase operations.
+        This bridges between FlexBase and our mask-specific processing.
         """
-        num_frames = feature_pipe.frame_count
+        return self.process_mask(mask, feature_value, strength, **kwargs)
+
+    def apply_effect(self, masks, opt_feature=None, opt_feature_pipe=None, strength=1.0, feature_threshold=0.0, mask_strength=1.0, invert=False, subtract_original=0.0, grow_with_blur=0.0, **kwargs):
+        """Main entry point for the Flex system.
+        
+        This method implements the required FlexBase.apply_effect method and routes to our mask-specific implementation.
+        """
+        if (opt_feature is None) != (opt_feature_pipe is None):
+            raise ValueError(
+                "Both feature and feature_pipe must be provided together, or neither should be provided."
+            )
+
+        num_frames = opt_feature_pipe.frame_count if opt_feature_pipe else masks.shape[0]
         original_masks = masks.clone()
 
-        self.start_progress(num_frames, desc="Applying flex mask operation")
+        self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 
         result = []
         for i in range(num_frames):
             kwargs['frame_index'] = i
             mask = masks[i].numpy()
-            feature_value = feature.get_value_at_frame(i)
             
-            if feature_value >= feature_threshold:
-                processed_mask = self.process_mask(mask, feature_value, strength, **kwargs)
+            # When feature_param is "None", always apply the effect with default feature value
+            if kwargs.get('feature_param') == "None":
+                feature_value = 0.5  # Default feature value
+                processed_mask = self.apply_effect_internal(mask, feature_value, strength, **kwargs)
             else:
-                if hasattr(self, 'process_mask_below_threshold'):
-                    processed_mask = self.process_mask_below_threshold(mask, feature_value, strength, **kwargs)
+                # Normal feature-based behavior
+                if opt_feature is not None:
+                    feature_value = opt_feature.get_value_at_frame(i)
+                    apply_effect = feature_value >= feature_threshold
                 else:
-                    processed_mask = mask
+                    feature_value = 0.5  # Default feature value when no feature is provided
+                    apply_effect = True
+
+                if apply_effect:
+                    processed_mask = self.apply_effect_internal(mask, feature_value, strength, **kwargs)
+                else:
+                    if hasattr(self, 'process_mask_below_threshold'):
+                        processed_mask = self.process_mask_below_threshold(mask, feature_value, strength, **kwargs)
+                    else:
+                        processed_mask = mask
 
             result.append(processed_mask)
             self.update_progress()
@@ -100,12 +124,22 @@ class FlexMaskBase(FlexBase, MaskBase):
 
         processed_masks = torch.from_numpy(np.stack(result)).float()
         # Use mask_strength instead of strength for the final mask operation
-        return super().apply_mask_operation(processed_masks, original_masks, mask_strength, invert, subtract_original, grow_with_blur, **kwargs)
+        return (super().apply_mask_operation(processed_masks, original_masks, mask_strength, invert, subtract_original, grow_with_blur, **kwargs),)
 
-    @abstractmethod
-    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, mask_strength, invert, subtract_original, grow_with_blur, **kwargs):
-        """Main entry point for the node.
+    def main_function(self, masks, opt_feature=None, opt_feature_pipe=None, strength=1.0, feature_threshold=0.0, mask_strength=1.0, invert=False, subtract_original=0.0, grow_with_blur=0.0, **kwargs):
+        """Implementation of MaskBase's abstract main_function.
         
-        This method should be implemented by subclasses to define their specific behavior.
+        Explicitly forwards all parameters to apply_effect to maintain parameter names.
         """
-        pass
+        return self.apply_effect(
+            masks=masks,
+            feature=opt_feature,
+            feature_pipe=opt_feature_pipe,
+            strength=strength,
+            feature_threshold=feature_threshold,
+            mask_strength=mask_strength,
+            invert=invert,
+            subtract_original=subtract_original,
+            grow_with_blur=grow_with_blur,
+            **kwargs
+        )
