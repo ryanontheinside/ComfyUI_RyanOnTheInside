@@ -27,21 +27,26 @@ app.registerExtension({
                 console.log("Node created, initializing node");
                 const r = onNodeCreated?.apply(this, arguments);
                 
-                // Remove default points widget
-                const pointsWidget = this.widgets.find(w => w.name === "points");
-                if (pointsWidget) {
-                    const index = this.widgets.indexOf(pointsWidget);
-                    if (index > -1) {
-                        this.widgets.splice(index, 1);
-                    }
+                // Remove default points widget if it exists
+                const pointsWidgetIndex = this.widgets.findIndex(w => w.name === "points");
+                if (pointsWidgetIndex > -1) {
+                    this.widgets.splice(pointsWidgetIndex, 1);
                 }
                 
-                // Initialize points array and state
+                // Initialize state
                 this.points = [];
                 this.isDragging = false;
                 this.selectedPoint = null;
-                this.isDrawing = false;
-                this.lastDrawnFrame = null;  // Track last drawn frame to avoid duplicates
+                this.hoverPoint = null;
+                this.isAddingPoint = false;
+                
+                // Add hidden points widget at the end
+                this.widgets.push({
+                    type: "text",
+                    name: "points",
+                    value: "[]",
+                    hidden: true
+                });
                 
                 // Add clear button widget
                 this.addWidget("button", "Clear Graph", "clear", () => {
@@ -92,15 +97,12 @@ app.registerExtension({
                 ctx.strokeStyle = "#666";
                 ctx.strokeRect(margin, graphY, graphWidth, graphHeight);
                 
-                // Draw mode indicator
-                if (this.isDrawing) {
-                    ctx.fillStyle = "rgba(0, 255, 0, 0.2)";
-                    ctx.fillRect(margin, graphY, graphWidth, graphHeight);
-                    ctx.fillStyle = "#888";
-                    ctx.font = "12px Arial";
-                    ctx.textAlign = "center";
-                    ctx.fillText("Draw Mode: Click to add points", margin + graphWidth / 2, graphY + 20);
-                }
+                // Draw help text
+                ctx.fillStyle = "#888";
+                ctx.font = "12px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText("Click empty space to add • Click point to delete • Drag points to move", 
+                    margin + graphWidth / 2, graphY + 20);
                 
                 // Draw grid
                 ctx.strokeStyle = "#333";
@@ -159,27 +161,54 @@ app.registerExtension({
                     ctx.lineWidth = 2;
                     ctx.beginPath();
                     
-                    const [firstFrame, firstValue] = this.points[0];
-                    const firstX = margin + (firstFrame / frameCount) * graphWidth;
-                    const firstY = graphY + (1 - this.normalizeValue(firstValue)) * graphHeight;
-                    ctx.moveTo(firstX, firstY);
+                    const points = this.points.map(([frame, value]) => ({
+                        x: margin + (frame / frameCount) * graphWidth,
+                        y: graphY + (1 - this.normalizeValue(value)) * graphHeight
+                    }));
                     
-                    for (let i = 1; i < this.points.length; i++) {
-                        const [frame, value] = this.points[i];
-                        const x = margin + (frame / frameCount) * graphWidth;
-                        const y = graphY + (1 - this.normalizeValue(value)) * graphHeight;
-                        ctx.lineTo(x, y);
+                    ctx.moveTo(points[0].x, points[0].y);
+                    for (let i = 1; i < points.length; i++) {
+                        ctx.lineTo(points[i].x, points[i].y);
                     }
                     ctx.stroke();
                     
-                    // Draw points
-                    ctx.fillStyle = "#fff";
-                    for (const [frame, value] of this.points) {
+                    // Draw points with hover and selection effects
+                    points.forEach((point, i) => {
+                        ctx.beginPath();
+                        ctx.arc(point.x, point.y, i === this.selectedPoint ? 7 : 5, 0, Math.PI * 2);
+                        
+                        if (i === this.selectedPoint) {
+                            ctx.fillStyle = "#00ff00";
+                        } else if (i === this.hoverPoint) {
+                            ctx.fillStyle = "#ffff00";
+                        } else {
+                            ctx.fillStyle = "#fff";
+                        }
+                        
+                        ctx.fill();
+                        
+                        if (i === this.selectedPoint || i === this.hoverPoint) {
+                            ctx.strokeStyle = "#000";
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                        }
+                    });
+                }
+                
+                // Draw potential new point position
+                if (this.isAddingPoint && this.mousePos) {
+                    const [frame, value] = this.coordsToGraphValues(this.mousePos[0], this.mousePos[1]);
+                    if (frame >= 0 && frame < frameCount) {
                         const x = margin + (frame / frameCount) * graphWidth;
                         const y = graphY + (1 - this.normalizeValue(value)) * graphHeight;
+                        
                         ctx.beginPath();
                         ctx.arc(x, y, 5, 0, Math.PI * 2);
+                        ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
                         ctx.fill();
+                        ctx.strokeStyle = "#fff";
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
                     }
                 }
             };
@@ -198,35 +227,48 @@ app.registerExtension({
                 return normalized * (maxValue - minValue) + minValue;
             };
             
-            // Check if mouse is over graph area
-            nodeType.prototype.isMouseOverGraph = function(x, y) {
-                const margin = 30;
-                const graphHeight = Math.max(200, this.size[1] - 200);
-                const graphY = this.size[1] - graphHeight - margin;
-                return x >= margin && x <= this.size[0] - margin && y >= graphY && y <= graphY + graphHeight;
-            };
-            
             // Convert coordinates to graph values
             nodeType.prototype.coordsToGraphValues = function(x, y) {
                 const margin = 30;
+                const widgetAreaHeight = this.getWidgetAreaHeight();
                 const graphWidth = this.size[0] - 2 * margin;
-                const graphHeight = Math.max(200, this.size[1] - 200);
-                const graphY = this.size[1] - graphHeight - margin;
+                const graphHeight = Math.max(200, this.size[1] - widgetAreaHeight - margin * 2);
+                const graphY = widgetAreaHeight + margin;
                 
                 const frameCount = this.widgets.find(w => w.name === "frame_count")?.value || 30;
-                const frame = Math.round(((x - margin) / graphWidth) * frameCount);
-                const normalizedValue = Math.max(0, Math.min(1, 1 - (y - graphY) / graphHeight));
-                const value = this.denormalizeValue(normalizedValue);
                 
-                return [frame, value];
+                // Calculate frame (x value) and clamp to valid range
+                const frame = Math.round(((x - margin) / graphWidth) * frameCount);
+                const clampedFrame = Math.max(0, Math.min(frameCount, frame));  // Changed from frameCount-1 to frameCount
+                
+                // Calculate value (y value) - normalize based on graph position
+                const normalizedY = Math.max(0, Math.min(1, (y - graphY) / graphHeight));
+                const value = this.denormalizeValue(1 - normalizedY);
+                
+                return [clampedFrame, value];
+            };
+            
+            // Check if mouse is over graph area
+            nodeType.prototype.isMouseOverGraph = function(x, y) {
+                const margin = 30;
+                const widgetAreaHeight = this.getWidgetAreaHeight();
+                const graphWidth = this.size[0] - 2 * margin;
+                const graphHeight = Math.max(200, this.size[1] - widgetAreaHeight - margin * 2);
+                const graphY = widgetAreaHeight + margin;
+                
+                return x >= margin && 
+                       x <= this.size[0] - margin && 
+                       y >= graphY && 
+                       y <= graphY + graphHeight;
             };
             
             // Find point near coordinates
             nodeType.prototype.findNearPoint = function(x, y) {
                 const margin = 30;
+                const widgetAreaHeight = this.getWidgetAreaHeight();
                 const graphWidth = this.size[0] - 2 * margin;
-                const graphHeight = Math.max(200, this.size[1] - 200);
-                const graphY = this.size[1] - graphHeight - margin;
+                const graphHeight = Math.max(200, this.size[1] - widgetAreaHeight - margin * 2);
+                const graphY = widgetAreaHeight + margin;
                 const frameCount = this.widgets.find(w => w.name === "frame_count")?.value || 30;
                 
                 for (let i = 0; i < this.points.length; i++) {
@@ -245,110 +287,133 @@ app.registerExtension({
                 // Find or create a hidden widget to store the points
                 let pointsWidget = this.widgets.find(w => w.name === "points");
                 if (!pointsWidget) {
-                    pointsWidget = this.addWidget("text", "points", "[]", null);
-                    pointsWidget.hidden = true;
+                    // Create new points widget at the end of the list
+                    pointsWidget = {
+                        type: "text",
+                        name: "points",
+                        value: "[]",
+                        hidden: true
+                    };
+                    this.widgets.push(pointsWidget);
                 }
                 pointsWidget.value = pointsStr;
             };
             
             // Override mouse handlers for improved drawing
-            nodeType.prototype.onMouseDown = function(e, pos, ctx) {
-                if (onMouseDown) {
-                    const r = onMouseDown.apply(this, arguments);
-                    if (r) return r;
-                }
-                
+            nodeType.prototype.onMouseDown = function(e, pos) {
                 const [x, y] = pos;
-                if (this.isMouseOverGraph(x, y)) {
-                    // Check for Ctrl+click to delete
-                    if (e.ctrlKey || e.metaKey) {  // metaKey for Mac
-                        const pointIndex = this.findNearPoint(x, y);
-                        if (pointIndex !== null) {
-                            this.points.splice(pointIndex, 1);
-                            this.updatePointsValue();
-                            this.setDirtyCanvas(true, true);
-                            return true;
-                        }
-                    } else {
-                        const pointIndex = this.findNearPoint(x, y);
-                        if (pointIndex !== null) {
-                            // Start dragging existing point
-                            this.isDragging = true;
-                            this.selectedPoint = pointIndex;
-                        } else {
-                            // Start drawing mode
-                            this.isDrawing = true;
-                            const [frame, value] = this.coordsToGraphValues(x, y);
-                            if (frame >= 0 && frame < (this.widgets.find(w => w.name === "frame_count")?.value || 30)) {
-                                this.points.push([frame, value]);
-                                this.lastDrawnFrame = frame;
-                                this.points.sort((a, b) => a[0] - b[0]);
-                                this.updatePointsValue();
-                                this.setDirtyCanvas(true, true);
-                            }
-                        }
-                    }
-                    return true;
-                }
+                if (!this.isMouseOverGraph(x, y)) return false;
                 
-                return false;
-            };
-            
-            nodeType.prototype.onMouseMove = function(e, pos) {
-                if (onMouseMove) {
-                    const r = onMouseMove.apply(this, arguments);
-                    if (r) return r;
-                }
+                const pointIndex = this.findNearPoint(x, y);
                 
-                if (this.isDragging && this.selectedPoint !== null) {
-                    // Handle dragging existing point
-                    const [x, y] = pos;
+                if (pointIndex !== null) {
+                    this.selectedPoint = pointIndex;
+                    this.dragStartPos = [...pos];
+                } else {
+                    // Not on a point - add new point
                     const [frame, value] = this.coordsToGraphValues(x, y);
-                    if (frame >= 0 && frame < (this.widgets.find(w => w.name === "frame_count")?.value || 30)) {
-                        this.points[this.selectedPoint] = [frame, value];
+                    const frameCount = this.widgets.find(w => w.name === "frame_count")?.value || 30;
+                    if (frame >= 0 && frame <= frameCount) {
+                        // Remove any existing point at the same frame
+                        const existingIndex = this.points.findIndex(p => p[0] === frame);
+                        if (existingIndex !== -1) {
+                            this.points.splice(existingIndex, 1);
+                        }
+                        
+                        this.points.push([frame, value]);
                         this.points.sort((a, b) => a[0] - b[0]);
                         this.selectedPoint = this.points.findIndex(p => p[0] === frame);
                         this.updatePointsValue();
-                        this.setDirtyCanvas(true, true);
-                        return true;
                     }
-                } else if (this.isDrawing) {
-                    // Handle continuous drawing
-                    const [x, y] = pos;
-                    if (this.isMouseOverGraph(x, y)) {
+                }
+                
+                this.setDirtyCanvas(true, true);
+                return true;
+            };
+            
+            nodeType.prototype.onMouseMove = function(e, pos) {
+                const [x, y] = pos;
+                this.mousePos = pos;
+                
+                if (!this.isMouseOverGraph(x, y)) {
+                    // Clear all states when mouse leaves graph area
+                    this.hoverPoint = null;
+                    this.isAddingPoint = false;
+                    this.selectedPoint = null;
+                    this.isDragging = false;
+                    this.dragStartPos = null;
+                    this.setDirtyCanvas(true, true);
+                    return false;
+                }
+                
+                if (this.dragStartPos && this.selectedPoint !== null) {
+                    // If we've moved more than 5 pixels, start dragging
+                    const dragDist = Math.sqrt(
+                        Math.pow(pos[0] - this.dragStartPos[0], 2) + 
+                        Math.pow(pos[1] - this.dragStartPos[1], 2)
+                    );
+                    
+                    if (dragDist > 5) {
+                        this.isDragging = true;
                         const [frame, value] = this.coordsToGraphValues(x, y);
-                        if (frame >= 0 && frame < (this.widgets.find(w => w.name === "frame_count")?.value || 30)) {
-                            // Only add point if we're on a new frame
-                            if (frame !== this.lastDrawnFrame) {
-                                this.points.push([frame, value]);
-                                this.lastDrawnFrame = frame;
+                        const frameCount = this.widgets.find(w => w.name === "frame_count")?.value || 30;
+                        // Keep strict < frameCount for dragging to prevent edge issues
+                        if (frame >= 0 && frame < frameCount) {
+                            // Check if there's already a point at the target frame (except selected point)
+                            const existingIndex = this.points.findIndex((p, i) => 
+                                i !== this.selectedPoint && p[0] === frame);
+                            
+                            if (existingIndex === -1) {
+                                this.points[this.selectedPoint] = [frame, value];
                                 this.points.sort((a, b) => a[0] - b[0]);
+                                this.selectedPoint = this.points.findIndex(p => p[0] === frame);
                                 this.updatePointsValue();
-                                this.setDirtyCanvas(true, true);
                             }
                         }
                     }
-                    return true;
+                } else {
+                    // Update hover state
+                    this.hoverPoint = this.findNearPoint(x, y);
+                    this.isAddingPoint = this.hoverPoint === null;
                 }
                 
-                return false;
+                this.setDirtyCanvas(true, true);
+                return true;
             };
             
             nodeType.prototype.onMouseUp = function(e, pos) {
-                if (onMouseUp) {
-                    const r = onMouseUp.apply(this, arguments);
-                    if (r) return r;
+                // If we have a selected point but never started dragging, it's a click - delete the point
+                if (this.selectedPoint !== null && !this.isDragging) {
+                    this.points.splice(this.selectedPoint, 1);
+                    this.updatePointsValue();
                 }
                 
                 this.isDragging = false;
                 this.selectedPoint = null;
-                this.isDrawing = false;
-                this.lastDrawnFrame = null;
+                this.dragStartPos = null;
+                this.mouseDownTime = null;
+                this.setDirtyCanvas(true, true);
                 return false;
             };
 
-            // Remove double-click handler since we're using Ctrl+click for deletion
-            nodeType.prototype.onDblClick = null;
+            // Add double click handler
+            nodeType.prototype.onDblClick = function(e, pos) {
+                const [x, y] = pos;
+                if (!this.isMouseOverGraph(x, y)) return false;
+                
+                const pointIndex = this.findNearPoint(x, y);
+                if (pointIndex !== null) {
+                    this.points.splice(pointIndex, 1);
+                    this.updatePointsValue();
+                    // Clear all interaction states
+                    this.selectedPoint = null;
+                    this.isDragging = false;
+                    this.dragStartPos = null;
+                    this.setDirtyCanvas(true, true);
+                    return true;
+                }
+                return false;
+            };
 
             // Handle node resizing
             nodeType.prototype.onResize = function(size) {
@@ -359,6 +424,16 @@ app.registerExtension({
                 this.size[0] = Math.max(400, size[0]);
                 this.size[1] = Math.max(500, size[1]);
                 this.setDirtyCanvas(true, true);
+            };
+
+            // Add click handler
+            nodeType.prototype.onClick = function(e, pos) {
+                // Clear all states on any click as a safety measure
+                this.selectedPoint = null;
+                this.isDragging = false;
+                this.dragStartPos = null;
+                this.setDirtyCanvas(true, true);
+                return false;
             };
         }
     }
