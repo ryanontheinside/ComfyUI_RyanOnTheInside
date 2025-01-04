@@ -3,11 +3,13 @@ import torch
 import torchvision
 from .. import RyanOnTheInside
 from abc import ABC
+from ..tooltips import apply_tooltips
  
 class UtilityNode(RyanOnTheInside, ABC):
     CATEGORY="RyanOnTheInside/Utility"
 
 
+@apply_tooltips
 class ImageIntervalSelect(UtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
@@ -40,6 +42,7 @@ class ImageIntervalSelect(UtilityNode):
     FUNCTION = "select_interval"
 
 #NOTE eh
+@apply_tooltips
 class ImageIntervalSelectPercentage(UtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
@@ -69,6 +72,7 @@ class ImageIntervalSelectPercentage(UtilityNode):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "select_percentage_interval"
 
+@apply_tooltips
 class ImageChunks(UtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
@@ -98,6 +102,7 @@ class ImageChunks(UtilityNode):
     FUNCTION = "concatenate_images_into_grid"
 
 #TODO inherit from ImageChunk reuse
+@apply_tooltips
 class VideoChunks(UtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
@@ -141,6 +146,7 @@ class VideoChunks(UtilityNode):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "chunk_images_into_grids"
 
+@apply_tooltips
 class Image_Shuffle(UtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
@@ -171,36 +177,7 @@ class Image_Shuffle(UtilityNode):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "shuffle_images"
 
-class Image_Shuffle(UtilityNode):
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "image": ("IMAGE",),
-                "shuffle_size": ("INT", {"default": 4, "min": 1})
-            },
-        }
-
-    def shuffle_images(self, image, shuffle_size=4):
-        # Ensure shuffle_size is within the bounds of the image batch
-        shuffle_size = min(shuffle_size, image.shape[0])
-
-        # Shuffle the images in groups of shuffle_size
-        shuffled_images = []
-        for i in range(0, len(image), shuffle_size):
-            chunk = image[i:i+shuffle_size]
-            indices = torch.randperm(chunk.shape[0])
-            shuffled_chunk = chunk[indices]
-            shuffled_images.append(shuffled_chunk)
-
-        # Concatenate all shuffled chunks back into a single tensor
-        shuffled_images = torch.cat(shuffled_images, dim=0)
-
-        return (shuffled_images,)
-
-    RETURN_TYPES = ("IMAGE",)
-    FUNCTION = "shuffle_images"
-
+@apply_tooltips
 class ImageDifference(UtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
@@ -227,6 +204,7 @@ class ImageDifference(UtilityNode):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "compute_difference"
 
+@apply_tooltips
 class SwapDevice(UtilityNode):
     @classmethod
     def INPUT_TYPES(cls):

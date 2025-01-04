@@ -5,7 +5,9 @@ from .flex_image_base import FlexImageBase
 from scipy.ndimage import gaussian_filter
 import torch.nn.functional as F
 from .image_utils import transform_image
+from ...tooltips import apply_tooltips
 
+@apply_tooltips
 class FlexImageEdgeDetect(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -30,6 +32,7 @@ class FlexImageEdgeDetect(FlexImageBase):
         
         return edges_rgb.astype(float) / 255.0
 
+@apply_tooltips
 class FlexImagePosterize(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -83,6 +86,7 @@ class FlexImagePosterize(FlexImageBase):
         # Convert back to float32 and apply gamma correction
         return np.power(posterized.astype(np.float32) / 255.0, 1/gamma)
     
+@apply_tooltips
 class FlexImageKaleidoscope(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -135,6 +139,7 @@ class FlexImageKaleidoscope(FlexImageBase):
         
         return result.clip(0, 1)
     
+@apply_tooltips
 class FlexImageColorGrade(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -184,6 +189,7 @@ class FlexImageColorGrade(FlexImageBase):
 
         return np.clip(result, 0, 1)
 
+@apply_tooltips
 class FlexImageGlitch(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -220,6 +226,7 @@ class FlexImageGlitch(FlexImageBase):
 
         return np.clip(result, 0, 1)
 
+@apply_tooltips
 class FlexImageChromaticAberration(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -249,6 +256,7 @@ class FlexImageChromaticAberration(FlexImageBase):
 
         return np.clip(result, 0, 1)
 
+@apply_tooltips
 class FlexImagePixelate(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -282,6 +290,7 @@ class FlexImagePixelate(FlexImageBase):
 
         return result
     
+@apply_tooltips
 class FlexImageBloom(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -310,6 +319,7 @@ class FlexImageBloom(FlexImageBase):
 
         return np.clip(result, 0, 1)
 
+@apply_tooltips
 class FlexImageTiltShift(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -353,7 +363,7 @@ class FlexImageTiltShift(FlexImageBase):
 
         return np.clip(result, 0, 1)
     
- 
+@apply_tooltips
 class FlexImageParallax(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -423,6 +433,7 @@ class FlexImageParallax(FlexImageBase):
 
         return np.clip(result, 0, 1)
     
+@apply_tooltips
 class FlexImageContrast(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -462,6 +473,7 @@ class FlexImageContrast(FlexImageBase):
 import numpy as np
 import cv2
 
+@apply_tooltips
 class FlexImageWarp(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -539,6 +551,7 @@ class FlexImageWarp(FlexImageBase):
         return warped
     
 
+@apply_tooltips
 class FlexImageVignette(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -592,6 +605,7 @@ class FlexImageVignette(FlexImageBase):
         return np.clip(result, 0, 1)
     
 
+@apply_tooltips
 class FlexImageTransform(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -610,6 +624,7 @@ class FlexImageTransform(FlexImageBase):
     def apply_effect_internal(self, image: np.ndarray, transform_type: str, x_value: float, y_value: float, **kwargs) -> np.ndarray:
         return transform_image(image, transform_type, x_value, y_value)
 
+@apply_tooltips
 class FlexImageHueShift(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -660,6 +675,7 @@ class FlexImageHueShift(FlexImageBase):
 import numpy as np
 import cv2
 
+@apply_tooltips
 class FlexImageDepthWarp(FlexImageBase):
 
     @classmethod
@@ -723,6 +739,7 @@ class FlexImageDepthWarp(FlexImageBase):
             return image
 
 
+@apply_tooltips
 class FlexImageHorizontalToVertical(FlexImageBase):
     @classmethod
     def INPUT_TYPES(cls):

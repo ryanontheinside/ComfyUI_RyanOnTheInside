@@ -1,10 +1,11 @@
 from .features_proximity import Location, ProximityFeature
 from .feature_extractors import FeatureExtractorBase
 from ... import RyanOnTheInside
+from ...tooltips import apply_tooltips
 import numpy as np
 import cv2
 
-
+@apply_tooltips
 class ProximityFeatureNode(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type:
@@ -62,6 +63,7 @@ class ProximityFeatureNode(FeatureExtractorBase):
 class ProximityFeatureInput(RyanOnTheInside):
     CATEGORY="RyanOnTheInside/Proximity"
 
+@apply_tooltips
 class LocationFromMask(ProximityFeatureInput):
     @classmethod
     def INPUT_TYPES(cls):
@@ -123,6 +125,7 @@ class LocationFromMask(ProximityFeatureInput):
 
         return (locations,)
 
+@apply_tooltips
 class LocationFromPoint(ProximityFeatureInput):
     @classmethod
     def INPUT_TYPES(cls):
@@ -146,6 +149,7 @@ class LocationFromPoint(ProximityFeatureInput):
 
         return (locations,)
 
+@apply_tooltips
 class LocationTransform(ProximityFeatureInput):
     @classmethod
     def INPUT_TYPES(cls):

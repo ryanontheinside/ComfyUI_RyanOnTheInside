@@ -6,7 +6,9 @@ from io import BytesIO
 from PIL import Image
 import random
 from ..node_utilities import apply_easing
+from ...tooltips import apply_tooltips
 
+@apply_tooltips
 class FeatureModulationBase(RyanOnTheInside):
     CATEGORY = "RyanOnTheInside/FlexFeatures/FeatureModulators"
     FUNCTION = "modulate"
@@ -92,6 +94,7 @@ class FeatureModulationBase(RyanOnTheInside):
 
         return ProcessedFeature(original_feature, processed_values, invert_output)
 
+@apply_tooltips
 class FeatureMixer(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -188,6 +191,7 @@ class FeatureMixer(FeatureModulationBase):
 
         return adjusted
     
+@apply_tooltips
 class FeatureScaler(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -225,6 +229,7 @@ class FeatureScaler(FeatureModulationBase):
         processed_feature = self.create_processed_feature(feature, final_values, "Scaled", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
+@apply_tooltips
 class FeatureCombine(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -267,6 +272,7 @@ class FeatureCombine(FeatureModulationBase):
         processed_feature = self.create_processed_feature(feature1, combined, "Combined", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
+@apply_tooltips
 class FeatureMath(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -302,6 +308,7 @@ class FeatureMath(FeatureModulationBase):
         processed_feature = self.create_processed_feature(feature, result, "MathResult", invert_output)
         return (processed_feature, self.visualize(processed_feature))
     
+@apply_tooltips
 class FeatureSmoothing(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -346,6 +353,7 @@ class FeatureSmoothing(FeatureModulationBase):
         processed_feature = self.create_processed_feature(feature, adjusted_smoothed, "Smoothed", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
+@apply_tooltips
 class FeatureOscillator(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -384,6 +392,7 @@ class FeatureOscillator(FeatureModulationBase):
 
 
 #NOTE  separated from FeatureMath for ease  of  use.
+@apply_tooltips
 class FeatureFade(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -424,6 +433,7 @@ class FeatureFade(FeatureModulationBase):
         return (processed_feature, self.visualize(processed_feature))
 
 #NOTE: this class is technically redundant to FeatureMixer, but it's kept for clarity and ease of use.
+@apply_tooltips
 class FeatureRebase(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -456,6 +466,7 @@ class FeatureRebase(FeatureModulationBase):
         processed_feature = self.create_processed_feature(feature, normalized, "Rebased", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
+@apply_tooltips
 class FeatureRenormalize(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -489,6 +500,7 @@ class FeatureRenormalize(FeatureModulationBase):
         processed_feature = self.create_processed_feature(feature, normalized, "Renormalized", invert_output)
         return (processed_feature, self.visualize(processed_feature))
 
+@apply_tooltips
 class PreviewFeature(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -515,6 +527,7 @@ class PreviewFeature(FeatureModulationBase):
         
         return (self.visualize(processed_feature),)
 
+@apply_tooltips
 class FeatureTruncateOrExtend(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -563,6 +576,7 @@ class FeatureTruncateOrExtend(FeatureModulationBase):
         return (processed_feature, self.visualize(processed_feature))
     
 
+@apply_tooltips
 class FeatureAccumulate(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -633,6 +647,7 @@ class FeatureAccumulate(FeatureModulationBase):
 import numpy as np
 from scipy.interpolate import interp1d
 
+@apply_tooltips
 class FeatureContiguousInterpolate(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):

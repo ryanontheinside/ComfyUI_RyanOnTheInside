@@ -5,9 +5,11 @@ from scipy.interpolate import interp1d
 from ..masks.mask_utils import calculate_optical_flow
 import cv2
 import comfy.model_management as mm
+from ...tooltips import apply_tooltips
 
 from .flex_video_speed import FlexVideoSpeed
 
+@apply_tooltips
 class FlexVideoDirection(FlexVideoBase):
 
     @classmethod
@@ -36,6 +38,7 @@ class FlexVideoDirection(FlexVideoBase):
 
         return processed_video
 
+@apply_tooltips
 class FlexVideoSeek(FlexVideoBase):
 
     @classmethod
@@ -96,6 +99,7 @@ class FlexVideoSeek(FlexVideoBase):
         return processed_video
 
 
+@apply_tooltips
 class FlexVideoFrameBlend(FlexVideoBase):
 
     @classmethod

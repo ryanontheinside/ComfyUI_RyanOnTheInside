@@ -12,6 +12,7 @@ from scipy.interpolate import interp1d
 from ..masks.mask_utils import calculate_optical_flow
 import cv2
 import comfy.model_management as mm
+from ...tooltips import apply_tooltips
 
 BASE_MODEL_DOWNLOAD_URLS = [
     "https://github.com/styler00dollar/VSGAN-tensorrt-docker/releases/download/models/",
@@ -24,6 +25,7 @@ RIFE_CKPT_NAME_VER_DICT = {
     "rife49.pth": "4.7",
 }
 
+@apply_tooltips
 class FlexVideoSpeed(FlexVideoBase):
     @classmethod
     def INPUT_TYPES(cls):

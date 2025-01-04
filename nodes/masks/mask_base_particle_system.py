@@ -14,9 +14,11 @@ from typing import List, Tuple
 import pymunk
 import cv2
 from .mask_base import MaskBase
+from ...tooltips import apply_tooltips
 
 
 #TODO clean up the hamfisted resetting of all attributes
+@apply_tooltips
 class ParticleSystemMaskBase(MaskBase, ABC):
     @classmethod
     def INPUT_TYPES(cls):

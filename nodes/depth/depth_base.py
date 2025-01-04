@@ -5,8 +5,10 @@ from comfy.utils import ProgressBar
 from ... import RyanOnTheInside
 from ..flex.flex_base import FlexBase
 import cv2
+from ...tooltips import apply_tooltips
 
 #NOTE: in hindsight, much of this would have been better suited as mask-based operations
+@apply_tooltips
 class FlexDepthBase(RyanOnTheInside, FlexBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -133,6 +135,7 @@ class FlexDepthBase(RyanOnTheInside, FlexBase):
         pass
 
 
+@apply_tooltips
 class DepthInjection(FlexDepthBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -207,6 +210,7 @@ class DepthInjection(FlexDepthBase):
         return modified_depth
 
     
+@apply_tooltips
 class DepthBlender(FlexDepthBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -253,6 +257,7 @@ class DepthBlender(FlexDepthBase):
         return modified_depth
     
 
+@apply_tooltips
 class DepthRippleEffect(FlexDepthBase):
     @classmethod
     def INPUT_TYPES(cls):

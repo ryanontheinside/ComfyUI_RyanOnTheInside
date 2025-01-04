@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from ..node_utilities import string_to_rgb 
 from ... import RyanOnTheInside
 from comfy.utils import ProgressBar
+from ...tooltips import apply_tooltips
 
 class ImageUtilityNode(RyanOnTheInside):
     def __init__(self):
@@ -19,6 +20,7 @@ class ImageUtilityNode(RyanOnTheInside):
         self.progress_bar = None
     CATEGORY = "RyanOnTheInside/image/utility"
 
+@apply_tooltips
 class DyeImage(ImageUtilityNode):
     @classmethod
     def INPUT_TYPES(s):
@@ -51,6 +53,7 @@ class DyeImage(ImageUtilityNode):
 
 # From https://github.com/Jamy-L/Pytorch-Contrast-Adaptive-Sharpening/
 # THEN from comfyui essentials shoutout MATEO
+@apply_tooltips
 class ImageCASBatch(ImageUtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
@@ -123,6 +126,7 @@ class ImageCASBatch(ImageUtilityNode):
         return output
 
 from comfy.utils import common_upscale
+@apply_tooltips
 class ImageScaleToTarget(ImageUtilityNode):
     upscale_methods = ["nearest-exact", "bilinear", "area", "bicubic", "lanczos"]
     crop_methods = ["disabled", "center"]

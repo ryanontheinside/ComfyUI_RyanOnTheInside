@@ -8,9 +8,11 @@ from ..audio.audio_utils import (
     calculate_spectral_flux,
     calculate_zero_crossing_rate
 )
+from ...tooltips import apply_tooltips
 
 #NOTE just an experiment, it sucks
 #TODO: get to this
+@apply_tooltips
 class LatentFrequencyBlender(FlexLatentBase):
     @classmethod
     def INPUT_TYPES(cls):

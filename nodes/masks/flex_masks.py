@@ -10,7 +10,9 @@ from .shape_utils import create_shape_mask, get_available_shapes
 import torch
 from typing import List
 import torch.nn.functional as F
+from ...tooltips import apply_tooltips
 
+@apply_tooltips
 class FlexMaskMorph(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -47,6 +49,7 @@ class FlexMaskMorph(FlexMaskBase):
             iterations = max(1, int(iterations))
         return morph_mask(mask, morph_type, kernel_size, iterations)
 
+@apply_tooltips
 class FlexMaskWarp(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -91,6 +94,7 @@ class FlexMaskWarp(FlexMaskBase):
         
         return warp_mask(mask, warp_type, frequency_val, amplitude, octaves_val)
 
+@apply_tooltips
 class FlexMaskTransform(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -124,6 +128,7 @@ class FlexMaskTransform(FlexMaskBase):
         
         return transform_mask(mask, transform_type, x_value, y_value)
 
+@apply_tooltips
 class FlexMaskMath(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -156,6 +161,7 @@ class FlexMaskMath(FlexMaskBase):
         
         return combine_masks(mask, mask_b, combination_method, blend)
 
+@apply_tooltips
 class FlexMaskOpacity(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -183,6 +189,7 @@ class FlexMaskOpacity(FlexMaskBase):
         
         return mask * opacity
 
+@apply_tooltips
 class FlexMaskVoronoiScheduled(FlexMaskBase):
     formulas = {
         "Linear": lambda t, a, b: t * a / b,
@@ -290,6 +297,7 @@ class FlexMaskVoronoiScheduled(FlexMaskBase):
 
         return voronoi_mask
 
+@apply_tooltips
 class FlexMaskBinary(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -311,6 +319,7 @@ class FlexMaskBinary(FlexMaskBase):
         return (mask > modulated_threshold).astype(np.float32)
 
 #TODO: stateful node: make reset of state consistent, make state update pattern consistent, consistant state initialization in init
+@apply_tooltips
 class FlexMaskWavePropagation(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -411,6 +420,7 @@ class FlexMaskWavePropagation(FlexMaskBase):
         return result.astype(np.float32)
 
 #TODO: stateful node: make reset of state consistent, make state update pattern consistent, consistant state initialization in init
+@apply_tooltips
 class FlexMaskEmanatingRings(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -504,6 +514,7 @@ class FlexMaskEmanatingRings(FlexMaskBase):
         return self.process_mask(mask, 0, strength, **kwargs)
 
 #TODO: stateful node: make reset of state consistent, make state update pattern consistent, consistant state initialization in init
+@apply_tooltips
 class FlexMaskRandomShapes(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -624,6 +635,7 @@ class FlexMaskRandomShapes(FlexMaskBase):
         self.frame_count += 1
         return result_mask
 
+@apply_tooltips
 class FlexMaskDepthChamber(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -694,6 +706,7 @@ class FlexMaskDepthChamber(FlexMaskBase):
 
         return combined_mask
 
+@apply_tooltips
 class FlexMaskDepthChamberRelative(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -773,6 +786,7 @@ class FlexMaskDepthChamberRelative(FlexMaskBase):
 
         return output_mask
 
+@apply_tooltips
 class FlexMaskInterpolate(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):

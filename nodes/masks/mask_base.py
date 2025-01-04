@@ -12,16 +12,15 @@ from .mask_utils import (
     normalize_array
     )
 from abc import ABC, abstractmethod
-import pymunk 
-import math
-import random
 from typing import List, Tuple
 import pymunk
 import cv2
 from ..audio.audio_processor_legacy import AudioFeatureExtractor
 from ... import RyanOnTheInside
+from ...tooltips import apply_tooltips
 
 
+@apply_tooltips
 class MaskBase(RyanOnTheInside, ABC):
     @classmethod
     def INPUT_TYPES(cls):
@@ -139,6 +138,7 @@ class MaskBase(RyanOnTheInside, ABC):
         """
         pass
 
+@apply_tooltips
 class TemporalMaskBase(MaskBase, ABC):
     @classmethod
     def INPUT_TYPES(cls):
@@ -212,6 +212,7 @@ class TemporalMaskBase(MaskBase, ABC):
         ret = (self.apply_mask_operation(processed_masks[0], original_masks, strength, invert, subtract_original, grow_with_blur, **kwargs),)
         return ret
  
+@apply_tooltips
 class OpticalFlowMaskBase(MaskBase, ABC):
     @classmethod
     def INPUT_TYPES(cls):

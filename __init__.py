@@ -1,13 +1,19 @@
+from .tooltips import TooltipManager, apply_tooltips
+from .tooltips.categories import register_all_tooltips
+
+# Register tooltips immediately after import
+register_all_tooltips()
+
 from .node_configs.node_configs import CombinedMeta
 from collections import OrderedDict
 import os
 import folder_paths
 
 #NOTE: allows for central management and inheritance of class variables for help documentation
+
 class RyanOnTheInside(metaclass=CombinedMeta):
     @classmethod
     def get_description(cls):
-        
         display_name = NODE_DISPLAY_NAME_MAPPINGS.get(cls.__name__, cls.__name__)
         footer = "For more information, visit [RyanOnTheInside GitHub](https://github.com/ryanontheinside).\n\n"
         footer += "For tutorials and example workflows visit [RyanOnTheInside Civitai](https://civitai.com/user/ryanontheinside).\n\n"
@@ -30,7 +36,6 @@ class RyanOnTheInside(metaclass=CombinedMeta):
         for c in cls.mro()[::-1]:  
             if hasattr(c, 'ADDITIONAL_INFO'):
                 info = c.ADDITIONAL_INFO.strip()
-                
                 additional_info[c.__name__] = info
         
         if additional_info:

@@ -6,7 +6,9 @@ from aiohttp import web
 import shutil
 from .features_midi import MIDIFeature
 from .feature_extractors import FeatureExtractorBase
+from ...tooltips import apply_tooltips
 
+@apply_tooltips
 class MIDILoadAndExtract(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[MIDIFeature]:

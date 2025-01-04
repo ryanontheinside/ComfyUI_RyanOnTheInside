@@ -1,7 +1,9 @@
 import numpy as np
 from ... import RyanOnTheInside
 from comfy.utils import ProgressBar
+from ...tooltips import apply_tooltips
 
+@apply_tooltips
 class PoseInterpolator(RyanOnTheInside):
     @classmethod
     def INPUT_TYPES(cls):

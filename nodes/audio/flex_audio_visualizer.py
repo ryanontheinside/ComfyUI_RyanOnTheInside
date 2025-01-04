@@ -5,6 +5,7 @@ from abc import abstractmethod
 from comfy.utils import ProgressBar
 from ..flex.flex_base import FlexBase
 from ... import RyanOnTheInside
+from ...tooltips import apply_tooltips
 
 import matplotlib.pyplot as plt
 
@@ -90,6 +91,7 @@ class BaseAudioProcessor:
         # Apply smoothing
         self.spectrum = smoothing * self.spectrum + (1 - smoothing) * new_spectrum
 
+@apply_tooltips
 class FlexAudioVisualizerBase(FlexBase, RyanOnTheInside):
     @classmethod
     def INPUT_TYPES(cls):
@@ -221,6 +223,7 @@ class FlexAudioVisualizerBase(FlexBase, RyanOnTheInside):
             # Continue with the rest of apply_effect_internal
             ...
 
+@apply_tooltips
 class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -436,6 +439,7 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
         y_smooth = np.convolve(y, box, mode='same')
         return y_smooth
 
+@apply_tooltips
 class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
     @classmethod
     def INPUT_TYPES(cls):

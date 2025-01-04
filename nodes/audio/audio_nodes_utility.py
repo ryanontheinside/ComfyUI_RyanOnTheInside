@@ -10,6 +10,7 @@ from .audio_utils import (
     dither_audio,
 )
 import torch
+from ...tooltips import apply_tooltips
 
 class AudioUtility(AudioNodeBase):
     def __init__(self):
@@ -17,6 +18,7 @@ class AudioUtility(AudioNodeBase):
 
     CATEGORY = "RyanOnTheInside/Audio/Utility"
 
+@apply_tooltips
 class AudioPad(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -37,6 +39,7 @@ class AudioPad(AudioUtility):
         padded_waveform = pad_audio(waveform, pad_left, pad_right, pad_mode)
         return ({"waveform": padded_waveform, "sample_rate": sample_rate},)
 
+@apply_tooltips
 class AudioVolumeNormalization(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -55,6 +58,7 @@ class AudioVolumeNormalization(AudioUtility):
         normalized_waveform = normalize_volume(waveform, target_level)
         return ({"waveform": normalized_waveform, "sample_rate": sample_rate},)
 
+@apply_tooltips
 class AudioResample(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -73,6 +77,7 @@ class AudioResample(AudioUtility):
         resampled_waveform = resample_audio(waveform, sample_rate, new_sample_rate)
         return ({"waveform": resampled_waveform, "sample_rate": new_sample_rate},)
 
+@apply_tooltips
 class AudioChannelMerge(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -97,6 +102,7 @@ class AudioChannelMerge(AudioUtility):
         merged_waveform = merge_channels(waveform_list)
         return ({"waveform": merged_waveform, "sample_rate": sample_rate},)
 
+@apply_tooltips
 class AudioChannelSplit(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -115,6 +121,7 @@ class AudioChannelSplit(AudioUtility):
         audio_list = [{"waveform": w, "sample_rate": sample_rate} for w in channel_waveforms]
         return (audio_list,)
 
+@apply_tooltips
 class AudioConcatenate(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -136,6 +143,7 @@ class AudioConcatenate(AudioUtility):
         concatenated_waveform = concatenate_audio(audio1['waveform'], audio2['waveform'])
         return ({"waveform": concatenated_waveform, "sample_rate": sample_rate},)
 
+@apply_tooltips
 class Audio_Combine(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -159,6 +167,7 @@ class Audio_Combine(AudioUtility):
         combined_waveform = combine_audio(audio1['waveform'], audio2['waveform'], weight1, weight2)
         return ({"waveform": combined_waveform, "sample_rate": sample_rate},)
 
+@apply_tooltips
 class AudioSubtract(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -189,6 +198,7 @@ class AudioSubtract(AudioUtility):
         subtracted_waveform = waveform1 - waveform2
         return ({"waveform": subtracted_waveform, "sample_rate": sample_rate},)
 
+@apply_tooltips
 class AudioInfo(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -229,6 +239,8 @@ class AudioInfo(AudioUtility):
             rms_amplitude,
             bit_depth
         )
+
+@apply_tooltips
 class AudioDither(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):

@@ -2,7 +2,9 @@ from .feature_extractors import FeatureExtractorBase
 from .features_audio import AudioFeature, PitchFeature, PitchRange, BaseFeature, RhythmFeature
 from ... import RyanOnTheInside
 from ..audio.audio_nodes import AudioNodeBase
+from ...tooltips import apply_tooltips
 
+@apply_tooltips
 class AudioFeatureExtractor(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
@@ -35,6 +37,7 @@ class AudioFeatureExtractor(FeatureExtractorBase):
         return (feature,)
 
 #todo: create base class in prep for version 2
+@apply_tooltips
 class AudioFeatureExtractorFirst(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
@@ -68,6 +71,7 @@ class AudioFeatureExtractorFirst(FeatureExtractorBase):
         feature.extract()
         return (feature, frame_count)
 
+@apply_tooltips
 class RhythmFeatureExtractor(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
@@ -102,6 +106,7 @@ class RhythmFeatureExtractor(FeatureExtractorBase):
         feature.extract()
         return (feature,)
 
+@apply_tooltips
 class PitchFeatureExtractor(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
@@ -145,6 +150,7 @@ class PitchFeatureExtractor(FeatureExtractorBase):
 class PitchAbstraction(RyanOnTheInside):
     CATEGORY="RyanOnTheInside/FlexFeatures/Audio/Pitch"
 
+@apply_tooltips
 class PitchRangeNode(PitchAbstraction):
     @classmethod
     def INPUT_TYPES(cls):
@@ -175,6 +181,7 @@ class PitchRangeNode(PitchAbstraction):
             collections = previous_range_collection + [pitch_range_collection]
         return (collections,)
     
+@apply_tooltips
 class PitchRangePresetNode(PitchAbstraction):
     @classmethod
     def INPUT_TYPES(cls):
@@ -225,6 +232,7 @@ class PitchRangePresetNode(PitchAbstraction):
             collections = previous_range_collection + [pitch_range_collection]
         return (collections,)
     
+@apply_tooltips
 class PitchRangeByNoteNode(PitchAbstraction):
     @classmethod
     def INPUT_TYPES(cls):

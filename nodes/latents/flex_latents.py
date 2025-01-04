@@ -1,6 +1,8 @@
 from .flex_latent_base import FlexLatentBase
 import numpy as np
+from ...tooltips import apply_tooltips
 
+@apply_tooltips
 class FlexLatentInterpolate(FlexLatentBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -53,6 +55,7 @@ class FlexLatentInterpolate(FlexLatentBase):
             result = coef1 * latent1 + coef2 * latent2
             return result.reshape(latent1.shape)
 
+@apply_tooltips
 class EmbeddingGuidedLatentInterpolate(FlexLatentBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -122,6 +125,7 @@ class EmbeddingGuidedLatentInterpolate(FlexLatentBase):
             result = coef1 * latent1 + coef2 * latent2
             return result.reshape(latent1.shape)
 
+@apply_tooltips
 class FlexLatentBlend(FlexLatentBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -183,6 +187,7 @@ class FlexLatentBlend(FlexLatentBase):
             # Default to Add if mode is unrecognized
             return latent1 + latent2
 
+@apply_tooltips
 class FlexLatentNoise(FlexLatentBase):
     @classmethod
     def INPUT_TYPES(cls):

@@ -3,7 +3,9 @@ from .mask_base_particle_system import ParticleSystemMaskBase
 from typing import List, Tuple
 import cv2
 from ... import RyanOnTheInside
+from ...tooltips import apply_tooltips
 
+@apply_tooltips
 class ParticleEmissionMask(ParticleSystemMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -60,6 +62,7 @@ class ParticleEmissionMask(ParticleSystemMaskBase):
 class ParticleSystemModulatorBase(RyanOnTheInside):
     CATEGORY="RyanOnTheInside/ParticleSystemMasks"
 
+@apply_tooltips
 class EmitterModulationBase(ParticleSystemModulatorBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -106,6 +109,7 @@ class EmitterModulationBase(ParticleSystemModulatorBase):
         modulation_chain.append(modulation)
         return (modulation_chain,)
 
+@apply_tooltips
 class EmitterEmissionRateModulation(EmitterModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -125,6 +129,7 @@ class EmitterEmissionRateModulation(EmitterModulationBase):
         return (modulation_chain,)
 
 
+@apply_tooltips
 class Vortex(ParticleSystemModulatorBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -166,6 +171,7 @@ class Vortex(ParticleSystemModulatorBase):
         
         return (vortex_list,)
 
+@apply_tooltips
 class GravityWell(ParticleSystemModulatorBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -205,6 +211,7 @@ class GravityWell(ParticleSystemModulatorBase):
         
         return (well_list,)
 
+@apply_tooltips
 class ParticleEmitter(ParticleSystemModulatorBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -274,6 +281,7 @@ class ParticleEmitter(ParticleSystemModulatorBase):
         
         return (emitter_list,)
 
+@apply_tooltips
 class SpringJointSetting(ParticleSystemModulatorBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -297,6 +305,7 @@ class SpringJointSetting(ParticleSystemModulatorBase):
             "max_distance": max_distance,
         },)
     
+@apply_tooltips
 class EmitterMovement(ParticleSystemModulatorBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -333,6 +342,7 @@ class EmitterMovement(ParticleSystemModulatorBase):
         }
         return (movement,)
 
+@apply_tooltips
 class StaticBody(ParticleSystemModulatorBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -378,6 +388,7 @@ class StaticBody(ParticleSystemModulatorBase):
         
         return (body_list,)
 
+@apply_tooltips
 class ParticleModulationBase(ParticleSystemModulatorBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -421,6 +432,7 @@ class ParticleModulationBase(ParticleSystemModulatorBase):
         modulation_chain.append(modulation)
         return (modulation_chain,)
 
+@apply_tooltips
 class ParticleSizeModulation(ParticleModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -440,6 +452,7 @@ class ParticleSizeModulation(ParticleModulationBase):
         modulation_chain[-1]["target_size"] = target_size
         return (modulation_chain,)
 
+@apply_tooltips
 class ParticleSpeedModulation(ParticleModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -459,6 +472,7 @@ class ParticleSpeedModulation(ParticleModulationBase):
         modulation_chain[-1]["target_speed"] = target_speed
         return (modulation_chain,)
 
+@apply_tooltips
 class ParticleColorModulation(ParticleModulationBase):
     @classmethod
     def INPUT_TYPES(cls):

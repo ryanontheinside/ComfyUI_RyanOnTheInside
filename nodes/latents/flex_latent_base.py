@@ -3,7 +3,9 @@ import torch
 from abc import abstractmethod
 from ... import RyanOnTheInside
 from ..flex.flex_base import FlexBase
+from ...tooltips import apply_tooltips
 
+@apply_tooltips
 class FlexLatentBase(RyanOnTheInside, FlexBase):
     @classmethod
     def INPUT_TYPES(cls):

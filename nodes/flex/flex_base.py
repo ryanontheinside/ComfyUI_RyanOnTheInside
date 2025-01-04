@@ -2,7 +2,9 @@ from abc import ABC, abstractmethod
 from comfy.utils import ProgressBar
 import numpy as np
 import torch
+from ...tooltips import apply_tooltips
 
+@apply_tooltips
 class FlexBase(ABC):
     @classmethod
     def INPUT_TYPES(cls):

@@ -3,7 +3,9 @@ import numpy as np
 from abc import ABC, abstractmethod
 from ..flex.flex_base import FlexBase
 from comfy.utils import ProgressBar
+from ...tooltips import apply_tooltips
 
+@apply_tooltips
 class FlexVideoBase(FlexBase, ABC):
     @classmethod
     def INPUT_TYPES(cls):

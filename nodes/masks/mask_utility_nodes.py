@@ -7,8 +7,10 @@ import cv2
 from tqdm import tqdm
 import comfy.utils
 from scipy import interpolate
+from ...tooltips import apply_tooltips
 
 
+@apply_tooltips
 class MovingShape:
     @classmethod
     def INPUT_TYPES(s):
@@ -146,6 +148,7 @@ class MovingShape:
         except ValueError:
             raise ValueError("Invalid RGB!")
         
+@apply_tooltips
 class TextMaskNode:
     @classmethod
     def INPUT_TYPES(s):
@@ -235,6 +238,7 @@ class TextMaskNode:
 
         return (mask_tensor, image_tensor)
 
+@apply_tooltips
 class _mfc:
     @classmethod
     def INPUT_TYPES(s):
@@ -269,6 +273,7 @@ class _mfc:
         return (mask, mask_image)
     
 
+@apply_tooltips
 class MaskCompositePlus:
     @classmethod
     def INPUT_TYPES(s):

@@ -10,6 +10,7 @@ from ... import RyanOnTheInside
 from ..flex.feature_pipe import FeaturePipe
 import hashlib
 import torchaudio
+from ...tooltips import apply_tooltips
 
 
 class AudioNodeBase(RyanOnTheInside):
@@ -23,6 +24,7 @@ class AudioNodeBase(RyanOnTheInside):
         else:
             return torch.zeros((num_frames, height, width, channels), dtype=torch.float32)
 
+@apply_tooltips
 class DownloadOpenUnmixModel(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -59,6 +61,7 @@ class DownloadOpenUnmixModel(AudioNodeBase):
 
         return (separator,)
 
+@apply_tooltips
 class AudioSeparator(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -121,6 +124,7 @@ class AudioSeparator(AudioNodeBase):
         )
 
 #to be primary in version2    
+@apply_tooltips
 class AudioSeparatorSimple(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -174,6 +178,7 @@ class AudioSeparatorSimple(AudioNodeBase):
             isolated_audio['other']
         )
 
+@apply_tooltips
 class AudioFilter(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -267,6 +272,7 @@ class AudioFilter(AudioNodeBase):
 
 #         return (model,)
 
+@apply_tooltips
 class FrequencyFilterPreset(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -342,6 +348,7 @@ class FrequencyFilterPreset(AudioNodeBase):
         else:
             raise ValueError(f"Unknown preset: {preset}")
         
+@apply_tooltips
 class FrequencyFilterCustom(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -376,6 +383,7 @@ class FrequencyFilterCustom(AudioNodeBase):
         else:
             return ([filter_params],)
 
+@apply_tooltips
 class FrequencyRange(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -411,6 +419,7 @@ class FrequencyRange(AudioNodeBase):
         else:
             return ([range_params],)
         
+@apply_tooltips
 class AudioFeatureVisualizer(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -495,6 +504,7 @@ class AudioFeatureVisualizer(AudioNodeBase):
 
         return (mask,)  
 
+@apply_tooltips
 class EmptyImageFromAudio(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -517,6 +527,7 @@ class EmptyImageFromAudio(AudioNodeBase):
         frame_count = empty_image.shape[0]
         return (empty_image, frame_count)
 
+@apply_tooltips
 class EmptyMaskFromAudio(AudioNodeBase):
 
     @classmethod
@@ -586,6 +597,7 @@ class EmptyMaskFromAudio(AudioNodeBase):
 #             return "Invalid audio file: {}".format(audio)
 #         return True
 
+@apply_tooltips
 class EmptyImageAndMaskFromAudio(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):

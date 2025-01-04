@@ -6,7 +6,9 @@ from comfy.utils import ProgressBar
 from ... import RyanOnTheInside
 from ..flex.flex_base import FlexBase
 from .audio_utils import pitch_shift, time_stretch
+from ...tooltips import apply_tooltips
 
+@apply_tooltips
 class FlexAudioBase(FlexBase, RyanOnTheInside):
     @classmethod
     def INPUT_TYPES(cls):
@@ -159,6 +161,7 @@ class FlexAudioBase(FlexBase, RyanOnTheInside):
         """Apply the effect to the audio frame. To be implemented by child classes."""
         pass
 
+@apply_tooltips
 class FlexAudioPitchShift(FlexAudioBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -186,6 +189,7 @@ class FlexAudioPitchShift(FlexAudioBase):
         # Use the value of n_steps for pitch shifting
         return pitch_shift(audio_frame, sample_rate, n_steps)
 
+@apply_tooltips
 class FlexAudioTimeStretch(FlexAudioBase):
     @classmethod
     def INPUT_TYPES(cls):

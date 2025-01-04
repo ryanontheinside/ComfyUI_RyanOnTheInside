@@ -3,7 +3,9 @@ import numpy as np
 import torch
 from ..flex.flex_base import FlexBase
 from .mask_base import MaskBase
+from ...tooltips import apply_tooltips
 
+@apply_tooltips
 class FlexMaskBase(FlexBase, MaskBase):
     """Base class for Flex-enabled mask operations that combines FlexBase feature modulation with MaskBase operations."""
     

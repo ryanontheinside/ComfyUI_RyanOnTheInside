@@ -1,4 +1,7 @@
 import json
+from ...tooltips import apply_tooltips
+
+@apply_tooltips
 class WhisperToPromptTravel:
     """Converts Whisper alignment data to prompt travel format"""
     

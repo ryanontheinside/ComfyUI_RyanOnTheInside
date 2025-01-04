@@ -12,10 +12,11 @@ from skimage.feature import peak_local_max
 from skimage.segmentation import watershed
 from scipy import ndimage as ndi
 import math
-
+from ...tooltips import apply_tooltips
 class FlexExternalModulator(RyanOnTheInside):
     CATEGORY = "RyanOnTheInside/FlexExternalMod"
 
+@apply_tooltips
 class FeatureToWeightsStrategy(FlexExternalModulator):
     @classmethod
     def INPUT_TYPES(s):
@@ -50,6 +51,7 @@ class FeatureToWeightsStrategy(FlexExternalModulator):
 
         return (weights_strategy,)
 
+@apply_tooltips
 class FeatureToSplineData(FlexExternalModulator):
     @classmethod
     def INPUT_TYPES(cls):
@@ -168,6 +170,7 @@ import numpy as np
 import json
 from scipy.interpolate import interp1d
 
+@apply_tooltips
 class SplineFeatureModulator(FlexExternalModulator):
     @classmethod
     def INPUT_TYPES(cls):
@@ -266,6 +269,7 @@ class SplineFeatureModulator(FlexExternalModulator):
 
         return (masks_out, coord_str, out_floats, len(out_floats), coord_str)
 
+@apply_tooltips
 class SplineRhythmModulator(FlexExternalModulator):
     @classmethod
     def INPUT_TYPES(cls):
@@ -423,7 +427,8 @@ class SplineRhythmModulator(FlexExternalModulator):
         coord_str = json.dumps(sampled_coordinates)
 
         return (masks_out, coord_str, out_floats, len(out_floats), coord_str)
-    
+
+@apply_tooltips
 class FeatureToFloat(FlexExternalModulator):
     @classmethod
     def INPUT_TYPES(cls):
@@ -445,6 +450,7 @@ class FeatureToFloat(FlexExternalModulator):
     
 #TODO: sub somthing else
 #TODO: really, sub something else
+@apply_tooltips
 class DepthShapeModifier(FlexExternalModulator):
     @classmethod
     def INPUT_TYPES(cls):
@@ -543,6 +549,7 @@ class DepthShapeModifier(FlexExternalModulator):
         return gradient_steepness, depth_min, depth_max, strength
     
 
+@apply_tooltips
 class DepthShapeModifierPrecise(FlexExternalModulator):
     @classmethod
     def INPUT_TYPES(cls):

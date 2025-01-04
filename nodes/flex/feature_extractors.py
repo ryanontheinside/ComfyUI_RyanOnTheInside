@@ -9,7 +9,9 @@ import numpy as np
 import torch
 from scipy.interpolate import interp1d
 import json
+from ...tooltips import apply_tooltips
 
+@apply_tooltips
 class FeatureExtractorBase(RyanOnTheInside, ABC):
     @classmethod
     @abstractmethod
@@ -58,6 +60,7 @@ class FeatureExtractorBase(RyanOnTheInside, ABC):
     
     CATEGORY="RyanOnTheInside/FlexFeatures"
 
+@apply_tooltips
 class ManualFeatureNode(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
@@ -128,6 +131,7 @@ class ManualFeatureNode(FeatureExtractorBase):
         
         return (manual_feature,)
 
+@apply_tooltips
 class ManualFeatureFromPipe(ManualFeatureNode):
     @classmethod
     def INPUT_TYPES(cls):
@@ -161,6 +165,7 @@ class ManualFeatureFromPipe(ManualFeatureNode):
         return (manual_feature, feature_pipe)
 
    
+@apply_tooltips
 class TimeFeatureNode(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
@@ -186,6 +191,7 @@ class TimeFeatureNode(FeatureExtractorBase):
         time_feature.extract()
         return (time_feature,)
     
+@apply_tooltips
 class DepthFeatureNode(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
@@ -209,6 +215,7 @@ class DepthFeatureNode(FeatureExtractorBase):
         depth_feature.extract()
         return (depth_feature,)
 
+@apply_tooltips
 class ColorFeatureNode(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
@@ -232,6 +239,7 @@ class ColorFeatureNode(FeatureExtractorBase):
         color_feature.extract()
         return (color_feature,)
 
+@apply_tooltips
 class BrightnessFeatureNode(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
@@ -255,6 +263,7 @@ class BrightnessFeatureNode(FeatureExtractorBase):
         brightness_feature.extract()
         return (brightness_feature,)
     
+@apply_tooltips
 class MotionFeatureNode(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
@@ -301,6 +310,7 @@ class MotionFeatureNode(FeatureExtractorBase):
 
         return (motion_feature,)
     
+@apply_tooltips
 class AreaFeatureNode(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
@@ -325,6 +335,7 @@ class AreaFeatureNode(FeatureExtractorBase):
         area_feature.extract()
         return (area_feature,)
     
+@apply_tooltips
 class DrawableFeatureNode(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
