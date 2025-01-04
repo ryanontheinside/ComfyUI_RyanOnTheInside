@@ -538,34 +538,84 @@ class DrawableFeature(BaseFeature):
     def get_extraction_methods(cls):
         return ["drawn"]
     
-    def __init__(self, name, frame_rate, frame_count, points, method="linear", min_value=0.0, max_value=1.0, width=None, height=None):
+    def __init__(self, name, frame_rate, frame_count, points, method="linear", min_value=0.0, max_value=1.0, width=None, height=None, fill_value=0.0):
         super().__init__(name, "drawn", frame_rate, frame_count, width=width, height=height)
         self.points = points  # List of (frame, value) tuples
         self.method = method
         self.min_value = min_value
         self.max_value = max_value
+        self.fill_value = fill_value
         
     def extract(self):
         """Convert drawn points into a continuous feature curve"""
         if not self.points:
-            self.data = np.zeros(self.frame_count, dtype=np.float32)
-            return
+            self.data = np.full(self.frame_count, self.fill_value, dtype=np.float32)
+            return self
             
         # Sort points by frame number
         sorted_points = sorted(self.points, key=lambda x: x[0])
         frames, values = zip(*sorted_points)
+        frames = np.array(frames)
+        values = np.array(values)
+        x = np.arange(self.frame_count)
         
-        # Create interpolation function
-        from scipy.interpolate import interp1d
+        # Initialize with fill value
+        self.data = np.full(self.frame_count, self.fill_value, dtype=np.float32)
         
         if len(frames) == 1:
-            # Single point - use constant value
-            self.data = np.full(self.frame_count, values[0], dtype=np.float32)
+            # Single point - just set that point
+            self.data[int(frames[0])] = values[0]
         else:
-            # Multiple points - interpolate
-            f = interp1d(frames, values, kind='linear', bounds_error=False, fill_value=(values[0], values[-1]))
-            x = np.arange(self.frame_count)
-            self.data = f(x).astype(np.float32)
+            # Multiple points - interpolate based on method
+            if self.method == "linear":
+                f = interp1d(frames, values, kind='linear', bounds_error=False, fill_value=self.fill_value)
+                self.data = f(x).astype(np.float32)
+            
+            elif self.method == "cubic":
+                if len(frames) >= 4:
+                    from scipy.interpolate import CubicSpline
+                    f = CubicSpline(frames, values, bc_type='natural')
+                    mask = (x >= frames[0]) & (x <= frames[-1])
+                    self.data[mask] = f(x[mask]).astype(np.float32)
+                else:
+                    # Fall back to linear if not enough points
+                    f = interp1d(frames, values, kind='linear', bounds_error=False, fill_value=self.fill_value)
+                    self.data = f(x).astype(np.float32)
+            
+            elif self.method == "nearest":
+                f = interp1d(frames, values, kind='nearest', bounds_error=False, fill_value=self.fill_value)
+                self.data = f(x).astype(np.float32)
+            
+            elif self.method == "zero":
+                # Only set values at exact points
+                for frame, value in zip(frames, values):
+                    self.data[int(frame)] = value
+            
+            elif self.method == "hold":
+                # Hold each value until the next point
+                mask = (x >= frames[0]) & (x <= frames[-1])
+                for i in range(len(frames)-1):
+                    self.data[int(frames[i]):int(frames[i+1])] = values[i]
+                self.data[int(frames[-1])] = values[-1]
+            
+            elif self.method == "ease_in":
+                # Quadratic ease-in
+                mask = (x >= frames[0]) & (x <= frames[-1])
+                t = np.zeros_like(x, dtype=float)
+                t[mask] = (x[mask] - frames[0]) / (frames[-1] - frames[0])
+                f = interp1d(frames, values, kind='linear', bounds_error=False, fill_value=self.fill_value)
+                self.data[mask] = (t[mask] * t[mask] * f(x[mask])).astype(np.float32)
+            
+            elif self.method == "ease_out":
+                # Quadratic ease-out
+                mask = (x >= frames[0]) & (x <= frames[-1])
+                t = np.zeros_like(x, dtype=float)
+                t[mask] = (x[mask] - frames[0]) / (frames[-1] - frames[0])
+                f = interp1d(frames, values, kind='linear', bounds_error=False, fill_value=self.fill_value)
+                self.data[mask] = ((2 - t[mask]) * t[mask] * f(x[mask])).astype(np.float32)
+            
+            else:
+                raise ValueError(f"Unsupported interpolation method: {self.method}")
         
         # Normalize the data to 0-1 range
         if self.max_value > self.min_value:

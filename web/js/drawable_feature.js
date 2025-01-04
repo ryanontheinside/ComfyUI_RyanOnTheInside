@@ -11,7 +11,7 @@ app.registerExtension({
             console.log("Found DrawableFeatureNode, setting up widget");
             
             // Set default size
-            nodeType.size = [400, 500];  // Increased default height
+            nodeType.size = [700, 800];  // Increased size for better usability
             
             // Store the original methods
             const onNodeCreated = nodeType.prototype.onNodeCreated;
@@ -21,6 +21,27 @@ app.registerExtension({
             const onMouseUp = nodeType.prototype.onMouseUp;
             const onDblClick = nodeType.prototype.onDblClick;
             const onResize = nodeType.prototype.onResize;
+            const onSerialize = nodeType.prototype.onSerialize;
+            const onConfigure = nodeType.prototype.onConfigure;
+            
+            // Add serialization support
+            nodeType.prototype.onSerialize = function(o) {
+                if (onSerialize) {
+                    onSerialize.apply(this, arguments);
+                }
+                o.points = this.points;
+            };
+
+            // Add deserialization support
+            nodeType.prototype.onConfigure = function(o) {
+                if (onConfigure) {
+                    onConfigure.apply(this, arguments);
+                }
+                if (o.points) {
+                    this.points = o.points;
+                    this.updatePointsValue();
+                }
+            };
             
             // Override onNodeCreated to initialize the node
             nodeType.prototype.onNodeCreated = function() {
@@ -48,6 +69,16 @@ app.registerExtension({
                     hidden: true
                 });
                 
+                // Restore points from widget value
+                try {
+                    const savedPoints = JSON.parse(this.widgets[this.widgets.length - 1].value);
+                    if (Array.isArray(savedPoints)) {
+                        this.points = savedPoints;
+                    }
+                } catch (e) {
+                    console.error("Failed to restore points:", e);
+                }
+                
                 // Add clear button widget
                 this.addWidget("button", "Clear Graph", "clear", () => {
                     this.points = [];
@@ -55,7 +86,52 @@ app.registerExtension({
                     this.setDirtyCanvas(true, true);
                 });
                 
+                // Add handlers for min/max value changes
+                const minValueWidget = this.widgets.find(w => w.name === "min_value");
+                const maxValueWidget = this.widgets.find(w => w.name === "max_value");
+                
+                if (minValueWidget) {
+                    const originalCallback = minValueWidget.callback;
+                    minValueWidget.callback = (v) => {
+                        const result = originalCallback?.call(this, v);
+                        this.clampPoints();
+                        return result;
+                    };
+                }
+                
+                if (maxValueWidget) {
+                    const originalCallback = maxValueWidget.callback;
+                    maxValueWidget.callback = (v) => {
+                        const result = originalCallback?.call(this, v);
+                        this.clampPoints();
+                        return result;
+                    };
+                }
+                
                 return r;
+            };
+            
+            // Add method to clamp points to min/max range
+            nodeType.prototype.clampPoints = function() {
+                if (!this.points || this.points.length === 0) return;
+                
+                // Get current min/max values
+                const minValue = this.widgets.find(w => w.name === "min_value")?.value ?? 0;
+                const maxValue = this.widgets.find(w => w.name === "max_value")?.value ?? 1;
+                
+                // Clamp any out-of-bounds points
+                let needsUpdate = false;
+                this.points = this.points.map(([frame, value]) => {
+                    const clampedValue = Math.min(Math.max(value, minValue), maxValue);
+                    if (clampedValue !== value) needsUpdate = true;
+                    return [frame, clampedValue];
+                });
+                
+                // Only update if points were actually clamped
+                if (needsUpdate) {
+                    this.updatePointsValue();
+                    this.setDirtyCanvas(true, true);
+                }
             };
             
             // Calculate widget area height
@@ -110,13 +186,14 @@ app.registerExtension({
                 
                 // Vertical lines (frames) and labels
                 const frameCount = this.widgets.find(w => w.name === "frame_count")?.value || 30;
-                const frameStep = Math.max(1, Math.floor(frameCount / 10));
+                const maxFrame = frameCount - 1;  // Maximum valid frame
+                const frameStep = Math.max(1, Math.floor(maxFrame / 10));
                 ctx.fillStyle = "#888";
                 ctx.font = "10px Arial";
                 ctx.textAlign = "center";
                 
-                for (let f = 0; f <= frameCount; f += frameStep) {
-                    const x = margin + (f / frameCount) * graphWidth;
+                for (let f = 0; f <= maxFrame; f += frameStep) {
+                    const x = margin + (f / maxFrame) * graphWidth;
                     ctx.beginPath();
                     ctx.moveTo(x, graphY);
                     ctx.lineTo(x, graphY + graphHeight);
@@ -162,7 +239,7 @@ app.registerExtension({
                     ctx.beginPath();
                     
                     const points = this.points.map(([frame, value]) => ({
-                        x: margin + (frame / frameCount) * graphWidth,
+                        x: margin + (frame / maxFrame) * graphWidth,
                         y: graphY + (1 - this.normalizeValue(value)) * graphHeight
                     }));
                     
@@ -199,7 +276,7 @@ app.registerExtension({
                 if (this.isAddingPoint && this.mousePos) {
                     const [frame, value] = this.coordsToGraphValues(this.mousePos[0], this.mousePos[1]);
                     if (frame >= 0 && frame < frameCount) {
-                        const x = margin + (frame / frameCount) * graphWidth;
+                        const x = margin + (frame / maxFrame) * graphWidth;
                         const y = graphY + (1 - this.normalizeValue(value)) * graphHeight;
                         
                         ctx.beginPath();
@@ -236,10 +313,11 @@ app.registerExtension({
                 const graphY = widgetAreaHeight + margin;
                 
                 const frameCount = this.widgets.find(w => w.name === "frame_count")?.value || 30;
+                const maxFrame = frameCount - 1;
                 
                 // Calculate frame (x value) and clamp to valid range
-                const frame = Math.round(((x - margin) / graphWidth) * frameCount);
-                const clampedFrame = Math.max(0, Math.min(frameCount, frame));  // Changed from frameCount-1 to frameCount
+                const frame = Math.round(((x - margin) / graphWidth) * maxFrame);
+                const clampedFrame = Math.max(0, Math.min(maxFrame, frame));
                 
                 // Calculate value (y value) - normalize based on graph position
                 const normalizedY = Math.max(0, Math.min(1, (y - graphY) / graphHeight));
@@ -270,10 +348,11 @@ app.registerExtension({
                 const graphHeight = Math.max(200, this.size[1] - widgetAreaHeight - margin * 2);
                 const graphY = widgetAreaHeight + margin;
                 const frameCount = this.widgets.find(w => w.name === "frame_count")?.value || 30;
+                const maxFrame = frameCount - 1;
                 
                 for (let i = 0; i < this.points.length; i++) {
                     const [frame, value] = this.points[i];
-                    const px = margin + (frame / frameCount) * graphWidth;
+                    const px = margin + (frame / maxFrame) * graphWidth;
                     const py = graphY + (1 - this.normalizeValue(value)) * graphHeight;
                     const dist = Math.sqrt((x - px) ** 2 + (y - py) ** 2);
                     if (dist < 10) return i;
@@ -297,6 +376,10 @@ app.registerExtension({
                     this.widgets.push(pointsWidget);
                 }
                 pointsWidget.value = pointsStr;
+                // Trigger widget change to ensure value is saved
+                if (this.onWidgetChanged) {
+                    this.onWidgetChanged(pointsWidget.name, pointsWidget.value, pointsWidget.value, pointsWidget);
+                }
             };
             
             // Override mouse handlers for improved drawing
@@ -313,7 +396,8 @@ app.registerExtension({
                     // Not on a point - add new point
                     const [frame, value] = this.coordsToGraphValues(x, y);
                     const frameCount = this.widgets.find(w => w.name === "frame_count")?.value || 30;
-                    if (frame >= 0 && frame <= frameCount) {
+                    const maxFrame = frameCount - 1;
+                    if (frame >= 0 && frame <= maxFrame) {
                         // Remove any existing point at the same frame
                         const existingIndex = this.points.findIndex(p => p[0] === frame);
                         if (existingIndex !== -1) {
@@ -357,8 +441,9 @@ app.registerExtension({
                         this.isDragging = true;
                         const [frame, value] = this.coordsToGraphValues(x, y);
                         const frameCount = this.widgets.find(w => w.name === "frame_count")?.value || 30;
+                        const maxFrame = frameCount - 1;
                         // Keep strict < frameCount for dragging to prevent edge issues
-                        if (frame >= 0 && frame < frameCount) {
+                        if (frame >= 0 && frame <= maxFrame) {
                             // Check if there's already a point at the target frame (except selected point)
                             const existingIndex = this.points.findIndex((p, i) => 
                                 i !== this.selectedPoint && p[0] === frame);
