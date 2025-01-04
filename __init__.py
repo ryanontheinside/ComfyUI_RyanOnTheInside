@@ -101,7 +101,7 @@ from .nodes.flex.feature_extractors import(
     AreaFeatureNode,
     ManualFeatureNode,
     ManualFeatureFromPipe,
-    ManualFeatureDraw,
+    DrawableFeatureNode,
 )
 
 from .nodes.flex.feature_extractors_audio import(
@@ -411,7 +411,7 @@ NODE_CLASS_MAPPINGS = {
     "TimeFeatureNode":              TimeFeatureNode,
     "ManualFeatureNode":            ManualFeatureNode,
     "ManualFeatureFromPipe":        ManualFeatureFromPipe,
-    "ManualFeatureDraw":            ManualFeatureDraw,
+    "DrawableFeatureNode":          DrawableFeatureNode,
     "DepthFeatureNode":             DepthFeatureNode,
     "ColorFeatureNode":             ColorFeatureNode,
     "BrightnessFeatureNode":        BrightnessFeatureNode,

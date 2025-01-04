@@ -1,6 +1,6 @@
 from .feature_pipe import FeaturePipe
 from ... import RyanOnTheInside
-from .features import ManualFeature, TimeFeature, DepthFeature, ColorFeature, BrightnessFeature, MotionFeature, AreaFeature, BaseFeature
+from .features import ManualFeature, TimeFeature, DepthFeature, ColorFeature, BrightnessFeature, MotionFeature, AreaFeature, BaseFeature, DrawableFeature
 from abc import ABC, abstractmethod
 from tqdm import tqdm
 from comfy.utils import ProgressBar
@@ -8,6 +8,7 @@ import typing
 import numpy as np
 import torch
 from scipy.interpolate import interp1d
+import json
 
 class FeatureExtractorBase(RyanOnTheInside, ABC):
     @classmethod
@@ -323,6 +324,59 @@ class AreaFeatureNode(FeatureExtractorBase):
         area_feature = AreaFeature("area_feature", frame_rate, frame_count, masks, extraction_method, threshold, width=width, height=height)
         area_feature.extract()
         return (area_feature,)
+    
+class DrawableFeatureNode(FeatureExtractorBase):
+    @classmethod
+    def feature_type(cls) -> type[BaseFeature]:
+        return DrawableFeature
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "points": ("STRING", {"default": "[]"}),  # JSON string of points
+                "min_value": ("FLOAT", {"default": 0.0, "min": -100.0, "max": 100.0, "step": 0.1}),
+                "max_value": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.1}),
+                "interpolation_method": (["linear"], {"default": "linear"}),
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE",)
+    FUNCTION = "create_feature"
+
+    def create_feature(self, points, frame_rate, frame_count, width, height, extraction_method, interpolation_method, min_value, max_value):
+        try:
+            point_data = json.loads(points)
+            if not isinstance(point_data, list):
+                raise ValueError("Points data must be a list")
+            # Validate points format
+            for point in point_data:
+                if not isinstance(point, list) or len(point) != 2:
+                    raise ValueError("Each point must be a [frame, value] pair")
+                if not (isinstance(point[0], (int, float)) and isinstance(point[1], (float))):
+                    raise ValueError("Frame must be number, value must be float")
+                if point[0] < 0 or point[0] >= frame_count:
+                    raise ValueError(f"Frame {point[0]} out of bounds")
+                if point[1] < min_value or point[1] > max_value:
+                    raise ValueError(f"Value {point[1]} outside range [{min_value}, {max_value}]")
+        except json.JSONDecodeError:
+            raise ValueError("Invalid JSON format for points")
+
+        drawable_feature = DrawableFeature(
+            "drawable_feature",
+            frame_rate,
+            frame_count,
+            point_data,
+            method=interpolation_method,
+            min_value=min_value,
+            max_value=max_value,
+            width=width,
+            height=height
+        )
+        drawable_feature.extract()
+        return (drawable_feature,)
     
     
 

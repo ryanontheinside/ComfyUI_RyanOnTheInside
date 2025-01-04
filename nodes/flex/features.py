@@ -531,5 +531,47 @@ class AreaFeature(BaseFeature):
         else:
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 
+class DrawableFeature(BaseFeature):
+    """A feature that can be drawn on a graph interface"""
+    
+    @classmethod
+    def get_extraction_methods(cls):
+        return ["drawn"]
+    
+    def __init__(self, name, frame_rate, frame_count, points, method="linear", min_value=0.0, max_value=1.0, width=None, height=None):
+        super().__init__(name, "drawn", frame_rate, frame_count, width=width, height=height)
+        self.points = points  # List of (frame, value) tuples
+        self.method = method
+        self.min_value = min_value
+        self.max_value = max_value
+        
+    def extract(self):
+        """Convert drawn points into a continuous feature curve"""
+        if not self.points:
+            self.data = np.zeros(self.frame_count, dtype=np.float32)
+            return
+            
+        # Sort points by frame number
+        sorted_points = sorted(self.points, key=lambda x: x[0])
+        frames, values = zip(*sorted_points)
+        
+        # Create interpolation function
+        from scipy.interpolate import interp1d
+        
+        if len(frames) == 1:
+            # Single point - use constant value
+            self.data = np.full(self.frame_count, values[0], dtype=np.float32)
+        else:
+            # Multiple points - interpolate
+            f = interp1d(frames, values, kind='linear', bounds_error=False, fill_value=(values[0], values[-1]))
+            x = np.arange(self.frame_count)
+            self.data = f(x).astype(np.float32)
+        
+        # Normalize the data to 0-1 range
+        if self.max_value > self.min_value:
+            self.data = (self.data - self.min_value) / (self.max_value - self.min_value)
+        
+        return self
+
 #TODO volume feature
 
