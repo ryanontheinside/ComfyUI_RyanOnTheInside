@@ -46,18 +46,12 @@ class FlexDepthBase(RyanOnTheInside, FlexBase):
         feature_param,
         feature_mode,
         opt_feature=None,
-        opt_feature_pipe=None,
         **kwargs
     ):
-        if (opt_feature is None) != (opt_feature_pipe is None):
-            raise ValueError(
-                "Both opt_feature and opt_feature_pipe must be provided together, or neither should be provided."
-            )
-
         num_frames = depth_maps.shape[0]
         depth_maps_np = depth_maps.cpu().numpy()
 
-        if opt_feature is None and opt_feature_pipe is None:
+        if opt_feature is None:
             self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 
             result = []
@@ -74,7 +68,7 @@ class FlexDepthBase(RyanOnTheInside, FlexBase):
                 result.append(processed_depth_map)
                 self.update_progress()
         else:
-            num_frames = opt_feature_pipe.frame_count
+            num_frames = opt_feature.frame_count
             self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 
             result = []

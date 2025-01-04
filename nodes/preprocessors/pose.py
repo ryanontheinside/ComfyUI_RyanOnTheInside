@@ -10,7 +10,6 @@ class PoseInterpolator(RyanOnTheInside):
                 "pose_1": ("POSE_KEYPOINT",),
                 "pose_2": ("POSE_KEYPOINT",),
                 "feature": ("FEATURE",),
-                "feature_pipe": ("FEATURE_PIPE",),
                 "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "interpolation_mode": (["Linear", "Spherical"], {"default": "Linear"}),
                 "omit_missing_points": ("BOOLEAN", {"default": False}),
@@ -21,9 +20,9 @@ class PoseInterpolator(RyanOnTheInside):
     FUNCTION = "interpolate_poses"
     CATEGORY = "RyanOnTheInside/Poses"
 
-    def interpolate_poses(self, pose_1, pose_2, feature, feature_pipe, strength, interpolation_mode, omit_missing_points):
+    def interpolate_poses(self, pose_1, pose_2, feature, strength, interpolation_mode, omit_missing_points):
         print("Debug: Starting interpolate_poses method")
-        num_frames = feature_pipe.frame_count
+        num_frames = feature.frame_count
         self.progress_bar = ProgressBar(num_frames)
 
         result_poses = []

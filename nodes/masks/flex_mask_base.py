@@ -76,17 +76,12 @@ class FlexMaskBase(FlexBase, MaskBase):
         """
         return self.process_mask(mask, feature_value, strength, **kwargs)
 
-    def apply_effect(self, masks, opt_feature=None, opt_feature_pipe=None, strength=1.0, feature_threshold=0.0, mask_strength=1.0, invert=False, subtract_original=0.0, grow_with_blur=0.0, **kwargs):
+    def apply_effect(self, masks, opt_feature=None, strength=1.0, feature_threshold=0.0, mask_strength=1.0, invert=False, subtract_original=0.0, grow_with_blur=0.0, **kwargs):
         """Main entry point for the Flex system.
         
         This method implements the required FlexBase.apply_effect method and routes to our mask-specific implementation.
         """
-        if (opt_feature is None) != (opt_feature_pipe is None):
-            raise ValueError(
-                "Both feature and feature_pipe must be provided together, or neither should be provided."
-            )
-
-        num_frames = opt_feature_pipe.frame_count if opt_feature_pipe else masks.shape[0]
+        num_frames = masks.shape[0]
         original_masks = masks.clone()
 
         self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
@@ -126,15 +121,14 @@ class FlexMaskBase(FlexBase, MaskBase):
         # Use mask_strength instead of strength for the final mask operation
         return (super().apply_mask_operation(processed_masks, original_masks, mask_strength, invert, subtract_original, grow_with_blur, **kwargs),)
 
-    def main_function(self, masks, opt_feature=None, opt_feature_pipe=None, strength=1.0, feature_threshold=0.0, mask_strength=1.0, invert=False, subtract_original=0.0, grow_with_blur=0.0, **kwargs):
+    def main_function(self, masks, opt_feature=None, strength=1.0, feature_threshold=0.0, mask_strength=1.0, invert=False, subtract_original=0.0, grow_with_blur=0.0, **kwargs):
         """Implementation of MaskBase's abstract main_function.
         
         Explicitly forwards all parameters to apply_effect to maintain parameter names.
         """
         return self.apply_effect(
             masks=masks,
-            feature=opt_feature,
-            feature_pipe=opt_feature_pipe,
+            opt_feature=opt_feature,
             strength=strength,
             feature_threshold=feature_threshold,
             mask_strength=mask_strength,

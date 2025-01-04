@@ -1,5 +1,4 @@
-from .feature_extractors import FeatureExtractorBase, FirstFeature
-from .feature_pipe import FeaturePipe
+from .feature_extractors import FeatureExtractorBase
 from .features_audio import AudioFeature, PitchFeature, PitchRange, BaseFeature, RhythmFeature
 from ... import RyanOnTheInside
 from ..audio.audio_nodes import AudioNodeBase
@@ -16,18 +15,24 @@ class AudioFeatureExtractor(FeatureExtractorBase):
             "required": {
                 **super().INPUT_TYPES()["required"],
                 "audio": ("AUDIO",),
-                "feature_pipe": ("FEATURE_PIPE",),
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "FEATURE_PIPE")
+    RETURN_TYPES = ("FEATURE",)
     FUNCTION = "extract_feature"
     
-
-    def extract_feature(self, audio, feature_pipe, extraction_method):
-        feature = AudioFeature(extraction_method, audio, feature_pipe.frame_count, feature_pipe.frame_rate, extraction_method)
+    def extract_feature(self, audio, frame_rate, frame_count, width, height, extraction_method):
+        feature = AudioFeature(
+            feature_name=extraction_method,
+            audio=audio,
+            frame_count=frame_count,
+            frame_rate=frame_rate,
+            width=width,
+            height=height,
+            feature_type=extraction_method
+        )
         feature.extract()
-        return (feature, feature_pipe)
+        return (feature,)
 
 #todo: create base class in prep for version 2
 class AudioFeatureExtractorFirst(FeatureExtractorBase):
@@ -42,31 +47,28 @@ class AudioFeatureExtractorFirst(FeatureExtractorBase):
             "required": {
                 **super().INPUT_TYPES()["required"],
                 "audio": ("AUDIO",),
-                "width": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 64}),
-                "height": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 64}),
-                "frame_rate": ("FLOAT", {"default": 30.0, "min": 0.1, "max": 240.0, "step": 0.1}),
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "FEATURE_PIPE", "INT")
-    RETURN_NAMES = ("feature", "feature_pipe", "frame_count")
+    RETURN_TYPES = ("FEATURE", "INT")
+    RETURN_NAMES = ("feature", "frame_count")
     FUNCTION = "extract_feature"
     CATEGORY = "RyanOnTheInside/FlexFeatures/Audio"
 
-    def extract_feature(self, audio, width, height, frame_rate, extraction_method):
-        empty_frames = AudioNodeBase.create_empty_tensor(audio, frame_rate, height, width, channels=3)
-        feature_pipe = FeaturePipe(frame_rate, empty_frames)
+    def extract_feature(self, audio, frame_rate, frame_count, width, height, extraction_method):
         feature = AudioFeature(
             feature_name=extraction_method,
             audio=audio,
-            frame_count=feature_pipe.frame_count,
-            frame_rate=feature_pipe.frame_rate,
-            feature_type=extraction_method
+            frame_count=frame_count,
+            frame_rate=frame_rate,
+            feature_type=extraction_method,
+            width=width,
+            height=height
         )
         feature.extract()
-        return (feature, feature_pipe, feature_pipe.frame_count)
+        return (feature, frame_count)
 
-class RhythmFeatureExtractor(FirstFeature):
+class RhythmFeatureExtractor(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
         return RhythmFeature
@@ -82,27 +84,28 @@ class RhythmFeatureExtractor(FirstFeature):
             },
         }
 
-    RETURN_TYPES = ("FEATURE", "FEATURE_PIPE")
+    RETURN_TYPES = ("FEATURE",)
     FUNCTION = "extract_feature"
     CATEGORY = "RyanOnTheInside/FlexFeatures/Audio/Rhythm"
 
-    def extract_feature(self, audio, extraction_method, time_signature, frame_rate, video_frames):
-        feature_pipe = FeaturePipe(frame_rate, video_frames)
+    def extract_feature(self, audio, extraction_method, time_signature, frame_rate, frame_count, width, height):
         feature = RhythmFeature(
             feature_name=extraction_method,
             audio=audio,
-            frame_count=feature_pipe.frame_count,
-            frame_rate=feature_pipe.frame_rate,
+            frame_count=frame_count,
+            frame_rate=frame_rate,
             feature_type=extraction_method,
-            time_signature=time_signature
+            time_signature=time_signature,
+            width=width,
+            height=height
         )
         feature.extract()
-        return (feature, feature_pipe)
+        return (feature,)
 
 class PitchFeatureExtractor(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
-        return  PitchFeature
+        return PitchFeature
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -111,7 +114,6 @@ class PitchFeatureExtractor(FeatureExtractorBase):
             "required": {
                 **super().INPUT_TYPES()["required"],
                 "audio": ("AUDIO",),
-                "feature_pipe": ("FEATURE_PIPE",),
                 "opt_crepe_model":(["none", "medium", "tiny", "small", "large", "full"], {"default": "medium"})
             },
             "optional": {
@@ -120,23 +122,25 @@ class PitchFeatureExtractor(FeatureExtractorBase):
             },
         }
 
-    RETURN_TYPES = ("FEATURE", "FEATURE_PIPE")
+    RETURN_TYPES = ("FEATURE",)
     FUNCTION = "extract_feature"
 
-    def extract_feature(self, audio, feature_pipe, extraction_method, opt_pitch_range_collections=None, opt_crepe_model=None):
+    def extract_feature(self, audio, frame_rate, frame_count, width, height, extraction_method, opt_pitch_range_collections=None, opt_crepe_model=None):
         if opt_pitch_range_collections is None:
             opt_pitch_range_collections = []
         feature = PitchFeature(
             feature_name=extraction_method,
             audio=audio,
-            frame_count=feature_pipe.frame_count,
-            frame_rate=feature_pipe.frame_rate,
+            frame_count=frame_count,
+            frame_rate=frame_rate,
             pitch_range_collections=opt_pitch_range_collections,
             feature_type=extraction_method,
-            crepe_model=opt_crepe_model
+            crepe_model=opt_crepe_model,
+            width=width,
+            height=height
         )
         feature.extract()
-        return (feature, feature_pipe)
+        return (feature,)
 
 class PitchAbstraction(RyanOnTheInside):
     CATEGORY="RyanOnTheInside/FlexFeatures/Audio/Pitch"
@@ -276,5 +280,4 @@ class PitchRangeByNoteNode(PitchAbstraction):
     def _midi_to_frequency(self, midi_note):
         import librosa
         return librosa.midi_to_hz(midi_note)
-
     # The _calculate_tolerance method has been removed from here

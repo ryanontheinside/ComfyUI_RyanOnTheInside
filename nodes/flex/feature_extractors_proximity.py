@@ -1,40 +1,45 @@
-from .features_proximity import Location,   ProximityFeature
-from .feature_extractors import FirstFeature
+from .features_proximity import Location, ProximityFeature
+from .feature_extractors import FeatureExtractorBase
 from ... import RyanOnTheInside
-from .feature_pipe import FeaturePipe
 import numpy as np
 import cv2
 
 
-class ProximityFeatureNode(FirstFeature):
+class ProximityFeatureNode(FeatureExtractorBase):
+    @classmethod
+    def feature_type(cls) -> type:
+        return ProximityFeature
+
     @classmethod
     def INPUT_TYPES(cls):
         return {
+            **super().INPUT_TYPES(),
             "required": {
-                "video_frames": ("IMAGE",),
-                "frame_rate": ("FLOAT", {"default": 30.0, "min": 1.0, "max": 120.0, "step": 0.1}),
+                **super().INPUT_TYPES()["required"],
                 "anchor_locations": ("LOCATION",),
                 "query_locations": ("LOCATION",),
                 "normalization_method": (["frame", "minmax"],),
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "FEATURE_PIPE")
-    RETURN_NAMES = ("proximity_feature", "feature_pipe")
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("proximity_feature",)
     FUNCTION = "create_feature"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Proximity"
 
-    def create_feature(self, video_frames, frame_rate, anchor_locations, query_locations, normalization_method):
-        feature_pipe = FeaturePipe(frame_rate, video_frames)
-        frame_dimensions = (video_frames.shape[2], video_frames.shape[1])  # width, height
+    def create_feature(self, frame_rate, frame_count, width, height, anchor_locations, query_locations, normalization_method, extraction_method):
+        frame_dimensions = (width, height)
         
         proximity_feature = ProximityFeature(
             name="proximity_feature",
             anchor_locations=anchor_locations,
             query_locations=query_locations,
             frame_rate=frame_rate,
-            frame_count=len(video_frames),
+            frame_count=frame_count,
             frame_dimensions=frame_dimensions,
-            normalization_method=normalization_method
+            normalization_method=normalization_method,
+            width=width,
+            height=height
         )
 
         # Ensure anchor and query points have the same number of columns
@@ -50,11 +55,9 @@ class ProximityFeatureNode(FirstFeature):
                     location.points = location.points[:, :2]
             print("Depth ignored. Depth must be included for all points or no points.")
 
-        # self.start_progress(len(video_frames), desc="Calculating proximity")
         proximity_feature.extract()
-        # self.end_progress()
 
-        return (proximity_feature, feature_pipe)
+        return (proximity_feature,)
 
 class ProximityFeatureInput(RyanOnTheInside):
     CATEGORY="RyanOnTheInside/Proximity"

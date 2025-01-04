@@ -8,7 +8,6 @@ import torch
 from .vfi_utils import preprocess_frames, postprocess_frames
 from .video_base import FlexVideoBase
 import numpy as np
-from ..flex.feature_pipe import FeaturePipe
 from scipy.interpolate import interp1d
 from ..masks.mask_utils import calculate_optical_flow
 import cv2
@@ -31,7 +30,6 @@ class FlexVideoSpeed(FlexVideoBase):
         return {
             "required": {
                 **super().INPUT_TYPES()["required"],
-                "feature_pipe": ("FEATURE_PIPE",),
                 "speed_factor": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.1}),
                 "interpolation_mode": (["none", "linear", "Farneback", "rife47", "rife49"],),
                 "fast_mode": ("BOOLEAN", {"default": True}),
@@ -44,12 +42,12 @@ class FlexVideoSpeed(FlexVideoBase):
     def get_modifiable_params(cls):
         return ["speed_factor"]
 
-    def apply_effect_internal(self, video: np.ndarray, feature_values: np.ndarray, feature_pipe: FeaturePipe, 
+    def apply_effect_internal(self, video: np.ndarray, feature_values: np.ndarray, 
                               speed_factor: float, interpolation_mode: str, fast_mode: bool, ensemble: bool, 
-                              scale_factor: float, **kwargs):
+                              scale_factor: float, opt_feature=None, **kwargs):
         num_frames = video.shape[0]
-        total_duration = feature_pipe.frame_count / feature_pipe.frame_rate
-        frame_rate = feature_pipe.frame_rate
+        frame_rate = opt_feature.frame_rate
+        total_duration = num_frames / frame_rate
 
         # Ensure feature_values is the same length as video frames
         if len(feature_values) != num_frames:
@@ -71,7 +69,7 @@ class FlexVideoSpeed(FlexVideoBase):
         normalized_cumulative_times = cumulative_times * (total_duration / cumulative_times[-1])
 
         # Create an array of the target timestamps that the final video must have
-        target_timestamps = np.linspace(0, total_duration, feature_pipe.frame_count)
+        target_timestamps = np.linspace(0, total_duration, num_frames)
 
         # Interpolate the adjusted frames based on the normalized timestamps
         frame_indices = np.interp(target_timestamps, normalized_cumulative_times, np.arange(num_frames))

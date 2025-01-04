@@ -19,8 +19,8 @@ class BaseAudioFeature(BaseFeature):
         """Return a list of parameter names that can be modulated."""
         return []
     
-    def __init__(self, name, audio, frame_count, frame_rate):
-        super().__init__(name, "audio", frame_rate, frame_count)
+    def __init__(self, name, audio, frame_count, frame_rate, width, height):
+        super().__init__(name, "audio", frame_rate, frame_count, width, height)
         self.audio = audio
         self.sample_rate = None
         self.frame_duration = None
@@ -68,8 +68,8 @@ class BaseAudioFeature(BaseFeature):
    
 class AudioFeature(BaseAudioFeature):
 
-    def __init__(self, feature_name, audio, frame_count, frame_rate, feature_type='amplitude_envelope'):
-        super().__init__(feature_name, audio, frame_count, frame_rate)
+    def __init__(self, feature_name, audio, frame_count, frame_rate, width, height, feature_type='amplitude_envelope'):
+        super().__init__(feature_name, audio, frame_count, frame_rate, width, height)
         self.feature_type = feature_type
         self.available_features = self.get_extraction_methods()
         self.feature_name = feature_type
@@ -128,8 +128,8 @@ import numpy as np
 import librosa
 
 class RhythmFeature(BaseAudioFeature):
-    def __init__(self, feature_name, audio, frame_count, frame_rate, feature_type='beat_locations', time_signature=4):
-        super().__init__(feature_name, audio, frame_count, frame_rate)
+    def __init__(self, feature_name, audio, frame_count, frame_rate, width, height, feature_type='beat_locations', time_signature=4):
+        super().__init__(feature_name, audio, frame_count, frame_rate, width, height)
         self.feature_type = feature_type
         self.available_features = self.get_extraction_methods()
         self.feature_name = feature_type
@@ -282,13 +282,15 @@ class PitchFeature(BaseAudioFeature):
         audio,
         frame_count,
         frame_rate,
+        width,
+        height,
         pitch_range_collections=None,
         feature_type='frequency',
         window_size=0,
         vibrato_options=None,
         crepe_model="none"
     ):
-        super().__init__(feature_name, audio, frame_count, frame_rate)
+        super().__init__(feature_name, audio, frame_count, frame_rate, width, height)
         self.available_features = self.get_extraction_methods()
         self.feature_type = feature_type
         self.pitch_range_collections = pitch_range_collections or []

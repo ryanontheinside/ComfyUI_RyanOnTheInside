@@ -23,7 +23,7 @@ class FlexMaskNormalBase(FlexMaskBase):
         normal_array = normal_map.cpu().numpy() * 2 - 1
         return normal_array
 
-    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, invert, subtract_original, grow_with_blur, normal_map, **kwargs):
+    def main_function(self, masks, opt_feature=None, strength=1.0, feature_threshold=0.0, invert=False, subtract_original=0.0, grow_with_blur=0.0, normal_map=None, **kwargs):
         # This method should be overridden by child classes
         raise NotImplementedError("Subclasses must implement main_function")
 

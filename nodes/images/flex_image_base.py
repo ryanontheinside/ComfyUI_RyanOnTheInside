@@ -55,16 +55,10 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
         feature_param, 
         feature_mode, 
         opt_feature=None, 
-        opt_feature_pipe=None, 
         **kwargs
     ):
-        if (opt_feature is None) != (opt_feature_pipe is None):
-            raise ValueError(
-                "Both opt_feature and opt_feature_pipe must be provided together, or neither should be provided."
-            )
-
-        if opt_feature is None and opt_feature_pipe is None:
-            # Process all frames without modulation
+        # Process all frames without modulation if no feature is provided
+        if opt_feature is None:
             num_frames = images.shape[0]
             images_np = images.cpu().numpy()
 
@@ -84,8 +78,8 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
                 self.update_progress()
         else:
             # Process frames with modulation based on feature values
-            num_frames = opt_feature_pipe.frame_count
             images_np = images.cpu().numpy()
+            num_frames = opt_feature.frame_count
 
             self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 

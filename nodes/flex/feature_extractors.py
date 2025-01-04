@@ -21,6 +21,10 @@ class FeatureExtractorBase(RyanOnTheInside, ABC):
         return {            
             "required": {
                 "extraction_method": (feature_class.get_extraction_methods(), {"default": feature_class.get_extraction_methods()[0]}),
+                "frame_rate": ("FLOAT", {"default": 30.0, "min": 1.0, "max": 120.0, "step": 0.1}),
+                "frame_count": ("INT", {"default": 30, "min": 1}),
+                "width": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 64}),
+                "height": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 64}),
             }
         }
 
@@ -50,6 +54,7 @@ class FeatureExtractorBase(RyanOnTheInside, ABC):
         self.tqdm_bar = None
         self.current_progress = 0
         self.total_steps = 0
+    
     CATEGORY="RyanOnTheInside/FlexFeatures"
 
 class ManualFeatureNode(FeatureExtractorBase):
@@ -62,32 +67,29 @@ class ManualFeatureNode(FeatureExtractorBase):
         return {
             **super().INPUT_TYPES(),
             "required": {
-                "frame_rate": ("FLOAT", {"default": 30.0, "min": 1.0, "max": 120.0, "step": 0.1}),
-                "frame_count": ("INT", {"default": 30, "min": 1}),
+                **super().INPUT_TYPES()["required"],
                 "frame_numbers": ("STRING", {"default": "0,10,20"}),
                 "values": ("STRING", {"default": "0.0,0.5,1.0"}),
                 "last_value": ("FLOAT", {"default": 1.0}),
-                "width": ("INT", {"default": 1920, "min": 1}),
-                "height": ("INT", {"default": 1080, "min": 1}),
                 "interpolation_method": (["none", "linear", "ease_in", "ease_out"], {"default": "none"}),
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "FEATURE_PIPE")
+    RETURN_TYPES = ("FEATURE",)
     FUNCTION = "create_feature"
 
-    def _apply_interpolation(self, feature_pipe, frame_numbers, values, last_value, interpolation_method):
+    def _apply_interpolation(self, frame_count, frame_rate, frame_numbers, values, last_value, interpolation_method, height=None, width=None):
         """Shared interpolation logic"""
-        manual_feature = ManualFeature("manual_feature", feature_pipe.frame_rate, feature_pipe.frame_count,
-                                     frame_numbers[0], frame_numbers[-1], values[0], values[-1], 
-                                     method=interpolation_method)
+        manual_feature = ManualFeature("manual_feature", frame_rate, frame_count,
+                                   frame_numbers[0], frame_numbers[-1], values[0], values[-1], 
+                                   method=interpolation_method, height=height, width=width)
 
-        manual_feature.data = np.zeros(feature_pipe.frame_count, dtype=np.float32)
+        manual_feature.data = np.zeros(frame_count, dtype=np.float32)
         interpolation_kind = 'linear' if len(frame_numbers) < 3 else 'quadratic'
 
         if interpolation_method == 'none':
             for frame, value in zip(frame_numbers, values):
-                if 0 <= frame < feature_pipe.frame_count:
+                if 0 <= frame < frame_count:
                     manual_feature.data[frame] = value
                 else:
                     raise ValueError(f"Frame number {frame} is out of bounds.")
@@ -100,7 +102,7 @@ class ManualFeatureNode(FeatureExtractorBase):
                 reversed_values = [values[-1] - (v - values[0]) for v in values]
                 f = interp1d(frame_numbers, reversed_values, kind=interpolation_kind, fill_value="extrapolate")
             
-            x = np.arange(feature_pipe.frame_count)
+            x = np.arange(frame_count)
             manual_feature.data = f(x)
             
             if interpolation_method == 'ease_out':
@@ -108,7 +110,7 @@ class ManualFeatureNode(FeatureExtractorBase):
 
         return manual_feature
 
-    def create_feature(self, frame_rate, frame_count, frame_numbers, values, last_value, width, height, interpolation_method):
+    def create_feature(self, frame_rate, frame_count, frame_numbers, values, last_value, width, height, interpolation_method, extraction_method):
         # Parse inputs
         frame_numbers = list(map(int, frame_numbers.split(',')))
         values = list(map(float, values.split(',')))
@@ -120,14 +122,10 @@ class ManualFeatureNode(FeatureExtractorBase):
         if max(frame_numbers) >= frame_count:
             raise ValueError(f"Frame numbers must be less than frame_count ({frame_count})")
 
-        # Create feature pipe with specified frame_count
-        video_frames = torch.zeros((frame_count, height, width, 3), dtype=torch.float32)
-        feature_pipe = FeaturePipe(frame_rate, video_frames)
-
         # Apply interpolation
-        manual_feature = self._apply_interpolation(feature_pipe, frame_numbers, values, last_value, interpolation_method)
+        manual_feature = self._apply_interpolation(frame_count, frame_rate, frame_numbers, values, last_value, interpolation_method, height, width)
         
-        return (manual_feature, feature_pipe)
+        return (manual_feature,)
 
 class ManualFeatureFromPipe(ManualFeatureNode):
     @classmethod
@@ -157,31 +155,12 @@ class ManualFeatureFromPipe(ManualFeatureNode):
         values.append(last_value)
 
         # Apply interpolation using parent class method
-        manual_feature = self._apply_interpolation(feature_pipe, frame_numbers, values, last_value, interpolation_method)
+        manual_feature = self._apply_interpolation(feature_pipe.frame_count, feature_pipe.frame_rate, frame_numbers, values, last_value, interpolation_method)
 
         return (manual_feature, feature_pipe)
 
-class FirstFeature(FeatureExtractorBase):
-
-    @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        pass
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {            
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "video_frames": ("IMAGE",),
-                "frame_rate": ("FLOAT", {"default": 30.0, "min": 1.0, "max": 120.0, "step": 0.1}),
-            }
-        }
-
-    RETURN_TYPES = ("FEATURE", "FEATURE_PIPE")
-    FUNCTION = "create_feature"
    
-class TimeFeatureNode(FirstFeature):
+class TimeFeatureNode(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
         return TimeFeature
@@ -197,16 +176,16 @@ class TimeFeatureNode(FirstFeature):
             }
         }
 
-   
+    RETURN_TYPES = ("FEATURE",)
+    FUNCTION = "create_feature"
 
-    def create_feature(self, extraction_method, speed, offset, video_frames, frame_rate):
-        feature_pipe = FeaturePipe(frame_rate, video_frames)
-        time_feature = TimeFeature("time_effect", feature_pipe.frame_rate, feature_pipe.frame_count, 
-                                   effect_type=extraction_method, speed=speed, offset=offset)
+    def create_feature(self, extraction_method, speed, offset, frame_rate, frame_count, width, height):
+        time_feature = TimeFeature("time_effect", frame_rate, frame_count, width, height,
+                                effect_type=extraction_method, speed=speed, offset=offset)
         time_feature.extract()
-        return (time_feature, feature_pipe)
+        return (time_feature,)
     
-class DepthFeatureNode(FirstFeature):
+class DepthFeatureNode(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
         return DepthFeature
@@ -221,13 +200,15 @@ class DepthFeatureNode(FirstFeature):
             }
         }
 
-    def create_feature(self, depth_maps, frame_rate, video_frames, extraction_method):
-        feature_pipe = FeaturePipe(frame_rate, video_frames)
-        depth_feature = DepthFeature("depth_feature", feature_pipe.frame_rate, feature_pipe.frame_count, depth_maps, extraction_method)
-        depth_feature.extract()
-        return (depth_feature, feature_pipe)
+    RETURN_TYPES = ("FEATURE",)
+    FUNCTION = "create_feature"
 
-class ColorFeatureNode(FirstFeature):
+    def create_feature(self, depth_maps, frame_rate, frame_count, width, height, extraction_method):
+        depth_feature = DepthFeature("depth_feature", frame_rate, frame_count, depth_maps, extraction_method, width=width, height=height)
+        depth_feature.extract()
+        return (depth_feature,)
+
+class ColorFeatureNode(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
         return ColorFeature
@@ -238,16 +219,19 @@ class ColorFeatureNode(FirstFeature):
             **super().INPUT_TYPES(),
             "required": {
                 **super().INPUT_TYPES()["required"],
+                "images": ("IMAGE",),
             }
         }
 
-    def create_feature(self, video_frames, frame_rate, extraction_method):
-        feature_pipe = FeaturePipe(frame_rate, video_frames)
-        color_feature = ColorFeature("color_feature", feature_pipe.frame_rate, feature_pipe.frame_count, video_frames, extraction_method)
-        color_feature.extract()
-        return (color_feature, feature_pipe)
+    RETURN_TYPES = ("FEATURE",)
+    FUNCTION = "create_feature"
 
-class BrightnessFeatureNode(FirstFeature):
+    def create_feature(self, images, frame_rate, frame_count, width, height, extraction_method):
+        color_feature = ColorFeature("color_feature", frame_rate, frame_count, images, extraction_method, width=width, height=height)
+        color_feature.extract()
+        return (color_feature,)
+
+class BrightnessFeatureNode(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
         return BrightnessFeature
@@ -258,16 +242,19 @@ class BrightnessFeatureNode(FirstFeature):
             **super().INPUT_TYPES(),
             "required": {
                 **super().INPUT_TYPES()["required"],
+                "images": ("IMAGE",),
             }
         }
 
-    def create_feature(self, video_frames, frame_rate, extraction_method):
-        feature_pipe = FeaturePipe(frame_rate, video_frames)
-        brightness_feature = BrightnessFeature("brightness_feature", feature_pipe.frame_rate, feature_pipe.frame_count, video_frames, extraction_method)
+    RETURN_TYPES = ("FEATURE",)
+    FUNCTION = "create_feature"
+
+    def create_feature(self, images, frame_rate, frame_count, width, height, extraction_method):
+        brightness_feature = BrightnessFeature("brightness_feature", frame_rate, frame_count, images, extraction_method, width=width, height=height)
         brightness_feature.extract()
-        return (brightness_feature, feature_pipe)
+        return (brightness_feature,)
     
-class MotionFeatureNode(FirstFeature):
+class MotionFeatureNode(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
         return MotionFeature
@@ -278,42 +265,42 @@ class MotionFeatureNode(FirstFeature):
             **super().INPUT_TYPES(),
             "required": {
                 **super().INPUT_TYPES()["required"],
+                "images": ("IMAGE",),
                 "flow_method": (["Farneback", "LucasKanade", "PyramidalLK"],),
                 "flow_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.1}),
                 "magnitude_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "FEATURE_PIPE")
+    RETURN_TYPES = ("FEATURE",)
     FUNCTION = "create_feature"
 
-    def create_feature(self, video_frames, frame_rate, extraction_method, flow_method, flow_threshold, magnitude_threshold):
-        feature_pipe = FeaturePipe(frame_rate, video_frames)
-        num_frames = feature_pipe.frame_count
-
-        self.start_progress(num_frames, desc="Extracting motion features")
-
+    def create_feature(self, images, frame_rate, frame_count, width, height, extraction_method, flow_method, flow_threshold, magnitude_threshold):
         def progress_callback(current_step, total_steps):
             self.update_progress(current_step - self.current_progress)
 
+        self.start_progress(frame_count, desc="Extracting motion features")
+
         motion_feature = MotionFeature(
             "motion_feature",
-            feature_pipe.frame_rate,
-            feature_pipe.frame_count,
-            video_frames,
+            frame_rate,
+            frame_count,
+            images,
             extraction_method,
             flow_method,
             flow_threshold,
             magnitude_threshold,
+            width=width,
+            height=height,
             progress_callback=progress_callback
         )
 
         motion_feature.extract()
         self.end_progress()
 
-        return (motion_feature, feature_pipe)
+        return (motion_feature,)
     
-class AreaFeatureNode(FirstFeature):
+class AreaFeatureNode(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
         return AreaFeature
@@ -329,15 +316,14 @@ class AreaFeatureNode(FirstFeature):
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "FEATURE_PIPE")
+    RETURN_TYPES = ("FEATURE",)
     FUNCTION = "create_feature"
 
-    def create_feature(self, masks, video_frames, frame_rate, extraction_method, threshold):
-        feature_pipe = FeaturePipe(frame_rate, video_frames)
-        area_feature = AreaFeature("area_feature", feature_pipe.frame_rate, feature_pipe.frame_count, 
-                                   masks, feature_type=extraction_method, threshold=threshold)
+    def create_feature(self, masks, frame_rate, frame_count, width, height, extraction_method, threshold):
+        area_feature = AreaFeature("area_feature", frame_rate, frame_count, masks, extraction_method, threshold, width=width, height=height)
         area_feature.extract()
-        return (area_feature, feature_pipe)
+        return (area_feature,)
+    
     
 
 

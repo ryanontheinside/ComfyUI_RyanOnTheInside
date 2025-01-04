@@ -101,6 +101,7 @@ from .nodes.flex.feature_extractors import(
     AreaFeatureNode,
     ManualFeatureNode,
     ManualFeatureFromPipe,
+    ManualFeatureDraw,
 )
 
 from .nodes.flex.feature_extractors_audio import(
@@ -111,6 +112,7 @@ from .nodes.flex.feature_extractors_audio import(
     PitchRangeByNoteNode,
     PitchFeatureExtractor,
     RhythmFeatureExtractor,
+    
 )
 
 from .nodes.flex.feature_extractors_midi import(
@@ -401,6 +403,7 @@ NODE_CLASS_MAPPINGS = {
     "AudioFeatureExtractorFirst": AudioFeatureExtractorFirst,
     "PitchFeatureExtractor":        PitchFeatureExtractor,
     "RhythmFeatureExtractor":       RhythmFeatureExtractor,
+    
     "PitchRange":                   PitchRangeNode,
     "PitchRangePreset":             PitchRangePresetNode,
     "PitchRangeByNoteNode":         PitchRangeByNoteNode,
@@ -408,6 +411,7 @@ NODE_CLASS_MAPPINGS = {
     "TimeFeatureNode":              TimeFeatureNode,
     "ManualFeatureNode":            ManualFeatureNode,
     "ManualFeatureFromPipe":        ManualFeatureFromPipe,
+    "ManualFeatureDraw":            ManualFeatureDraw,
     "DepthFeatureNode":             DepthFeatureNode,
     "ColorFeatureNode":             ColorFeatureNode,
     "BrightnessFeatureNode":        BrightnessFeatureNode,

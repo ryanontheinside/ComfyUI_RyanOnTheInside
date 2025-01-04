@@ -28,14 +28,8 @@ class FlexLatentBase(RyanOnTheInside, FlexBase):
         feature_param,
         feature_mode,
         opt_feature=None,
-        opt_feature_pipe=None,
         **kwargs
     ):
-        if (opt_feature is None) != (opt_feature_pipe is None):
-            raise ValueError(
-                "Both opt_feature and opt_feature_pipe must be provided together, or neither should be provided."
-            )
-
         latents_np = latents["samples"].cpu().numpy()
         num_frames = latents_np.shape[0]
         self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
@@ -46,7 +40,7 @@ class FlexLatentBase(RyanOnTheInside, FlexBase):
             feature_value = 1.0  # Default feature value
             apply_effect = True  # Default to applying the effect
 
-            if opt_feature is not None and opt_feature_pipe is not None:
+            if opt_feature is not None:
                 feature_value = opt_feature.get_value_at_frame(i)
                 apply_effect = feature_value >= feature_threshold
 

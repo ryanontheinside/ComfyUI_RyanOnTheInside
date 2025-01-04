@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 from .video_base import FlexVideoBase
-from ..flex.feature_pipe import FeaturePipe
 from scipy.interpolate import interp1d
 from ..masks.mask_utils import calculate_optical_flow
 import cv2
@@ -15,33 +14,15 @@ class FlexVideoDirection(FlexVideoBase):
     def get_modifiable_params(cls):
         return ["direction"]
 
-    @classmethod
-    def INPUT_TYPES(cls):
-        inputs = super().INPUT_TYPES()
-        # Make feature_pipe optional
-        inputs.setdefault("optional", {})
-        inputs["optional"].update({
-            "feature_pipe": ("FEATURE_PIPE",),
-        })
-        return inputs
-
-
     def apply_effect_internal(
         self,
         video: np.ndarray,
         feature_values: np.ndarray,
-        feature_pipe=None,
         **kwargs,
     ) -> np.ndarray:
         num_frames = video.shape[0]
         
-        # Use the frame count from the feature pipe if provided, otherwise fallback to the input video length
-        if feature_pipe is not None:
-            target_frame_count = feature_pipe.frame_count
-        else:
-            target_frame_count = num_frames
-
-        # Normalize feature values to the range [0, 1] over the length of the feature pipe (or input video)
+        # Normalize feature values to the range [0, 1]
         normalized_features = np.clip(feature_values, 0.0, 1.0)
 
         # Map feature values to frame indices in the input video
@@ -49,16 +30,6 @@ class FlexVideoDirection(FlexVideoBase):
 
         # Ensure frame indices stay within valid bounds
         frame_indices = np.clip(frame_indices, 0, num_frames - 1)
-
-        # If a feature pipe is provided, the output video should be the length of the feature pipe
-        if target_frame_count != num_frames:
-            # Adjust the output video length to match the feature pipe length
-            # Select frames based on the feature value mapping
-            frame_indices = np.interp(
-                np.linspace(0, 1, target_frame_count),
-                np.linspace(0, 1, len(feature_values)),
-                frame_indices
-            ).astype(int)
 
         # Create the processed video by selecting frames based on the mapped indices
         processed_video = video[frame_indices]

@@ -18,7 +18,6 @@ class FlexBase(ABC):
             },
             "optional": {
                 "opt_feature": ("FEATURE",),
-                "opt_feature_pipe": ("FEATURE_PIPE",),
             }
         }
 

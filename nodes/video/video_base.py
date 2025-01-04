@@ -1,64 +1,33 @@
 import torch
 import numpy as np
 from abc import ABC, abstractmethod
-from ... import RyanOnTheInside
+from ..flex.flex_base import FlexBase
 from comfy.utils import ProgressBar
 
-class FlexVideoBase(RyanOnTheInside, ABC):
+class FlexVideoBase(FlexBase, ABC):
     @classmethod
     def INPUT_TYPES(cls):
         return {
+            **super().INPUT_TYPES(),
             "required": {
+                **super().INPUT_TYPES()["required"],
                 "images": ("IMAGE",),
-                "feature": ("FEATURE",),
-                "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.01}),
-                "feature_mode": (["relative", "absolute"], {"default": "relative"}),
-                "feature_param": (cls.get_modifiable_params(),),
-                "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-            },
-            "optional": {
-                "feature_pipe": ("FEATURE_PIPE",)
             }
         }
 
-    CATEGORY = "RyanOnTheInside/FlexVideo"
+    CATEGORY = "RyanOnTheInside/FlexBase"
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "apply_effect"
-    
-    def __init__(self):
-        self.progress_bar = None
 
-    def start_progress(self, total_steps, desc="Processing"):
-        self.progress_bar = ProgressBar(total_steps)
+    def apply_effect(self, images, strength, feature_mode, feature_threshold, opt_feature=None, **kwargs):
+        if opt_feature is None:
+            return (images,)
 
-    def update_progress(self):
-        if self.progress_bar:
-            self.progress_bar.update(1)
-
-    def end_progress(self):
-        self.progress_bar = None
-
-    @classmethod
-    @abstractmethod
-    def get_modifiable_params(cls):
-        """Return a list of parameter names that can be modulated."""
-        return []
-
-    #TODO implement parame name
-    def modulate_param(self, param_name, param_value, feature_value, strength, mode):
-        if mode == "relative":
-            # Adjust parameter relative to its value and the feature
-            return param_value * (1 + (feature_value - 0.5) * 2 * strength)
-        else:  # absolute
-            # Adjust parameter directly based on the feature
-            return param_value * feature_value * strength
-
-    def apply_effect(self, images, feature, strength, feature_mode, feature_threshold, feature_pipe=None, **kwargs):
         images_np = images.cpu().numpy()  # Convert tensor to numpy array
         num_frames = images_np.shape[0]
 
-        target_frame_count = feature_pipe.frame_count if feature_pipe is not None else num_frames
-        feature_values = np.array([feature.get_value_at_frame(i) for i in range(target_frame_count)])
+        # Get feature values for each frame
+        feature_values = np.array([opt_feature.get_value_at_frame(i) for i in range(num_frames)])
         
         # Apply threshold to feature values
         feature_values[feature_values < feature_threshold] = 0
@@ -71,7 +40,7 @@ class FlexVideoBase(RyanOnTheInside, ABC):
                 kwargs[param_name] = self.modulate_param(param_name, param_value, avg_feature_value, strength, feature_mode)
 
         # Apply the effect to the entire video
-        processed_video = self.apply_effect_internal(images_np, feature_values=feature_values, feature_pipe=feature_pipe, **kwargs)
+        processed_video = self.apply_effect_internal(images_np, feature_values=feature_values, **kwargs)
 
         # Convert the numpy array back to a tensor and ensure it's in BHWC format
         result_tensor = torch.from_numpy(processed_video).float()
