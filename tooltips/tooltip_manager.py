@@ -112,7 +112,13 @@ def apply_tooltips(node_class):
     
     @classmethod
     def input_types_with_tooltips(cls):
-        input_types = original_input_types()
+        try:
+            input_types = original_input_types()
+            if input_types is None:
+                return original_input_types.__get__(cls, cls)()
+        except Exception:
+            return original_input_types.__get__(cls, cls)()
+            
         tooltips = TooltipManager.get_tooltips(cls.__name__)
         
         def add_tooltip_to_config(param_name, config):

@@ -28,7 +28,10 @@ class FlexAudioBase(FlexBase, RyanOnTheInside):
             "opt_feature_pipe": ("FEATURE_PIPE",),
             "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
             "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-            "feature_param": (cls.get_modifiable_params(), {"default": cls.get_modifiable_params()[0]}),
+            "feature_param": (
+                cls.get_modifiable_params(), 
+                {"default": cls.get_modifiable_params()[0] if cls.get_modifiable_params() else "None"}
+            ),
             "feature_mode": (["relative", "absolute"], {"default": "relative"}),
         })
 
