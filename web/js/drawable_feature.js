@@ -5,10 +5,10 @@ import { ComfyWidgets } from "../../scripts/widgets.js";
 app.registerExtension({
     name: "RyanOnTheInside.DrawableFeature",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
-        console.log("Registering DrawableFeature extension", { nodeType, nodeData });
+        // console.log("Registering DrawableFeature extension", { nodeType, nodeData });
         
         if (nodeData.name === "DrawableFeatureNode") {
-            console.log("Found DrawableFeatureNode, setting up widget");
+            // console.log("Found DrawableFeatureNode, setting up widget");
             
             // Set default size
             nodeType.size = [700, 800];  // Increased size for better usability
@@ -45,7 +45,7 @@ app.registerExtension({
             
             // Override onNodeCreated to initialize the node
             nodeType.prototype.onNodeCreated = function() {
-                console.log("Node created, initializing node");
+                // console.log("Node created, initializing node");
                 const r = onNodeCreated?.apply(this, arguments);
                 
                 // Remove default points widget if it exists

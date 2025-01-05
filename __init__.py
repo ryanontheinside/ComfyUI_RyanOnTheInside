@@ -8,6 +8,7 @@ from .node_configs.node_configs import CombinedMeta
 from collections import OrderedDict
 import os
 import folder_paths
+import shutil
 
 #NOTE: allows for central management and inheritance of class variables for help documentation
 
@@ -307,6 +308,19 @@ folder_paths.add_model_folder_path("midi_files", midi_path)
 # Ensure the MIDI files directory exists
 os.makedirs(midi_path, exist_ok=True)
 
+# Get the path to ComfyUI's web/extensions directory
+extension_path = os.path.join(os.path.dirname(folder_paths.__file__), "web", "extensions")
+my_extension_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "web", "extensions")
+
+# Copy our extension files to ComfyUI's extensions directory
+if os.path.exists(my_extension_path):
+    for file in os.listdir(my_extension_path):
+        if file.endswith('.js'):
+            src = os.path.join(my_extension_path, file)
+            dst = os.path.join(extension_path, file)
+            print(f"[RyanOnTheInside] Copying extension file: {file}")
+            shutil.copy2(src, dst)
+
 NODE_CLASS_MAPPINGS = {
     #NOTE: PoseInterpolator is not working yet
     #"PoseInterpolator": PoseInterpolator,
@@ -499,6 +513,7 @@ NODE_CLASS_MAPPINGS = {
 }
 
 WEB_DIRECTORY = "./web/js"
+EXTENSION_WEB_DIRS = ["./web/extensions"]
 
 NODE_DISPLAY_NAME_MAPPINGS = {
 
