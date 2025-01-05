@@ -5,14 +5,24 @@ from ..tooltip_manager import TooltipManager
 def register_tooltips():
     """Register tooltips for masks nodes"""
 
+    # Base classes first
     # MaskBase tooltips (inherits from: RyanOnTheInside, ABC)
     TooltipManager.register_tooltips("MaskBase", {
         "masks": "Input mask or sequence of masks to be processed (MASK type)",
-        "strength": "Controls the intensity of the effect (0.0 to 1.0)",
-        "invert": "When enabled, reverses the mask, turning black areas white and vice versa",
-        "subtract_original": "Removes a portion of the original mask from the result (0.0 to 1.0)",
-        "grow_with_blur": "Expands the mask edges using Gaussian blur (0.0 to 10.0)"
+        "strength": "Overall strength of the mask effect (0.0 to 1.0)",
+        "invert": "When enabled, inverts the mask output (black becomes white and vice versa)",
+        "subtract_original": "Amount of the original mask to subtract from the result (0.0 to 1.0)",
+        "grow_with_blur": "Amount of Gaussian blur to apply for mask growth (0.0 to 10.0)"
     }, inherits_from=['RyanOnTheInside', 'ABC'])
+
+    # FlexMaskBase tooltips (inherits from: FlexBase, MaskBase)
+    TooltipManager.register_tooltips("FlexMaskBase", {
+        "feature": "Feature used to modulate the effect (FEATURE type)",
+        "feature_pipe": "Feature pipe containing frame information (FEATURE_PIPE type)",
+        "feature_threshold": "Threshold for feature activation (0.0 to 1.0)",
+        "mask_strength": "Overall strength of the mask effect (0.0 to 1.0)",
+        "strength": "Overall strength of the feature modulation (0.0 to 1.0)"
+    }, inherits_from=['FlexBase', 'MaskBase'])
 
     # TemporalMaskBase tooltips (inherits from: MaskBase, ABC)
     TooltipManager.register_tooltips("TemporalMaskBase", {
@@ -21,6 +31,14 @@ def register_tooltips():
         "effect_duration": "Number of frames over which the effect is applied (0 to 1000, 0 means full range)",
         "temporal_easing": "Controls how the effect strength changes over time ('ease_in_out', 'linear', 'bounce', 'elastic', 'none')",
         "palindrome": "When enabled, the effect plays forward then reverses within the specified duration"
+    }, inherits_from=['MaskBase', 'ABC'])
+
+    # OpticalFlowMaskBase tooltips (inherits from: MaskBase, ABC)
+    TooltipManager.register_tooltips("OpticalFlowMaskBase", {
+        "images": "Sequence of images to calculate optical flow from (IMAGE type)",
+        "flow_method": "Algorithm used to calculate optical flow ('Farneback', 'LucasKanade', 'PyramidalLK')",
+        "flow_threshold": "Minimum flow magnitude to consider (0.0 to 1.0)",
+        "magnitude_threshold": "Relative threshold for flow magnitude as fraction of maximum (0.0 to 1.0)"
     }, inherits_from=['MaskBase', 'ABC'])
 
     # ParticleSystemMaskBase tooltips (inherits from: MaskBase, ABC)
@@ -40,6 +58,11 @@ def register_tooltips():
         "static_bodies": "Optional list of static collision bodies (STATIC_BODY type)",
         "well_strength_multiplier": "Global multiplier for gravity well strengths (0.0 to 10.0)"
     }, inherits_from=['MaskBase', 'ABC'])
+
+    # FlexMaskNormalBase tooltips (inherits from: FlexMaskBase)
+    TooltipManager.register_tooltips("FlexMaskNormalBase", {
+        "normal_map": "Normal map to be used for lighting calculations (IMAGE type)"
+    }, inherits_from='FlexMaskBase')
 
     # MaskMorph tooltips (inherits from: TemporalMaskBase)
     TooltipManager.register_tooltips("MaskMorph", {
@@ -206,14 +229,6 @@ def register_tooltips():
     TooltipManager.register_tooltips("ParticleColorModulation", {
         "target_color": "Target color for particles at the end of the modulation (RGB tuple)"
     }, inherits_from='ParticleModulationBase')
-
-    # OpticalFlowMaskBase tooltips (inherits from: MaskBase, ABC)
-    TooltipManager.register_tooltips("OpticalFlowMaskBase", {
-        "images": "Sequence of images to calculate optical flow from (IMAGE type)",
-        "flow_method": "Algorithm used to calculate optical flow ('Farneback', 'LucasKanade', 'PyramidalLK')",
-        "flow_threshold": "Minimum flow magnitude to consider (0.0 to 1.0)",
-        "magnitude_threshold": "Relative threshold for flow magnitude as fraction of maximum (0.0 to 1.0)"
-    }, inherits_from=['MaskBase', 'ABC'])
 
     # OpticalFlowMaskModulation tooltips (inherits from: OpticalFlowMaskBase)
     TooltipManager.register_tooltips("OpticalFlowMaskModulation", {
@@ -413,33 +428,6 @@ def register_tooltips():
         "feature_param": "Parameter to modulate based on the feature ('blend', 'None')"
     }, inherits_from='FlexMaskBase')
 
-    # FlexMaskBase tooltips (inherits from: FlexBase, MaskBase)
-    TooltipManager.register_tooltips("FlexMaskBase", {
-        "feature": "Feature used to modulate the effect (FEATURE type)",
-        "feature_pipe": "Feature pipe containing frame information (FEATURE_PIPE type)",
-        "feature_threshold": "Threshold for feature activation (0.0 to 1.0)"
-    }, inherits_from=['FlexBase', 'MaskBase'])
-
-    # MaskBase tooltips (inherits from: RyanOnTheInside, ABC)
-    TooltipManager.register_tooltips("MaskBase", {
-        # TODO: Add parameter tooltips
-    }, inherits_from=['RyanOnTheInside', 'ABC'])
-
-    # TemporalMaskBase tooltips (inherits from: MaskBase, ABC)
-    TooltipManager.register_tooltips("TemporalMaskBase", {
-        # TODO: Add parameter tooltips
-    }, inherits_from=['MaskBase', 'ABC'])
-
-    # OpticalFlowMaskBase tooltips (inherits from: MaskBase, ABC)
-    TooltipManager.register_tooltips("OpticalFlowMaskBase", {
-        # TODO: Add parameter tooltips
-    }, inherits_from=['MaskBase', 'ABC'])
-
-    # FlexMaskNormalBase tooltips (inherits from: FlexMaskBase)
-    TooltipManager.register_tooltips("FlexMaskNormalBase", {
-        "normal_map": "Normal map to be used for lighting calculations (IMAGE type)"
-    }, inherits_from='FlexMaskBase')
-
     # FlexMaskNormalLighting tooltips (inherits from: FlexMaskNormalBase)
     TooltipManager.register_tooltips("FlexMaskNormalLighting", {
         "light_direction_x": "X component of light direction (-1.0 to 1.0)",
@@ -449,13 +437,3 @@ def register_tooltips():
         "feature_param": "Parameter to modulate based on the feature ('none', 'direction', 'threshold', 'both')",
         "feature_mode": "Mode of feature modulation ('rotate', 'intensity')"
     }, inherits_from='FlexMaskNormalBase')
-
-    # VoronoiNoise tooltips (inherits from: nn.Module)
-    TooltipManager.register_tooltips("VoronoiNoise", {
-        # TODO: Add parameter tooltips
-    }, inherits_from='nn.Module')
-    # ParticleSystemMaskBase tooltips (inherits from: MaskBase, ABC)
-    TooltipManager.register_tooltips("ParticleSystemMaskBase", {
-        # TODO: Add parameter tooltips
-    }, inherits_from=['MaskBase', 'ABC'])
-

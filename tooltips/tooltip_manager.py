@@ -1,11 +1,8 @@
 """
 Core tooltip management functionality.
 """
-import logging
 from typing import Dict, Optional, Union, List
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('tooltips')
+from collections import deque
 
 class TooltipManager:
     """
@@ -23,6 +20,7 @@ class TooltipManager:
     def get_tooltips(cls, node_class: str) -> dict:
         """
         Get all tooltips for a node class, including inherited tooltips.
+        Uses breadth-first search to build the inheritance chain, properly handling multiple inheritance.
         
         Args:
             node_class: Name of the node class
@@ -31,35 +29,37 @@ class TooltipManager:
             Dictionary mapping parameter names to tooltip descriptions
         """
         tooltips = {}
-        
-        # Build inheritance chain
+        visited = set()
         inheritance_chain = []
-        current = node_class
-        while current in cls.INHERITANCE_MAP:
-            parent = cls.INHERITANCE_MAP[current]
-            if isinstance(parent, list):
-                inheritance_chain.extend(parent)
-                current = parent[0]  # For simplicity, follow first parent's chain
-            else:
-                inheritance_chain.append(parent)
-                current = parent
+        queue = deque([(node_class, 0)])  # (class_name, depth)
+        max_depth = 0
         
-        logger.info(f"Inheritance chain for {node_class}: {inheritance_chain}")
+        # Build inheritance chain using BFS, tracking depth
+        while queue:
+            current, depth = queue.popleft()
+            if current in visited:
+                continue
+                
+            visited.add(current)
+            inheritance_chain.append((current, depth))
+            max_depth = max(max_depth, depth)
+            
+            if current in cls.INHERITANCE_MAP:
+                parents = cls.INHERITANCE_MAP[current]
+                if isinstance(parents, list):
+                    # Add all parents at the next depth level
+                    queue.extend((parent, depth + 1) for parent in parents)
+                else:
+                    queue.append((parents, depth + 1))
         
-        # Apply tooltips in reverse order (base class first)
-        for parent in reversed(inheritance_chain):
-            if parent in cls.NODE_TOOLTIPS:
-                logger.info(f"Adding tooltips from parent {parent}: {cls.NODE_TOOLTIPS[parent]}")
-                tooltips.update(cls.NODE_TOOLTIPS[parent])
-            else:
-                logger.info(f"Parent {parent} has no tooltips registered - skipping")
+        # Apply tooltips by depth level, from base classes (highest depth) to derived classes
+        for depth in range(max_depth, -1, -1):
+            # Get all classes at this depth level
+            classes_at_depth = [cls_name for cls_name, d in inheritance_chain if d == depth]
+            for class_name in classes_at_depth:
+                if class_name in cls.NODE_TOOLTIPS:
+                    tooltips.update(cls.NODE_TOOLTIPS[class_name])
         
-        # Apply class's own tooltips last (to override inherited ones)
-        if node_class in cls.NODE_TOOLTIPS:
-            logger.info(f"Adding class's own tooltips: {cls.NODE_TOOLTIPS[node_class]}")
-            tooltips.update(cls.NODE_TOOLTIPS[node_class])
-        
-        logger.info(f"Final tooltips for {node_class}: {tooltips}")
         return tooltips
     
     @classmethod
@@ -87,10 +87,7 @@ class TooltipManager:
             tooltips: Dictionary mapping parameter names to tooltip descriptions
             inherits_from: Optional parent class name(s) to inherit tooltips from
         """
-        logger.info(f"Registering tooltips for {node_class}")
-        logger.info(f"Tooltips: {tooltips}")
         if inherits_from:
-            logger.info(f"Inherits from: {inherits_from}")
             cls.INHERITANCE_MAP[node_class] = inherits_from
         cls.NODE_TOOLTIPS[node_class] = tooltips
 
@@ -109,7 +106,6 @@ def apply_tooltips(node_class):
     """
     # If the class doesn't have INPUT_TYPES, just return it unchanged
     if not hasattr(node_class, 'INPUT_TYPES'):
-        logger.info(f"Class {node_class.__name__} has no INPUT_TYPES - skipping tooltip application")
         return node_class
         
     original_input_types = node_class.INPUT_TYPES
@@ -118,15 +114,12 @@ def apply_tooltips(node_class):
     def input_types_with_tooltips(cls):
         input_types = original_input_types()
         tooltips = TooltipManager.get_tooltips(cls.__name__)
-        logger.info(f"Getting tooltips for {cls.__name__}")
-        logger.info(f"Retrieved tooltips: {tooltips}")
         
         def add_tooltip_to_config(param_name, config):
             if param_name not in tooltips:
                 return config
                 
             tooltip = tooltips[param_name]
-            logger.info(f"Adding tooltip for {param_name}: {tooltip}")
             
             # Handle tuple format (type, config_dict)
             if isinstance(config, tuple):
@@ -165,7 +158,6 @@ def apply_tooltips(node_class):
                 for param_name, config in input_types["optional"].items()
             }
         
-        logger.info(f"Final INPUT_TYPES: {input_types}")
         return input_types
     
     node_class.INPUT_TYPES = input_types_with_tooltips
