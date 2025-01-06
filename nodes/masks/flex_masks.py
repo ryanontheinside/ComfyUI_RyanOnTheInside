@@ -12,7 +12,7 @@ from typing import List
 import torch.nn.functional as F
 from ...tooltips import apply_tooltips
 
-@apply_tooltips
+# @apply_tooltips
 class FlexMaskMorph(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):

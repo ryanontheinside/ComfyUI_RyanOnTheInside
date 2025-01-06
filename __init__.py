@@ -2,7 +2,6 @@ from .tooltips import TooltipManager, apply_tooltips
 from .tooltips.categories import register_all_tooltips
 
 # Register tooltips immediately after import
-register_all_tooltips()
 
 from .node_configs.node_configs import CombinedMeta
 from collections import OrderedDict
@@ -78,6 +77,7 @@ from .nodes.flex.feature_extractors import(
     ManualFeatureNode,
     ManualFeatureFromPipe,
     DrawableFeatureNode,
+    FeatureInfoNode,
 )
 
 from .nodes.flex.feature_extractors_audio import(
@@ -410,6 +410,7 @@ NODE_CLASS_MAPPINGS = {
     "LocationFromPoint":            LocationFromPoint,
     "LocationTransform":            LocationTransform,
     "AreaFeatureNode":              AreaFeatureNode,
+    "FeatureInfoNode":             FeatureInfoNode,
 
     "FeatureToWeightsStrategy":     FeatureToWeightsStrategy,
     "FeatureToSplineData":         FeatureToSplineData,
@@ -593,3 +594,6 @@ if hasattr(PromptServer, "instance"):
     PromptServer.instance.app.add_routes(
         [web.static("/ryanontheinside_web_async", (Path(__file__).parent.absolute() / "ryanontheinside_web_async").as_posix())]
     )
+
+#register tooltips after all classes are initialized
+register_all_tooltips()

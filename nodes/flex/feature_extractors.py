@@ -20,10 +20,14 @@ class FeatureExtractorBase(RyanOnTheInside, ABC):
 
     @classmethod
     def INPUT_TYPES(cls):
+        print(f"\n[DEBUG] Getting INPUT_TYPES for {cls.__name__}")
         feature_class = cls.feature_type()
+        print(f"[DEBUG] Feature class: {feature_class.__name__}")
+        extraction_methods = feature_class.get_extraction_methods()
+        print(f"[DEBUG] Extraction methods: {extraction_methods}")
         return {            
             "required": {
-                "extraction_method": (feature_class.get_extraction_methods(), {"default": feature_class.get_extraction_methods()[0]}),
+                "extraction_method": (extraction_methods, {"default": extraction_methods[0]}),
                 "frame_rate": ("FLOAT", {"default": 30.0, "min": 1.0, "max": 120.0, "step": 0.1}),
                 "frame_count": ("INT", {"default": 30, "min": 1}),
                 "width": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 64}),
@@ -392,7 +396,37 @@ class DrawableFeatureNode(FeatureExtractorBase):
         return (drawable_feature,)
     
     
+@apply_tooltips
+class FeatureInfoNode(RyanOnTheInside):
+    """
+    Node that extracts common information from feature inputs.
+    """
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),  # Accepts any feature type
+            }
+        }
 
+    RETURN_TYPES = ("STRING", "STRING", "INT", "INT", "INT", "INT")
+    RETURN_NAMES = ("name", "type", "frame_rate", "frame_count", "width", "height")
+    FUNCTION = "get_info"
+    CATEGORY = "Ryan/Features"
+
+    def get_info(self, feature):
+        """Extract common information from the feature"""
+        return (
+            feature.name,
+            feature.type,
+            feature.frame_rate,
+            feature.frame_count,
+            feature.width if feature.width is not None else 0,
+            feature.height if feature.height is not None else 0
+        )
 
 
 

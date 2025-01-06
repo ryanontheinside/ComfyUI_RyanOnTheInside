@@ -7,6 +7,7 @@ from scipy.interpolate import interp1d, make_interp_spline
 
 class BaseFeature(ABC):
     def __init__(self, name, feature_type, frame_rate, frame_count, width, height):
+        print(f"\n[DEBUG] Initializing BaseFeature: {name} of type {feature_type}")
         self.name = name
         self.type = feature_type
         self.frame_rate = frame_rate
@@ -25,6 +26,7 @@ class BaseFeature(ABC):
     @abstractmethod
     def get_extraction_methods(cls):
         """Return a list of parameter names that can be modulated."""
+        print(f"\n[DEBUG] Getting extraction methods for {cls.__name__}")
         return []
     
     def get_value_at_frame(self, frame_index):
