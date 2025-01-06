@@ -111,7 +111,6 @@ class FlexAudioVisualizerBase(FlexBase, RyanOnTheInside):
             },
             "optional": {
                 "opt_feature": ("FEATURE",),
-                "opt_feature_pipe": ("FEATURE_PIPE",),
             }
         }
 
@@ -192,20 +191,64 @@ class FlexAudioVisualizerBase(FlexBase, RyanOnTheInside):
         pass
 
     def process_audio_data(self, processor: BaseAudioProcessor, frame_index, visualization_feature, num_points, smoothing, fft_size, min_frequency, max_frequency):
-        # Keep the entire process_audio_data method from HEAD
-        # This handles the core audio processing logic
-        ...
+        if visualization_feature == 'frequency':
+            spectrum = processor.compute_spectrum(frame_index, fft_size, min_frequency, max_frequency)
+
+            # Resample the spectrum to match the number of points
+            data = np.interp(
+                np.linspace(0, len(spectrum), num_points, endpoint=False),
+                np.arange(len(spectrum)),
+                spectrum,
+            )
+
+        elif visualization_feature == 'waveform':
+            audio_frame = processor._get_audio_frame(frame_index)
+            if len(audio_frame) < 1:
+                data = np.zeros(num_points)
+            else:
+                # Use the waveform data directly
+                data = np.interp(
+                    np.linspace(0, len(audio_frame), num_points, endpoint=False),
+                    np.arange(len(audio_frame)),
+                    audio_frame,
+                )
+                # Normalize the waveform to [-1, 1]
+                max_abs_value = np.max(np.abs(data))
+                if max_abs_value != 0:
+                    data = data / max_abs_value
+                else:
+                    data = np.zeros_like(data)
+        else:
+            data = np.zeros(num_points)
+
+        # Update processor's spectrum with smoothing
+        if processor.spectrum is None or len(processor.spectrum) != len(data):
+            processor.spectrum = np.zeros(len(data))
+        processor.update_spectrum(data, smoothing)
+
+        # Return updated data and feature value
+        feature_value = np.mean(np.abs(processor.spectrum))
+        return processor.spectrum.copy(), feature_value
 
     def apply_effect(self, *args, **kwargs):
         return self.apply_effect_internal(*args, **kwargs)
 
     def apply_effect_internal(self, audio, frame_rate, screen_width, screen_height, strength, feature_param, feature_mode,
                          audio_feature_param, opt_feature=None, **kwargs):
-        # Keep the apply_effect implementation from base-class-refactor
-        # But modify the get_audio_data call to use process_audio_data
-        ...
-        
+        # Calculate num_frames based on audio duration and frame_rate
+        audio_duration = len(audio['waveform'].squeeze(0).mean(axis=0)) / audio['sample_rate']
+        num_frames = int(audio_duration * frame_rate)
+
+        # Initialize the audio processor
+        processor = BaseAudioProcessor(audio, num_frames, screen_height, screen_width, frame_rate)
+
+        # Initialize results list
+        result = []
+
+        self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
+
         for i in range(num_frames):
+            processor.current_frame = i
             frame_kwargs = kwargs.copy()
             
             # Get audio data using the process_audio_data method
@@ -219,9 +262,37 @@ class FlexAudioVisualizerBase(FlexBase, RyanOnTheInside):
                 frame_kwargs.get('min_frequency'),
                 frame_kwargs.get('max_frequency')
             )
-            
-            # Continue with the rest of apply_effect_internal
-            ...
+
+            # Modulate parameters based on opt_feature if provided
+            if opt_feature is not None and feature_param != "None":
+                feature_value = opt_feature.get_value_at_frame(i)
+                if feature_value is not None:
+                    original_value = frame_kwargs[feature_param]
+                    modulated_value = self.modulate_param(feature_param, original_value, feature_value, strength, feature_mode)
+                    modulated_value = self.validate_param(feature_param, modulated_value)
+                    frame_kwargs[feature_param] = modulated_value
+
+            # Modulate parameters based on audio feature value
+            if audio_feature_param != "None" and audio_feature_value is not None:
+                original_value = frame_kwargs[audio_feature_param]
+                modulated_value = self.modulate_param(audio_feature_param, original_value, audio_feature_value, strength, feature_mode)
+                modulated_value = self.validate_param(audio_feature_param, modulated_value)
+                frame_kwargs[audio_feature_param] = modulated_value
+
+            # Generate the image for the current frame
+            image = self.draw(processor, **frame_kwargs)
+            result.append(image)
+
+            self.update_progress()
+
+        self.end_progress()
+
+        # Convert result to tensor
+        result_np = np.stack(result)
+        result_tensor = torch.from_numpy(result_np).float()
+        mask = result_tensor[:, :, :, 0]
+        
+        return (result_tensor, mask,)
 
 @apply_tooltips
 class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
@@ -568,3 +639,171 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
                 cv2.polylines(image, [points], isClosed=True, color=(1.0, 1.0, 1.0), thickness=line_width)
 
         return image
+
+@apply_tooltips
+class FlexAudioVisualizerContour(FlexAudioVisualizerBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        base_inputs = super().INPUT_TYPES()
+        base_required = base_inputs.get("required", {})
+        base_optional = base_inputs.get("optional", {})
+
+        # Remove screen_width and screen_height since they come from mask
+        if "screen_width" in base_required:
+            del base_required["screen_width"]
+        if "screen_height" in base_required:
+            del base_required["screen_height"]
+
+        new_inputs = {
+            "required": {
+                "mask": ("MASK",),  # Input mask to find contour
+                "visualization_method": (["bar", "line"], {"default": "bar"}),
+                "visualization_feature": (["frequency", "waveform"], {"default": "frequency"}),
+                # Parameters common to both methods
+                "smoothing": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "num_points": ("INT", {"default": 360, "min": 3, "max": 1000, "step": 1}),
+                # Audio processing parameters
+                "fft_size": ("INT", {"default": 2048, "min": 256, "max": 8192, "step": 256}),
+                "min_frequency": ("FLOAT", {"default": 20.0, "min": 20.0, "max": 20000.0, "step": 10.0}),
+                "max_frequency": ("FLOAT", {"default": 8000.0, "min": 20.0, "max": 20000.0, "step": 10.0}),
+                # Visualization parameters
+                "bar_length": ("FLOAT", {"default": 20.0, "min": 1.0, "max": 100.0, "step": 1.0}),
+                "line_width": ("INT", {"default": 2, "min": 1, "max": 10, "step": 1}),
+                "contour_smoothing": ("INT", {"default": 0, "min": 0, "max": 50, "step": 1}),
+                "rotation": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
+            }
+        }
+
+        required = {**base_required, **new_inputs["required"]}
+        optional = base_optional
+
+        return {
+            "required": required,
+            "optional": optional
+        }
+
+    @classmethod
+    def get_modifiable_params(cls):
+        return ["smoothing", "rotation", "num_points", "fft_size", "min_frequency", "max_frequency", 
+                "bar_length", "line_width", "contour_smoothing", "None"]
+
+    def apply_effect(self, audio, frame_rate, mask, strength, feature_param, feature_mode,
+                     audio_feature_param, opt_feature=None, **kwargs):
+        # Get dimensions from mask
+        batch_size, screen_height, screen_width = mask.shape
+        
+        # Add mask to kwargs for the draw method
+        kwargs['mask'] = mask
+        
+        # Call parent with mask dimensions as screen dimensions
+        return super().apply_effect(
+            audio, frame_rate, screen_width, screen_height,
+            strength, feature_param, feature_mode,
+            audio_feature_param, opt_feature, **kwargs
+        )
+
+    def get_audio_data(self, processor: BaseAudioProcessor, frame_index, **kwargs):
+        # Reuse existing audio processing logic
+        visualization_feature = kwargs.get('visualization_feature')
+        smoothing = kwargs.get('smoothing')
+        num_points = kwargs.get('num_points')
+        fft_size = kwargs.get('fft_size')
+        min_frequency = kwargs.get('min_frequency')
+        max_frequency = kwargs.get('max_frequency')
+
+        processor.spectrum, feature_value = self.process_audio_data(
+            processor, frame_index, visualization_feature, num_points,
+            smoothing, fft_size, min_frequency, max_frequency
+        )
+        return feature_value
+
+    def draw(self, processor: BaseAudioProcessor, **kwargs):
+        # Get parameters
+        mask = kwargs.get('mask')
+        visualization_method = kwargs.get('visualization_method')
+        batch_size, screen_height, screen_width = mask.shape
+        line_width = kwargs.get('line_width')
+        bar_length = kwargs.get('bar_length')
+        contour_smoothing = kwargs.get('contour_smoothing')
+        rotation = kwargs.get('rotation', 0.0) % 360.0
+        
+        # Get the frame index from the processor's current state
+        frame_index = processor.current_frame if hasattr(processor, 'current_frame') else 0
+        
+        # Create output image
+        image = np.zeros((screen_height, screen_width, 3), dtype=np.float32)
+        
+        # Use the mask corresponding to the current frame
+        frame_index = min(frame_index, batch_size - 1)  # Ensure we don't exceed batch size
+        mask_uint8 = (mask[frame_index].numpy() * 255).astype(np.uint8)
+        
+        # Find contours
+        contours, _ = cv2.findContours(mask_uint8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if not contours:
+            return image
+            
+        # Get the largest contour
+        contour = max(contours, key=cv2.contourArea)
+        
+        # Apply contour smoothing if specified
+        if contour_smoothing > 0:
+            epsilon = contour_smoothing * cv2.arcLength(contour, True) * 0.01
+            contour = cv2.approxPolyDP(contour, epsilon, True)
+        
+        # Get spectrum data
+        data = processor.spectrum
+        
+        # Resample contour points to match audio data length
+        contour = contour.squeeze()
+        contour_length = len(contour)
+        
+        # Ensure the contour is closed
+        if not np.array_equal(contour[0], contour[-1]):
+            contour = np.vstack([contour, contour[0]])
+            contour_length += 1
+        
+        # Apply rotation as an offset along the contour
+        rotation_offset = int((rotation / 360.0) * contour_length)
+        
+        # Create points along the contour with rotation offset
+        indices = (np.linspace(0, contour_length - 1, len(data)) + rotation_offset) % (contour_length - 1)
+        
+        # Interpolate contour points
+        x_coords = np.interp(indices, range(contour_length), contour[:, 0])
+        y_coords = np.interp(indices, range(contour_length), contour[:, 1])
+        
+        # Calculate normals along the contour
+        dx = np.gradient(x_coords)
+        dy = np.gradient(y_coords)
+        
+        # Normalize the normals
+        lengths = np.sqrt(dx**2 + dy**2)
+        normals_x = -dy / lengths
+        normals_y = dx / lengths
+
+        if visualization_method == 'bar':
+            # Draw bars along the contour
+            for i, amplitude in enumerate(data):
+                # Start point on contour
+                x1, y1 = int(x_coords[i]), int(y_coords[i])
+                
+                # End point based on amplitude
+                bar_height = amplitude * bar_length
+                x2 = int(x1 + normals_x[i] * bar_height)
+                y2 = int(y1 + normals_y[i] * bar_height)
+                
+                cv2.line(image, (x1, y1), (x2, y2), (1.0, 1.0, 1.0), thickness=line_width)
+        
+        else:  # line mode
+            # Calculate points for the continuous line
+            points = np.column_stack([
+                x_coords + normals_x * data * bar_length,
+                y_coords + normals_y * data * bar_length
+            ]).astype(np.int32)
+            
+            # Draw the continuous line
+            cv2.polylines(image, [points], True, (1.0, 1.0, 1.0), thickness=line_width)
+        
+        return image
+

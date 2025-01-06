@@ -1,5 +1,6 @@
 # ComfyUI RyanOnTheInside Node Pack
 
+## 🚨 Important: [Version 2.0 Update](#-important-version-20-update--1) 🚨
 ## Overview
 ### These nodes react to **everything**, including audio.
 
@@ -15,7 +16,30 @@
 - 🌊 **DEPTH Flow** 🌊: Use flex features to control depthflow nodes, adding parallax animations to your workflows!
 - 🎭 **AdvancedLivePortrait** 🎭: Use flex features to control facial animation expressions! 
 
-### **Developers**: if you're interested in extending the flex features into your own nodes, check out the [base-class-refactor](../../tree/base-class-refactor) branch and feel free to reach out. 
+### 🚨 Important: Version 2.0 Update 🚨
+
+This repository has been updated to Version 2.0! After careful consideration, I decided that a complete update was better than maintaining legacy support indefinitely. This new version brings significant improvements while maintaining all existing functionality.
+
+### 🎉 What's New in V2
+- **Simplified Usage**: Feature inputs are now optional! This means these nodes double as a powerful suite for image, mask, and video manipulation even without reactivity
+- **Cleaner Workflows**: The feature_pipe is gone! Less noodles, more intuitive connections
+- **Manual Feature Creation**: New interface for drawing/creating features manually - far more powerful than it might seem!
+- **Text as Features**: New Whisper integration allows text to be used as a feature source
+- **Enhanced External Integration**: Deeper compatibility with external node packs
+- **More Intuitive**: Redesigned with user experience in mind
+- **And much more!**
+
+### ⚠️ Breaking Changes Notice
+Due to ComfyUI's workflow loading mechanism, **existing workflows using these nodes may break after updating**. If you encounter issues, you can revert to the previous version by running this command in your ComfyUI_RyanOnTheInside directory:
+
+```bash
+git checkout dab96492ac7d906368ac9c7a17cb0dbd670923d9
+```
+
+To return to the latest version later, use:
+```bash
+git checkout main
+```
 
 <table style="border-collapse: collapse; border: none;">
   <tr>
