@@ -21,7 +21,12 @@ def register_tooltips():
         "feature_pipe": "Feature pipe containing frame information (FEATURE_PIPE type)",
         "feature_threshold": "Threshold for feature activation (0.0 to 1.0)",
         "mask_strength": "Overall strength of the mask effect (0.0 to 1.0)",
-        "strength": "Overall strength of the feature modulation (0.0 to 1.0)"
+        "strength": "Overall strength of the feature modulation (0.0 to 1.0)",
+        "feature_param": """Choose which parameter to modulate with the input feature
+        
+Each node type has different parameters that can be modulated:
+- 'None': No parameter modulation (default behavior)
+- Other options depend on the specific node type"""
     }, inherits_from=['FlexBase', 'MaskBase'])
 
     # TemporalMaskBase tooltips (inherits from: MaskBase, ABC)
@@ -315,7 +320,11 @@ def register_tooltips():
         "morph_type": "Type of morphological operation ('erode', 'dilate', 'open', 'close')",
         "max_kernel_size": "Maximum size of the morphological kernel (3 to 21, odd numbers only)",
         "max_iterations": "Maximum number of times to apply the operation (1 to 50)",
-        "feature_param": "Parameter to modulate based on the feature ('kernel_size', 'iterations', 'None')"
+        "feature_param": """Choose which parameter to modulate:
+        
+- kernel_size: Dynamically adjust the size of the morphological operation
+- iterations: Dynamically adjust how many times the operation is applied
+- None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
     # FlexMaskWarp tooltips (inherits from: FlexMaskBase)
@@ -324,7 +333,12 @@ def register_tooltips():
         "frequency": "Controls the scale of the warping effect (0.01 to 1.0)",
         "max_amplitude": "Maximum amplitude of the warping effect (0.1 to 500.0)",
         "octaves": "For noise-based warps, adds detail at different scales (1 to 8)",
-        "feature_param": "Parameter to modulate based on the feature ('amplitude', 'frequency', 'octaves', 'None')"
+        "feature_param": """Choose which parameter to modulate:
+        
+- amplitude: Dynamically adjust the strength of warping
+- frequency: Dynamically adjust the scale of warping
+- octaves: Dynamically adjust the detail level of noise
+- None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
     # FlexMaskTransform tooltips (inherits from: FlexMaskBase)
@@ -332,7 +346,11 @@ def register_tooltips():
         "transform_type": "Type of transformation ('translate', 'rotate', 'scale')",
         "max_x_value": "Maximum horizontal component of the transformation (-1000.0 to 1000.0)",
         "max_y_value": "Maximum vertical component of the transformation (-1000.0 to 1000.0)",
-        "feature_param": "Parameter to modulate based on the feature ('x_value', 'y_value', 'None')"
+        "feature_param": """Choose which parameter to modulate:
+        
+- x_value: Dynamically adjust horizontal transformation
+- y_value: Dynamically adjust vertical transformation
+- None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
     # FlexMaskMath tooltips (inherits from: FlexMaskBase)
@@ -340,13 +358,19 @@ def register_tooltips():
         "mask_b": "Second mask to combine with the input mask (MASK type)",
         "combination_method": "Mathematical operation to apply ('add', 'subtract', 'multiply', 'minimum', 'maximum')",
         "max_blend": "Maximum blend factor between masks (0.0 to 1.0)",
-        "feature_param": "Parameter to modulate based on the feature ('blend', 'None')"
+        "feature_param": """Choose which parameter to modulate:
+        
+- blend: Dynamically adjust the blend between masks
+- None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
     # FlexMaskOpacity tooltips (inherits from: FlexMaskBase)
     TooltipManager.register_tooltips("FlexMaskOpacity", {
         "max_opacity": "Maximum opacity to apply to the mask (0.0 to 1.0)",
-        "feature_param": "Parameter to modulate based on the feature ('opacity', 'None')"
+        "feature_param": """Choose which parameter to modulate:
+        
+- opacity: Dynamically adjust the mask opacity
+- None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
     # FlexMaskVoronoiScheduled tooltips (inherits from: FlexMaskBase)
@@ -358,16 +382,27 @@ def register_tooltips():
         "seed": "Random seed for reproducible results",
         "x_offset": "Horizontal offset of the Voronoi pattern (-1000.0 to 1000.0)",
         "y_offset": "Vertical offset of the Voronoi pattern (-1000.0 to 1000.0)",
-        "feature_param": "Parameter to modulate based on the feature ('scale', 'detail', 'randomness', 'seed', 'x_offset', 'y_offset', 'None')",
         "formula": "Mathematical formula for feature value mapping ('Linear', 'Quadratic', 'Cubic', 'Sinusoidal', 'Exponential')",
         "a": "First parameter for fine-tuning the chosen formula (0.1 to 10.0)",
-        "b": "Second parameter for fine-tuning the chosen formula (0.1 to 10.0)"
+        "b": "Second parameter for fine-tuning the chosen formula (0.1 to 10.0)",
+        "feature_param": """Choose which parameter to modulate:
+        
+- scale: Dynamically adjust cell size
+- detail: Dynamically adjust number of cells
+- randomness: Dynamically adjust cell randomness
+- seed: Dynamically change pattern
+- x_offset: Dynamically adjust horizontal position
+- y_offset: Dynamically adjust vertical position
+- None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
     # FlexMaskBinary tooltips (inherits from: FlexMaskBase)
     TooltipManager.register_tooltips("FlexMaskBinary", {
         "threshold": "Base threshold value for binarization (0.0 to 1.0)",
-        "feature_param": "Parameter to modulate based on the feature ('threshold', 'None')"
+        "feature_param": """Choose which parameter to modulate:
+        
+- threshold: Dynamically adjust the binarization threshold
+- None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
     # FlexMaskWavePropagation tooltips (inherits from: FlexMaskBase)
@@ -377,7 +412,13 @@ def register_tooltips():
         "wave_decay": "Rate of wave decay (0.9 to 10.0)",
         "wave_frequency": "Frequency of wave oscillation (0.01 to 10.0)",
         "max_wave_field": "Maximum size of the wave field (10.0 to 10000.0)",
-        "feature_param": "Parameter to modulate based on the feature ('wave_speed', 'wave_amplitude', 'wave_decay', 'wave_frequency', 'None')"
+        "feature_param": """Choose which parameter to modulate:
+        
+- wave_speed: Dynamically adjust propagation speed
+- wave_amplitude: Dynamically adjust wave height
+- wave_decay: Dynamically adjust decay rate
+- wave_frequency: Dynamically adjust oscillation speed
+- None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
     # FlexMaskEmanatingRings tooltips (inherits from: FlexMaskBase)
@@ -385,7 +426,13 @@ def register_tooltips():
         "num_rings": "Number of rings to generate (1 to 50)",
         "max_ring_width": "Maximum width of each ring (0.01 to 0.9)",
         "wave_speed": "Speed of ring propagation (0.01 to 0.5)",
-        "feature_param": "Parameter to modulate based on the feature ('num_rings', 'ring_width', 'wave_speed', 'all', 'None')"
+        "feature_param": """Choose which parameter to modulate:
+        
+- num_rings: Dynamically adjust number of rings
+- ring_width: Dynamically adjust ring thickness
+- wave_speed: Dynamically adjust propagation speed
+- all: Dynamically adjust all parameters
+- None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
     # FlexMaskRandomShapes tooltips (inherits from: FlexMaskBase)
@@ -397,7 +444,13 @@ def register_tooltips():
         "appearance_method": "Method of shape appearance ('grow', 'pop', 'fade')",
         "easing_function": "Easing function for shape animation ('linear', 'ease_in_out', 'bounce', 'elastic')",
         "shape_type": "Type of shape to generate",
-        "feature_param": "Parameter to modulate based on the feature ('num_shapes', 'shape_size', 'appearance_duration', 'disappearance_duration', 'None')"
+        "feature_param": """Choose which parameter to modulate:
+        
+- num_shapes: Dynamically adjust shape count
+- shape_size: Dynamically adjust shape size
+- appearance_duration: Dynamically adjust fade-in time
+- disappearance_duration: Dynamically adjust fade-out time
+- None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
     # FlexMaskDepthChamber tooltips (inherits from: FlexMaskBase)
@@ -405,7 +458,12 @@ def register_tooltips():
         "depth_map": "Input depth map (IMAGE type)",
         "z_front": "Front depth threshold (0.0 to 1.0)",
         "z_back": "Back depth threshold (0.0 to 1.0)",
-        "feature_param": "Parameter to modulate based on the feature ('none', 'z_front', 'z_back', 'both')",
+        "feature_param": """Choose which parameter to modulate:
+        
+- none: No parameter modulation
+- z_front: Dynamically adjust front threshold
+- z_back: Dynamically adjust back threshold
+- both: Dynamically adjust both thresholds""",
         "feature_mode": "Mode of feature modulation ('squeeze', 'expand', 'move_forward', 'move_back')"
     }, inherits_from='FlexMaskBase')
 

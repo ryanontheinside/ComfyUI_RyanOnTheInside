@@ -33,12 +33,28 @@ def register_tooltips():
 
     # FlexBase tooltips (inherits from: ABC)
     TooltipManager.register_tooltips("FlexBase", {
-        "strength": "Overall strength of the effect (0.0 to 1.0)",
-        "feature_threshold": "Minimum feature value to trigger the effect (0.0 to 1.0)",
-        "feature_param": "Parameter to be modulated by the feature",
-        "feature_mode": "How to apply the feature modulation ('relative' or 'absolute')",
-        "opt_feature": "Optional feature input for modulation"
-    }, inherits_from='ABC', description="Use features from audio, MIDI, motion, or other sources to dynamically control and animate node parameters. Features can modulate a variety of parameters.")
+        "strength": """Overall strength of the effect (0.0 to 1.0)
+        
+Higher values create more dramatic changes, while lower values are more subtle.""",
+        "feature_threshold": """Minimum feature value to trigger the effect (0.0 to 1.0)
+        
+Only applies the effect when the feature value exceeds this threshold.
+Lower values make the effect more sensitive, higher values make it more selective.""",
+        "feature_param": """Choose which parameter of the effect to modulate
+        
+Each effect type has different parameters you can control.
+Hover over each option to see what it does.""",
+        "feature_mode": """How to apply the feature modulation:
+- relative: Changes are centered around the original value
+- absolute: Changes scale directly from zero to the maximum""",
+        "opt_feature": """Optional feature input for modulation
+        
+Connect any feature node here to control the effect.
+Features can come from audio, motion, color, or other sources."""
+    }, inherits_from='ABC', description="""Use features from audio, MIDI, motion, or other sources to dynamically control and animate node parameters.
+    
+Features can modulate a variety of parameters to create dynamic effects that respond to your content.
+Great for creating music videos, reactive animations, or automated effects.""")
 
     # FlexExpressionEditor tooltips (inherits from: ExpressionEditor)
     TooltipManager.register_tooltips("FlexExpressionEditor", {
@@ -211,6 +227,24 @@ def register_tooltips():
     # MIDILoadAndExtract tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("MIDILoadAndExtract", {
         "midi_file": "MIDI file to load from the midi_files directory",
+        "extraction_method": """Choose what MIDI information to analyze:
+
+- Velocity: How hard notes are played - great for impact-based effects
+- Pitch: Which notes are being played - good for melody-following effects
+- Note On/Off: When notes start/stop - perfect for precise timing
+- Note Duration: How long notes are held - use for sustained effects
+- Note Density: How many notes are playing - good for complexity-based effects
+- Pitchbend: Pitch wheel movements - great for smooth transitions
+- Aftertouch: Key pressure changes - useful for pressure-sensitive effects
+- Poly Pressure: Per-note pressure - detailed expression control
+- Modulation (CC1): Mod wheel - typically used for vibrato/intensity
+- Breath (CC2): Breath controller - good for wind instrument effects
+- Foot Controller (CC4): Foot pedal - useful for gradual changes
+- Volume (CC7): Channel volume - overall level control
+- Balance (CC8): Stereo balance - left/right positioning
+- Pan (CC10): Stereo panning - spatial movement
+- Expression (CC11): Expression control - dynamic volume changes
+- Sustain (CC64): Sustain pedal - on/off state""",
         "track_selection": "Track to analyze ('all' or specific track number)",
         "chord_only": "When true, only considers full chords (default: false)",
         "notes": "Comma-separated list of MIDI note numbers (default: empty)"
@@ -218,24 +252,59 @@ def register_tooltips():
 
     # AudioFeatureExtractor tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("AudioFeatureExtractor", {
-        "audio": "Input audio to analyze"
+        "audio": "Input audio to analyze",
+        "extraction_method": """Choose how to analyze the audio:
+
+- amplitude_envelope: Overall loudness changes - great for syncing with dramatic moments
+- rms_energy: Continuous energy level - smoother than amplitude, good for sustained effects
+- spectral_centroid: Brightness of the sound - high for sharp/crisp sounds, low for bass/warm sounds
+- onset_strength: Detects new sounds/beats - perfect for rhythmic effects
+- chroma_features: Musical note content - useful for harmony-based effects"""
     }, inherits_from='FeatureExtractorBase')
 
     # AudioFeatureExtractorFirst tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("AudioFeatureExtractorFirst", {
-        "audio": "Input audio to analyze"
+        "audio": "Input audio to analyze",
+        "extraction_method": """Choose how to analyze the audio:
+
+- amplitude_envelope: Overall loudness changes - great for syncing with dramatic moments
+- rms_energy: Continuous energy level - smoother than amplitude, good for sustained effects
+- spectral_centroid: Brightness of the sound - high for sharp/crisp sounds, low for bass/warm sounds
+- onset_strength: Detects new sounds/beats - perfect for rhythmic effects
+- chroma_features: Musical note content - useful for harmony-based effects"""
     }, inherits_from='FeatureExtractorBase')
 
     # RhythmFeatureExtractor tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("RhythmFeatureExtractor", {
         "audio": "Input audio to analyze",
-        "time_signature": "Time signature of the audio (1 to 12)"
+        "extraction_method": """Choose how to analyze the rhythm:
+
+- beat_locations: Marks exact beat timings - perfect for precise beat-synced effects
+- tempo: Overall speed of the music - use for speed-based animations
+- onset_strength: How strong each beat is - great for impact-based effects
+- beat_emphasis: Highlights stronger beats - good for accenting main beats
+- syncopation: Detects off-beat rhythms - interesting for complex animations
+- rhythm_regularity: How steady the rhythm is - use for stability-based effects
+- down_beats: Marks main beats (1st beat) - strong rhythmic emphasis
+- up_beats: Marks other beats - lighter rhythmic emphasis""",
+        "time_signature": "Number of beats per measure (e.g., 4 for 4/4 time)"
     }, inherits_from='FeatureExtractorBase')
 
     # PitchFeatureExtractor tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("PitchFeatureExtractor", {
         "audio": "Input audio to analyze",
-        "opt_crepe_model": "CREPE model size for pitch detection ('none', 'medium', 'tiny', 'small', 'large', 'full')",
+        "extraction_method": """Choose how to analyze the pitch:
+
+- frequency: Raw pitch frequency - good for following melody
+- semitone: Rounds to nearest musical note - better for musical effects
+- pitch_direction: Whether pitch is rising or falling - great for directional animations
+- vibrato_signal: Detects pitch wobble - perfect for tremolo effects
+- vibrato_strength: How intense the vibrato is - use for intensity-based effects""",
+        "opt_crepe_model": """CREPE model size for pitch detection:
+- none: Use basic pitch detection
+- tiny/small: Fast but less accurate
+- medium: Good balance of speed and accuracy
+- large/full: Most accurate but slower""",
         "opt_pitch_range_collections": "Optional collections of pitch ranges to consider"
     }, inherits_from='FeatureExtractorBase')
 
@@ -272,7 +341,7 @@ def register_tooltips():
         "frame_count": "Total number of frames (minimum: 1)",
         "width": "Width of the output feature (64 to 4096)",
         "height": "Height of the output feature (64 to 4096)"
-    }, inherits_from=['RyanOnTheInside', 'ABC'], description="Extract animation data from various sources like audio, video, or manual input. Convert real-world information into features that can control effects and animations.")
+    }, inherits_from=['RyanOnTheInside', 'ABC'], description="Feature extractors allow you to extract animation data from various sources like audio, video, or manual input. Use this with the FlexFeature compatible nodes to convert real-world information into features that can control effects and animations.")
 
     # ManualFeatureNode tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("ManualFeatureNode", {
@@ -298,22 +367,56 @@ def register_tooltips():
 
     # DepthFeatureNode tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("DepthFeatureNode", {
-        "depth_maps": "Input depth maps to analyze"
+        "depth_maps": "Input depth maps to analyze",
+        "extraction_method": """Choose how to analyze the depth information:
+
+- mean_depth: Overall depth of the scene - higher when objects are further away
+- depth_variance: How much depth varies in the scene - higher for complex 3D scenes
+- depth_range: Distance between closest and farthest points
+- gradient_magnitude: How sharply depth changes - high for edges and steep surfaces
+- foreground_ratio: Percentage of scene in the front layer
+- midground_ratio: Percentage of scene in the middle layer
+- background_ratio: Percentage of scene in the back layer"""
     }, inherits_from='FeatureExtractorBase')
 
     # ColorFeatureNode tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("ColorFeatureNode", {
-        "images": "Input images to analyze"
+        "images": "Input images to analyze",
+        "extraction_method": """Choose how to analyze the colors:
+
+- dominant_color: Most prominent color in the scene
+- color_variance: How much colors vary - higher for colorful scenes
+- saturation: Overall color intensity
+- red_ratio: Amount of red in the scene
+- green_ratio: Amount of green in the scene
+- blue_ratio: Amount of blue in the scene"""
     }, inherits_from='FeatureExtractorBase')
 
     # BrightnessFeatureNode tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("BrightnessFeatureNode", {
-        "images": "Input images to analyze"
+        "images": "Input images to analyze",
+        "extraction_method": """Choose how to analyze brightness:
+
+- mean_brightness: Overall brightness of the scene
+- brightness_variance: How much brightness varies - high for high contrast scenes
+- brightness_histogram: Distribution of brightness values
+- dark_ratio: Percentage of dark areas in the scene
+- mid_ratio: Percentage of medium-bright areas
+- bright_ratio: Percentage of bright areas"""
     }, inherits_from='FeatureExtractorBase')
 
     # MotionFeatureNode tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("MotionFeatureNode", {
         "images": "Input images to analyze",
+        "extraction_method": """Choose how to analyze motion:
+
+- mean_motion: Overall amount of movement in the scene
+- max_motion: Speed of the fastest moving parts
+- motion_direction: Main direction of movement
+- horizontal_motion: Amount of left-right movement
+- vertical_motion: Amount of up-down movement
+- motion_complexity: How chaotic or varied the motion is
+- motion_speed: Speed of movement adjusted for frame rate""",
         "flow_method": "Method for calculating optical flow ('Farneback', 'LucasKanade', 'PyramidalLK')",
         "flow_threshold": "Minimum motion magnitude to consider (0.0 to 10.0)",
         "magnitude_threshold": "Relative threshold for motion magnitude (0.0 to 1.0)"
@@ -322,15 +425,30 @@ def register_tooltips():
     # AreaFeatureNode tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("AreaFeatureNode", {
         "masks": "Input mask sequence to analyze",
+        "extraction_method": """Choose how to analyze the masked area:
+
+- total_area: Total size of the masked region - good for tracking overall coverage
+- largest_contour: Size of the biggest connected region - useful for tracking main objects
+- bounding_box: Area of the rectangle containing the mask - great for object size changes""",
         "threshold": "Threshold value for considering pixels as part of the area (0.0 to 1.0)"
     }, inherits_from='FeatureExtractorBase')
 
     # DrawableFeatureNode tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("DrawableFeatureNode", {
         "points": "JSON string of [frame, value] pairs",
+        "extraction_method": """Choose how to analyze drawn points:
+
+- drawn: Creates a feature from manually specified points - perfect for custom animations""",
         "min_value": "Minimum value for the feature (-100.0 to 100.0)",
         "max_value": "Maximum value for the feature (-100.0 to 100.0)",
-        "interpolation_method": "Method for interpolating between points",
+        "interpolation_method": """Method for interpolating between points:
+- linear: Smooth straight-line transitions
+- cubic: Smooth curved transitions
+- nearest: Snap to closest point
+- zero: No interpolation, instant changes
+- hold: Keep previous value until next point
+- ease_in: Gradually accelerate changes
+- ease_out: Gradually decelerate changes""",
         "fill_value": "Value to use for undefined regions (-100.0 to 100.0)"
     }, inherits_from='FeatureExtractorBase')
 
@@ -409,3 +527,62 @@ def register_tooltips():
         "strength": "Overall strength of the modification (0.0 to 1.0)",
         "composite_method": "Method for compositing the modified depth ('linear', 'depth_aware', 'add', 'subtract', 'multiply', 'divide', 'screen', 'overlay', 'protrude')"
     }, inherits_from='FlexExternalModulator')
+
+    # WhisperFeatureNode tooltips (inherits from: FeatureExtractorBase)
+    TooltipManager.register_tooltips("WhisperFeatureNode", {
+        "alignment_data": "JSON string containing Whisper transcription alignment data",
+        "trigger_set": "Set of triggers that define value sequences based on spoken words",
+        "context_size": "Number of words to consider for context (0-10)",
+        "overlap_mode": "How to handle overlapping triggers: blend (smooth transition), replace (use latest), or add (combine values)",
+        "feature_name": "Type of feature to extract: word_timing (peaks at words), segment_timing (plateaus during segments), trigger_values (word-based values), speech_density (words/sec), silence_ratio (speech vs silence)"
+    }, inherits_from='FeatureExtractorBase', description="Extract features from Whisper speech transcription data. Create timing, trigger, and density features based on speech patterns.")
+
+    # TriggerBuilder tooltips (inherits from: RyanOnTheInside)
+    TooltipManager.register_tooltips("TriggerBuilder", {
+        "pattern": "Word or phrase to match in the transcription",
+        "start_value": "Value when the word starts (0-1)",
+        "end_value": "Value when the word ends (0-1)",
+        "match_mode": "How to match the pattern: exact (whole word), contains (substring), regex (patterns), phonetic (similar sounds)",
+        "fade_type": "Value transition: none (instant), linear (smooth), smooth (eased)",
+        "duration_frames": "Duration in frames (0 = use word duration)",
+        "blend_mode": "How this trigger combines with previous ones: blend (average), add (sum), multiply (product), max (highest)",
+        "previous_triggers": "Optional previous trigger set to chain with"
+    }, inherits_from='RyanOnTheInside', description="Create triggers that respond to specific words or phrases in Whisper transcriptions. Can be chained together to build complex combinations.")
+
+
+    # ContextModifier tooltips (inherits from: RyanOnTheInside)
+    TooltipManager.register_tooltips("ContextModifier", {
+        "trigger_set": "Set of triggers to modify",
+        "modifier_type": "Context type: timing (duration/position), sentiment (positive/negative), speaker (who's speaking), sequence (pattern in word sequence)",
+        "condition": "Python expression that determines when to apply modification. Available variables depend on modifier_type",
+        "value_adjust": "How much to modify trigger values (1.0 = no change, >1.0 amplify, <1.0 reduce)",
+        "window_size": "Number of words to look at for context"
+    }, inherits_from='RyanOnTheInside', description="Modify trigger behavior based on speech context. Can adjust values based on word timing, sentiment, speaker changes, or sequence patterns.")
+
+    # WhisperToPromptTravel tooltips (inherits from: RyanOnTheInside)
+    TooltipManager.register_tooltips("WhisperToPromptTravel", {
+        "segments_alignment": "JSON string of Whisper segment alignments",
+        "fps": "Frame rate for converting time to frame numbers"
+    }, inherits_from='RyanOnTheInside', description="Convert Whisper transcription timing to prompt travel format for text animation.")
+
+    # WhisperTextRenderer tooltips (inherits from: RyanOnTheInside)
+    TooltipManager.register_tooltips("WhisperTextRenderer", {
+        "images": "Input video frames",
+        "feature": "Whisper feature containing alignment data",
+        "font_size": "Size of the rendered text",
+        "font_name": "Font to use for rendering",
+        "position": "Vertical position of text",
+        "horizontal_align": "Horizontal alignment of text",
+        "margin": "Margin from frame edges",
+        "animation_type": "Type of text animation",
+        "animation_duration": "Duration of text animations",
+        "max_width": "Maximum width for text wrapping",
+        "bg_color": "Background color in hex format",
+        "text_color": "Text color in hex format",
+        "opacity": "Overall opacity of text overlay"
+    }, inherits_from='RyanOnTheInside', description="Render animated text overlays from Whisper transcription with various animation styles.")
+
+    # ManualWhisperAlignmentData tooltips (inherits from: RyanOnTheInside)
+    TooltipManager.register_tooltips("ManualWhisperAlignmentData", {
+        "alignment_text": "JSON objects defining speech segments. Each object needs: value (text content), start (time in seconds), end (time in seconds)"
+    }, inherits_from='RyanOnTheInside', description="While this is made to work with ComfyUI-Whisper, you can create Whisper-compatible alignment data manually. Useful for testing or when you want to define custom speech timing without using Whisper.")

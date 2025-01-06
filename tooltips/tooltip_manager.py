@@ -55,13 +55,20 @@ class TooltipManager:
                 else:
                     queue.append((parents, depth + 1))
         
-        # Apply tooltips by depth level, from base classes (highest depth) to derived classes
-        for depth in range(max_depth, -1, -1):
+        # Process tooltips in natural order (depth 0 to max_depth)
+        # This means we'll process derived classes first, which is what we want
+        # since derived class tooltips should override base class tooltips
+        for depth in range(0, max_depth + 1):
             # Get all classes at this depth level
             classes_at_depth = [cls_name for cls_name, d in inheritance_chain if d == depth]
             for class_name in classes_at_depth:
                 if class_name in cls.NODE_TOOLTIPS:
-                    tooltips.update(cls.NODE_TOOLTIPS[class_name])
+                    # Add tooltips from this class, but don't override any existing tooltips
+                    # This ensures derived class tooltips take precedence over base class tooltips
+                    class_tooltips = cls.NODE_TOOLTIPS[class_name]
+                    for param, tooltip in class_tooltips.items():
+                        if param not in tooltips:  # Only add if not already defined
+                            tooltips[param] = tooltip
         
         return tooltips
     

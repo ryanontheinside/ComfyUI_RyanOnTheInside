@@ -4,7 +4,7 @@ import torch
 import cv2
 from ..masks.mask_utils import calculate_optical_flow
 from scipy.interpolate import interp1d, make_interp_spline
-
+import json
 class BaseFeature(ABC):
     def __init__(self, name, feature_type, frame_rate, frame_count, width, height):
         self.name = name
@@ -622,6 +622,160 @@ class DrawableFeature(BaseFeature):
             self.data = (self.data - self.min_value) / (self.max_value - self.min_value)
         
         return self
+
+class WhisperFeature(BaseFeature):
+    def __init__(self, name, frame_rate, frame_count, alignment_data, trigger_pairs=None, feature_name='word_timing', width=None, height=None):
+        super().__init__(name, "whisper", frame_rate, frame_count, width=width, height=height)
+        self.alignment_data = json.loads(alignment_data) if isinstance(alignment_data, str) else alignment_data
+        self.trigger_pairs = self._parse_trigger_pairs(trigger_pairs) if trigger_pairs else {}
+        self.feature_name = feature_name
+        self.available_features = self.get_extraction_methods()
+
+    @classmethod
+    def get_extraction_methods(cls):
+        return [
+            "word_timing",      # Creates peaks at word starts
+            "segment_timing",   # Creates plateaus during segments
+            "trigger_values",   # Uses trigger pairs to create value sequences
+            "speech_density",   # Measures words per second over time
+            "silence_ratio"     # Ratio of silence vs speech
+        ]
+
+    def _parse_trigger_pairs(self, trigger_pairs):
+        triggers = {}
+        if not trigger_pairs:
+            return triggers
+            
+        for line in trigger_pairs.strip().split('\n'):
+            if not line.strip():
+                continue
+            try:
+                phrase, values = line.split('",')
+                phrase = phrase.strip('"')
+                val1, val2 = values.strip().strip('"').split(',')
+                triggers[phrase.lower()] = (float(val1), float(val2))
+            except:
+                raise ValueError(f"Invalid trigger pair format: {line}")
+        return triggers
+
+    def extract(self):
+        self.features = {self.feature_name: [0.0] * self.frame_count}
+        
+        if self.feature_name == "word_timing":
+            self._extract_word_timing()
+        elif self.feature_name == "segment_timing":
+            self._extract_segment_timing()
+        elif self.feature_name == "trigger_values":
+            self._extract_trigger_values()
+        elif self.feature_name == "speech_density":
+            self._extract_speech_density()
+        elif self.feature_name == "silence_ratio":
+            self._extract_silence_ratio()
+        
+        self._normalize_features()
+        return self
+
+    def _extract_word_timing(self):
+        feature_data = [0.0] * self.frame_count
+        for item in self.alignment_data:
+            start_frame = int(item["start"] * self.frame_rate)
+            if 0 <= start_frame < self.frame_count:
+                feature_data[start_frame] = 1.0
+        self.features[self.feature_name] = feature_data
+
+    def _extract_segment_timing(self):
+        feature_data = [0.0] * self.frame_count
+        for item in self.alignment_data:
+            start_frame = int(item["start"] * self.frame_rate)
+            end_frame = int(item["end"] * self.frame_rate)
+            for frame in range(max(0, start_frame), min(end_frame + 1, self.frame_count)):
+                feature_data[frame] = 1.0
+        self.features[self.feature_name] = feature_data
+
+    def _extract_trigger_values(self):
+        if not self.trigger_pairs:
+            raise ValueError("Trigger pairs required for trigger_values feature")
+            
+        feature_data = [0.0] * self.frame_count
+        accumulated_data = [0.0] * self.frame_count
+        
+        for item in self.alignment_data:
+            text = item["value"].lower()
+            start_frame = int(item["start"] * self.frame_rate)
+            end_frame = int(item["end"] * self.frame_rate)
+            
+            for trigger in self.trigger_pairs["triggers"]:
+                pattern = trigger["pattern"].lower()
+                if pattern in text:
+                    start_val, end_val = trigger["values"]
+                    blend_mode = trigger.get("blend_mode", "blend")  # Default to blend if not specified
+                    
+                    # Create temporary array for this trigger's values
+                    trigger_data = [0.0] * self.frame_count
+                    if start_frame < self.frame_count:
+                        trigger_data[start_frame] = start_val
+                    if end_frame < self.frame_count:
+                        trigger_data[end_frame] = end_val
+                    
+                    # Blend with accumulated result based on blend mode
+                    for i in range(self.frame_count):
+                        if blend_mode == "blend":
+                            accumulated_data[i] = (accumulated_data[i] + trigger_data[i]) / 2
+                        elif blend_mode == "add":
+                            accumulated_data[i] = min(1.0, accumulated_data[i] + trigger_data[i])
+                        elif blend_mode == "multiply":
+                            accumulated_data[i] = accumulated_data[i] * trigger_data[i]
+                        elif blend_mode == "max":
+                            accumulated_data[i] = max(accumulated_data[i], trigger_data[i])
+        
+        self.features[self.feature_name] = accumulated_data
+
+    def _extract_speech_density(self):
+        feature_data = [0.0] * self.frame_count
+        window_size = int(self.frame_rate)  # 1-second window
+        
+        for item in self.alignment_data:
+            start_frame = int(item["start"] * self.frame_rate)
+            if 0 <= start_frame < self.frame_count:
+                # Add word density over a window
+                for i in range(max(0, start_frame - window_size), min(start_frame + window_size, self.frame_count)):
+                    feature_data[i] += 1.0 / (2 * window_size)
+        
+        self.features[self.feature_name] = feature_data
+
+    def _extract_silence_ratio(self):
+        feature_data = [1.0] * self.frame_count  # Initialize as silence
+        
+        for item in self.alignment_data:
+            start_frame = int(item["start"] * self.frame_rate)
+            end_frame = int(item["end"] * self.frame_rate)
+            for frame in range(max(0, start_frame), min(end_frame + 1, self.frame_count)):
+                feature_data[frame] = 0.0  # Mark as speech
+        
+        self.features[self.feature_name] = feature_data
+
+    def _normalize_features(self):
+        if self.feature_name != "trigger_values":  # Don't normalize trigger values
+            feature_array = np.array(self.features[self.feature_name])
+            feature_min = np.min(feature_array)
+            feature_max = np.max(feature_array)
+            if feature_max > feature_min:
+                self.features[self.feature_name] = ((feature_array - feature_min) / 
+                                                  (feature_max - feature_min)).tolist()
+
+    def get_feature_sequence(self, feature_name=None):
+        if self.features is None:
+            self.extract()
+        if feature_name is None:
+            feature_name = self.feature_name
+        return self.features.get(feature_name, None)
+
+    def set_active_feature(self, feature_name):
+        if feature_name in self.available_features:
+            self.feature_name = feature_name
+            self.extract()
+        else:
+            raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 
 #TODO volume feature
 
