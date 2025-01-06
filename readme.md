@@ -260,6 +260,15 @@ The Flex Features system allows for dynamic control over various aspects of your
 - **Sawtooth**: Rapid rise followed by sudden drop
 - **Bounce**: Emulates a bouncing motion
 
+#### Text Features (Whisper)
+- **Speech-to-Text**: Convert spoken words from audio into text features
+- **Transcription Timing**: Sync features with specific words or phrases
+- **Confidence Scores**: Use speech recognition confidence as a feature
+- **Language Detection**: Create features based on detected languages
+- **Speaker Segments**: Generate features from different speaker segments
+- **Sentiment Analysis**: Extract emotional content from spoken words
+- **Temporal Alignment**: Map text features to specific timestamps
+
 These features can be used to control IPAdapters, Masks, and Images, creating dynamic and responsive effects that adapt to the input data.
 
 </details>
