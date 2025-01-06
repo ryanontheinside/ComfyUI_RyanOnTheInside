@@ -89,7 +89,49 @@ const create_documentation_stylesheet = () => {
         border-color: var(--border-color);
         z-index: 5;
         overflow: hidden;
+        opacity: 0;
+        transform: scale(0.95);
+        animation: popup-appear 0.3s ease forwards, popup-pulse 2s ease-in-out infinite;
        }
+
+       @keyframes popup-appear {
+         from {
+           opacity: 0;
+           transform: scale(0.95);
+         }
+         to {
+           opacity: 1;
+           transform: scale(1);
+         }
+       }
+
+       @keyframes popup-pulse {
+         0% {
+           box-shadow: 0 0 0 0 rgba(255, 165, 0, 0.4);
+         }
+         50% {
+           box-shadow: 0 0 20px 10px rgba(255, 165, 0, 0.2);
+         }
+         100% {
+           box-shadow: 0 0 0 0 rgba(255, 165, 0, 0.4);
+         }
+       }
+
+       .roti-documentation-popup.closing {
+         animation: popup-close 0.2s ease forwards;
+       }
+
+       @keyframes popup-close {
+         from {
+           opacity: 1;
+           transform: scale(1);
+         }
+         to {
+           opacity: 0;
+           transform: scale(0.95) translateY(-10px);
+         }
+       }
+
        .content-wrapper {
         overflow: auto;
         max-height: 100%;
@@ -136,9 +178,10 @@ const create_documentation_stylesheet = () => {
     let docElement = null
     let contentWrapper = null
     //if no description in the node python code, don't do anything
-    if (!nodeData.description) {
-      return
-    }
+    //we might do this eventually
+    // if (!nodeData.help_text) {
+    //   return
+    // }
 
     const drawFg = nodeType.prototype.onDrawForeground
     nodeType.prototype.onDrawForeground = function (ctx) {
@@ -158,8 +201,40 @@ const create_documentation_stylesheet = () => {
         contentWrapper.classList.add('content-wrapper');
         docElement.classList.add('roti-documentation-popup')
         
-        //parse the string from the python node code to html with marked, and sanitize the html with DOMPurify
-        contentWrapper.innerHTML = DOMPurify.sanitize(marked.parse(nodeData.description,))
+        // Construct the content with default links and optional help text
+        let content = "";
+        
+        // Add ASCII art banner
+        content += `
+\`\`\`
+██████╗  ██╗   ██╗ █████╗ ███╗   ██╗ ██████╗ ███╗   ██╗████████╗██╗  ██╗███████╗██╗███╗   ██╗███████╗██╗██████╗ ███████╗
+██╔══██╗ ╚██╗ ██╔╝██╔══██╗████╗  ██║██╔═══██╗████╗  ██║╚══██╔══╝██║  ██║██╔════╝██║████╗  ██║██╔════╝██║██╔══██╗██╔════╝
+██████╔╝  ╚████╔╝ ███████║██╔██╗ ██║██║   ██║██╔██╗ ██║   ██║   ███████║█████╗  ██║██╔██╗ ██║███████╗██║██║  ██║█████╗  
+██╔══██╗   ╚██╔╝  ██╔══██║██║╚██╗██║██║   ██║██║╚██╗██║   ██║   ██╔══██║██╔══╝  ██║██║╚██╗██║╚════██║██║██║  ██║██╔══╝  
+██║  ██║    ██║   ██║  ██║██║ ╚████║╚██████╔╝██║ ╚████║   ██║   ██║  ██║███████╗██║██║ ╚████║███████║██║██████╔╝███████╗
+╚═╝  ╚═╝    ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝╚═╝  ╚═══╝╚══════╝╚═╝╚═════╝ ╚══════╝
+\`\`\`
+
+`;
+        
+        // Add node-specific help text if available
+        if (nodeData.help_text) {
+            content += nodeData.help_text + "\n\n---\n\n";
+        }
+        
+        // Add default links footer
+        content += `
+## For more information, visit [RyanOnTheInside GitHub](https://github.com/ryanontheinside/ComfyUI_RyanOnTheInside).
+
+## For tutorials and example workflows visit [RyanOnTheInside Civitai](https://civitai.com/user/ryanontheinside).
+
+## For video tutorials and more visit [RyanOnTheInside YouTube](https://www.youtube.com/@ryanontheinside).
+
+## [RyanOnTheInside Linktree](https://linktr.ee/ryanontheinside)
+`;
+        
+        //parse the combined content with marked and sanitize
+        contentWrapper.innerHTML = DOMPurify.sanitize(marked.parse(content))
 
         // resize handle
         const resizeHandle = document.createElement('div');
@@ -208,13 +283,23 @@ const create_documentation_stylesheet = () => {
 
         closeButton.addEventListener('mousedown', (e) => {
           e.stopPropagation();
-          this.show_doc = !this.show_doc
-          docElement.parentNode.removeChild(docElement)
-          docElement = null
-          if (contentWrapper) {
-            contentWrapper.remove()
-            contentWrapper = null
-          }
+          this.show_doc = false;
+          
+          // Add closing animation
+          docElement.classList.add('closing');
+          
+          // Listen for the animation end
+          docElement.addEventListener('animationend', function handler() {
+            if (docElement && docElement.parentNode) {
+              docElement.parentNode.removeChild(docElement);
+              docElement = null;
+            }
+            if (contentWrapper) {
+              contentWrapper.remove();
+              contentWrapper = null;
+            }
+            docElement.removeEventListener('animationend', handler);
+          });
          },
          { signal: this.docCtrl.signal },
          );
@@ -240,8 +325,17 @@ const create_documentation_stylesheet = () => {
       }
       // close the popup
       else if (!this.show_doc && docElement !== null) {
-        docElement.parentNode.removeChild(docElement)
-        docElement = null
+        // Add closing animation
+        docElement.classList.add('closing');
+        
+        // Listen for the animation end
+        docElement.addEventListener('animationend', function handler() {
+          if (docElement && docElement.parentNode) {
+            docElement.parentNode.removeChild(docElement);
+            docElement = null;
+          }
+          docElement.removeEventListener('animationend', handler);
+        });
       }
       // update position of the popup
       if (this.show_doc && docElement !== null) {

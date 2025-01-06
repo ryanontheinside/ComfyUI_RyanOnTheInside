@@ -15,6 +15,9 @@ class TooltipManager:
     
     # Dictionary mapping node names to their parent classes
     INHERITANCE_MAP = {}
+
+    # Dictionary mapping node names to their descriptions
+    NODE_DESCRIPTIONS = {}
     
     @classmethod
     def get_tooltips(cls, node_class: str) -> dict:
@@ -76,35 +79,82 @@ class TooltipManager:
         """
         tooltips = cls.get_tooltips(node_class)
         return tooltips.get(param_name, "")
+
+    @classmethod
+    def get_description(cls, node_class: str) -> str:
+        """
+        Get the description for a node class, including inherited descriptions.
+        Descriptions from parent classes are combined in order.
+        
+        Args:
+            node_class: Name of the node class
+            
+        Returns:
+            str: Combined description text for the node
+        """
+        descriptions = []
+        visited = set()
+        queue = deque([node_class])
+
+        while queue:
+            current = queue.popleft()
+            if current in visited:
+                continue
+                
+            visited.add(current)
+            
+            # Add description if it exists
+            if current in cls.NODE_DESCRIPTIONS:
+                descriptions.append(cls.NODE_DESCRIPTIONS[current])
+            
+            # Add parent classes to queue
+            if current in cls.INHERITANCE_MAP:
+                parents = cls.INHERITANCE_MAP[current]
+                if isinstance(parents, list):
+                    queue.extend(parents)
+                else:
+                    queue.append(parents)
+        
+        return "\n\n".join(descriptions) if descriptions else ""
     
     @classmethod
-    def register_tooltips(cls, node_class: str, tooltips: dict, inherits_from: Optional[Union[str, List[str]]] = None):
+    def register_tooltips(cls, node_class: str, tooltips: dict, inherits_from: Optional[Union[str, List[str]]] = None, description: Optional[str] = None):
         """
-        Register tooltips for a node class.
+        Register tooltips and description for a node class.
         
         Args:
             node_class: Name of the node class
             tooltips: Dictionary mapping parameter names to tooltip descriptions
             inherits_from: Optional parent class name(s) to inherit tooltips from
+            description: Optional description text for the node
         """
         if inherits_from:
             cls.INHERITANCE_MAP[node_class] = inherits_from
         cls.NODE_TOOLTIPS[node_class] = tooltips
+        if description:
+            cls.NODE_DESCRIPTIONS[node_class] = description
 
 
 def apply_tooltips(node_class):
     """
     Class decorator to apply tooltips to a node class.
-    This will automatically add tooltips to the INPUT_TYPES configuration.
+    This will automatically:
+    1. Add tooltips to the INPUT_TYPES configuration
+    2. Set the DESCRIPTION attribute based on registered descriptions
     Only applies to classes that have an INPUT_TYPES classmethod.
     
     Args:
         node_class: The node class to apply tooltips to
         
     Returns:
-        The decorated node class with tooltips applied
+        The decorated node class with tooltips and description applied
     """
-    # If the class doesn't have INPUT_TYPES, just return it unchanged
+    # Set the DESCRIPTION attribute from registered descriptions
+    description = TooltipManager.get_description(node_class.__name__)
+    if description:
+        node_class.DESCRIPTION = description
+    
+    # If the class doesn't have INPUT_TYPES, just return it
     if not hasattr(node_class, 'INPUT_TYPES'):
         return node_class
         

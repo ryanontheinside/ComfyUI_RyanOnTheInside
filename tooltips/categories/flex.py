@@ -38,14 +38,14 @@ def register_tooltips():
         "feature_param": "Parameter to be modulated by the feature",
         "feature_mode": "How to apply the feature modulation ('relative' or 'absolute')",
         "opt_feature": "Optional feature input for modulation"
-    }, inherits_from='ABC')
+    }, inherits_from='ABC', description="Use features from audio, MIDI, motion, or other sources to dynamically control and animate node parameters. Features can modulate a variety of parameters.")
 
     # FlexExpressionEditor tooltips (inherits from: ExpressionEditor)
     TooltipManager.register_tooltips("FlexExpressionEditor", {
         "feature": "Feature used to modulate the effect (FEATURE type)",
         "feature_pipe": "Feature pipe containing frame information (FEATURE_PIPE type)",
         "feature_threshold": "Threshold for feature activation (0.0 to 1.0)"
-    }, inherits_from='ExpressionEditor')
+    }, inherits_from='ExpressionEditor', description="Use flex-features to control the facial  expressions. Click the '?' icon to find tutorial video on YouTube.")
 
     # ManualFeaturePipe tooltips (inherits from: RyanOnTheInside)
     TooltipManager.register_tooltips("ManualFeaturePipe", {
@@ -59,7 +59,7 @@ def register_tooltips():
     TooltipManager.register_tooltips("FeatureModulationBase", {
         "feature": "Input feature to be processed",
         "feature_pipe": "Feature pipe for frame synchronization"
-    }, inherits_from='RyanOnTheInside')
+    }, inherits_from='RyanOnTheInside', description="Process and modify features to create custom animation curves. Combine multiple features, adjust timing, or transform values to achieve desired effects.")
 
     # ProcessedFeature tooltips (inherits from: type)
     TooltipManager.register_tooltips("ProcessedFeature", {
@@ -183,7 +183,7 @@ def register_tooltips():
     # ProximityFeatureInput tooltips (inherits from: RyanOnTheInside)
     TooltipManager.register_tooltips("ProximityFeatureInput", {
         # Base class with no direct parameters
-    }, inherits_from='RyanOnTheInside')
+    }, inherits_from='RyanOnTheInside', description="Create and manipulate location data for proximity-based effects. Track distances between points, analyze spatial relationships, and generate position-based animations.")
 
     # LocationFromMask tooltips (inherits from: ProximityFeatureInput)
     TooltipManager.register_tooltips("LocationFromMask", {
@@ -242,7 +242,7 @@ def register_tooltips():
     # PitchAbstraction tooltips (inherits from: RyanOnTheInside)
     TooltipManager.register_tooltips("PitchAbstraction", {
         # Base class with no direct parameters
-    }, inherits_from='RyanOnTheInside')
+    }, inherits_from='RyanOnTheInside', description="Work with musical pitch data to create audio-reactive effects. Define pitch ranges, detect specific notes, and create animations based on vocal or instrumental frequencies.")
 
     # PitchRangeNode tooltips (inherits from: PitchAbstraction)
     TooltipManager.register_tooltips("PitchRangeNode", {
@@ -272,7 +272,7 @@ def register_tooltips():
         "frame_count": "Total number of frames (minimum: 1)",
         "width": "Width of the output feature (64 to 4096)",
         "height": "Height of the output feature (64 to 4096)"
-    }, inherits_from=['RyanOnTheInside', 'ABC'])
+    }, inherits_from=['RyanOnTheInside', 'ABC'], description="Extract animation data from various sources like audio, video, or manual input. Convert real-world information into features that can control effects and animations.")
 
     # ManualFeatureNode tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("ManualFeatureNode", {

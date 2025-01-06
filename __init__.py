@@ -10,43 +10,13 @@ import os
 import folder_paths
 import shutil
 
+#NOTE: THIS IS LEGACY FOR BACKWARD COMPATIBILITY. FUNCTIONALLY REPLACED BY TOOLTIPS.
 #NOTE: allows for central management and inheritance of class variables for help documentation
-
 class RyanOnTheInside(metaclass=CombinedMeta):
     @classmethod
     def get_description(cls):
-        display_name = NODE_DISPLAY_NAME_MAPPINGS.get(cls.__name__, cls.__name__)
-        footer = "For more information, visit [RyanOnTheInside GitHub](https://github.com/ryanontheinside).\n\n"
-        footer += "For tutorials and example workflows visit [RyanOnTheInside Civitai](https://civitai.com/user/ryanontheinside).\n\n"
-        footer += "For video tutorials and more visit [RyanOnTheInside YouTube](https://www.youtube.com/@ryanontheinside).\n\n"
-        display_name = display_name.replace(" | RyanOnTheInside", "")
-        
-        desc = f"# {display_name}\n\n"
-        
-        if hasattr(cls, 'DESCRIPTION'):
-            desc += f"{cls.DESCRIPTION}\n\n{footer}"
-            return desc
+        return ""
 
-        if hasattr(cls, 'TOP_DESCRIPTION'):
-            desc += f"### {cls.TOP_DESCRIPTION}\n\n"
-        
-        if hasattr(cls, "BASE_DESCRIPTION"):
-            desc += cls.BASE_DESCRIPTION + "\n\n"
-        
-        additional_info = OrderedDict()
-        for c in cls.mro()[::-1]:  
-            if hasattr(c, 'ADDITIONAL_INFO'):
-                info = c.ADDITIONAL_INFO.strip()
-                additional_info[c.__name__] = info
-        
-        if additional_info:
-            desc += "\n\n".join(additional_info.values()) + "\n\n"
-        
-        if hasattr(cls, 'BOTTOM_DESCRIPTION'):
-            desc += f"{cls.BOTTOM_DESCRIPTION}\n\n"
-
-        desc += footer
-        return desc
     
 from .nodes.masks.temporal_masks import (
     MaskMorph,
@@ -623,10 +593,3 @@ if hasattr(PromptServer, "instance"):
     PromptServer.instance.app.add_routes(
         [web.static("/ryanontheinside_web_async", (Path(__file__).parent.absolute() / "ryanontheinside_web_async").as_posix())]
     )
-
-
-
-for node_name, node_class in NODE_CLASS_MAPPINGS.items():
-    if hasattr(node_class, 'get_description'):
-        desc = node_class.get_description()
-        node_class.DESCRIPTION = desc

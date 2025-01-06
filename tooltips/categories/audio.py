@@ -77,7 +77,12 @@ def register_tooltips():
     # FlexAudioTimeStretch tooltips (inherits from: FlexAudioBase)
     TooltipManager.register_tooltips("FlexAudioTimeStretch", {
         "rate": "Time stretching factor (0.5 to 2.0)"
-    }, inherits_from='FlexAudioBase')
+    }, inherits_from='FlexAudioBase', description="Time stretch the audio")
+
+    #AudioNodeBase tooltips
+    TooltipManager.register_tooltips("AudioNodeBase", {
+        "audio": "Input audio to be processed"
+    }, inherits_from='RyanOnTheInside', description="Manipulate audio in various ways")
 
     # AudioUtility tooltips (inherits from: AudioNodeBase)
     TooltipManager.register_tooltips("AudioUtility", {

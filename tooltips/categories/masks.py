@@ -13,7 +13,7 @@ def register_tooltips():
         "invert": "When enabled, inverts the mask output (black becomes white and vice versa)",
         "subtract_original": "Amount of the original mask to subtract from the result (0.0 to 1.0)",
         "grow_with_blur": "Amount of Gaussian blur to apply for mask growth (0.0 to 10.0)"
-    }, inherits_from=['RyanOnTheInside', 'ABC'])
+    }, inherits_from=['RyanOnTheInside', 'ABC'],)
 
     # FlexMaskBase tooltips (inherits from: FlexBase, MaskBase)
     TooltipManager.register_tooltips("FlexMaskBase", {
@@ -31,7 +31,7 @@ def register_tooltips():
         "effect_duration": "Number of frames over which the effect is applied (0 to 1000, 0 means full range)",
         "temporal_easing": "Controls how the effect strength changes over time ('ease_in_out', 'linear', 'bounce', 'elastic', 'none')",
         "palindrome": "When enabled, the effect plays forward then reverses within the specified duration"
-    }, inherits_from=['MaskBase', 'ABC'])
+    }, inherits_from=['MaskBase', 'ABC'], description="Create time-based mask animations with precise control over timing, duration, and easing.")
 
     # OpticalFlowMaskBase tooltips (inherits from: MaskBase, ABC)
     TooltipManager.register_tooltips("OpticalFlowMaskBase", {
@@ -39,7 +39,7 @@ def register_tooltips():
         "flow_method": "Algorithm used to calculate optical flow ('Farneback', 'LucasKanade', 'PyramidalLK')",
         "flow_threshold": "Minimum flow magnitude to consider (0.0 to 1.0)",
         "magnitude_threshold": "Relative threshold for flow magnitude as fraction of maximum (0.0 to 1.0)"
-    }, inherits_from=['MaskBase', 'ABC'])
+    }, inherits_from=['MaskBase', 'ABC'], description="Generate masks based on motion detection between frames, perfect for creating motion-reactive effects.")
 
     # ParticleSystemMaskBase tooltips (inherits from: MaskBase, ABC)
     TooltipManager.register_tooltips("ParticleSystemMaskBase", {
@@ -57,7 +57,7 @@ def register_tooltips():
         "wells": "Optional list of gravity well configurations (GRAVITY_WELL type)",
         "static_bodies": "Optional list of static collision bodies (STATIC_BODY type)",
         "well_strength_multiplier": "Global multiplier for gravity well strengths (0.0 to 10.0)"
-    }, inherits_from=['MaskBase', 'ABC'])
+    }, inherits_from=['MaskBase', 'ABC'], description="Create dynamic mask effects using particle systems with physics simulation, including forces like gravity, wind, and vortices.")
 
     # FlexMaskNormalBase tooltips (inherits from: FlexMaskBase)
     TooltipManager.register_tooltips("FlexMaskNormalBase", {
@@ -69,14 +69,14 @@ def register_tooltips():
         "morph_type": "Type of morphological operation ('erode', 'dilate', 'open', 'close')",
         "max_kernel_size": "Maximum size of the morphological kernel (3 to 21, odd numbers only)",
         "max_iterations": "Maximum number of times to apply the operation (1 to 50)"
-    }, inherits_from='TemporalMaskBase')
+    }, inherits_from='TemporalMaskBase', description="Morphological operations on masks.")
 
     # MaskTransform tooltips (inherits from: TemporalMaskBase)
     TooltipManager.register_tooltips("MaskTransform", {
         "transform_type": "Type of transformation to apply ('translate', 'rotate', 'scale')",
         "x_value": "Horizontal component of the transformation (-1000 to 1000)",
         "y_value": "Vertical component of the transformation (-1000 to 1000)"
-    }, inherits_from='TemporalMaskBase')
+    }, inherits_from='TemporalMaskBase', description="Transform masks over time.")
 
     # MaskMath tooltips (inherits from: TemporalMaskBase)
     TooltipManager.register_tooltips("MaskMath", {
@@ -107,7 +107,7 @@ def register_tooltips():
     # ParticleSystemModulatorBase tooltips (inherits from: RyanOnTheInside)
     TooltipManager.register_tooltips("ParticleSystemModulatorBase", {
         # TODO: Add parameter tooltips
-    }, inherits_from='RyanOnTheInside')
+    }, inherits_from='RyanOnTheInside', description="Modify particle system behavior with controls for forces, emissions, and particle properties.")
 
     # EmitterModulationBase tooltips (inherits from: ParticleSystemModulatorBase)
     TooltipManager.register_tooltips("EmitterModulationBase", {
@@ -119,7 +119,7 @@ def register_tooltips():
         "random": "When enabled, selects random values between start and target",
         "previous_modulation": "Optional previous modulation to chain with (EMITTER_MODULATION type)",
         "feature": "Optional feature to drive the modulation (FEATURE type)"
-    }, inherits_from='ParticleSystemModulatorBase')
+    }, inherits_from='ParticleSystemModulatorBase', description="Control particle emitter properties over time with support for easing, randomization, and feature-driven animation.")
 
     # EmitterEmissionRateModulation tooltips (inherits from: EmitterModulationBase)
     TooltipManager.register_tooltips("EmitterEmissionRateModulation", {
