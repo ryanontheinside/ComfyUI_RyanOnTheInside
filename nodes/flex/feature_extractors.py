@@ -20,11 +20,8 @@ class FeatureExtractorBase(RyanOnTheInside, ABC):
 
     @classmethod
     def INPUT_TYPES(cls):
-        print(f"\n[DEBUG] Getting INPUT_TYPES for {cls.__name__}")
         feature_class = cls.feature_type()
-        print(f"[DEBUG] Feature class: {feature_class.__name__}")
         extraction_methods = feature_class.get_extraction_methods()
-        print(f"[DEBUG] Extraction methods: {extraction_methods}")
         return {            
             "required": {
                 "extraction_method": (extraction_methods, {"default": extraction_methods[0]}),
