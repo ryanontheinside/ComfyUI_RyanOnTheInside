@@ -32,15 +32,15 @@ class ProximityFeatureNode(FeatureExtractorBase):
         frame_dimensions = (width, height)
         
         proximity_feature = ProximityFeature(
+            width=width,
+            height=height,
             name="proximity_feature",
             anchor_locations=anchor_locations,
             query_locations=query_locations,
             frame_rate=frame_rate,
             frame_count=frame_count,
             frame_dimensions=frame_dimensions,
-            normalization_method=normalization_method,
-            width=width,
-            height=height
+            normalization_method=normalization_method
         )
 
         # Ensure anchor and query points have the same number of columns

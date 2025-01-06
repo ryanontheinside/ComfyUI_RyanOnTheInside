@@ -175,13 +175,11 @@ const create_documentation_stylesheet = () => {
     opts = opts || {}
     const iconSize = opts.icon_size ? opts.icon_size : 14
     const iconMargin = opts.icon_margin ? opts.icon_margin : 4
-    let docElement = null
-    let contentWrapper = null
-    //if no description in the node python code, don't do anything
-    //we might do this eventually
-    // if (!nodeData.help_text) {
-    //   return
-    // }
+
+    // Store popup elements in the node instance instead of function scope
+    nodeType.prototype._docElement = null;
+    nodeType.prototype._contentWrapper = null;
+    nodeType.prototype._docCtrl = null;
 
     const drawFg = nodeType.prototype.onDrawForeground
     nodeType.prototype.onDrawForeground = function (ctx) {
@@ -192,14 +190,17 @@ const create_documentation_stylesheet = () => {
       const x = this.size[0] - iconSize - iconMargin
       
       // create the popup
-      if (this.show_doc && docElement === null) {
-        docElement = document.createElement('div')
-        contentWrapper = document.createElement('div');
-        docElement.appendChild(contentWrapper);
+      if (this.show_doc && !this._docElement) {
+        // Clean up any existing elements first
+        this.cleanupDocumentation();
+        
+        this._docElement = document.createElement('div')
+        this._contentWrapper = document.createElement('div');
+        this._docElement.appendChild(this._contentWrapper);
 
         create_documentation_stylesheet()
-        contentWrapper.classList.add('content-wrapper');
-        docElement.classList.add('roti-documentation-popup')
+        this._contentWrapper.classList.add('content-wrapper');
+        this._docElement.classList.add('roti-documentation-popup')
         
         // Construct the content with default links and optional help text
         let content = "";
@@ -234,7 +235,7 @@ const create_documentation_stylesheet = () => {
 `;
         
         //parse the combined content with marked and sanitize
-        contentWrapper.innerHTML = DOMPurify.sanitize(marked.parse(content))
+        this._contentWrapper.innerHTML = DOMPurify.sanitize(marked.parse(content))
 
         // resize handle
         const resizeHandle = document.createElement('div');
@@ -252,21 +253,22 @@ const create_documentation_stylesheet = () => {
         resizeHandle.style.borderBottom = `10px solid ${borderColor}`;
         resizeHandle.style.borderRight = `10px solid ${borderColor}`;
 
-        docElement.appendChild(resizeHandle)
+        this._docElement.appendChild(resizeHandle)
         let isResizing = false
         let startX, startY, startWidth, startHeight
 
-        resizeHandle.addEventListener('mousedown', function (e) {
+        // Create new AbortController for this instance
+        this._docCtrl = new AbortController();
+
+        resizeHandle.addEventListener('mousedown', (e) => {
           e.preventDefault();
           e.stopPropagation();
           isResizing = true;
           startX = e.clientX;
           startY = e.clientY;
-          startWidth = parseInt(document.defaultView.getComputedStyle(docElement).width, 10);
-          startHeight = parseInt(document.defaultView.getComputedStyle(docElement).height, 10);
-         },
-         { signal: this.docCtrl.signal },
-         );
+          startWidth = parseInt(document.defaultView.getComputedStyle(this._docElement).width, 10);
+          startHeight = parseInt(document.defaultView.getComputedStyle(this._docElement).height, 10);
+        }, { signal: this._docCtrl.signal });
 
         // close button
         const closeButton = document.createElement('div');
@@ -279,66 +281,38 @@ const create_documentation_stylesheet = () => {
         closeButton.style.color = 'red';
         closeButton.style.fontSize = '12px';
 
-        docElement.appendChild(closeButton)
+        this._docElement.appendChild(closeButton)
 
         closeButton.addEventListener('mousedown', (e) => {
           e.stopPropagation();
           this.show_doc = false;
-          
-          // Add closing animation
-          docElement.classList.add('closing');
-          
-          // Listen for the animation end
-          docElement.addEventListener('animationend', function handler() {
-            if (docElement && docElement.parentNode) {
-              docElement.parentNode.removeChild(docElement);
-              docElement = null;
-            }
-            if (contentWrapper) {
-              contentWrapper.remove();
-              contentWrapper = null;
-            }
-            docElement.removeEventListener('animationend', handler);
-          });
-         },
-         { signal: this.docCtrl.signal },
-         );
-         
-        document.addEventListener('mousemove', function (e) {
+          this.cleanupDocumentation();
+        }, { signal: this._docCtrl.signal });
+
+        document.addEventListener('mousemove', (e) => {
           if (!isResizing) return;
           const scale = app.canvas.ds.scale;
           const newWidth = startWidth + (e.clientX - startX) / scale;
-          const newHeight = startHeight + (e.clientY - startY) / scale;;
-          docElement.style.width = `${newWidth}px`;
-          docElement.style.height = `${newHeight}px`;
-         },
-         { signal: this.docCtrl.signal },
-         );
+          const newHeight = startHeight + (e.clientY - startY) / scale;
+          if (this._docElement) {
+            this._docElement.style.width = `${newWidth}px`;
+            this._docElement.style.height = `${newHeight}px`;
+          }
+        }, { signal: this._docCtrl.signal });
 
-        document.addEventListener('mouseup', function () {
-          isResizing = false
-        },
-        { signal: this.docCtrl.signal },
-        )
+        document.addEventListener('mouseup', () => {
+          isResizing = false;
+        }, { signal: this._docCtrl.signal });
 
-        document.body.appendChild(docElement)
+        document.body.appendChild(this._docElement)
       }
       // close the popup
-      else if (!this.show_doc && docElement !== null) {
-        // Add closing animation
-        docElement.classList.add('closing');
-        
-        // Listen for the animation end
-        docElement.addEventListener('animationend', function handler() {
-          if (docElement && docElement.parentNode) {
-            docElement.parentNode.removeChild(docElement);
-            docElement = null;
-          }
-          docElement.removeEventListener('animationend', handler);
-        });
+      else if (!this.show_doc && this._docElement) {
+        this.cleanupDocumentation();
       }
+
       // update position of the popup
-      if (this.show_doc && docElement !== null) {
+      if (this.show_doc && this._docElement) {
         const rect = ctx.canvas.getBoundingClientRect()
         const scaleX = rect.width / ctx.canvas.width
         const scaleY = rect.height / ctx.canvas.height
@@ -357,8 +331,8 @@ const create_documentation_stylesheet = () => {
           transform: scale,
           left: `${transform.a + transform.e}px`,
           top: `${transform.d + transform.f}px`,
-         };
-        Object.assign(docElement.style, styleObject);
+        };
+        Object.assign(this._docElement.style, styleObject);
       }
 
       ctx.save()
@@ -374,6 +348,31 @@ const create_documentation_stylesheet = () => {
       ctx.restore()
       return r
     }
+
+    // Add cleanup method to the prototype
+    nodeType.prototype.cleanupDocumentation = function() {
+      if (this._docCtrl) {
+        this._docCtrl.abort();
+        this._docCtrl = null;
+      }
+      
+      if (this._docElement) {
+        this._docElement.classList.add('closing');
+        const cleanup = () => {
+          if (this._docElement && this._docElement.parentNode) {
+            this._docElement.parentNode.removeChild(this._docElement);
+          }
+          if (this._contentWrapper) {
+            this._contentWrapper.remove();
+          }
+          this._docElement = null;
+          this._contentWrapper = null;
+        };
+        
+        this._docElement.addEventListener('animationend', cleanup, { once: true });
+      }
+    }
+
     // handle clicking of the icon
     const mouseDown = nodeType.prototype.onMouseDown
     nodeType.prototype.onMouseDown = function (e, localPos, canvas) {
@@ -386,34 +385,20 @@ const create_documentation_stylesheet = () => {
         localPos[1] > iconY &&
         localPos[1] < iconY + iconSize
       ) {
-        if (this.show_doc === undefined) {
-          this.show_doc = true
-        } else {
-          this.show_doc = !this.show_doc
-        }
+        // Clean up existing popup before toggling
         if (this.show_doc) {
-          this.docCtrl = new AbortController()
-        } else {
-          this.docCtrl.abort()
+          this.cleanupDocumentation();
         }
+        this.show_doc = !this.show_doc;
         return true;
       }
       return r;
     }
-    const onRem = nodeType.prototype.onRemoved
 
+    const onRem = nodeType.prototype.onRemoved
     nodeType.prototype.onRemoved = function () {
       const r = onRem ? onRem.apply(this, []) : undefined
-  
-      if (docElement) {
-        docElement.remove()
-        docElement = null
-      }
-  
-      if (contentWrapper) {
-        contentWrapper.remove()
-        contentWrapper = null
-      }
-      return r
+      this.cleanupDocumentation();
+      return r;
     }
 }

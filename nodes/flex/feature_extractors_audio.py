@@ -25,12 +25,12 @@ class AudioFeatureExtractor(FeatureExtractorBase):
     
     def extract_feature(self, audio, frame_rate, frame_count, width, height, extraction_method):
         feature = AudioFeature(
+            width=width,
+            height=height,
             feature_name=extraction_method,
             audio=audio,
             frame_count=frame_count,
             frame_rate=frame_rate,
-            width=width,
-            height=height,
             feature_type=extraction_method
         )
         feature.extract()
@@ -60,13 +60,13 @@ class AudioFeatureExtractorFirst(FeatureExtractorBase):
 
     def extract_feature(self, audio, frame_rate, frame_count, width, height, extraction_method):
         feature = AudioFeature(
+            width=width,
+            height=height,
             feature_name=extraction_method,
             audio=audio,
             frame_count=frame_count,
             frame_rate=frame_rate,
-            feature_type=extraction_method,
-            width=width,
-            height=height
+            feature_type=extraction_method
         )
         feature.extract()
         return (feature, frame_count)
@@ -94,14 +94,14 @@ class RhythmFeatureExtractor(FeatureExtractorBase):
 
     def extract_feature(self, audio, extraction_method, time_signature, frame_rate, frame_count, width, height):
         feature = RhythmFeature(
+            width=width,
+            height=height,
             feature_name=extraction_method,
             audio=audio,
             frame_count=frame_count,
             frame_rate=frame_rate,
             feature_type=extraction_method,
-            time_signature=time_signature,
-            width=width,
-            height=height
+            time_signature=time_signature
         )
         feature.extract()
         return (feature,)
@@ -134,15 +134,15 @@ class PitchFeatureExtractor(FeatureExtractorBase):
         if opt_pitch_range_collections is None:
             opt_pitch_range_collections = []
         feature = PitchFeature(
+            width=width,
+            height=height,
             feature_name=extraction_method,
             audio=audio,
             frame_count=frame_count,
             frame_rate=frame_rate,
             pitch_range_collections=opt_pitch_range_collections,
             feature_type=extraction_method,
-            crepe_model=opt_crepe_model,
-            width=width,
-            height=height
+            crepe_model=opt_crepe_model
         )
         feature.extract()
         return (feature,)

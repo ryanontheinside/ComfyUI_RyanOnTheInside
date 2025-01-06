@@ -56,7 +56,7 @@ class BaseFeature(ABC):
         return self
     
 class ManualFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, start_frame, end_frame, start_value, end_value, method='linear', width=None, height=None):
+    def __init__(self, name, frame_rate, frame_count, width, height, start_frame, end_frame, start_value, end_value, method='linear'):
         super().__init__(name, "manual", frame_rate, frame_count, width, height)
         self.start_frame = start_frame
         self.end_frame = end_frame
@@ -143,7 +143,7 @@ class TimeFeature(BaseFeature):
         return self.normalize()
 
 class DepthFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, depth_maps, feature_name='mean_depth', width=None, height=None):
+    def __init__(self, name, frame_rate, frame_count, width, height, depth_maps, feature_name='mean_depth'):
         super().__init__(name, "depth", frame_rate, frame_count, width, height)
         self.depth_maps = depth_maps
         self.features = None
@@ -216,7 +216,7 @@ class DepthFeature(BaseFeature):
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 
 class ColorFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, images, feature_name='dominant_color', width=None, height=None):
+    def __init__(self, name, frame_rate, frame_count, width, height, images, feature_name='dominant_color'):
         if images.dim() != 4 or images.shape[-1] != 3:
             raise ValueError(f"Expected images in BHWC format, but got shape {images.shape}")
         super().__init__(name, "color", frame_rate, frame_count, width, height)
@@ -300,7 +300,7 @@ class ColorFeature(BaseFeature):
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 
 class BrightnessFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, images, feature_name='mean_brightness', width=None, height=None):
+    def __init__(self, name, frame_rate, frame_count, width, height, images, feature_name='mean_brightness'):
         super().__init__(name, "brightness", frame_rate, frame_count, width, height)
         self.images = images
         self.feature_name = feature_name
@@ -368,7 +368,7 @@ class BrightnessFeature(BaseFeature):
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 
 class MotionFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, images, feature_name='mean_motion', flow_method='Farneback', flow_threshold=0.0, magnitude_threshold=0.0, width=None, height=None, progress_callback=None):
+    def __init__(self, name, frame_rate, frame_count, width, height, images, feature_name='mean_motion', flow_method='Farneback', flow_threshold=0.0, magnitude_threshold=0.0, progress_callback=None):
         super().__init__(name, "motion", frame_rate, frame_count, width, height)
         self.images = images
         self.feature_name = feature_name
@@ -467,7 +467,7 @@ class MotionFeature(BaseFeature):
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 
 class AreaFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, masks, feature_type='total_area', threshold=0.5, width=None, height=None):
+    def __init__(self, name, frame_rate, frame_count, width, height, masks, feature_type='total_area', threshold=0.5):
         super().__init__(name, "area", frame_rate, frame_count, width, height)
         self.masks = masks
         self.feature_type = feature_type
@@ -538,8 +538,8 @@ class DrawableFeature(BaseFeature):
     def get_extraction_methods(cls):
         return ["drawn"]
     
-    def __init__(self, name, frame_rate, frame_count, points, method="linear", min_value=0.0, max_value=1.0, width=None, height=None, fill_value=0.0):
-        super().__init__(name, "drawn", frame_rate, frame_count, width=width, height=height)
+    def __init__(self, name, frame_rate, frame_count, width, height, points, method="linear", min_value=0.0, max_value=1.0, fill_value=0.0):
+        super().__init__(name, "drawn", frame_rate, frame_count, width, height)
         self.points = points  # List of (frame, value) tuples
         self.method = method
         self.min_value = min_value
@@ -624,39 +624,22 @@ class DrawableFeature(BaseFeature):
         return self
 
 class WhisperFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, alignment_data, trigger_pairs=None, feature_name='word_timing', width=None, height=None):
-        super().__init__(name, "whisper", frame_rate, frame_count, width=width, height=height)
+    def __init__(self, name, frame_rate, frame_count, width, height, alignment_data, trigger_pairs=None, feature_name='word_timing'):
+        super().__init__(name, "whisper", frame_rate, frame_count, width, height)
         self.alignment_data = json.loads(alignment_data) if isinstance(alignment_data, str) else alignment_data
-        self.trigger_pairs = self._parse_trigger_pairs(trigger_pairs) if trigger_pairs else {}
+        self.trigger_pairs = trigger_pairs  # Already a dictionary from TriggerBuilder
         self.feature_name = feature_name
         self.available_features = self.get_extraction_methods()
 
     @classmethod
     def get_extraction_methods(cls):
         return [
+            "trigger_values",   # Uses trigger pairs to create value sequences
             "word_timing",      # Creates peaks at word starts
             "segment_timing",   # Creates plateaus during segments
-            "trigger_values",   # Uses trigger pairs to create value sequences
             "speech_density",   # Measures words per second over time
             "silence_ratio"     # Ratio of silence vs speech
         ]
-
-    def _parse_trigger_pairs(self, trigger_pairs):
-        triggers = {}
-        if not trigger_pairs:
-            return triggers
-            
-        for line in trigger_pairs.strip().split('\n'):
-            if not line.strip():
-                continue
-            try:
-                phrase, values = line.split('",')
-                phrase = phrase.strip('"')
-                val1, val2 = values.strip().strip('"').split(',')
-                triggers[phrase.lower()] = (float(val1), float(val2))
-            except:
-                raise ValueError(f"Invalid trigger pair format: {line}")
-        return triggers
 
     def extract(self):
         self.features = {self.feature_name: [0.0] * self.frame_count}

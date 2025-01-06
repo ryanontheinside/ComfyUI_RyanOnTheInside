@@ -9,6 +9,7 @@ import textwrap
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 from ...tooltips import apply_tooltips
+from ... import RyanOnTheInside
 
 #NOTE: below is an example of the data we are expecting. 
 # This is built to work with ComfyUI-Whisper, but only the json structure below is required.
@@ -29,10 +30,12 @@ class WhisperFeatureNode(FeatureExtractorBase):
 
     @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs.pop("frame_count", None)  # Remove frame_count as we'll calculate it
         return {
             **super().INPUT_TYPES(),
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs,
                 "alignment_data": ("whisper_alignment",),
             },
             "optional": {
@@ -46,9 +49,17 @@ class WhisperFeatureNode(FeatureExtractorBase):
     FUNCTION = "create_feature"
     CATEGORY = "RyanOnTheInside/FlexFeatures/Text"
 
-    def create_feature(self, video_frames, frame_rate, frame_count, width, height, extraction_method, 
+    def create_feature(self, frame_rate, width, height, extraction_method, 
                       alignment_data, trigger_set=None, context_size=3, overlap_mode="blend"):
         
+        # Parse alignment data to find the last timestamp
+        try:
+            data = json.loads(alignment_data)
+            last_end_time = max(segment["end"] for segment in data)
+            # Calculate frame_count from audio duration and frame_rate
+            frame_count = int(last_end_time * frame_rate) + 1
+        except (json.JSONDecodeError, KeyError) as e:
+            raise ValueError(f"Invalid alignment data format: {e}")
         
         # Parse trigger set if provided
         triggers = None
@@ -62,7 +73,7 @@ class WhisperFeatureNode(FeatureExtractorBase):
         whisper_feature = WhisperFeature(
             name="whisper_feature",
             frame_rate=frame_rate,
-            frame_count=len(video_frames),
+            frame_count=frame_count,
             alignment_data=alignment_data,
             trigger_pairs=triggers,
             feature_name=extraction_method,
@@ -74,7 +85,7 @@ class WhisperFeatureNode(FeatureExtractorBase):
         return (whisper_feature,)
 
 @apply_tooltips
-class TriggerBuilder:
+class TriggerBuilder(RyanOnTheInside):
     """Creates triggers that respond to specific words or phrases in the Whisper transcription.
     Can be chained together to create complex trigger combinations.
     
@@ -157,7 +168,7 @@ class TriggerBuilder:
         return (json.dumps(trigger_set),)
 
 @apply_tooltips
-class ContextModifier:
+class ContextModifier(RyanOnTheInside):
     """Modifies trigger behavior based on context.
     
     Example Usage:
@@ -454,32 +465,22 @@ class WhisperTextRenderer:
 class ManualWhisperAlignmentData:
     """Creates alignment data from manually entered text and timings.
     
-    Example Format:
-    {
-        "value": "hello world",
-        "start": 0.0,
-        "end": 1.0
-    }
-    {
-        "value": "another segment",
-        "start": 1.5,
-        "end": 2.5
-    }
+    You can enter either word alignments or segment alignments.
+    Format should match ComfyUI-Whisper output.
     
-    Each JSON object should be on its own line(s). The node will combine them into a list.
-    The required fields are:
-    - value: The text content
-    - start: Start time in seconds
-    - end: End time in seconds
+    Note: For proper whisper alignment data, you should use ComfyUI-Whisper:
+    https://github.com/yuvraj108c/ComfyUI-Whisper
     """
     
     @classmethod
     def INPUT_TYPES(cls):
         return {
-            "required": {
+            "required": { 
                 "alignment_text": ("STRING", {
                     "multiline": True, 
-                    "default": '{\n    "value": "hello world",\n    "start": 0.0,\n    "end": 1.0\n}'
+                    "default": """
+[{"value": "This is a manual alignment node. You should use ComfyUI-Whisper instead", "start": 0.0, "end": 6.26}, {"value": "for proper speech-to-text with timing.   https://github.com/yuvraj108c/ComfyUI-Whisper", "start": 7.98, "end": 9.38}]
+"""
                 }),
             }
         }
@@ -489,32 +490,8 @@ class ManualWhisperAlignmentData:
     FUNCTION = "parse"
     CATEGORY = "RyanOnTheInside/FlexFeatures/Text"
 
-    def parse(self, alignment_text: str) -> tuple:
-        # Split the input text into individual JSON objects
-        json_objects = []
-        current_object = ""
-        
-        for line in alignment_text.split('\n'):
-            line = line.strip()
-            if line.startswith('{'):
-                current_object = line
-            elif line.endswith('}'):
-                current_object += line
-                try:
-                    obj = json.loads(current_object)
-                    # Validate required fields
-                    if not all(key in obj for key in ["value", "start", "end"]):
-                        raise ValueError("Each object must have 'value', 'start', and 'end' fields")
-                    json_objects.append(obj)
-                except json.JSONDecodeError as e:
-                    raise ValueError(f"Invalid JSON format: {e}")
-                current_object = ""
-            elif current_object:
-                current_object += line
-        
-        # Combine into final alignment data format
-        alignment_data = json.dumps(json_objects)
-        return (alignment_data,)
+    def parse(self, alignment_text: str) -> tuple:        
+        return (alignment_text,)
 
 
 

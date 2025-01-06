@@ -83,11 +83,11 @@ class ManualFeatureNode(FeatureExtractorBase):
     RETURN_TYPES = ("FEATURE",)
     FUNCTION = "create_feature"
 
-    def _apply_interpolation(self, frame_count, frame_rate, frame_numbers, values, last_value, interpolation_method, height=None, width=None):
+    def _apply_interpolation(self, frame_count, frame_rate, frame_numbers, values, last_value, interpolation_method, width=None, height=None):
         """Shared interpolation logic"""
-        manual_feature = ManualFeature("manual_feature", frame_rate, frame_count,
+        manual_feature = ManualFeature("manual_feature", frame_rate, frame_count, width, height,
                                    frame_numbers[0], frame_numbers[-1], values[0], values[-1], 
-                                   method=interpolation_method, height=height, width=width)
+                                   method=interpolation_method)
 
         manual_feature.data = np.zeros(frame_count, dtype=np.float32)
         interpolation_kind = 'linear' if len(frame_numbers) < 3 else 'quadratic'
@@ -128,7 +128,7 @@ class ManualFeatureNode(FeatureExtractorBase):
             raise ValueError(f"Frame numbers must be less than frame_count ({frame_count})")
 
         # Apply interpolation
-        manual_feature = self._apply_interpolation(frame_count, frame_rate, frame_numbers, values, last_value, interpolation_method, height, width)
+        manual_feature = self._apply_interpolation(frame_count, frame_rate, frame_numbers, values, last_value, interpolation_method, width, height)
         
         return (manual_feature,)
 
@@ -200,10 +200,11 @@ class DepthFeatureNode(FeatureExtractorBase):
 
     @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs.pop("frame_count", None)
         return {
-            **super().INPUT_TYPES(),
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs,
                 "depth_maps": ("IMAGE",),
             }
         }
@@ -211,8 +212,9 @@ class DepthFeatureNode(FeatureExtractorBase):
     RETURN_TYPES = ("FEATURE",)
     FUNCTION = "create_feature"
 
-    def create_feature(self, depth_maps, frame_rate, frame_count, width, height, extraction_method):
-        depth_feature = DepthFeature("depth_feature", frame_rate, frame_count, depth_maps, extraction_method, width=width, height=height)
+    def create_feature(self, depth_maps, frame_rate, width, height, extraction_method):
+        frame_count = len(depth_maps)
+        depth_feature = DepthFeature("depth_feature", frame_rate, frame_count, width, height, depth_maps, extraction_method)
         depth_feature.extract()
         return (depth_feature,)
 
@@ -224,10 +226,11 @@ class ColorFeatureNode(FeatureExtractorBase):
 
     @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs.pop("frame_count", None)
         return {
-            **super().INPUT_TYPES(),
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs,
                 "images": ("IMAGE",),
             }
         }
@@ -235,8 +238,9 @@ class ColorFeatureNode(FeatureExtractorBase):
     RETURN_TYPES = ("FEATURE",)
     FUNCTION = "create_feature"
 
-    def create_feature(self, images, frame_rate, frame_count, width, height, extraction_method):
-        color_feature = ColorFeature("color_feature", frame_rate, frame_count, images, extraction_method, width=width, height=height)
+    def create_feature(self, images, frame_rate, width, height, extraction_method):
+        frame_count = len(images)
+        color_feature = ColorFeature("color_feature", frame_rate, frame_count, width, height, images, extraction_method)
         color_feature.extract()
         return (color_feature,)
 
@@ -248,10 +252,11 @@ class BrightnessFeatureNode(FeatureExtractorBase):
 
     @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs.pop("frame_count", None)
         return {
-            **super().INPUT_TYPES(),
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs,
                 "images": ("IMAGE",),
             }
         }
@@ -259,8 +264,9 @@ class BrightnessFeatureNode(FeatureExtractorBase):
     RETURN_TYPES = ("FEATURE",)
     FUNCTION = "create_feature"
 
-    def create_feature(self, images, frame_rate, frame_count, width, height, extraction_method):
-        brightness_feature = BrightnessFeature("brightness_feature", frame_rate, frame_count, images, extraction_method, width=width, height=height)
+    def create_feature(self, images, frame_rate, width, height, extraction_method):
+        frame_count = len(images)
+        brightness_feature = BrightnessFeature("brightness_feature", frame_rate, frame_count, width, height, images, extraction_method)
         brightness_feature.extract()
         return (brightness_feature,)
     
@@ -272,10 +278,13 @@ class MotionFeatureNode(FeatureExtractorBase):
 
     @classmethod
     def INPUT_TYPES(cls):
+        # Get parent input types but exclude frame_count
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs.pop("frame_count", None)
+        
         return {
-            **super().INPUT_TYPES(),
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs,
                 "images": ("IMAGE",),
                 "flow_method": (["Farneback", "LucasKanade", "PyramidalLK"],),
                 "flow_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.1}),
@@ -286,7 +295,10 @@ class MotionFeatureNode(FeatureExtractorBase):
     RETURN_TYPES = ("FEATURE",)
     FUNCTION = "create_feature"
 
-    def create_feature(self, images, frame_rate, frame_count, width, height, extraction_method, flow_method, flow_threshold, magnitude_threshold):
+    def create_feature(self, images, frame_rate, width, height, extraction_method, flow_method, flow_threshold, magnitude_threshold):
+        # Use length of images as frame_count
+        frame_count = len(images)
+        
         def progress_callback(current_step, total_steps):
             self.update_progress(current_step - self.current_progress)
 
@@ -296,13 +308,13 @@ class MotionFeatureNode(FeatureExtractorBase):
             "motion_feature",
             frame_rate,
             frame_count,
+            width,
+            height,
             images,
             extraction_method,
             flow_method,
             flow_threshold,
             magnitude_threshold,
-            width=width,
-            height=height,
             progress_callback=progress_callback
         )
 
@@ -319,10 +331,11 @@ class AreaFeatureNode(FeatureExtractorBase):
 
     @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs.pop("frame_count", None)
         return {
-            **super().INPUT_TYPES(),
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs,
                 "masks": ("MASK",),
                 "threshold": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
             }
@@ -331,8 +344,9 @@ class AreaFeatureNode(FeatureExtractorBase):
     RETURN_TYPES = ("FEATURE",)
     FUNCTION = "create_feature"
 
-    def create_feature(self, masks, frame_rate, frame_count, width, height, extraction_method, threshold):
-        area_feature = AreaFeature("area_feature", frame_rate, frame_count, masks, extraction_method, threshold, width=width, height=height)
+    def create_feature(self, masks, frame_rate, width, height, extraction_method, threshold):
+        frame_count = len(masks)
+        area_feature = AreaFeature("area_feature", frame_rate, frame_count, width, height, masks, extraction_method, threshold)
         area_feature.extract()
         return (area_feature,)
     
@@ -381,12 +395,12 @@ class DrawableFeatureNode(FeatureExtractorBase):
             "drawable_feature",
             frame_rate,
             frame_count,
+            width,
+            height,
             point_data,
             method=interpolation_method,
             min_value=min_value,
             max_value=max_value,
-            width=width,
-            height=height,
             fill_value=fill_value
         )
         drawable_feature.extract()

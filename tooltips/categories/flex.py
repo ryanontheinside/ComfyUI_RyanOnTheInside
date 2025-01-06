@@ -585,4 +585,12 @@ Great for creating music videos, reactive animations, or automated effects.""")
     # ManualWhisperAlignmentData tooltips (inherits from: RyanOnTheInside)
     TooltipManager.register_tooltips("ManualWhisperAlignmentData", {
         "alignment_text": "JSON objects defining speech segments. Each object needs: value (text content), start (time in seconds), end (time in seconds)"
-    }, inherits_from='RyanOnTheInside', description="While this is made to work with ComfyUI-Whisper, you can create Whisper-compatible alignment data manually. Useful for testing or when you want to define custom speech timing without using Whisper.")
+    }, inherits_from='RyanOnTheInside', description="""Creates alignment data from manually entered text and timings.
+    
+    **Note**: For proper whisper alignment data, you should use ComfyUI-Whisper:
+    https://github.com/yuvraj108c/ComfyUI-Whisper
+   
+    You can enter either word alignments or segment alignments.
+    Format should match ComfyUI-Whisper output.
+    
+""")

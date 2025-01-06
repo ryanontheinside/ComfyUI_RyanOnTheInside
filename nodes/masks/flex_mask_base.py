@@ -15,14 +15,14 @@ class FlexMaskBase(FlexBase, MaskBase):
         flex_inputs = FlexBase.INPUT_TYPES()
         mask_inputs = MaskBase.INPUT_TYPES()
         
-        # Get the required inputs
+        # First rename MaskBase's strength to mask_strength
+        mask_inputs["required"]["mask_strength"] = mask_inputs["required"].pop("strength")
+        
+        # Then merge the inputs
         required = {
             **flex_inputs["required"],
             **mask_inputs["required"]
         }
-        
-        # Rename the mask strength parameter to avoid conflict with flex strength
-        required["mask_strength"] = required.pop("strength")
         
         # Add feature-specific inputs
         required.update({

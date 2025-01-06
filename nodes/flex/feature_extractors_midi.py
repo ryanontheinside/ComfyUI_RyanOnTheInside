@@ -49,10 +49,10 @@ class MIDILoadAndExtract(FeatureExtractorBase):
                 internal_attribute,
                 frame_rate,
                 frame_count,
+                width,
+                height,
                 notes=selected_notes,
-                chord_only=chord_only,
-                width=width,
-                height=height
+                chord_only=chord_only
             )
             
             feature.extract()
