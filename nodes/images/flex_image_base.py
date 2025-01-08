@@ -11,20 +11,21 @@ from ...tooltips import apply_tooltips
 class FlexImageBase(RyanOnTheInside, FlexBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "images": ("IMAGE",),
-            },
-            # Optional inputs are inherited from FlexBase
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"].update({
+            "images": ("IMAGE",),
+        })
+        base_inputs["optional"].update({
+            "opt_feature_pipe": ("FEATURE_PIPE",),
+        })
+        return base_inputs
 
-    CATEGORY = "RyanOnTheInside/FlexImage"
+    CATEGORY = "RyanOnTheInside/FlexImages"
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "apply_effect"
 
     def __init__(self):
+        super().__init__()  # Initialize FlexBase
         self.progress_bar = None
 
     def start_progress(self, total_steps, desc="Processing"):
@@ -117,30 +118,22 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
 
         return (result_tensor,)
 
-    def process_image(
-        self, 
-        image: np.ndarray, 
-        feature_value: float, 
-        strength: float,
-        feature_param: str, 
-        feature_mode: str, 
-        **kwargs
-    ) -> np.ndarray:
-        # Modulate the selected parameter
-        for param_name in self.get_modifiable_params():
-            if param_name in kwargs and param_name == feature_param:
-                kwargs[param_name] = self.modulate_param(
-                    param_name,
-                    kwargs[param_name],
-                    feature_value,
-                    strength,
-                    feature_mode
-                )
-
-        # Call the subclass's implementation
-        return self.apply_effect_internal(image, **kwargs)
-
     @abstractmethod
     def apply_effect_internal(self, image: np.ndarray, **kwargs) -> np.ndarray:
-        """To be implemented by subclasses."""
+        """Apply the effect with processed parameters. To be implemented by child classes."""
         pass
+
+    def process_image(self, image: np.ndarray, feature_value: float, strength: float, 
+                     feature_param: str, feature_mode: str, frame_index: int = 0, **kwargs) -> np.ndarray:
+        # Process parameters using base class functionality
+        processed_kwargs = self.process_parameters(
+            frame_index=frame_index,
+            feature_value=feature_value,
+            strength=strength,
+            feature_param=feature_param,
+            feature_mode=feature_mode,
+            **kwargs
+        )
+        
+        # Call the child class's implementation with processed parameters
+        return self.apply_effect_internal(image, **processed_kwargs)

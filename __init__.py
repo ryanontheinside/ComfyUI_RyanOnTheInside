@@ -409,7 +409,15 @@ NODE_CLASS_MAPPINGS = {
 
     #features   
     "AudioFeatureExtractor":        AudioFeatureExtractor,
+
+#TODO add framecount from audio
+#TODO time feature from rhythm or framerate or something....tempo? need tempo extractor! frames per measure,  frames per quarter note, etc
+#TODO increase shift amount chromatic aberation
+#TODO make feature info JS display info
+#TODO removethis
+#TODO duplicate progress bar
     "AudioFeatureExtractorFirst": AudioFeatureExtractorFirst,
+    
     "PitchFeatureExtractor":        PitchFeatureExtractor,
     "RhythmFeatureExtractor":       RhythmFeatureExtractor,
     

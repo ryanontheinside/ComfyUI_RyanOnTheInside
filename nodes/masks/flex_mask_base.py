@@ -57,26 +57,24 @@ class FlexMaskBase(FlexBase, MaskBase):
         return ["None"]
 
     @abstractmethod
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
-        """Process a single mask with feature modulation.
+    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, 
+                    frame_index: int = 0, **kwargs) -> np.ndarray:
+        # Process parameters using base class functionality
+        processed_kwargs = self.process_parameters(
+            frame_index=frame_index,
+            feature_value=feature_value,
+            strength=strength,
+            feature_param=kwargs.get('feature_param'),
+            feature_mode=kwargs.get('feature_mode'),
+            **kwargs
+        )
         
-        Args:
-            mask: Input mask to process
-            feature_value: Current feature value for modulation
-            strength: Strength of the feature modulation
-            **kwargs: Additional parameters
-        
-        Returns:
-            Processed mask as numpy array
-        """
-        pass
+        # Call the child class's implementation with processed parameters
+        return self.apply_effect_internal(mask, **processed_kwargs)
 
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
-        """Internal implementation for the Flex system.
-        
-        This bridges between FlexBase and our mask-specific processing.
-        """
-        return self.process_mask(mask, feature_value, strength, **kwargs)
+    def apply_effect_internal(self, mask: np.ndarray, **kwargs) -> np.ndarray:
+        """Apply the effect with processed parameters."""
+        return self.process_mask(mask, **kwargs)
 
     def apply_effect(self, masks, opt_feature=None, strength=1.0, feature_threshold=0.0, mask_strength=1.0, invert=False, subtract_original=0.0, grow_with_blur=0.0, **kwargs):
         """Main entry point for the Flex system.
@@ -96,7 +94,9 @@ class FlexMaskBase(FlexBase, MaskBase):
             # When feature_param is "None", always apply the effect with default feature value
             if kwargs.get('feature_param') == "None":
                 feature_value = 0.5  # Default feature value
-                processed_mask = self.apply_effect_internal(mask, feature_value, strength, **kwargs)
+                kwargs['feature_value'] = feature_value
+                kwargs['strength'] = strength
+                processed_mask = self.apply_effect_internal(mask, **kwargs)
             else:
                 # Normal feature-based behavior
                 if opt_feature is not None:
@@ -107,10 +107,14 @@ class FlexMaskBase(FlexBase, MaskBase):
                     apply_effect = True
 
                 if apply_effect:
-                    processed_mask = self.apply_effect_internal(mask, feature_value, strength, **kwargs)
+                    kwargs['feature_value'] = feature_value
+                    kwargs['strength'] = strength
+                    processed_mask = self.apply_effect_internal(mask, **kwargs)
                 else:
                     if hasattr(self, 'process_mask_below_threshold'):
-                        processed_mask = self.process_mask_below_threshold(mask, feature_value, strength, **kwargs)
+                        kwargs['feature_value'] = feature_value
+                        kwargs['strength'] = strength
+                        processed_mask = self.process_mask_below_threshold(mask, **kwargs)
                     else:
                         processed_mask = mask
 
@@ -120,8 +124,14 @@ class FlexMaskBase(FlexBase, MaskBase):
         self.end_progress()
 
         processed_masks = torch.from_numpy(np.stack(result)).float()
+        
+        # Remove strength from kwargs to avoid duplicate argument
+        kwargs_for_mask_op = kwargs.copy()
+        kwargs_for_mask_op.pop('strength', None)
+        kwargs_for_mask_op.pop('feature_value', None)
+        
         # Use mask_strength instead of strength for the final mask operation
-        return (super().apply_mask_operation(processed_masks, original_masks, mask_strength, invert, subtract_original, grow_with_blur, **kwargs),)
+        return (super().apply_mask_operation(processed_masks, original_masks, mask_strength, invert, subtract_original, grow_with_blur, **kwargs_for_mask_op),)
 
     def main_function(self, masks, opt_feature=None, strength=1.0, feature_threshold=0.0, mask_strength=1.0, invert=False, subtract_original=0.0, grow_with_blur=0.0, **kwargs):
         """Implementation of MaskBase's abstract main_function.

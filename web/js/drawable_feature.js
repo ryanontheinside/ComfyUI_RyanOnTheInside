@@ -177,7 +177,7 @@ app.registerExtension({
                 ctx.fillStyle = "#888";
                 ctx.font = "12px Arial";
                 ctx.textAlign = "center";
-                ctx.fillText("Click empty space to add • Click point to delete • Drag points to move", 
+                ctx.fillText("Click empty space to add • Double-click point to delete • Drag points to move", 
                     margin + graphWidth / 2, graphY + 20);
                 
                 // Draw grid

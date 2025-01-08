@@ -3,12 +3,13 @@ from comfy.utils import ProgressBar
 import numpy as np
 import torch
 from ...tooltips import apply_tooltips
+from .parameter_scheduling import ParameterScheduler
 
 @apply_tooltips
 class FlexBase(ABC):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
+        base_inputs = {
             "required": {
                 "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
@@ -22,13 +23,37 @@ class FlexBase(ABC):
                 "opt_feature": ("FEATURE",),
             }
         }
+        
+        # Add list_ok to all float and int inputs
+        for section in ["required", "optional"]:
+            if section in base_inputs:
+                for key, value in base_inputs[section].items():
+                    if isinstance(value, tuple) and len(value) == 2:
+                        input_type, config = value
+                        if input_type in ["FLOAT", "INT"] and isinstance(config, dict):
+                            config["list_ok"] = True
+                            base_inputs[section][key] = (input_type, config)
+        
+        return base_inputs
 
-    CATEGORY = "RyanOnTheInside/FlexBase"
-    RETURN_TYPES = ()  # To be defined by subclasses
-    FUNCTION = "apply_effect"
+    @classmethod
+    def update_input_types(cls):
+        """Helper method to add list_ok to all float and int inputs in a class's INPUT_TYPES"""
+        input_types = cls.INPUT_TYPES()
+        for section in ["required", "optional"]:
+            if section in input_types:
+                for key, value in input_types[section].items():
+                    if isinstance(value, tuple) and len(value) == 2:
+                        input_type, config = value
+                        if input_type in ["FLOAT", "INT"] and isinstance(config, dict):
+                            config["list_ok"] = True
+                            input_types[section][key] = (input_type, config)
+        return input_types
 
     def __init__(self):
         self.progress_bar = None
+        self.parameter_scheduler = None
+        self.frame_count = None
 
     def start_progress(self, total_steps, desc="Processing"):
         self.progress_bar = ProgressBar(total_steps)
@@ -39,6 +64,41 @@ class FlexBase(ABC):
 
     def end_progress(self):
         self.progress_bar = None
+
+    def initialize_scheduler(self, frame_count: int, **kwargs):
+        """Initialize parameter scheduler with all numeric parameters"""
+        self.frame_count = frame_count
+        self.parameter_scheduler = ParameterScheduler(frame_count)
+        for key, value in kwargs.items():
+            if isinstance(value, (int, float, list, tuple)):
+                self.parameter_scheduler.register_parameter(key, value)
+
+    def get_parameter_value(self, param_name: str, frame_index: int, 
+                          feature_value: float = None, strength: float = 1.0, 
+                          mode: str = "relative") -> float:
+        """Get parameter value considering both scheduling and feature modulation"""
+        # Get base value (either scheduled or static)
+        if self.parameter_scheduler and self.parameter_scheduler.is_scheduled(param_name):
+            base_value = self.parameter_scheduler.get_value(param_name, frame_index)
+        else:
+            base_value = getattr(self, param_name, None)
+
+        # If no feature value provided, return base value
+        if feature_value is None:
+            return base_value
+
+        # Apply feature modulation to the base value
+        return self.modulate_param(param_name, base_value, feature_value, strength, mode)
+
+    def get_feature_value(self, frame_index: int, feature=None, param_name=None):
+        """Get feature value from either a provided feature or a scheduled parameter"""
+        if feature is not None:
+            return feature.get_value_at_frame(frame_index)
+        elif self.parameter_scheduler and param_name:
+            feature_seq = self.parameter_scheduler.get_as_feature(param_name)
+            if feature_seq is not None:
+                return feature_seq[frame_index]
+        return None
 
     @classmethod
     @abstractmethod
@@ -56,10 +116,61 @@ class FlexBase(ABC):
 
     @abstractmethod
     def apply_effect(self, *args, **kwargs):
-        """Main method to apply the effect."""
+        """Apply the effect with potential parameter scheduling"""
         pass
 
     @abstractmethod
     def apply_effect_internal(self, *args, **kwargs):
         """Internal method to be implemented by subclasses."""
         pass
+
+    def process_parameters(self, frame_index: int = 0, feature_value: float = None, 
+                          strength: float = 1.0, feature_param: str = None, 
+                          feature_mode: str = "relative", **kwargs) -> dict:
+        """Process parameters considering both scheduling and feature modulation"""
+        # Initialize parameter scheduler if not already done
+        if self.parameter_scheduler is None:
+            # Determine frame count from the first array/list parameter we find
+            frame_count = kwargs.get('frame_count', 1)
+            for value in kwargs.values():
+                if isinstance(value, (list, tuple, np.ndarray)):
+                    frame_count = len(value)
+                    break
+            self.initialize_scheduler(frame_count, **kwargs)
+
+        # Get all parameters that could be scheduled
+        processed_kwargs = {}
+        for param_name, value in kwargs.items():
+            # Skip non-numeric parameters and special parameters
+            if param_name in ['frame_count', 'frame_index']:
+                processed_kwargs[param_name] = value
+                continue
+
+            try:
+                # Handle different types of inputs
+                if isinstance(value, (list, tuple, np.ndarray)):
+                    # Convert numpy arrays to lists if needed
+                    if isinstance(value, np.ndarray):
+                        if value.ndim > 1:  # If multi-dimensional array
+                            value = value.flatten().tolist()  # Flatten and convert to list
+                        else:
+                            value = value.tolist()
+                    # Use frame_index to get the current value
+                    try:
+                        base_value = float(value[frame_index])
+                    except (IndexError, TypeError):
+                        base_value = float(value[0])  # Fallback to first value
+                else:
+                    # Single value
+                    base_value = float(value)
+
+                # Apply feature modulation if this is the target parameter
+                if param_name == feature_param and feature_value is not None:
+                    processed_kwargs[param_name] = self.modulate_param(param_name, base_value, feature_value, strength, feature_mode)
+                else:
+                    processed_kwargs[param_name] = base_value
+            except (ValueError, TypeError):
+                # If we can't convert to float, pass through unchanged
+                processed_kwargs[param_name] = value
+
+        return processed_kwargs
