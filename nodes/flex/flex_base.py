@@ -106,13 +106,38 @@ class FlexBase(ABC):
         """Return a list of parameter names that can be modulated."""
         return []
 
-    def modulate_param(self, param_name, param_value, feature_value, strength, mode):
+    def modulate_param(self, param_name: str, param_value: float | list | tuple | np.ndarray,
+                      feature_value: float, strength: float, mode: str,
+                      frame_index: int = 0) -> float:
+        """Modulate a parameter value based on a feature value.
+        
+        Args:
+            param_name: Name of the parameter being modulated
+            param_value: Value to modulate (can be single value or array-like)
+            feature_value: Feature value to use for modulation (0-1)
+            strength: Strength of the modulation (0-1)
+            mode: Modulation mode ("relative" or "absolute")
+            frame_index: Frame index for array-like parameters
+            
+        Returns:
+            Modulated parameter value
+        """
+        # Handle array-like parameters
+        if isinstance(param_value, (list, tuple, np.ndarray)):
+            try:
+                base_value = float(param_value[frame_index])
+            except (IndexError, TypeError):
+                base_value = float(param_value[0])
+        else:
+            base_value = float(param_value)
+
+        # Apply modulation
         if mode == "relative":
             # Adjust parameter relative to its value and the feature
-            return param_value * (1 + (feature_value - 0.5) * 2 * strength)
+            return base_value * (1 + (feature_value - 0.5) * 2 * strength)
         else:  # absolute
             # Adjust parameter directly based on the feature
-            return param_value * feature_value * strength
+            return base_value * feature_value * strength
 
     @abstractmethod
     def apply_effect(self, *args, **kwargs):

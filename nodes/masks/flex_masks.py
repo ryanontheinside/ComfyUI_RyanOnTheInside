@@ -178,13 +178,20 @@ class FlexMaskOpacity(FlexMaskBase):
         """Return parameters that can be modulated by features"""
         return ["opacity", "None"]
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, max_opacity: float, feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
+    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, max_opacity: float, feature_param: str, feature_mode: str, frame_index: int = 0, **kwargs) -> np.ndarray:
         # If feature_param is None, use direct values without modulation
         if feature_param == "None":
             opacity = max_opacity
         # Otherwise, handle parameter modulation based on selection
         elif feature_param == "opacity":
-            opacity = self.modulate_param("opacity", max_opacity, feature_value, strength, feature_mode)
+            opacity = self.modulate_param(
+                "opacity",
+                max_opacity,
+                feature_value,
+                strength,
+                feature_mode,
+                frame_index
+            )
             opacity = np.clip(opacity, 0.0, 1.0)  # Ensure opacity stays in valid range
         
         return mask * opacity

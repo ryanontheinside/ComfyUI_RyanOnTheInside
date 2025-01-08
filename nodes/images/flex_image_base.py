@@ -44,11 +44,11 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
         """Return a list of parameter names that can be modulated."""
         return []
 
-    def modulate_param(self, param_name, param_value, feature_value, strength, mode):
-        if mode == "relative":
-            return param_value * (1 + (feature_value - 0.5) * strength)
-        else:  # absolute
-            return param_value * feature_value * strength
+    # def modulate_param(self, param_name, param_value, feature_value, strength, mode):
+    #     if mode == "relative":
+    #         return param_value * (1 + (feature_value - 0.5) * strength)
+    #     else:  # absolute
+    #         return param_value * feature_value * strength
 
     def apply_effect(
         self, 
