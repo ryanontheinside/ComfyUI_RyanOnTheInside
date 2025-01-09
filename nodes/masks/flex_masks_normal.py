@@ -5,6 +5,7 @@ from .flex_mask_base import FlexMaskBase
 from ...tooltips import apply_tooltips
 
 #NOTE: this is a work in progress, it sucks
+#TODO
 @apply_tooltips
 class FlexMaskNormalBase(FlexMaskBase):
     @classmethod

@@ -101,8 +101,7 @@ class FlexMaskBase(FlexBase, MaskBase):
         num_frames = masks.shape[0]
         original_masks = masks.clone()
 
-        #NOTE MaskBase will handle progress bar, annoying yes
-        # self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
+        self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 
         # Initialize parameter scheduler with all parameters including MaskBase parameters
         if self.parameter_scheduler is None:
@@ -185,19 +184,19 @@ class FlexMaskBase(FlexBase, MaskBase):
                 else:
                     processed_mask = mask
 
-            # Apply mask operations
+            # Apply mask operations with progress callback
             frame_result = super().apply_mask_operation(
                 processed_mask[np.newaxis, ...],  # Add batch dimension
                 original_masks[i:i+1],  # Single frame
                 current_mask_strength,
                 invert,
                 current_subtract,
-                current_blur
+                current_blur,
+                progress_callback=self.update_progress  # Pass the progress callback
             )
             result.append(frame_result)
-            # self.update_progress()
 
-        # self.end_progress()
+        self.end_progress()
 
         # Stack all frames back together
         return (torch.cat(result, dim=0),)

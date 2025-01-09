@@ -109,7 +109,6 @@ class FlexBase(ABC):
     def apply_effect_internal(self, *args, **kwargs):
         """Internal method to be implemented by subclasses."""
         pass
-
     def process_parameters(self, frame_index: int = 0, feature_value: float = None, 
                           strength: float = 1.0, feature_param: str = None, 
                           feature_mode: str = "relative", **kwargs) -> dict:
@@ -160,3 +159,4 @@ class FlexBase(ABC):
                 processed_kwargs[param_name] = value
 
         return processed_kwargs
+
