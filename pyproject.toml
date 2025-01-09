@@ -12,4 +12,4 @@ Repository = "https://github.com/ryanontheinside/ComfyUI_RyanOnTheInside"
 [tool.comfy]
 PublisherId = "ryanontheinside"
 DisplayName = "RyanOnTheInside"
-Icon = ""
+Icon = "🌀"
