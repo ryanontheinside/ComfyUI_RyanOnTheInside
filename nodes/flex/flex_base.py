@@ -36,19 +36,6 @@ class FlexBase(ABC):
         
         return base_inputs
 
-    # @classmethod
-    # def update_input_types(cls):
-    #     """Helper method to add list_ok to all float and int inputs in a class's INPUT_TYPES"""
-    #     input_types = cls.INPUT_TYPES()
-    #     for section in ["required", "optional"]:
-    #         if section in input_types:
-    #             for key, value in input_types[section].items():
-    #                 if isinstance(value, tuple) and len(value) == 2:
-    #                     input_type, config = value
-    #                     if input_type in ["FLOAT", "INT"] and isinstance(config, dict):
-    #                         config["list_ok"] = True
-    #                         input_types[section][key] = (input_type, config)
-    #     return input_types
 
     def __init__(self):
         self.progress_bar = None
