@@ -31,7 +31,7 @@ class FlexMaskMorph(FlexMaskBase):
         """Return parameters that can be modulated by features"""
         return ["kernel_size", "iterations", "None"]
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, morph_type: str, max_kernel_size: int, max_iterations: int, feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, morph_type: str, max_kernel_size: int, max_iterations: int, feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
         # If feature_param is None, ignore feature_value entirely
         if feature_param == "None":
             kernel_size = max_kernel_size
@@ -71,7 +71,7 @@ class FlexMaskWarp(FlexMaskBase):
         """Return parameters that can be modulated by features"""
         return ["amplitude", "frequency", "octaves", "None"]
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, warp_type: str, frequency: float, max_amplitude: float, octaves: int, feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, warp_type: str, frequency: float, max_amplitude: float, octaves: int, feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
         # If feature_param is None, use direct values without modulation
         if feature_param == "None":
             amplitude = max_amplitude
@@ -115,7 +115,7 @@ class FlexMaskTransform(FlexMaskBase):
         """Return parameters that can be modulated by features"""
         return ["x_value", "y_value", "None"]
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, transform_type: str, max_x_value: float, max_y_value: float, feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, transform_type: str, max_x_value: float, max_y_value: float, feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
         # If feature_param is None, use direct values without modulation
         if feature_param == "None":
             x_value = max_x_value
@@ -149,7 +149,7 @@ class FlexMaskMath(FlexMaskBase):
         """Return parameters that can be modulated by features"""
         return ["blend", "None"]
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, mask_b: torch.Tensor, combination_method: str, max_blend: float, feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, mask_b: torch.Tensor, combination_method: str, max_blend: float, feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
         frame_index = kwargs.get('frame_index', 0)
         mask_b = mask_b[frame_index].numpy()
         
@@ -180,7 +180,7 @@ class FlexMaskOpacity(FlexMaskBase):
         """Return parameters that can be modulated by features"""
         return ["opacity", "None"]
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, max_opacity: float, feature_param: str, feature_mode: str, frame_index: int = 0, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, max_opacity: float, feature_param: str, feature_mode: str, frame_index: int = 0, **kwargs) -> np.ndarray:
         # If feature_param is None, use direct values without modulation
         if feature_param == "None":
             opacity = max_opacity
@@ -242,7 +242,7 @@ class FlexMaskVoronoiScheduled(FlexMaskBase):
         t = feature_value
         return self.formulas[formula](t, a, b)
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, 
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, 
                      distance_metric: str, scale: float, detail: int, randomness: float, 
                      seed: int, x_offset: float, y_offset: float, feature_param: str,
                      formula: str, a: float, b: float, feature_mode: str, **kwargs) -> np.ndarray:
@@ -322,7 +322,7 @@ class FlexMaskBinary(FlexMaskBase):
     def get_modifiable_params(cls):
         return ["threshold", "None"]
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, threshold: float, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, threshold: float, **kwargs) -> np.ndarray:
         # Modulate the threshold based on the feature value and strength
         modulated_threshold = self.modulate_param("threshold", threshold, feature_value, strength, kwargs.get("feature_mode", "relative"))
         return (mask > modulated_threshold).astype(np.float32)
@@ -360,7 +360,7 @@ class FlexMaskWavePropagation(FlexMaskBase):
         self.frame_count = 0
         return mask
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, 
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, 
                      wave_speed: float, wave_amplitude: float, wave_decay: float, 
                      wave_frequency: float, max_wave_field: float, feature_param: str, 
                      feature_mode: str, **kwargs) -> np.ndarray:
@@ -454,7 +454,7 @@ class FlexMaskEmanatingRings(FlexMaskBase):
         super().__init__()
         self.rings = []
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float,
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float,
                      num_rings: int, max_ring_width: float, wave_speed: float,
                      feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
         height, width = mask.shape
@@ -520,7 +520,7 @@ class FlexMaskEmanatingRings(FlexMaskBase):
 
     def process_mask_below_threshold(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
         # Continue the animation but don't create new rings
-        return self.process_mask(mask, 0, strength, **kwargs)
+        return self.apply_effect_internal(mask, 0, strength, **kwargs)
 
 #TODO: stateful node: make reset of state consistent, make state update pattern consistent, consistant state initialization in init
 @apply_tooltips
@@ -553,7 +553,7 @@ class FlexMaskRandomShapes(FlexMaskBase):
         self.shapes = []
         self.frame_count = 0
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float,
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float,
                      max_num_shapes: int, max_shape_size: float, appearance_duration: int,
                      disappearance_duration: int, appearance_method: str, easing_function: str,
                      shape_type: str, feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
@@ -665,7 +665,7 @@ class FlexMaskDepthChamber(FlexMaskBase):
         """Return parameters that can be modulated by features"""
         return ["z_front", "z_back", "both", "None"]
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, 
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, 
                      depth_map: torch.Tensor, z_front: float, z_back: float, feature_param: str, 
                      feature_mode: str, **kwargs) -> np.ndarray:
         frame_index = kwargs.get('frame_index', 0)
@@ -750,7 +750,7 @@ class FlexMaskDepthChamberRelative(FlexMaskBase):
         sizes = [self.calculate_roi_size(mask) for mask in masks]
         return torch.median(torch.tensor(sizes)).item()
 
-    def process_mask(self, mask: torch.Tensor, feature_value: float, strength: float, 
+    def apply_effect_internal(self, mask: torch.Tensor, feature_value: float, strength: float, 
                      depth_map: torch.Tensor, z1: float, z2: float, feature_param: str, 
                      feature_mode: str, **kwargs) -> torch.Tensor:
         frame_index = kwargs.get('frame_index', 0)
@@ -820,7 +820,7 @@ class FlexMaskInterpolate(FlexMaskBase):
         """Return parameters that can be modulated by features"""
         return ["blend", "None"]
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, 
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, 
                      mask_b: torch.Tensor, interpolation_method: str, max_blend: float,
                      invert_mask_b: bool, blend_mode: str, feature_param: str, 
                      feature_mode: str, **kwargs) -> np.ndarray:

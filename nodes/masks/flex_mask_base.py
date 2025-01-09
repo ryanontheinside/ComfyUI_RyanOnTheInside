@@ -53,22 +53,6 @@ class FlexMaskBase(FlexBase, MaskBase):
         """Return a list of parameter names that can be modulated."""
         return ["None"]
 
-    def modulate_parameter_value(self, param_name: str, param_value: float | list | tuple | np.ndarray,
-                               feature_value: float, strength: float, mode: str,
-                               frame_index: int = 0) -> float:
-        """Helper method to consistently handle parameter modulation across all child classes."""
-        # Handle array-like parameters
-        if isinstance(param_value, (list, tuple, np.ndarray)):
-            try:
-                base_value = float(param_value[frame_index])
-            except (IndexError, TypeError):
-                base_value = float(param_value[0])
-        else:
-            base_value = float(param_value)
-        
-        # Apply modulation
-        return self.modulate_param(param_name, base_value, feature_value, strength, mode)
-
     def get_feature_value(self, feature, frame_index, default=0.5):
         """Get feature value with consistent handling"""
         if feature is None:
@@ -96,32 +80,19 @@ class FlexMaskBase(FlexBase, MaskBase):
         
         return processed_kwargs
 
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
-        """Process a single mask with feature modulation and parameter scheduling."""
-        # Get the processed parameters for this frame
-        processed_kwargs = {}
-        feature_param = kwargs.pop('feature_param', None)
-        feature_mode = kwargs.pop('feature_mode', None)
-        
-        # Copy all other parameters
-        processed_kwargs.update(kwargs)
-        
-        # If this parameter is being modulated by a feature, handle it
-        if feature_param and feature_param in processed_kwargs and feature_param != "None":
-            base_value = float(processed_kwargs[feature_param])
-            processed_kwargs[feature_param] = self.modulate_param(
-                feature_param, 
-                base_value, 
-                feature_value, 
-                strength, 
-                feature_mode
-            )
-        
-        return self.apply_effect_internal(mask, feature_value, strength, **processed_kwargs)
+    @abstractmethod
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
+        """Apply the effect with processed parameters. To be implemented by child classes."""
+        pass
 
-    def apply_effect_internal(self, mask: np.ndarray, **kwargs) -> np.ndarray:
-        """Apply the effect with processed parameters."""
-        return self.process_mask(mask, **kwargs)
+    def process_mask(self, mask: np.ndarray, strength: float, **kwargs) -> np.ndarray:
+        """Implementation of MaskBase's abstract process_mask method."""
+        # This satisfies MaskBase's interface by delegating to the flex system
+        return self.apply_effect(
+            masks=torch.from_numpy(mask).unsqueeze(0),  # Add batch dimension
+            strength=strength,
+            **kwargs
+        )[0]  # Remove batch dimension
 
     def apply_effect(self, masks, opt_feature=None, strength=1.0, feature_threshold=0.0, 
                     mask_strength=1.0, invert=False, subtract_original=0.0, 
@@ -182,7 +153,22 @@ class FlexMaskBase(FlexBase, MaskBase):
 
             # Process frame with frame-specific parameters
             if apply_effect:
-                processed_mask = self.process_mask(
+                # Get feature parameters but don't remove them from kwargs
+                feature_param = frame_kwargs.get('feature_param', None)
+                feature_mode = frame_kwargs.get('feature_mode', 'relative')
+                
+                # If this parameter is being modulated by a feature, handle it
+                if feature_param and feature_param in frame_kwargs and feature_param != "None":
+                    base_value = float(frame_kwargs[feature_param])
+                    frame_kwargs[feature_param] = self.modulate_param(
+                        feature_param, 
+                        base_value, 
+                        feature_value, 
+                        strength, 
+                        feature_mode
+                    )
+                
+                processed_mask = self.apply_effect_internal(
                     mask,
                     feature_value=feature_value,
                     strength=strength,
