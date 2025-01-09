@@ -24,16 +24,6 @@ class FlexBase(ABC):
             }
         }
         
-        # # Add list_ok to all float and int inputs
-        # for section in ["required", "optional"]:
-        #     if section in base_inputs:
-        #         for key, value in base_inputs[section].items():
-        #             if isinstance(value, tuple) and len(value) == 2:
-        #                 input_type, config = value
-        #                 if input_type in ["FLOAT", "INT"] and isinstance(config, dict):
-        #                     config["list_ok"] = True
-        #                     base_inputs[section][key] = (input_type, config)
-        
         return base_inputs
 
 
@@ -60,22 +50,6 @@ class FlexBase(ABC):
             if isinstance(value, (int, float, list, tuple)):
                 self.parameter_scheduler.register_parameter(key, value)
 
-    def get_parameter_value(self, param_name: str, frame_index: int, 
-                          feature_value: float = None, strength: float = 1.0, 
-                          mode: str = "relative", default_value: float = None) -> float:
-        """Get parameter value considering both scheduling and feature modulation"""
-        # Get base value (either scheduled or static)
-        if self.parameter_scheduler and self.parameter_scheduler.is_scheduled(param_name):
-            base_value = self.parameter_scheduler.get_value(param_name, frame_index)
-        else:
-            base_value = default_value
-
-        # If no feature value provided, return base value
-        if feature_value is None:
-            return base_value
-
-        # Apply feature modulation to the base value
-        return self.modulate_param(param_name, base_value, feature_value, strength, mode)
 
     def get_feature_value(self, frame_index: int, feature=None, param_name=None):
         """Get feature value from either a provided feature or a scheduled parameter"""
