@@ -268,6 +268,10 @@ from .nodes.latents.flex_latents import (
     FlexLatentBlend,
     FlexLatentNoise,
 )
+from .nodes.flex.parameter_scheduling import (
+    FeatureToFlexIntParam,
+    FeatureToFlexFloatParam,
+)
 
 from .nodes.latents.latent_frequency_blender import LatentFrequencyBlender
 
@@ -470,6 +474,8 @@ NODE_CLASS_MAPPINGS = {
     "FeatureAccumulate":             FeatureAccumulate,
     "FeatureContiguousInterpolate":  FeatureContiguousInterpolate,
     "FeatureRenormalize":           FeatureRenormalize,
+    "FeatureToFlexIntParam":        FeatureToFlexIntParam,
+    "FeatureToFlexFloatParam":      FeatureToFlexFloatParam,
     
     #images
     'FlexImageEdgeDetect':          FlexImageEdgeDetect,

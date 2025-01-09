@@ -1,6 +1,8 @@
 from typing import Union, List, Any
 import numpy as np
 from abc import ABC, abstractmethod
+from ... import RyanOnTheInside
+from ...tooltips import apply_tooltips
 
 class ScheduledParameter:
     """Wrapper class for parameters that can be either single values or sequences"""
@@ -75,3 +77,90 @@ class ParameterScheduler:
     def has_scheduled_parameters(self) -> bool:
         """Check if any parameters are scheduled"""
         return any(param.is_scheduled for param in self.parameters.values()) 
+#TODO: abstract normalize function from here and FeatureRenormalize and place in utils or something.
+@apply_tooltips
+class SchedulerNode(RyanOnTheInside):
+    """Base class for nodes that convert features to schedulable parameters"""
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Scheduling"
+    FUNCTION = "convert"
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "invert_output": ("BOOLEAN", {"default": False}),
+            }
+        }
+    
+    def process_values(self, feature, lower_threshold, upper_threshold, invert_output):
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        # Calculate the range for normalization
+        range_size = upper_threshold - lower_threshold
+        
+        # Normalize values to fit between lower and upper threshold
+        if max(values) == min(values):
+            normalized = [lower_threshold for _ in values]  # All values are the same
+        else:
+            normalized = [
+                lower_threshold + (range_size * (v - min(values)) / (max(values) - min(values)))
+                for v in values
+            ]
+        
+        if invert_output:
+            normalized = [upper_threshold - (v - lower_threshold) for v in normalized]
+            
+        return normalized
+
+@apply_tooltips
+class FeatureToFlexIntParam(SchedulerNode):
+    """Converts a feature to a schedulable integer parameter"""
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "lower_threshold": ("INT", {"default": 0, "min": -10000, "max": 10000, "step": 1}),
+                "upper_threshold": ("INT", {"default": 100, "min": -10000, "max": 10000, "step": 1}),
+            }
+        }
+    
+    RETURN_TYPES = ("INT", "IMAGE")
+    RETURN_NAMES = ("PARAMETER", "FEATURE_VISUALIZATION")
+    
+    def convert(self, feature, lower_threshold, upper_threshold, invert_output):
+        values = self.process_values(feature, lower_threshold, upper_threshold, invert_output)
+        # Round to integers
+        int_values = [int(round(v)) for v in values]
+        return (int_values, self.visualize(feature))
+    
+    def visualize(self, feature):
+        # Return a blank image for now - can be enhanced later
+        return np.zeros((1, 64, 64, 3), dtype=np.float32)
+
+@apply_tooltips
+class FeatureToFlexFloatParam(SchedulerNode):
+    """Converts a feature to a schedulable float parameter"""
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "lower_threshold": ("FLOAT", {"default": 0.0, "min": -10000.0, "max": 10000.0, "step": 0.01}),
+                "upper_threshold": ("FLOAT", {"default": 1.0, "min": -10000.0, "max": 10000.0, "step": 0.01}),
+            }
+        }
+    
+    RETURN_TYPES = ("FLOAT", "IMAGE")
+    RETURN_NAMES = ("PARAMETER", "FEATURE_VISUALIZATION")
+    
+    def convert(self, feature, lower_threshold, upper_threshold, invert_output):
+        values = self.process_values(feature, lower_threshold, upper_threshold, invert_output)
+        return (values, self.visualize(feature))
+    
+    def visualize(self, feature):
+        # Return a blank image for now - can be enhanced later
+        return np.zeros((1, 64, 64, 3), dtype=np.float32) 

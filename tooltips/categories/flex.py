@@ -594,3 +594,37 @@ Great for creating music videos, reactive animations, or automated effects.""")
     Format should match ComfyUI-Whisper output.
     
 """)
+
+    # SchedulerNode tooltips (inherits from: RyanOnTheInside)
+    TooltipManager.register_tooltips("SchedulerNode", {
+        "feature": "Input feature to convert into a schedulable parameter",
+        "invert_output": "When enabled, inverts the output values (high becomes low and vice versa)"
+    }, inherits_from='RyanOnTheInside', description="""Base class for nodes that convert features into schedulable parameters.
+    
+These nodes allow you to use features to create dynamic parameter sequences that can control other nodes.""")
+
+    # FeatureToFlexIntParam tooltips (inherits from: SchedulerNode)
+    TooltipManager.register_tooltips("FeatureToFlexIntParam", {
+        "lower_threshold": """Minimum integer value for the output parameter.
+        
+The feature's minimum value will be mapped to this threshold.""",
+        "upper_threshold": """Maximum integer value for the output parameter.
+        
+The feature's maximum value will be mapped to this threshold."""
+    }, inherits_from='SchedulerNode', description="""Converts a feature into a sequence of integer values.
+    
+Perfect for controlling parameters that require whole numbers, like frame indices or count-based settings.
+The output will automatically adjust to match the constraints of the target parameter.""")
+
+    # FeatureToFlexFloatParam tooltips (inherits from: SchedulerNode)
+    TooltipManager.register_tooltips("FeatureToFlexFloatParam", {
+        "lower_threshold": """Minimum float value for the output parameter.
+        
+The feature's minimum value will be mapped to this threshold.""",
+        "upper_threshold": """Maximum float value for the output parameter.
+        
+The feature's maximum value will be mapped to this threshold."""
+    }, inherits_from='SchedulerNode', description="""Converts a feature into a sequence of floating-point values.
+    
+Ideal for controlling parameters that accept decimal values, like strengths or ratios.
+The output will automatically adjust to match the constraints of the target parameter.""")
