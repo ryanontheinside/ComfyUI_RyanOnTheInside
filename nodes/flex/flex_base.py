@@ -123,11 +123,14 @@ class FlexBase(ABC):
                     break
             self.initialize_scheduler(frame_count, **kwargs)
 
+        # Get input types to determine parameter types
+        input_types = self.INPUT_TYPES()["required"]
+
         # Get all parameters that could be scheduled
         processed_kwargs = {}
         for param_name, value in kwargs.items():
-            # Skip non-numeric parameters and special parameters
-            if param_name in ['frame_count', 'frame_index']:
+            # Pass through any non-numeric parameters
+            if param_name not in input_types or input_types[param_name][0] not in ["INT", "FLOAT"]:
                 processed_kwargs[param_name] = value
                 continue
 
@@ -151,11 +154,20 @@ class FlexBase(ABC):
 
                 # Apply feature modulation if this is the target parameter
                 if param_name == feature_param and feature_value is not None:
-                    processed_kwargs[param_name] = self.modulate_param(param_name, base_value, feature_value, strength, feature_mode)
+                    processed_value = self.modulate_param(param_name, base_value, feature_value, strength, feature_mode)
+                    # Convert back to int if needed
+                    if input_types[param_name][0] == "INT":
+                        processed_kwargs[param_name] = int(processed_value)
+                    else:
+                        processed_kwargs[param_name] = processed_value
                 else:
-                    processed_kwargs[param_name] = base_value
+                    # Convert to int if needed
+                    if input_types[param_name][0] == "INT":
+                        processed_kwargs[param_name] = int(base_value)
+                    else:
+                        processed_kwargs[param_name] = base_value
             except (ValueError, TypeError):
-                # If we can't convert to float, pass through unchanged
+                # If conversion fails, pass through unchanged
                 processed_kwargs[param_name] = value
 
         return processed_kwargs
