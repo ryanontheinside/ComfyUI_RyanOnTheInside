@@ -24,31 +24,31 @@ class FlexBase(ABC):
             }
         }
         
-        # Add list_ok to all float and int inputs
-        for section in ["required", "optional"]:
-            if section in base_inputs:
-                for key, value in base_inputs[section].items():
-                    if isinstance(value, tuple) and len(value) == 2:
-                        input_type, config = value
-                        if input_type in ["FLOAT", "INT"] and isinstance(config, dict):
-                            config["list_ok"] = True
-                            base_inputs[section][key] = (input_type, config)
+        # # Add list_ok to all float and int inputs
+        # for section in ["required", "optional"]:
+        #     if section in base_inputs:
+        #         for key, value in base_inputs[section].items():
+        #             if isinstance(value, tuple) and len(value) == 2:
+        #                 input_type, config = value
+        #                 if input_type in ["FLOAT", "INT"] and isinstance(config, dict):
+        #                     config["list_ok"] = True
+        #                     base_inputs[section][key] = (input_type, config)
         
         return base_inputs
 
-    @classmethod
-    def update_input_types(cls):
-        """Helper method to add list_ok to all float and int inputs in a class's INPUT_TYPES"""
-        input_types = cls.INPUT_TYPES()
-        for section in ["required", "optional"]:
-            if section in input_types:
-                for key, value in input_types[section].items():
-                    if isinstance(value, tuple) and len(value) == 2:
-                        input_type, config = value
-                        if input_type in ["FLOAT", "INT"] and isinstance(config, dict):
-                            config["list_ok"] = True
-                            input_types[section][key] = (input_type, config)
-        return input_types
+    # @classmethod
+    # def update_input_types(cls):
+    #     """Helper method to add list_ok to all float and int inputs in a class's INPUT_TYPES"""
+    #     input_types = cls.INPUT_TYPES()
+    #     for section in ["required", "optional"]:
+    #         if section in input_types:
+    #             for key, value in input_types[section].items():
+    #                 if isinstance(value, tuple) and len(value) == 2:
+    #                     input_type, config = value
+    #                     if input_type in ["FLOAT", "INT"] and isinstance(config, dict):
+    #                         config["list_ok"] = True
+    #                         input_types[section][key] = (input_type, config)
+    #     return input_types
 
     def __init__(self):
         self.progress_bar = None
@@ -75,13 +75,13 @@ class FlexBase(ABC):
 
     def get_parameter_value(self, param_name: str, frame_index: int, 
                           feature_value: float = None, strength: float = 1.0, 
-                          mode: str = "relative") -> float:
+                          mode: str = "relative", default_value: float = None) -> float:
         """Get parameter value considering both scheduling and feature modulation"""
         # Get base value (either scheduled or static)
         if self.parameter_scheduler and self.parameter_scheduler.is_scheduled(param_name):
             base_value = self.parameter_scheduler.get_value(param_name, frame_index)
         else:
-            base_value = getattr(self, param_name, None)
+            base_value = default_value
 
         # If no feature value provided, return base value
         if feature_value is None:

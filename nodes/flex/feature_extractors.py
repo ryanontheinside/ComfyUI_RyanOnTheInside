@@ -352,6 +352,7 @@ class AreaFeatureNode(FeatureExtractorBase):
     
 @apply_tooltips
 class DrawableFeatureNode(FeatureExtractorBase):
+    #TODO: add logic to truncate on frame count change
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
         return DrawableFeature

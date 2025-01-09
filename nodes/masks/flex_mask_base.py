@@ -11,35 +11,31 @@ class FlexMaskBase(FlexBase, MaskBase):
     
     @classmethod
     def INPUT_TYPES(cls):
-        # Get input types from both parent classes
-        flex_inputs = FlexBase.INPUT_TYPES()
+        # Get input types from FlexBase (which already has list_ok added)
+        base_inputs = super().INPUT_TYPES()
+        
+        # Get MaskBase inputs
         mask_inputs = MaskBase.INPUT_TYPES()
         
         # First rename MaskBase's strength to mask_strength
         mask_inputs["required"]["mask_strength"] = mask_inputs["required"].pop("strength")
         
-        # Then merge the inputs
-        required = {
-            **flex_inputs["required"],
-            **mask_inputs["required"]
-        }
+        # Update the base inputs (preserving list_ok decorators)
+        base_inputs["required"].update(mask_inputs["required"])
         
         # Add feature-specific inputs
-        required.update({
+        base_inputs["required"].update({
             "feature_param": (cls.get_modifiable_params(),),
             "feature_mode": (["relative", "absolute"], {"default": "relative"}),
         })
         
-        # Merge optional inputs
-        optional = {
-            **flex_inputs.get("optional", {}),
-            **mask_inputs.get("optional", {})
-        }
+        # Update optional inputs
+        if "optional" in mask_inputs:
+            if "optional" not in base_inputs:
+                base_inputs["optional"] = {}
+            base_inputs["optional"].update(mask_inputs["optional"])
         
-        return {
-            "required": required,
-            "optional": optional
-        }
+        return base_inputs
 
     CATEGORY = "RyanOnTheInside/FlexMasks"
     RETURN_TYPES = ("MASK",)
@@ -85,71 +81,37 @@ class FlexMaskBase(FlexBase, MaskBase):
     def process_parameters_for_frame(self, frame_index: int, feature_value: float, 
                                    strength: float, **kwargs) -> dict:
         """Process parameters for a single frame, handling both scheduling and modulation."""
-        # Initialize scheduler if needed
-        if self.parameter_scheduler is None:
-            frame_count = kwargs.get('frame_count', 1)
-            for value in kwargs.values():
-                if isinstance(value, (list, tuple, np.ndarray)):
-                    frame_count = max(frame_count, len(value))
-            self.initialize_scheduler(frame_count, **kwargs)
-
-        # Process each parameter for this frame
-        processed = {}
-        for key, value in kwargs.items():
-            # Handle array-like parameters
-            if isinstance(value, (list, tuple, np.ndarray)):
-                try:
-                    processed[key] = float(value[frame_index])
-                except (IndexError, TypeError):
-                    processed[key] = float(value[0])
-            else:
-                processed[key] = value
-
-        # Handle feature modulation for the selected parameter
-        feature_param = kwargs.get('feature_param')
-        feature_mode = kwargs.get('feature_mode', 'relative')
-        
-        if feature_param and feature_param in processed and feature_param != "None":
-            # processed[feature_param] is already a single value at this point
-            processed[feature_param] = self.modulate_param(
-                feature_param,
-                processed[feature_param],  # Already converted to float above
-                feature_value,
-                strength,
-                feature_mode
-            )
-
-        return processed
-
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, 
-                    frame_index: int = 0, **kwargs) -> np.ndarray:
-        """Process a single mask with feature modulation and parameter scheduling."""
-        # Get the processed parameters for this frame
+        # Process parameters using FlexBase's functionality
         processed_kwargs = self.process_parameters(
             frame_index=frame_index,
             feature_value=feature_value,
             strength=strength,
-            feature_param=kwargs.get('feature_param'),
-            feature_mode=kwargs.get('feature_mode'),
             **kwargs
         )
         
         # Remove parameters that shouldn't be passed to child classes
-        feature_param = processed_kwargs.pop('feature_param', None)
-        feature_mode = processed_kwargs.pop('feature_mode', None)
+        processed_kwargs.pop('feature_param', None)
+        processed_kwargs.pop('feature_mode', None)
         processed_kwargs.pop('frame_index', None)
         
-        # If this parameter is being modulated by a feature, handle it separately
-        if feature_param in processed_kwargs:
-            base_value = processed_kwargs[feature_param]
-            if isinstance(base_value, (list, tuple, np.ndarray)):
-                try:
-                    base_value = float(base_value[frame_index])
-                except (IndexError, TypeError):
-                    base_value = float(base_value[0])
+        return processed_kwargs
+
+    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
+        """Process a single mask with feature modulation and parameter scheduling."""
+        # Get the processed parameters for this frame
+        processed_kwargs = {}
+        feature_param = kwargs.pop('feature_param', None)
+        feature_mode = kwargs.pop('feature_mode', None)
+        
+        # Copy all other parameters
+        processed_kwargs.update(kwargs)
+        
+        # If this parameter is being modulated by a feature, handle it
+        if feature_param and feature_param in processed_kwargs and feature_param != "None":
+            base_value = float(processed_kwargs[feature_param])
             processed_kwargs[feature_param] = self.modulate_param(
                 feature_param, 
-                float(base_value), 
+                base_value, 
                 feature_value, 
                 strength, 
                 feature_mode
@@ -168,16 +130,18 @@ class FlexMaskBase(FlexBase, MaskBase):
         num_frames = masks.shape[0]
         original_masks = masks.clone()
 
-        self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
+        #NOTE MaskBase will handle progress bar, annoying yes
+        # self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 
-        # Initialize parameter scheduler if needed
+        # Initialize parameter scheduler with all parameters including MaskBase parameters
         if self.parameter_scheduler is None:
-            frame_count = num_frames
-            self.initialize_scheduler(frame_count, 
-                                   mask_strength=mask_strength,
-                                   subtract_original=subtract_original,
-                                   grow_with_blur=grow_with_blur,
-                                   **kwargs)
+            all_params = {
+                'mask_strength': mask_strength,
+                'subtract_original': subtract_original,
+                'grow_with_blur': grow_with_blur,
+                **kwargs
+            }
+            self.initialize_scheduler(num_frames, **all_params)
 
         result = []
         for i in range(num_frames):
@@ -187,13 +151,42 @@ class FlexMaskBase(FlexBase, MaskBase):
             feature_value = self.get_feature_value(opt_feature, i)
             apply_effect = feature_value >= feature_threshold if opt_feature is not None else True
 
+            # Process frame-specific parameters including MaskBase parameters
+            frame_kwargs = {}
+            all_params = {
+                'mask_strength': mask_strength,
+                'subtract_original': subtract_original,
+                'grow_with_blur': grow_with_blur,
+                **kwargs
+            }
+            
+            for key, value in all_params.items():
+                if isinstance(value, (list, tuple, np.ndarray)):
+                    try:
+                        frame_val = value[i]
+                    except (IndexError, TypeError):
+                        frame_val = value[0]
+                    
+                    # Preserve numeric type
+                    if isinstance(frame_val, (int, np.integer)):
+                        frame_kwargs[key] = int(frame_val)
+                    else:
+                        frame_kwargs[key] = float(frame_val)
+                else:
+                    frame_kwargs[key] = value
+
+            # Extract MaskBase parameters
+            current_mask_strength = frame_kwargs.pop('mask_strength')
+            current_subtract = frame_kwargs.pop('subtract_original')
+            current_blur = frame_kwargs.pop('grow_with_blur')
+
+            # Process frame with frame-specific parameters
             if apply_effect:
                 processed_mask = self.process_mask(
                     mask,
                     feature_value=feature_value,
                     strength=strength,
-                    frame_index=i,
-                    **kwargs
+                    **frame_kwargs
                 )
             else:
                 if hasattr(self, 'process_mask_below_threshold'):
@@ -201,24 +194,12 @@ class FlexMaskBase(FlexBase, MaskBase):
                         mask,
                         feature_value=feature_value,
                         strength=strength,
-                        frame_index=i,
-                        **kwargs
+                        **frame_kwargs
                     )
                 else:
                     processed_mask = mask
 
-            # Get scheduled values for mask parameters for this frame
-            if self.parameter_scheduler:
-                current_mask_strength = float(self.parameter_scheduler.get_value('mask_strength', i) if self.parameter_scheduler.is_scheduled('mask_strength') else mask_strength)
-                current_subtract = float(self.parameter_scheduler.get_value('subtract_original', i) if self.parameter_scheduler.is_scheduled('subtract_original') else subtract_original)
-                current_blur = float(self.parameter_scheduler.get_value('grow_with_blur', i) if self.parameter_scheduler.is_scheduled('grow_with_blur') else grow_with_blur)
-            else:
-                # Handle case where inputs might be lists but scheduler isn't initialized
-                current_mask_strength = float(mask_strength[i] if isinstance(mask_strength, (list, tuple, np.ndarray)) else mask_strength)
-                current_subtract = float(subtract_original[i] if isinstance(subtract_original, (list, tuple, np.ndarray)) else subtract_original)
-                current_blur = float(grow_with_blur[i] if isinstance(grow_with_blur, (list, tuple, np.ndarray)) else grow_with_blur)
-
-            # Apply mask operations for this frame
+            # Apply mask operations
             frame_result = super().apply_mask_operation(
                 processed_mask[np.newaxis, ...],  # Add batch dimension
                 original_masks[i:i+1],  # Single frame
@@ -228,12 +209,12 @@ class FlexMaskBase(FlexBase, MaskBase):
                 current_blur
             )
             result.append(frame_result)
+            # self.update_progress()
 
-        self.end_progress()
+        # self.end_progress()
 
         # Stack all frames back together
         return (torch.cat(result, dim=0),)
-
     def main_function(self, masks, opt_feature=None, strength=1.0, feature_threshold=0.0, 
                      mask_strength=1.0, invert=False, subtract_original=0.0, 
                      grow_with_blur=0.0, **kwargs):

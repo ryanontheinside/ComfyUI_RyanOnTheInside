@@ -53,16 +53,18 @@ class FlexMaskMorph(FlexMaskBase):
 class FlexMaskWarp(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "warp_type": (["perlin", "radial", "swirl"],),
-                "frequency": ("FLOAT", {"default": 0.1, "min": 0.01, "max": 1.0, "step": 0.01}),
-                "max_amplitude": ("FLOAT", {"default": 30.0, "min": 0.1, "max": 500.0, "step": 0.1}),
-                "octaves": ("INT", {"default": 3, "min": 1, "max": 8, "step": 1}),
-            }
-        }
+        # Get base inputs (which already have list_ok decorators)
+        base_inputs = super().INPUT_TYPES()
+        
+        # Update required inputs
+        base_inputs["required"].update({
+            "warp_type": (["perlin", "radial", "swirl"],),
+            "frequency": ("FLOAT", {"default": 0.1, "min": 0.01, "max": 1.0, "step": 0.01}),
+            "max_amplitude": ("FLOAT", {"default": 30.0, "min": 0.1, "max": 500.0, "step": 0.1}),
+            "octaves": ("INT", {"default": 3, "min": 1, "max": 8, "step": 1}),
+        })
+        
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):

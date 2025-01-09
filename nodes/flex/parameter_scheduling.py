@@ -77,6 +77,8 @@ class ParameterScheduler:
     def has_scheduled_parameters(self) -> bool:
         """Check if any parameters are scheduled"""
         return any(param.is_scheduled for param in self.parameters.values()) 
+    
+    
 #TODO: abstract normalize function from here and FeatureRenormalize and place in utils or something.
 @apply_tooltips
 class SchedulerNode(RyanOnTheInside):
