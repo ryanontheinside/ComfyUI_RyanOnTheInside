@@ -29,9 +29,11 @@ RIFE_CKPT_NAME_VER_DICT = {
 class FlexVideoSpeed(FlexVideoBase):
     @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()
         return {
+            **parent_inputs,  # Keep all parent inputs including optional
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs["required"],
                 "speed_factor": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.1}),
                 "interpolation_mode": (["none", "linear", "Farneback", "rife47", "rife49"],),
                 "fast_mode": ("BOOLEAN", {"default": True}),
@@ -45,7 +47,7 @@ class FlexVideoSpeed(FlexVideoBase):
         return ["speed_factor"]
 
     def apply_effect_internal(self, video: np.ndarray, feature_values: np.ndarray, 
-                              speed_factor: float, interpolation_mode: str, fast_mode: bool, ensemble: bool, 
+                              speed_factor: np.ndarray, interpolation_mode: str, fast_mode: bool, ensemble: bool, 
                               scale_factor: float, opt_feature=None, **kwargs):
         num_frames = video.shape[0]
         frame_rate = opt_feature.frame_rate
@@ -55,15 +57,12 @@ class FlexVideoSpeed(FlexVideoBase):
         if len(feature_values) != num_frames:
             raise ValueError("feature_values length must match the number of video frames")
 
-        # Adjust feature values based on speed_factor
-        if speed_factor >= 0:
-            adjusted_feature_values = 1 - feature_values
-        else:
-            adjusted_feature_values = feature_values
+        # Adjust feature values based on speed_factor (element-wise comparison)
+        adjusted_feature_values = np.where(speed_factor >= 0, 1 - feature_values, feature_values)
 
         # Calculate frame durations based on adjusted feature values and speed factor
         base_duration = 1 / frame_rate
-        adjusted_frame_durations = base_duration + (adjusted_feature_values * abs(speed_factor) * base_duration)
+        adjusted_frame_durations = base_duration + (adjusted_feature_values * np.abs(speed_factor) * base_duration)
 
         cumulative_times = np.cumsum(adjusted_frame_durations)
 

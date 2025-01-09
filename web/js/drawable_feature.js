@@ -1,6 +1,8 @@
 import { app } from "../../scripts/app.js";
 import { ComfyWidgets } from "../../scripts/widgets.js";
 
+
+//TODO: add handling for maximum frame count change
 // Register custom widget type
 app.registerExtension({
     name: "RyanOnTheInside.DrawableFeature",

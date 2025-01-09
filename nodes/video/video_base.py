@@ -37,21 +37,19 @@ class FlexVideoBase(FlexBase, ABC):
 
         self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 
-        result = []
+        # First pass: collect all feature values
+        feature_values = []
         for i in range(num_frames):
-            # Get the appropriate frame, handling possible shorter sequences
-            image = images_np[i % images_np.shape[0]]
-            
-            # Set frame index for parameter processing
-            kwargs['frame_index'] = i
-
-            # Get feature value (0.5 if no feature provided)
             feature_value = opt_feature.get_value_at_frame(i) if opt_feature is not None else 0.5
+            feature_values.append(feature_value)
+        feature_values = np.array(feature_values)
 
-            # Process parameters based on feature value
-            processed_kwargs = {}
-            for param_name in self.get_modifiable_params():
-                if param_name in kwargs:
+        # Process parameters based on feature values #TODO: really should be if  param_name == feature_param
+        processed_kwargs = {}
+        for param_name in self.get_modifiable_params():
+            if param_name in kwargs:
+                param_values = []
+                for i in range(num_frames):
                     param_value = kwargs[param_name]
                     if isinstance(param_value, (list, tuple, np.ndarray)):
                         try:
@@ -61,38 +59,49 @@ class FlexVideoBase(FlexBase, ABC):
                     else:
                         base_value = float(param_value)
                     
-                    processed_kwargs[param_name] = self.modulate_param(
-                        param_name, base_value, feature_value, strength, feature_mode
+                    modulated_value = self.modulate_param(
+                        param_name, base_value, feature_values[i], strength, feature_mode
                     )
+                    param_values.append(modulated_value)
+                processed_kwargs[param_name] = np.array(param_values)
 
-            # Add remaining kwargs
-            for key, value in kwargs.items():
-                if key not in processed_kwargs and key != 'frame_index':
-                    if isinstance(value, (list, tuple, np.ndarray)):
-                        try:
-                            processed_kwargs[key] = value[i]
-                        except (IndexError, TypeError):
-                            processed_kwargs[key] = value[0]
-                    else:
-                        processed_kwargs[key] = value
+        # Add remaining kwargs
+        for key, value in kwargs.items():
+            if key not in processed_kwargs and key != 'frame_index':
+                if isinstance(value, (list, tuple, np.ndarray)):
+                    try:
+                        processed_values = [value[i] for i in range(num_frames)]
+                    except (IndexError, TypeError):
+                        processed_values = [value[0]] * num_frames
+                    processed_kwargs[key] = np.array(processed_values)
+                else:
+                    processed_kwargs[key] = value
 
-            # Process the frame
-            if opt_feature is None or feature_value >= feature_threshold:
-                processed_frame = self.apply_effect_internal(
-                    image[np.newaxis, ...],  # Add batch dimension
-                    feature_value=feature_value,
-                    **processed_kwargs
+        # Process the entire video at once
+        if opt_feature is None or np.all(feature_values >= feature_threshold):
+            processed_video = self.apply_effect_internal(
+                images_np,
+                feature_values=feature_values,
+                opt_feature=opt_feature,
+                **processed_kwargs
+            )
+        else:
+            # Only apply effect to frames where feature value is above threshold
+            mask = feature_values >= feature_threshold
+            processed_video = images_np.copy()
+            if np.any(mask):
+                processed_frames = self.apply_effect_internal(
+                    images_np[mask],
+                    feature_values=feature_values[mask],
+                    opt_feature=opt_feature,
+                    **{k: v[mask] if isinstance(v, np.ndarray) else v for k, v in processed_kwargs.items()}
                 )
-                result.append(processed_frame[0])  # Remove batch dimension
-            else:
-                result.append(image)
-
-            self.update_progress()
+                processed_video[mask] = processed_frames
 
         self.end_progress()
 
         # Convert to tensor and ensure BHWC format
-        result_tensor = torch.from_numpy(np.stack(result)).float()
+        result_tensor = torch.from_numpy(processed_video).float()
         if result_tensor.shape[1] == 3:  # If in BCHW format, convert to BHWC
             result_tensor = result_tensor.permute(0, 2, 3, 1)
 
