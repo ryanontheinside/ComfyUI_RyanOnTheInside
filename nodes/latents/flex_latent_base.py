@@ -33,30 +33,71 @@ class FlexLatentBase(RyanOnTheInside, FlexBase):
         **kwargs
     ):
         latents_np = latents["samples"].cpu().numpy()
-        num_frames = latents_np.shape[0]
+
+        # Determine frame count from either feature, latents, or longest parameter list
+        if opt_feature is not None:
+            num_frames = opt_feature.frame_count
+        else:
+            # Start with number of input frames
+            num_frames = latents_np.shape[0]
+            # Check all parameters for lists/arrays that might be longer
+            for value in kwargs.values():
+                if isinstance(value, (list, tuple, np.ndarray)):
+                    num_frames = max(num_frames, len(value))
+
         self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 
         result = []
         for i in range(num_frames):
-            latent = latents_np[i]
-            feature_value = 1.0  # Default feature value
-            apply_effect = True  # Default to applying the effect
-
-            if opt_feature is not None:
-                feature_value = opt_feature.get_value_at_frame(i)
-                apply_effect = feature_value >= feature_threshold
-
+            # Get the appropriate latent frame, handling possible shorter sequences
+            latent = latents_np[i % latents_np.shape[0]]
+            
+            # Set frame index for parameter processing
             kwargs['frame_index'] = i
-            kwargs['feature_value'] = feature_value  # Add feature_value to kwargs
-            kwargs['strength'] = strength            # Add strength to kwargs
-            kwargs['feature_param'] = feature_param  # Add feature_param to kwargs
-            kwargs['feature_mode'] = feature_mode    # Add feature_mode to kwargs
 
-            if apply_effect:
-                processed_latent = self.process_latent(
-                    latent,
-                    **kwargs
-                )
+            # Get feature value (0.5 if no feature provided)
+            feature_value = opt_feature.get_value_at_frame(i) if opt_feature is not None else 0.5
+
+            # Process parameters based on feature value
+            processed_kwargs = {}
+            for param_name in self.get_modifiable_params():
+                if param_name in kwargs:
+                    param_value = kwargs[param_name]
+                    if isinstance(param_value, (list, tuple, np.ndarray)):
+                        try:
+                            base_value = float(param_value[i])
+                        except (IndexError, TypeError):
+                            base_value = float(param_value[0])
+                    else:
+                        base_value = float(param_value)
+                    
+                    processed_kwargs[param_name] = self.modulate_param(
+                        param_name, base_value, feature_value, strength, feature_mode
+                    )
+
+            # Add remaining kwargs
+            for key, value in kwargs.items():
+                if key not in processed_kwargs and key != 'frame_index':
+                    if isinstance(value, (list, tuple, np.ndarray)):
+                        try:
+                            processed_kwargs[key] = value[i]
+                        except (IndexError, TypeError):
+                            processed_kwargs[key] = value[0]
+                    else:
+                        processed_kwargs[key] = value
+
+            # Add feature-related values to kwargs
+            processed_kwargs.update({
+                'feature_value': feature_value,
+                'strength': strength,
+                'feature_param': feature_param,
+                'feature_mode': feature_mode,
+                'frame_index': i
+            })
+
+            # Process the latent
+            if opt_feature is None or feature_value >= feature_threshold:
+                processed_latent = self.apply_effect_internal(latent, **processed_kwargs)
             else:
                 processed_latent = latent
 
@@ -65,34 +106,11 @@ class FlexLatentBase(RyanOnTheInside, FlexBase):
 
         self.end_progress()
 
+        # Stack results and convert back to tensor
         result_np = np.stack(result)
         result_tensor = torch.from_numpy(result_np).float()
 
         return ({"samples": result_tensor},)
-
-    def process_latent(
-        self,
-        latent: np.ndarray,
-        **kwargs
-    ) -> np.ndarray:
-        feature_value = kwargs['feature_value']
-        strength = kwargs['strength']
-        feature_param = kwargs['feature_param']
-        feature_mode = kwargs['feature_mode']
-
-        # Modulate the selected parameter
-        for param_name in self.get_modifiable_params():
-            if param_name in kwargs and param_name == feature_param:
-                kwargs[param_name] = self.modulate_param(
-                    param_name,
-                    kwargs[param_name],
-                    feature_value,
-                    strength,
-                    feature_mode
-                )
-
-        # Call the subclass's implementation
-        return self.apply_effect_internal(latent, **kwargs)
 
     @abstractmethod
     def apply_effect_internal(self, latent: np.ndarray, **kwargs) -> np.ndarray:

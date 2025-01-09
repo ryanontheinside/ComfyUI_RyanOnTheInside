@@ -15,9 +15,6 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
         base_inputs["required"].update({
             "images": ("IMAGE",),
         })
-        base_inputs["optional"].update({
-            "opt_feature_pipe": ("FEATURE_PIPE",),
-        })
         return base_inputs
 
     CATEGORY = "RyanOnTheInside/FlexImages"
@@ -44,12 +41,6 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
         """Return a list of parameter names that can be modulated."""
         return []
 
-    # def modulate_param(self, param_name, param_value, feature_value, strength, mode):
-    #     if mode == "relative":
-    #         return param_value * (1 + (feature_value - 0.5) * strength)
-    #     else:  # absolute
-    #         return param_value * feature_value * strength
-
     def apply_effect(
         self, 
         images, 
@@ -60,51 +51,48 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
         opt_feature=None, 
         **kwargs
     ):
-        # Process all frames without modulation if no feature is provided
-        if opt_feature is None:
-            num_frames = images.shape[0]
-            images_np = images.cpu().numpy()
+        # Convert images to numpy for processing
+        images_np = images.cpu().numpy()
 
-            self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
+        # Determine frame count from either feature or longest parameter list
+        if opt_feature is not None:
+            num_frames = opt_feature.frame_count
+        else:
+            # Start with number of input frames
+            num_frames = images_np.shape[0]
+            # Check all parameters for lists/arrays that might be longer
+            for value in kwargs.values():
+                if isinstance(value, (list, tuple, np.ndarray)):
+                    num_frames = max(num_frames, len(value))
 
-            result = []
-            for i in range(num_frames):
+        self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
+
+        result = []
+        for i in range(num_frames):
+            # Get the appropriate image frame, handling possible shorter image sequences
+            image = images_np[i % images_np.shape[0]]
+            
+            # Set frame index for parameter processing
+            kwargs['frame_index'] = i
+
+            # Get feature value (0.5 if no feature provided)
+            feature_value = opt_feature.get_value_at_frame(i) if opt_feature is not None else 0.5
+
+            # Process the image if no feature or feature value meets threshold
+            if opt_feature is None or feature_value >= feature_threshold:
                 processed_image = self.process_image(
-                    images_np[i],
-                    0.5,
+                    image,
+                    feature_value,
                     strength,
                     feature_param=feature_param,
                     feature_mode=feature_mode,
                     **kwargs
                 )
-                result.append(processed_image)
-                self.update_progress()
-        else:
-            # Process frames with modulation based on feature values
-            images_np = images.cpu().numpy()
-            num_frames = opt_feature.frame_count
+            else:
+                processed_image = image
 
-            self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
-
-            result = []
-            for i in range(num_frames):
-                image = images_np[i]
-                feature_value = opt_feature.get_value_at_frame(i)
-                kwargs['frame_index'] = i
-                if feature_value >= feature_threshold:
-                    processed_image = self.process_image(
-                        image,
-                        feature_value,
-                        strength,
-                        feature_param=feature_param,
-                        feature_mode=feature_mode,
-                        **kwargs
-                    )
-                else:
-                    processed_image = image
-
-                result.append(processed_image)
-                self.update_progress()
+            result.append(processed_image)
+            self.update_progress()
 
         self.end_progress()
 
@@ -113,8 +101,6 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
 
         # Convert the numpy array to a PyTorch tensor in BHWC format
         result_tensor = torch.from_numpy(result_np).float()
-        if result_tensor.shape[1] == 3:  # If it's in BCHW format
-            result_tensor = result_tensor.permute(0, 2, 3, 1)
 
         return (result_tensor,)
 
