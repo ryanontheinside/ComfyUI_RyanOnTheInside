@@ -89,7 +89,7 @@ class FlexAudioBase(FlexBase, RyanOnTheInside):
 
         # Pre-compute averaged feature values if feature is provided
         if opt_feature is not None and opt_feature_pipe is not None:
-            feature_values = np.array([opt_feature.get_value_at_frame(i) for i in range(opt_feature_pipe.frame_count)])
+            feature_values = np.array([self.get_feature_value(i, opt_feature) or 0.5 for i in range(opt_feature_pipe.frame_count)])
             frames_per_segment = max(1, opt_feature_pipe.frame_count // num_frames)
             averaged_features = [np.mean(feature_values[i:i+frames_per_segment]) 
                                  for i in range(0, opt_feature_pipe.frame_count, frames_per_segment)]

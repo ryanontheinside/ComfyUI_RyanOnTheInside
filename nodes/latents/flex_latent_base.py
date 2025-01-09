@@ -56,7 +56,7 @@ class FlexLatentBase(RyanOnTheInside, FlexBase):
             kwargs['frame_index'] = i
 
             # Get feature value (0.5 if no feature provided)
-            feature_value = opt_feature.get_value_at_frame(i) if opt_feature is not None else 0.5
+            feature_value = self.get_feature_value(i, opt_feature) or 0.5
 
             # Process parameters based on feature value
             processed_kwargs = {}

@@ -76,7 +76,7 @@ class FlexDepthBase(RyanOnTheInside, FlexBase):
             result = []
             for i in range(num_frames):
                 depth_map = depth_maps_np[i]
-                feature_value = opt_feature.get_value_at_frame(i)
+                feature_value = self.get_feature_value(i, opt_feature) or 0.5
                 kwargs['frame_index'] = i
                 if feature_value >= feature_threshold:
                     processed_depth_map = self.process_depth_map(

@@ -40,7 +40,7 @@ class FlexVideoBase(FlexBase, ABC):
         # First pass: collect all feature values
         feature_values = []
         for i in range(num_frames):
-            feature_value = opt_feature.get_value_at_frame(i) if opt_feature is not None else 0.5
+            feature_value = self.get_feature_value(i, opt_feature) or 0.5
             feature_values.append(feature_value)
         feature_values = np.array(feature_values)
 
