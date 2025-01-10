@@ -40,8 +40,8 @@ class FlexVideoBase(FlexBase, ABC):
         # First pass: collect all feature values
         feature_values = []
         for i in range(num_frames):
-            feature_value = self.get_feature_value(i, opt_feature) or 0.5
-            feature_values.append(feature_value)
+            feature_value = self.get_feature_value(i, opt_feature)
+            feature_values.append(0.5 if feature_value is None else feature_value)
         feature_values = np.array(feature_values)
 
         # Process parameters based on feature values #TODO: really should be if  param_name == feature_param

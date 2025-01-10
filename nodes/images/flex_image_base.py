@@ -76,7 +76,8 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
             kwargs['frame_index'] = i
 
             # Get feature value (0.5 if no feature provided)
-            feature_value = self.get_feature_value(i, opt_feature) or 0.5
+            feature_value = self.get_feature_value(i, opt_feature)
+            feature_value = 0.5 if feature_value is None else feature_value
 
             # Process the image if no feature or feature value meets threshold
             if opt_feature is None or feature_value >= feature_threshold:

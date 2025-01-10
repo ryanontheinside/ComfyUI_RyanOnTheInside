@@ -20,7 +20,10 @@ def register_tooltips():
         "strength": "Strength of parameter modulation (0.0 to 1.0)",
         "feature_param": "Parameter to modulate based on the optional feature input",
         "feature_mode": "Mode of parameter modulation ('relative' or 'absolute')",
-        "audio_feature_param": "Parameter to modulate based on audio features"
+        "audio_feature_param": "Parameter to modulate based on audio features",
+        "position_x": "Horizontal position of the visualization center (0.0 to 1.0)",
+        "position_y": "Vertical position of the visualization center (0.0 to 1.0)",
+        "opt_feature": "Optional feature input for parameter modulation"
     }, inherits_from=['FlexBase', 'RyanOnTheInside'])
 
     # FlexAudioVisualizerLine tooltips (inherits from: FlexAudioVisualizerBase)
@@ -29,12 +32,13 @@ def register_tooltips():
         "visualization_feature": "Data source for visualization ('frequency' or 'waveform')",
         "smoothing": "Amount of smoothing applied to the visualization (0.0 to 1.0)",
         "rotation": "Rotation angle in degrees (0.0 to 360.0)",
+        "length": "Length of the visualization in pixels. 0 means auto-fit to screen edges based on rotation (0.0 to 4000.0)",
         "num_bars": "Number of bars/points in visualization (1 to 1024)",
         "max_height": "Maximum height of visualization (10.0 to 2000.0)",
         "min_height": "Minimum height of visualization (0.0 to 500.0)",
         "separation": "Separation between bars (0.0 to 100.0)",
         "curvature": "Curvature of bar corners (0.0 to 50.0)",
-        "reflect": "Whether to reflect visualization vertically",
+        "reflect": "Whether to draw visualization upward (false) or downward (true) from baseline",
         "curve_smoothing": "Smoothing for line visualization (0.0 to 1.0)",
         "fft_size": "FFT window size for frequency analysis (256 to 8192)",
         "min_frequency": "Minimum frequency to visualize (20.0 to 20000.0 Hz)",
@@ -55,6 +59,23 @@ def register_tooltips():
         "line_width": "Width of visualization lines (1 to 10 pixels)",
         "amplitude_scale": "Scaling factor for amplitude (1.0 to 1000.0)",
         "base_radius": "Base radius for visualization (10.0 to 1000.0 pixels)"
+    }, inherits_from='FlexAudioVisualizerBase')
+
+    # FlexAudioVisualizerContour tooltips (inherits from: FlexAudioVisualizerBase)
+    TooltipManager.register_tooltips("FlexAudioVisualizerContour", {
+        "visualization_method": "Visualization style ('bar' or 'line')",
+        "visualization_feature": "Data source for visualization ('frequency' or 'waveform')",
+        "smoothing": "Amount of smoothing applied to the visualization (0.0 to 1.0)",
+        "rotation": "Rotation angle in degrees (0.0 to 360.0)",
+        "num_points": "Number of points in contour visualization (3 to 1000)",
+        "fft_size": "FFT window size for frequency analysis (256 to 8192)",
+        "min_frequency": "Minimum frequency to visualize (20.0 to 20000.0 Hz)",
+        "max_frequency": "Maximum frequency to visualize (20.0 to 20000.0 Hz)",
+        "bar_length": "Length of bars extending from contour (1.0 to 100.0 pixels)",
+        "line_width": "Width of visualization lines (1 to 10 pixels)",
+        "contour_smoothing": "Amount of smoothing applied to the contour (0 to 50)",
+        "mask": "Input mask to define the contour shape",
+        "reflect": "Whether to draw visualization inward (false) or outward (true) from contour"
     }, inherits_from='FlexAudioVisualizerBase')
 
     # FlexAudioBase tooltips (inherits from: FlexBase, RyanOnTheInside)

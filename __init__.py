@@ -301,6 +301,9 @@ folder_paths.add_model_folder_path("midi_files", midi_path)
 # Ensure the MIDI files directory exists
 os.makedirs(midi_path, exist_ok=True)
 
+#TODO: implement auto cleanup and file replace!!!
+#IMPORTANT
+
 # Get the path to ComfyUI's web/extensions directory
 extension_path = os.path.join(os.path.dirname(folder_paths.__file__), "web", "extensions")
 my_extension_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "web", "extensions")
