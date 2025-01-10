@@ -7,7 +7,7 @@ app.registerExtension({
         const suggestions = app.extensions.find(ext => ext.name === "Comfy.SlotDefaults");
         
         if (suggestions) {
-            console.log("[RyanOnTheInside.Suggestions] Initializing feature suggestions");
+            // console.log("[RyanOnTheInside.Suggestions] Initializing feature suggestions");
             
             const type = "FEATURE";  // Our specific type
             
@@ -62,7 +62,7 @@ app.registerExtension({
                 LiteGraph.slot_types_out.push(type);
             }
 
-            console.log("[RyanOnTheInside.Suggestions] Feature suggestions initialized successfully");
+            // console.log("[RyanOnTheInside.Suggestions] Feature suggestions initialized successfully");
         } else {
             console.warn("[RyanOnTheInside.Suggestions] SlotDefaults extension not found");
         }

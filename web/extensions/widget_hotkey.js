@@ -1,5 +1,46 @@
 // Extension to add ctrl-click functionality for widget/input conversion
 (function() {
+    // Core ComfyUI functions for widget conversion
+    function showWidget(widget) {
+        widget.type = widget.origType;
+        widget.computeSize = widget.origComputeSize;
+        widget.serializeValue = widget.origSerializeValue;
+        delete widget.origType;
+        delete widget.origComputeSize;
+        delete widget.origSerializeValue;
+        if (widget.linkedWidgets) {
+            for (const w of widget.linkedWidgets) {
+                showWidget(w);
+            }
+        }
+    }
+
+    function convertToWidget(node, widget) {
+        showWidget(widget);
+        const [oldWidth, oldHeight] = node.size;
+        
+        // Find and remove the input
+        const inputIndex = node.inputs.findIndex((i) => i.widget?.name === widget.name);
+        if (inputIndex !== -1) {
+            node.removeInput(inputIndex);
+        }
+
+        // Make sure the widget is in the node's widgets array
+        if (!node.widgets.includes(widget)) {
+            node.widgets.push(widget);
+        }
+
+        // Adjust widget positions
+        for (const widget2 of node.widgets) {
+            widget2.last_y -= LiteGraph.NODE_SLOT_HEIGHT;
+        }
+
+        node.setSize([
+            Math.max(oldWidth, node.size[0]),
+            Math.max(oldHeight, node.size[1])
+        ]);
+    }
+
     class WidgetHotkeyHandler {
         constructor(app) {
             this.app = app;
@@ -96,9 +137,9 @@
             const isInput = node.inputs.some(input => input.widget === widget);
             
             if (isInput) {
-                // TODO: Input to widget conversion is currently disabled as it needs more work
-                // console.log("[Widget Hotkey] Input to widget conversion is currently disabled");
-                return false;
+                // Convert input back to widget using core ComfyUI's convertToWidget function
+                // console.log("[Widget Hotkey] Attempting to convert input back to widget:", widget.name);
+                // convertToWidget(node, widget);
             } else {
                 // Convert widget to input using node's built-in method
                 // console.log("[Widget Hotkey] Attempting to convert widget to input:", widget.name);
@@ -115,7 +156,7 @@
             app.registerExtension({
                 name: "RyanOnTheInside.WidgetInputHotkey",
                 setup(app) {
-                    console.log("[Widget Hotkey] Setup phase starting...");
+                    // console.log("[Widget Hotkey] Setup phase starting...");
                     // Create an instance of the handler class and initialize it
                     new WidgetHotkeyHandler(app);
                 }

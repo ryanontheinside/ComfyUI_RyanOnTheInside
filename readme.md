@@ -18,21 +18,22 @@
 
 ### 🚨 Important: Version 2.0 Update 🚨
 
-This repository has been updated to Version 2.0! After careful consideration, I decided that a complete update was better than maintaining legacy support indefinitely. This new version brings significant improvements while maintaining all existing functionality.
+This repository has been updated to Version 2.0! After careful consideration, I decided that a complete update was better than maintaining legacy support indefinitely. This new version brings significant improvements while maintaining all existing functionality. This update was done with user experience, extensibility, and functionality in mind.
 
 ### 🎉 What's New in V2
+-**EVERYTHING is Controllable!** Previously, usually one parameter was controllable by a feature per target node. Now ANY parameter, of any Flex node, can now be controlled by a feature. This not only enables some of the same things to be done with less nodes, but also enables MANY more things that were not previously possible.  
 - **Optional Feature Inputs**: Feature inputs are now optional! This means these nodes double as a powerful suite for image, mask, and video manipulation even without reactivity
 - **Cleaner Workflows**: The feature_pipe is gone! Less noodles, more intuitive connections
 - **Manual Feature Creation**: New interface for drawing/creating features manually - far more powerful than it might seem!
-- **Text as Features**: New integration with Open AI Whisper allows text to be used as a feature source
+- **Text as Features**: New integration with Open AI Whisper allows text to be used as a feature source, with a fully modular trigger system
 - **Enhanced External Integration**: Deeper compatibility with external node packs
 - **More Intuitive**: Redesigned with user experience in mind
 - **And much more!**
 
 ### ⚠️ Breaking Changes Notice
-Due to ComfyUI's workflow loading mechanism, **existing workflows using these nodes may break after updating**. I did consider this carefully, as I have yet to introduce breaking changes to this node system, but this extensive update  neccesitated a complete overhaul. 
+Due to ComfyUI's workflow loading mechanism, **existing workflows using these nodes ~~may~~ *will* break after updating**. I did consider this carefully, as I have yet to introduce breaking changes to this node system, but this extensive update  neccesitated a complete overhaul. There will not be a version 3. Rather, version 2 will be updated as needed.
 
-If you encounter issues, you can revert to the previous version by running this command in your ComfyUI_RyanOnTheInside directory:
+If you need to run an older workflow, you can revert to the previous version by running this command in your ComfyUI_RyanOnTheInside directory:
 
 ```bash
 git checkout dab96492ac7d906368ac9c7a17cb0dbd670923d9

@@ -74,12 +74,12 @@ app.registerExtension({
                 
                 if (targetWidget?.options || (targetWidget?.type === "converted-widget" && targetWidget.options)) {
                     const options = targetWidget.options;
-                    console.log('Node type:', this.type);
-                    console.log('Target widget options:', options);
+                    // console.log('Node type:', this.type);
+                    // console.log('Target widget options:', options);
                     
                     // Check if we already have constraints from another connection
                     if (this.targetConstraints) {
-                        console.log('Warning: Already connected to another widget with constraints:', this.targetConstraints);
+                        // console.log('Warning: Already connected to another widget with constraints:', this.targetConstraints);
                         // Option 1: Prevent multiple connections
                         // return false; 
                         
@@ -90,7 +90,7 @@ app.registerExtension({
                             step: Math.max(parseFloat(options.step), this.targetConstraints.step),
                             isInt: this.type === "FeatureToFlexIntParam"
                         };
-                        console.log('Updated to more restrictive constraints:', this.targetConstraints);
+                        // console.log('Updated to more restrictive constraints:', this.targetConstraints);
                     } else {
                         this.targetConstraints = {
                             min: parseFloat(options.min),
@@ -100,7 +100,7 @@ app.registerExtension({
                         };
                     }
                     
-                    console.log('Target constraints:', this.targetConstraints);
+                    // console.log('Target constraints:', this.targetConstraints);
                     
                     // Only set initial values if current values are outside constraints
                     const lowerWidget = this.widgets.find(w => w.name === "lower_threshold");
@@ -109,17 +109,17 @@ app.registerExtension({
                         const currentLower = parseFloat(lowerWidget.value);
                         const currentUpper = parseFloat(upperWidget.value);
                         
-                        console.log('Current widget values:', {
-                            lower: currentLower,
-                            upper: currentUpper
-                        });
+                        // console.log('Current widget values:', {
+                        //     lower: currentLower,
+                        //     upper: currentUpper
+                        // });
 
                         // Only reset if values are outside constraints
                         if (currentLower < this.targetConstraints.min || 
                             currentLower > this.targetConstraints.max ||
                             currentUpper < this.targetConstraints.min || 
                             currentUpper > this.targetConstraints.max) {
-                            console.log('Resetting values to match constraints');
+                            // console.log('Resetting values to match constraints');
                             lowerWidget.value = this.targetConstraints.min;
                             upperWidget.value = this.targetConstraints.max;
                         }
@@ -135,14 +135,14 @@ app.registerExtension({
         nodeType.prototype.onConnectionsChange = function(slotType, slot, isConnected, link_info, output) {
             // Handle disconnection
             if (!isConnected && slotType === LiteGraph.OUTPUT) {
-                console.log('Output disconnected, checking remaining connections');
+                // console.log('Output disconnected, checking remaining connections');
                 
                 // Reset constraints initially
                 this.targetConstraints = null;
                 
                 // Check all remaining connections and rebuild constraints
                 if (this.outputs[0].links && this.outputs[0].links.length > 0) {
-                    console.log('Found remaining connections, rebuilding constraints');
+                    // console.log('Found remaining connections, rebuilding constraints');
                     
                     this.outputs[0].links.forEach(linkId => {
                         const link = this.graph.links[linkId];
@@ -157,7 +157,7 @@ app.registerExtension({
                             
                             if (targetWidget?.options) {
                                 const options = targetWidget.options;
-                                console.log('Found target widget options:', options);
+                                // console.log('Found target widget options:', options);
                                 
                                 // Update constraints based on remaining connection
                                 if (this.targetConstraints) {
@@ -177,12 +177,12 @@ app.registerExtension({
                                         isInt: this.type === "FeatureToFlexIntParam"
                                     };
                                 }
-                                console.log('Updated constraints:', this.targetConstraints);
+                                // console.log('Updated constraints:', this.targetConstraints);
                             }
                         }
                     });
                 } else {
-                    console.log('No remaining connections, clearing constraints');
+                    // console.log('No remaining connections, clearing constraints');
                     // Reset widgets to their default constraints if needed
                     const lowerWidget = this.widgets.find(w => w.name === "lower_threshold");
                     const upperWidget = this.widgets.find(w => w.name === "upper_threshold");
@@ -242,7 +242,7 @@ app.registerExtension({
                 const snapToStep = (value) => {
                     // Special case: if value is the minimum or maximum, don't snap it
                     if (value === targetMin || value === targetMax) {
-                        console.log(`Preserving exact value ${value} (min/max)`);
+                        // console.log(`Preserving exact value ${value} (min/max)`);
                         return value;
                     }
                     
@@ -251,7 +251,7 @@ app.registerExtension({
                         targetMin,
                         Math.round(value / step) * step
                     );
-                    console.log(`Snapping ${value} to step ${step}: ${snapped}`);
+                    // console.log(`Snapping ${value} to step ${step}: ${snapped}`);
                     return snapped;
                 };
 
@@ -264,29 +264,29 @@ app.registerExtension({
                 upperValue = snapToStep(upperValue);
 
                 // Log values before integer rounding
-                console.log('Before integer rounding:', {
-                    lowerValue,
-                    upperValue
-                });
+                // console.log('Before integer rounding:', {
+                //     lowerValue,
+                //     upperValue
+                // });
 
                 // Round if integer type, otherwise maintain decimal precision
                 if (this.targetConstraints?.isInt) {
                     lowerValue = Math.round(lowerValue);
                     upperValue = Math.round(upperValue);
-                    console.log('After integer rounding:', {
-                        lowerValue,
-                        upperValue
-                    });
+                    // console.log('After integer rounding:', {
+                    //     lowerValue,
+                    //     upperValue
+                    // });
                 }
 
                 lowerWidget.value = lowerValue;
                 upperWidget.value = upperValue;
 
                 // Log final values
-                console.log('Final widget values:', {
-                    lower: lowerWidget.value,
-                    upper: upperWidget.value
-                });
+                // console.log('Final widget values:', {
+                //     lower: lowerWidget.value,
+                //     upper: upperWidget.value
+                // });
             }
         };
 
