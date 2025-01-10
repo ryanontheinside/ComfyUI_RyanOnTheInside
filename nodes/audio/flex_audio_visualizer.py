@@ -155,7 +155,6 @@ class FlexAudioVisualizerBase(FlexBase, RyanOnTheInside):
             'radius': lambda x: max(1.0, x),
             'base_radius': lambda x: max(1.0, x),
             'amplitude_scale': lambda x: max(0.0, x),
-            # Add other parameters as needed
         }
 
         if param_name in valid_params:
@@ -182,7 +181,7 @@ class FlexAudioVisualizerBase(FlexBase, RyanOnTheInside):
         pass
 
     @abstractmethod
-    def draw(self, processor: BaseAudioProcessor, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, processor: BaseAudioProcessor, **kwargs) -> np.ndarray:
         """
         Abstract method to generate the image for the current frame.
         Returns:
@@ -230,11 +229,8 @@ class FlexAudioVisualizerBase(FlexBase, RyanOnTheInside):
         feature_value = np.mean(np.abs(processor.spectrum))
         return processor.spectrum.copy(), feature_value
 
-    def apply_effect(self, *args, **kwargs):
-        return self.apply_effect_internal(*args, **kwargs)
-
-    def apply_effect_internal(self, audio, frame_rate, screen_width, screen_height, strength, feature_param, feature_mode,
-                         audio_feature_param, opt_feature=None, **kwargs):
+    def apply_effect(self, audio, frame_rate, screen_width, screen_height, strength, feature_param, feature_mode,
+                    audio_feature_param, opt_feature=None, **kwargs):
         # Calculate num_frames based on audio duration and frame_rate
         audio_duration = len(audio['waveform'].squeeze(0).mean(axis=0)) / audio['sample_rate']
         num_frames = int(audio_duration * frame_rate)
@@ -249,38 +245,55 @@ class FlexAudioVisualizerBase(FlexBase, RyanOnTheInside):
 
         for i in range(num_frames):
             processor.current_frame = i
-            frame_kwargs = kwargs.copy()
             
-            # Get audio data using the process_audio_data method
+            # First process parameters to get the correct values for this frame
+            processed_kwargs = self.process_parameters(
+                frame_index=i,
+                feature_value=None,  # Will be set after getting audio data
+                strength=strength,
+                feature_param=None,  # Will be set after getting audio data
+                feature_mode=feature_mode,
+                **kwargs
+            )
+            
+            # Get audio data using the processed parameters
             spectrum, audio_feature_value = self.process_audio_data(
                 processor, 
                 i,
-                frame_kwargs.get('visualization_feature'),
-                frame_kwargs.get('num_points', frame_kwargs.get('num_bars')),
-                frame_kwargs.get('smoothing'),
-                frame_kwargs.get('fft_size'),
-                frame_kwargs.get('min_frequency'),
-                frame_kwargs.get('max_frequency')
+                processed_kwargs.get('visualization_feature'),
+                processed_kwargs.get('num_points', processed_kwargs.get('num_bars')),
+                processed_kwargs.get('smoothing'),
+                processed_kwargs.get('fft_size'),
+                processed_kwargs.get('min_frequency'),
+                processed_kwargs.get('max_frequency')
             )
+
+            # Now process parameters again with audio feature if needed
+            if audio_feature_param != "None":
+                processed_kwargs = self.process_parameters(
+                    frame_index=i,
+                    feature_value=audio_feature_value,
+                    strength=strength,
+                    feature_param=audio_feature_param,
+                    feature_mode=feature_mode,
+                    **processed_kwargs
+                )
 
             # Modulate parameters based on opt_feature if provided
             if opt_feature is not None and feature_param != "None":
                 feature_value = opt_feature.get_value_at_frame(i)
                 if feature_value is not None:
-                    original_value = frame_kwargs[feature_param]
-                    modulated_value = self.modulate_param(feature_param, original_value, feature_value, strength, feature_mode)
-                    modulated_value = self.validate_param(feature_param, modulated_value)
-                    frame_kwargs[feature_param] = modulated_value
-
-            # Modulate parameters based on audio feature value
-            if audio_feature_param != "None" and audio_feature_value is not None:
-                original_value = frame_kwargs[audio_feature_param]
-                modulated_value = self.modulate_param(audio_feature_param, original_value, audio_feature_value, strength, feature_mode)
-                modulated_value = self.validate_param(audio_feature_param, modulated_value)
-                frame_kwargs[audio_feature_param] = modulated_value
+                    processed_kwargs = self.process_parameters(
+                        frame_index=i,
+                        feature_value=feature_value,
+                        strength=strength,
+                        feature_param=feature_param,
+                        feature_mode=feature_mode,
+                        **processed_kwargs
+                    )
 
             # Generate the image for the current frame
-            image = self.draw(processor, **frame_kwargs)
+            image = self.apply_effect_internal(processor, **processed_kwargs)
             result.append(image)
 
             self.update_progress()
@@ -309,17 +322,18 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
                 # Parameters common to both methods/features
                 "smoothing": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "rotation": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
-                # Additional parameters
+                "length": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 4000.0, "step": 10.0}),
+                # Parameters common to both methods/features
                 "num_bars": ("INT", {"default": 64, "min": 1, "max": 1024, "step": 1}),
                 "max_height": ("FLOAT", {"default": 200.0, "min": 10.0, "max": 2000.0, "step": 10.0}),
                 "min_height": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 500.0, "step": 5.0}),
                 "separation": ("FLOAT", {"default": 5.0, "min": 0.0, "max": 100.0, "step": 1.0}),
                 "curvature": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 50.0, "step": 1.0}),
-                "reflect": ("BOOLEAN", {"default": False}),
                 "curve_smoothing": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "fft_size": ("INT", {"default": 2048, "min": 256, "max": 8192, "step": 256}),
                 "min_frequency": ("FLOAT", {"default": 20.0, "min": 20.0, "max": 20000.0, "step": 10.0}),
                 "max_frequency": ("FLOAT", {"default": 8000.0, "min": 20.0, "max": 20000.0, "step": 10.0}),
+                "reflect": ("BOOLEAN", {"default": False}),
             }
         }
 
@@ -331,8 +345,6 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
             "optional": optional
         }
 
-    FUNCTION = "apply_effect"
-
     @classmethod
     def get_modifiable_params(cls):
         return ["smoothing", "rotation", "position_y",
@@ -341,7 +353,6 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
 
     def __init__(self):
         super().__init__()
-        self.bars = None
 
     def get_audio_data(self, processor: BaseAudioProcessor, frame_index, **kwargs):
         visualization_feature = kwargs.get('visualization_feature')
@@ -353,7 +364,7 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
         max_frequency = kwargs.get('max_frequency')
 
         # Use the base class method
-        self.bars, feature_value = self.process_audio_data(
+        _, feature_value = self.process_audio_data(
             processor,
             frame_index,
             visualization_feature,
@@ -366,60 +377,78 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
 
         return feature_value
 
-    def draw(self, processor: BaseAudioProcessor, **kwargs):
+    def apply_effect_internal(self, processor: BaseAudioProcessor, **kwargs):
         visualization_method = kwargs.get('visualization_method')
         screen_width = processor.width
         screen_height = processor.height
         rotation = kwargs.get('rotation') % 360
         position_y = kwargs.get('position_y')
-        reflect = kwargs.get('reflect')
-        num_bars = kwargs.get('num_bars')  # Get the potentially modulated num_bars
-
-        image = np.zeros((screen_height, screen_width, 3), dtype=np.float32)
-
-        # Ensure self.bars matches the current num_bars
-        if self.bars is None or len(self.bars) != num_bars:
-            if self.bars is not None:
-                # Interpolate existing data to match new num_bars
-                old_indices = np.linspace(0, 1, len(self.bars))
-                new_indices = np.linspace(0, 1, num_bars)
-                self.bars = np.interp(new_indices, old_indices, self.bars)
-            else:
-                self.bars = np.zeros(num_bars)
-
+        position_x = kwargs.get('position_x')
+        reflect = kwargs.get('reflect', False)
+        num_bars = kwargs.get('num_bars')
+        length = kwargs.get('length', 0.0)
         max_height = kwargs.get('max_height')
         min_height = kwargs.get('min_height')
+
+        # Calculate visualization length based on rotation when length is 0
+        if length == 0:
+            # Convert rotation to radians
+            rotation_rad = np.deg2rad(rotation)
+            # For rotation 0° or 180°, use width
+            # For rotation 90° or 270°, use height
+            # For other angles, calculate the appropriate length
+            cos_theta = abs(np.cos(rotation_rad))
+            sin_theta = abs(np.sin(rotation_rad))
+            
+            if cos_theta > sin_theta:
+                # Closer to horizontal (0° or 180°)
+                visualization_length = screen_width / cos_theta
+            else:
+                # Closer to vertical (90° or 270°)
+                visualization_length = screen_height / sin_theta
+        else:
+            visualization_length = length
+
+        # Create a larger canvas to handle rotation without clipping
+        # Ensure all dimensions are integers
+        padding = int(max(visualization_length, max_height) * 0.5)
+        padded_width = int(visualization_length + 2 * padding)
+        padded_height = int(screen_height + 2 * padding)
+        padded_image = np.zeros((padded_height, padded_width, 3), dtype=np.float32)
+
+        # Get the current spectrum data
+        data = processor.spectrum
 
         if visualization_method == 'bar':
             curvature = kwargs.get('curvature')
             separation = kwargs.get('separation')
 
-
-            # Calculate bar width
+            # Calculate bar width based on visualization length
             total_separation = separation * (num_bars - 1)
-            total_bar_width = screen_width - total_separation
+            total_bar_width = visualization_length - total_separation
             bar_width = total_bar_width / num_bars
 
-            # Baseline Y position
-            baseline_y = int(screen_height * position_y)
+            # Center the visualization at the middle of the padded image
+            baseline_y = padded_height // 2
+            x_offset = (padded_width - visualization_length) // 2
 
             # Draw bars
-            for i, bar_value in enumerate(self.bars):
-                x = int(i * (bar_width + separation))
+            for i, bar_value in enumerate(data):
+                x = int(x_offset + i * (bar_width + separation))
 
                 bar_h = min_height + (max_height - min_height) * bar_value
 
-                # Draw bar depending on reflect
+                # Draw bar based on reflect direction
                 if reflect:
-                    y_start = int(baseline_y - bar_h)
+                    y_start = int(baseline_y)
                     y_end = int(baseline_y + bar_h)
                 else:
                     y_start = int(baseline_y - bar_h)
                     y_end = int(baseline_y)
 
                 # Ensure y_start and y_end are within bounds
-                y_start = max(min(y_start, screen_height - 1), 0)
-                y_end = max(min(y_end, screen_height - 1), 0)
+                y_start = max(0, y_start)
+                y_end = min(padded_height - 1, y_end)
 
                 # Swap y_start and y_end if necessary
                 if y_start > y_end:
@@ -443,18 +472,17 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
                     # Apply mask
                     rect[mask > 0] = color
                     # Place rect onto image
-                    image[y_start:y_end, x:x + rect_width] = rect
+                    padded_image[y_start:y_end, x:x + rect_width] = rect
                 else:
-                    cv2.rectangle(image, (x, y_start), (x_end, y_end), color, thickness=-1)
+                    cv2.rectangle(padded_image, (x, y_start), (x_end, y_end), color, thickness=-1)
         elif visualization_method == 'line':
             curve_smoothing = kwargs.get('curve_smoothing')
 
-
-            # Baseline Y position
-            baseline_y = screen_height * position_y
+            # Center the visualization
+            baseline_y = padded_height // 2
+            x_offset = (padded_width - visualization_length) // 2
 
             # Apply curve smoothing if specified
-            data = self.bars
             if curve_smoothing > 0:
                 window_size = int(len(data) * curve_smoothing)
                 if window_size % 2 == 0:
@@ -470,35 +498,37 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
             amplitude_range = max_height - min_height
             amplitude = min_height + data_smooth * amplitude_range
 
-            # X-axis
+            # X-axis using visualization length
             num_points = len(amplitude)
-            x_values = np.linspace(0, screen_width, num_points)
+            x_values = np.linspace(x_offset, x_offset + visualization_length, num_points)
 
+            # Single visualization with direction based on reflect
             if reflect:
-                # Reflect the visualization
-                y_values_up = baseline_y - amplitude
-                y_values_down = baseline_y + amplitude
-
-                points_up = np.array([x_values, y_values_up]).T.astype(np.int32)
-                points_down = np.array([x_values, y_values_down]).T.astype(np.int32)
-
-                # Draw the curves
-                if len(points_up) > 1:
-                    cv2.polylines(image, [points_up], False, (1.0, 1.0, 1.0))
-                if len(points_down) > 1:
-                    cv2.polylines(image, [points_down], False, (1.0, 1.0, 1.0))
+                y_values = baseline_y + amplitude
             else:
-                # Single visualization
                 y_values = baseline_y - amplitude
 
-                points = np.array([x_values, y_values]).T.astype(np.int32)
+            points = np.array([x_values, y_values]).T.astype(np.int32)
 
-                if len(points) > 1:
-                    cv2.polylines(image, [points], False, (1.0, 1.0, 1.0))
+            if len(points) > 1:
+                cv2.polylines(padded_image, [points], False, (1.0, 1.0, 1.0))
 
         # Apply rotation if needed
         if rotation != 0:
-            image = self.rotate_image(image, rotation)
+            # Rotate around center of padded image
+            M = cv2.getRotationMatrix2D((padded_width // 2, padded_height // 2), rotation, 1.0)
+            padded_image = cv2.warpAffine(padded_image, M, (padded_width, padded_height))
+
+        # Calculate final position
+        target_x = int(screen_width * position_x)
+        target_y = int(screen_height * position_y)
+        
+        # Calculate the region to extract from padded image
+        start_x = padded_width // 2 - target_x
+        start_y = padded_height // 2 - target_y
+        
+        # Extract the correctly positioned region
+        image = padded_image[start_y:start_y + screen_height, start_x:start_x + screen_width]
 
         return image
 
@@ -545,8 +575,6 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
             "optional": optional
         }
 
-    FUNCTION = "apply_effect"
-
     @classmethod
     def get_modifiable_params(cls):
         return ["smoothing", "rotation", "num_points",
@@ -579,7 +607,7 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
 
         return feature_value
 
-    def draw(self, processor: BaseAudioProcessor, **kwargs):
+    def apply_effect_internal(self, processor: BaseAudioProcessor, **kwargs):
         visualization_method = kwargs.get('visualization_method')
         rotation = kwargs.get('rotation') % 360
         num_points = kwargs.get('num_points')
@@ -648,11 +676,10 @@ class FlexAudioVisualizerContour(FlexAudioVisualizerBase):
         base_required = base_inputs.get("required", {})
         base_optional = base_inputs.get("optional", {})
 
-        # Remove screen_width and screen_height since they come from mask
-        if "screen_width" in base_required:
-            del base_required["screen_width"]
-        if "screen_height" in base_required:
-            del base_required["screen_height"]
+        # Remove screen_width, screen_height, position_x, and position_y
+        for param in ["screen_width", "screen_height", "position_x", "position_y"]:
+            if param in base_required:
+                del base_required[param]
 
         new_inputs = {
             "required": {
@@ -717,7 +744,7 @@ class FlexAudioVisualizerContour(FlexAudioVisualizerBase):
         )
         return feature_value
 
-    def draw(self, processor: BaseAudioProcessor, **kwargs):
+    def apply_effect_internal(self, processor: BaseAudioProcessor, **kwargs):
         # Get parameters
         mask = kwargs.get('mask')
         visualization_method = kwargs.get('visualization_method')
@@ -758,6 +785,10 @@ class FlexAudioVisualizerContour(FlexAudioVisualizerBase):
         contour = contour.squeeze()
         contour_length = len(contour)
         
+        # Ensure we have enough points for interpolation
+        if contour_length < 2:
+            return image
+        
         # Ensure the contour is closed
         if not np.array_equal(contour[0], contour[-1]):
             contour = np.vstack([contour, contour[0]])
@@ -777,10 +808,16 @@ class FlexAudioVisualizerContour(FlexAudioVisualizerBase):
         dx = np.gradient(x_coords)
         dy = np.gradient(y_coords)
         
-        # Normalize the normals
+        # Normalize the normals, handling zero lengths
         lengths = np.sqrt(dx**2 + dy**2)
+        # Replace zero lengths with 1 to avoid division by zero
+        lengths = np.where(lengths > 0, lengths, 1.0)
         normals_x = -dy / lengths
         normals_y = dx / lengths
+        
+        # Replace any remaining NaN values with zeros
+        normals_x = np.nan_to_num(normals_x, 0.0)
+        normals_y = np.nan_to_num(normals_y, 0.0)
 
         if visualization_method == 'bar':
             # Draw bars along the contour
@@ -793,6 +830,12 @@ class FlexAudioVisualizerContour(FlexAudioVisualizerBase):
                 x2 = int(x1 + normals_x[i] * bar_height)
                 y2 = int(y1 + normals_y[i] * bar_height)
                 
+                # Ensure points are within image bounds
+                x1 = np.clip(x1, 0, screen_width - 1)
+                y1 = np.clip(y1, 0, screen_height - 1)
+                x2 = np.clip(x2, 0, screen_width - 1)
+                y2 = np.clip(y2, 0, screen_height - 1)
+                
                 cv2.line(image, (x1, y1), (x2, y2), (1.0, 1.0, 1.0), thickness=line_width)
         
         else:  # line mode
@@ -801,6 +844,10 @@ class FlexAudioVisualizerContour(FlexAudioVisualizerBase):
                 x_coords + normals_x * data * bar_length,
                 y_coords + normals_y * data * bar_length
             ]).astype(np.int32)
+            
+            # Clip points to image bounds
+            points[:, 0] = np.clip(points[:, 0], 0, screen_width - 1)
+            points[:, 1] = np.clip(points[:, 1], 0, screen_height - 1)
             
             # Draw the continuous line
             cv2.polylines(image, [points], True, (1.0, 1.0, 1.0), thickness=line_width)

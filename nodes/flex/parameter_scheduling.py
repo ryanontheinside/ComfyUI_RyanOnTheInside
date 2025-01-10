@@ -101,18 +101,22 @@ class SchedulerNode(RyanOnTheInside):
         # Calculate the range for normalization
         range_size = upper_threshold - lower_threshold
         
+        # Use feature.min_value and feature.max_value if available, otherwise use actual min/max
+        min_val = getattr(feature, 'min_value', min(values))
+        max_val = getattr(feature, 'max_value', max(values))
+        
         # Normalize values to fit between lower and upper threshold
-        if max(values) == min(values):
+        if max_val == min_val:
             normalized = [lower_threshold for _ in values]  # All values are the same
         else:
             normalized = [
-                lower_threshold + (range_size * (v - min(values)) / (max(values) - min(values)))
+                lower_threshold + (range_size * (v - min_val) / (max_val - min_val))
                 for v in values
             ]
         
         if invert_output:
             normalized = [upper_threshold - (v - lower_threshold) for v in normalized]
-            
+                
         return normalized
 
 @apply_tooltips
