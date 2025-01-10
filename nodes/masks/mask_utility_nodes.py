@@ -9,6 +9,7 @@ import comfy.utils
 from scipy import interpolate
 from ...tooltips import apply_tooltips
 
+_category = "RyanOnTheInside/Masks"
 
 @apply_tooltips
 class MovingShape:
@@ -36,7 +37,7 @@ class MovingShape:
 
     RETURN_TYPES = ("MASK",)
     FUNCTION = "generate"
-    CATEGORY = "RyanOnTheInside/masks/"
+    CATEGORY = _category
 
     def generate(self, frame_width, frame_height, num_frames, rgb, shape, shape_width_percent, shape_height_percent, shape_start_position_x, shape_start_position_y, shape_end_position_x, shape_end_position_y, movement_type, grow, palindrome, delay):
         rgb = self.parse_rgb_string(rgb)
@@ -173,8 +174,7 @@ class TextMaskNode:
 
     RETURN_TYPES = ("MASK", "IMAGE")
     FUNCTION = "create_text_mask"
-
-    CATEGORY = "RyanOnTheInside/masks/"
+    CATEGORY = _category
 
     def parse_rgb(self, rgb_string):
         try:
@@ -254,7 +254,7 @@ class _mfc:
     
     RETURN_TYPES = ("MASK", "IMAGE")
     FUNCTION = "execute"
-    CATEGORY = "RyanOnTheInside/masks/"
+    CATEGORY = "RyanOnTheInside/Masks"
 
     def execute(self, image, red, green, blue, threshold):
         temp = (torch.clamp(image, 0, 1.0) * 255.0).round().to(torch.int)
@@ -272,7 +272,6 @@ class _mfc:
         
         return (mask, mask_image)
     
-
 @apply_tooltips
 class MaskCompositePlus:
     @classmethod
@@ -287,7 +286,7 @@ class MaskCompositePlus:
 
     RETURN_TYPES = ("MASK",)
     FUNCTION = "composite_masks"
-    CATEGORY = "RyanOnTheInside/masks/"
+    CATEGORY = _category
 
     def composite_masks(self, mask1, mask2, operation):
         # Ensure masks have the same shape
@@ -332,7 +331,7 @@ class AdvancedLuminanceMask:
     
     RETURN_TYPES = ("MASK", "IMAGE")
     FUNCTION = "create_mask"
-    CATEGORY = "RyanOnTheInside/masks/"
+    CATEGORY = _category
 
     def create_mask(self, image, luminance_threshold, glow_radius, edge_preservation, background_samples, denoise_strength):
         # Convert to numpy for OpenCV operations
@@ -421,7 +420,7 @@ class TranslucentComposite:
     
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "composite"
-    CATEGORY = "RyanOnTheInside/masks/"
+    CATEGORY = _category
 
     def composite(self, background, foreground, mask, blend_mode, opacity, preserve_transparency, luminance_boost, background_influence):
         device = background.device

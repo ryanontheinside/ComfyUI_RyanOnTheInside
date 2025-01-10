@@ -4,6 +4,8 @@ from ... import RyanOnTheInside
 from ..audio.audio_nodes import AudioNodeBase
 from ...tooltips import apply_tooltips
 
+_category = f"{FeatureExtractorBase.CATEGORY}/Audio"
+
 @apply_tooltips
 class AudioFeatureExtractor(FeatureExtractorBase):
     @classmethod
@@ -22,7 +24,7 @@ class AudioFeatureExtractor(FeatureExtractorBase):
 
     RETURN_TYPES = ("FEATURE",)
     FUNCTION = "extract_feature"
-    
+    CATEGORY = _category
     def extract_feature(self, audio, frame_rate, frame_count, width, height, extraction_method):
         feature = AudioFeature(
             width=width,
@@ -36,27 +38,6 @@ class AudioFeatureExtractor(FeatureExtractorBase):
         feature.extract()
         return (feature,)
 
-#todo: create base class in prep for version 2
-@apply_tooltips
-class AudioFeatureExtractorFirst(FeatureExtractorBase):
-    @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        return AudioFeature
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "audio": ("AUDIO",),
-            }
-        }
-
-    RETURN_TYPES = ("FEATURE", "INT")
-    RETURN_NAMES = ("feature", "frame_count")
-    FUNCTION = "extract_feature"
-    CATEGORY = "RyanOnTheInside/FlexFeatures/Audio"
 
     def extract_feature(self, audio, frame_rate, frame_count, width, height, extraction_method):
         feature = AudioFeature(
@@ -90,7 +71,7 @@ class RhythmFeatureExtractor(FeatureExtractorBase):
 
     RETURN_TYPES = ("FEATURE",)
     FUNCTION = "extract_feature"
-    CATEGORY = "RyanOnTheInside/FlexFeatures/Audio/Rhythm"
+    CATEGORY = _category
 
     def extract_feature(self, audio, extraction_method, time_signature, frame_rate, frame_count, width, height):
         feature = RhythmFeature(
@@ -129,6 +110,7 @@ class PitchFeatureExtractor(FeatureExtractorBase):
 
     RETURN_TYPES = ("FEATURE",)
     FUNCTION = "extract_feature"
+    CATEGORY = _category
 
     def extract_feature(self, audio, frame_rate, frame_count, width, height, extraction_method, opt_pitch_range_collections=None, opt_crepe_model=None):
         if opt_pitch_range_collections is None:
@@ -166,8 +148,7 @@ class PitchRangeNode(PitchAbstraction):
 
     RETURN_TYPES = ("PITCH_RANGE_COLLECTION",)
     FUNCTION = "create_pitch_range"
-
-    CATEGORY = "RyanOnTheInside/FlexFeatures"
+    CATEGORY = _category
 
     def create_pitch_range(self, min_pitch, max_pitch, previous_range_collection=None):
         pitch_range = PitchRange(min_pitch, max_pitch)
@@ -206,8 +187,7 @@ class PitchRangePresetNode(PitchAbstraction):
 
     RETURN_TYPES = ("PITCH_RANGE_COLLECTION",)
     FUNCTION = "create_pitch_range_preset"
-
-    CATEGORY = "RyanOnTheInside/FlexFeatures"
+    CATEGORY = _category
 
     def create_pitch_range_preset(self, preset, previous_range_collection=None):
         presets = {
@@ -249,8 +229,7 @@ class PitchRangeByNoteNode(PitchAbstraction):
 
     RETURN_TYPES = ("PITCH_RANGE_COLLECTION",)
     FUNCTION = "create_note_pitch_ranges"
-
-    CATEGORY = "RyanOnTheInside/FlexFeatures"
+    CATEGORY = _category
 
     def create_note_pitch_ranges(self, chord_only, notes, pitch_tolerance_percent, previous_range_collection=None):
         if not notes:

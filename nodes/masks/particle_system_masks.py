@@ -60,7 +60,7 @@ class ParticleEmissionMask(ParticleSystemMaskBase):
                                      static_bodies=static_bodies, **kwargs)    
 
 class ParticleSystemModulatorBase(RyanOnTheInside):
-    CATEGORY="RyanOnTheInside/ParticleSystemMasks"
+    CATEGORY= f"{ParticleSystemMaskBase.CATEGORY}/Modulators"
 
 @apply_tooltips
 class EmitterModulationBase(ParticleSystemModulatorBase):
@@ -83,6 +83,7 @@ class EmitterModulationBase(ParticleSystemModulatorBase):
 
     RETURN_TYPES = ("EMITTER_MODULATION",)
     FUNCTION = "create_modulation"
+    CATEGORY = f"{ParticleSystemModulatorBase.CATEGORY}/Emitters"
 
     def create_modulation(self, start_frame, end_frame, effect_duration, temporal_easing, palindrome, random, previous_modulation=None, feature=None):
         modulation = {
@@ -326,7 +327,7 @@ class EmitterMovement(ParticleSystemModulatorBase):
 
     RETURN_TYPES = ("EMITTER_MOVEMENT",)
     FUNCTION = "create_movement"
-
+    CATEGORY = f"{ParticleSystemModulatorBase.CATEGORY}/EmitterModulators"
     def create_movement(self, emitter_x_frequency, emitter_y_frequency, direction_frequency,
                         emitter_x_amplitude, emitter_y_amplitude, direction_amplitude,
                         feature_param, feature=None):
@@ -407,6 +408,8 @@ class ParticleModulationBase(ParticleSystemModulatorBase):
             }
         }
     
+    CATEGORY = f"{ParticleSystemModulatorBase.CATEGORY}/ParticleModulators"
+    
     def create_modulation(self, start_frame, end_frame, effect_duration, temporal_easing, palindrome, random, previous_modulation=None, feature=None):
         modulation = {
             "start_frame": start_frame,
@@ -446,7 +449,9 @@ class ParticleSizeModulation(ParticleModulationBase):
 
     RETURN_TYPES = ("PARTICLE_MODULATION",)
     FUNCTION = "create_size_modulation"
-
+    
+    CATEGORY = f"{ParticleSystemModulatorBase.CATEGORY}/ParticleModulators"
+    
     def create_size_modulation(self, target_size, **kwargs):
         modulation_chain = super().create_modulation(**kwargs)[0]
         modulation_chain[-1]["target_size"] = target_size
@@ -466,6 +471,7 @@ class ParticleSpeedModulation(ParticleModulationBase):
 
     RETURN_TYPES = ("PARTICLE_MODULATION",)
     FUNCTION = "create_speed_modulation"
+    CATEGORY = f"{ParticleSystemModulatorBase.CATEGORY}/ParticleModulators"
 
     def create_speed_modulation(self, target_speed, **kwargs):
         modulation_chain = super().create_modulation(**kwargs)[0]
@@ -486,6 +492,8 @@ class ParticleColorModulation(ParticleModulationBase):
 
     RETURN_TYPES = ("PARTICLE_MODULATION",)
     FUNCTION = "create_color_modulation"
+    CATEGORY = f"{ParticleSystemModulatorBase.CATEGORY}/ParticleModulators"
+    
 
     def create_color_modulation(self, target_color, **kwargs):
         modulation_chain = super().create_modulation(**kwargs)[0]

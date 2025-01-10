@@ -2,7 +2,8 @@ import torch
 import torch.nn.functional as F
 from ..node_utilities import string_to_rgb 
 from ... import RyanOnTheInside
-from comfy.utils import ProgressBar
+from comfy.utils import ProgressBar, common_upscale
+
 from ...tooltips import apply_tooltips
 
 class ImageUtilityNode(RyanOnTheInside):
@@ -18,7 +19,7 @@ class ImageUtilityNode(RyanOnTheInside):
 
     def end_progress(self):
         self.progress_bar = None
-    CATEGORY = "RyanOnTheInside/image/utility"
+    CATEGORY = "RyanOnTheInside/Utility/Images"
 
 @apply_tooltips
 class DyeImage(ImageUtilityNode):
@@ -66,7 +67,6 @@ class ImageCASBatch(ImageUtilityNode):
         }
 
     RETURN_TYPES = ("IMAGE",)
-    CATEGORY = "essentials/image processing"
     FUNCTION = "execute"
 
     def execute(self, image, amount, batch_size):
@@ -125,7 +125,7 @@ class ImageCASBatch(ImageUtilityNode):
 
         return output
 
-from comfy.utils import common_upscale
+
 @apply_tooltips
 class ImageScaleToTarget(ImageUtilityNode):
     upscale_methods = ["nearest-exact", "bilinear", "area", "bicubic", "lanczos"]
@@ -139,8 +139,6 @@ class ImageScaleToTarget(ImageUtilityNode):
                               "crop": (s.crop_methods,)}}
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "upscale"
-
-    CATEGORY = "image/upscaling"
 
     def upscale(self, image, upscale_method, target_image, crop):
         b,height,width,c = target_image.shape

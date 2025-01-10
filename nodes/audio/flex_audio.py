@@ -40,7 +40,7 @@ class FlexAudioBase(FlexBase, RyanOnTheInside):
             "optional": base_optional,
         }
 
-    CATEGORY = "RyanOnTheInside/FlexAudio"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Targets/Audio"
     RETURN_TYPES = ("AUDIO",)
     FUNCTION = "apply_effect"
 

@@ -37,7 +37,7 @@ class FlexMaskBase(FlexBase, MaskBase):
         
         return base_inputs
 
-    CATEGORY = "RyanOnTheInside/FlexMasks"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Targets/Masks"
     RETURN_TYPES = ("MASK",)
     FUNCTION = "apply_effect"
 

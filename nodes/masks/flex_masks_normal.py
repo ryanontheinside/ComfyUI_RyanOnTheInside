@@ -18,6 +18,8 @@ class FlexMaskNormalBase(FlexMaskBase):
             }
         }
 
+    CATEGORY = "RyanOnTheInside/Targets/Normals"
+    
     def normalize_vector(self, vector):
         return vector / np.linalg.norm(vector)
 

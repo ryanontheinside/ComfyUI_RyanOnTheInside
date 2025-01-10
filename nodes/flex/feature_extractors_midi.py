@@ -28,7 +28,7 @@ class MIDILoadAndExtract(FeatureExtractorBase):
 
     RETURN_TYPES = ("MIDI", "FEATURE")
     FUNCTION = "process_midi"
-    CATEGORY = "RyanOnTheInside/FlexFeatures/MIDI"
+    
 
     def process_midi(self, midi_file, track_selection, notes, extraction_method, frame_rate, frame_count, width, height, chord_only=False):
         try:

@@ -148,7 +148,7 @@ class FlexExpressionEditor(ExpressionEditor):
     RETURN_NAMES = ("image", "flex_motion_link", "save_exp", "command")
     FUNCTION = "run"
     OUTPUT_NODE = True
-    CATEGORY = "AdvancedLivePortrait"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Targets/ExternalTargets"
 
     @classmethod
     def get_modifiable_params(cls):

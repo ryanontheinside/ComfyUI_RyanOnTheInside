@@ -542,6 +542,7 @@ class DrawableFeature(BaseFeature):
         super().__init__(name, "drawn", frame_rate, frame_count, width, height)
         self.points = points  # List of (frame, value) tuples
         self.method = method
+        #TODO: rename these to threshholds, and add a min_value and max_value to baseclass extracting min and max from data
         self.min_value = min_value
         self.max_value = max_value
         self.fill_value = fill_value

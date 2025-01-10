@@ -5,6 +5,8 @@ from ...tooltips import apply_tooltips
 import numpy as np
 import cv2
 
+_category = f"{FeatureExtractorBase.CATEGORY}/Proximity"
+
 @apply_tooltips
 class ProximityFeatureNode(FeatureExtractorBase):
     @classmethod
@@ -26,7 +28,7 @@ class ProximityFeatureNode(FeatureExtractorBase):
     RETURN_TYPES = ("FEATURE",)
     RETURN_NAMES = ("proximity_feature",)
     FUNCTION = "create_feature"
-    CATEGORY = "RyanOnTheInside/FlexFeatures/Proximity"
+    CATEGORY = _category
 
     def create_feature(self, frame_rate, frame_count, width, height, anchor_locations, query_locations, normalization_method, extraction_method):
         frame_dimensions = (width, height)
@@ -61,7 +63,7 @@ class ProximityFeatureNode(FeatureExtractorBase):
         return (proximity_feature,)
 
 class ProximityFeatureInput(RyanOnTheInside):
-    CATEGORY="RyanOnTheInside/Proximity"
+    CATEGORY=_category
 
 @apply_tooltips
 class LocationFromMask(ProximityFeatureInput):
@@ -140,7 +142,7 @@ class LocationFromPoint(ProximityFeatureInput):
 
     RETURN_TYPES = ("LOCATION",)
     FUNCTION = "generate_locations"
-
+    CATEGORY = _category
     def generate_locations(self, x, y, batch_count, z):
         locations = []
         for _ in range(batch_count):

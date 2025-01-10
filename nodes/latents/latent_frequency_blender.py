@@ -44,7 +44,7 @@ class LatentFrequencyBlender(FlexLatentBase):
 
     RETURN_TYPES = ("LATENT",)
     FUNCTION = "apply_effect"
-    CATEGORY = "RyanOnTheInside/FlexLatent"
+    CATEGORY = "RyanOnTheInside/ExperimentalWIP"
 
     @classmethod
     def get_modifiable_params(cls):

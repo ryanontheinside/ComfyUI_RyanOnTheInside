@@ -262,18 +262,6 @@ Great for creating music videos, reactive animations, or automated effects.""")
 - chroma_features: Musical note content - useful for harmony-based effects"""
     }, inherits_from='FeatureExtractorBase')
 
-    # AudioFeatureExtractorFirst tooltips (inherits from: FeatureExtractorBase)
-    TooltipManager.register_tooltips("AudioFeatureExtractorFirst", {
-        "audio": "Input audio to analyze",
-        "extraction_method": """Choose how to analyze the audio:
-
-- amplitude_envelope: Overall loudness changes - great for syncing with dramatic moments
-- rms_energy: Continuous energy level - smoother than amplitude, good for sustained effects
-- spectral_centroid: Brightness of the sound - high for sharp/crisp sounds, low for bass/warm sounds
-- onset_strength: Detects new sounds/beats - perfect for rhythmic effects
-- chroma_features: Musical note content - useful for harmony-based effects"""
-    }, inherits_from='FeatureExtractorBase')
-
     # RhythmFeatureExtractor tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("RhythmFeatureExtractor", {
         "audio": "Input audio to analyze",

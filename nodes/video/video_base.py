@@ -17,7 +17,7 @@ class FlexVideoBase(FlexBase, ABC):
             }
         }
 
-    CATEGORY = "RyanOnTheInside/FlexBase"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Targets/Video"
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "apply_effect"
 

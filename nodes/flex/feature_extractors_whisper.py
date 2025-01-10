@@ -22,6 +22,8 @@ from ... import RyanOnTheInside
     # #words_alignment
     # [{"value": "We're", "start": 0.0, "end": 0.26}, {"value": "telling", "start": 0.26, "end": 0.46}, {"value": "a", "start": 0.46, "end": 0.6}, {"value": "story", "start": 0.6, "end": 0.88}, {"value": "about", "start": 0.88, "end": 1.14}, {"value": "water", "start": 1.14, "end": 1.58}, {"value": "and", "start": 1.58, "end": 2.24}, {"value": "then", "start": 2.24, "end": 2.44}, {"value": "about", "start": 2.44, "end": 3.24}, {"value": "fire", "start": 3.24, "end": 3.66}, {"value": "and", "start": 3.66, "end": 4.1}, {"value": "then", "start": 4.1, "end": 4.3}, {"value": "we're", "start": 4.3, "end": 4.7}, {"value": "going", "start": 4.7, "end": 4.88}, {"value": "to", "start": 4.88, "end": 5.02}, {"value": "do", "start": 5.02, "end": 5.18}, {"value": "ice", "start": 5.18, "end": 5.44}, {"value": "and", "start": 5.44, "end": 5.98}, {"value": "then", "start": 5.98, "end": 6.26}, {"value": "psychedelic", "start": 7.9799999999999995, "end": 8.52}, {"value": "awesomeness.", "start": 8.52, "end": 9.06}, {"value": "Okay.", "start": 9.2, "end": 9.38}]
 
+_category = f"{FeatureExtractorBase.CATEGORY}/Whisper"
+
 @apply_tooltips
 class WhisperFeatureNode(FeatureExtractorBase):
     @classmethod
@@ -47,7 +49,7 @@ class WhisperFeatureNode(FeatureExtractorBase):
 
     RETURN_TYPES = ("FEATURE",)
     FUNCTION = "create_feature"
-    CATEGORY = "RyanOnTheInside/FlexFeatures/Text"
+    CATEGORY = _category
 
     def create_feature(self, frame_rate, width, height, extraction_method, 
                       alignment_data, trigger_set=None, context_size=3, overlap_mode="blend"):
@@ -139,7 +141,7 @@ class TriggerBuilder(RyanOnTheInside):
     
     RETURN_TYPES = ("TRIGGER_SET",)
     FUNCTION = "build"
-    CATEGORY = "RyanOnTheInside/FlexFeatures/Triggers"
+    CATEGORY = _category
 
     def build(self, pattern: str, start_value: float, end_value: float, 
              match_mode: str, fade_type: str, duration_frames: int,
@@ -217,7 +219,7 @@ class ContextModifier(RyanOnTheInside):
     
     RETURN_TYPES = ("TRIGGER_SET",)
     FUNCTION = "modify"
-    CATEGORY = "RyanOnTheInside/FlexFeatures/Triggers"
+    CATEGORY = _category
 
     def modify(self, trigger_set: str, modifier_type: str, condition: str, 
                value_adjust: float, window_size: int) -> tuple:
@@ -249,7 +251,7 @@ class WhisperToPromptTravel:
     
     RETURN_TYPES = ("STRING",)
     FUNCTION = "convert"
-    CATEGORY = "misc"
+    CATEGORY = _category
 
     def convert(self, segments_alignment, fps):
         import json
@@ -312,7 +314,7 @@ class WhisperTextRenderer:
     
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "render"
-    CATEGORY = "RyanOnTheInside/FlexFeatures/Text"
+    CATEGORY = _category
 
     def render(self, images, feature, font_size, font_name, position, horizontal_align,
                margin, animation_type, animation_duration, max_width=0,
@@ -488,7 +490,7 @@ class ManualWhisperAlignmentData:
     RETURN_TYPES = ("whisper_alignment",)
     RETURN_NAMES = ("alignment_data",)
     FUNCTION = "parse"
-    CATEGORY = "RyanOnTheInside/FlexFeatures/Text"
+    CATEGORY = _category
 
     def parse(self, alignment_text: str) -> tuple:        
         return (alignment_text,)

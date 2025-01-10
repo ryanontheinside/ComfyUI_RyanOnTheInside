@@ -122,7 +122,7 @@ class FlexAudioVisualizerBase(FlexBase, RyanOnTheInside):
             "optional": optional
         }
 
-    CATEGORY = "RyanOnTheInside/FlexAudioVisualizer"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Targets/Audio/Visualizers"
     RETURN_TYPES = ("IMAGE", "MASK")
     FUNCTION = "apply_effect"
 

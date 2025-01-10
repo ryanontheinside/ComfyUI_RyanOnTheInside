@@ -18,7 +18,7 @@ class FlexLatentBase(RyanOnTheInside, FlexBase):
             # Optional inputs are inherited from FlexBase
         }
 
-    CATEGORY = "RyanOnTheInside/FlexLatent"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Targets/Latents"
     RETURN_TYPES = ("LATENT",)
     FUNCTION = "apply_effect"
 

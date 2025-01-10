@@ -13,8 +13,9 @@ from skimage.segmentation import watershed
 from scipy import ndimage as ndi
 import math
 from ...tooltips import apply_tooltips
+
 class FlexExternalModulator(RyanOnTheInside):
-    CATEGORY = "RyanOnTheInside/FlexExternalMod"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Targets/ExternalTargets"
 
 @apply_tooltips
 class FeatureToWeightsStrategy(FlexExternalModulator):
@@ -170,6 +171,7 @@ import numpy as np
 import json
 from scipy.interpolate import interp1d
 
+_spline_category = f"{FlexExternalModulator.CATEGORY}/Spline"
 @apply_tooltips
 class SplineFeatureModulator(FlexExternalModulator):
     @classmethod
@@ -193,7 +195,7 @@ class SplineFeatureModulator(FlexExternalModulator):
     RETURN_TYPES = ("MASK", "STRING", "FLOAT", "INT", "STRING",)
     RETURN_NAMES = ("mask", "coord_str", "float", "count", "normalized_str",)
     FUNCTION = "modulate_spline"
-    CATEGORY = "RyanOnTheInside/SplineFeatureModulator"
+    CATEGORY = _spline_category
 
     def modulate_spline(self, coordinates, feature, mask_width, mask_height, 
                        min_speed, max_speed, float_output_type,
@@ -292,7 +294,7 @@ class SplineRhythmModulator(FlexExternalModulator):
     RETURN_TYPES = ("MASK", "STRING", "FLOAT", "INT", "STRING",)
     RETURN_NAMES = ("mask", "coord_str", "float", "count", "normalized_str",)
     FUNCTION = "modulate_rhythm"
-
+    CATEGORY = _spline_category
     def modulate_rhythm(self, coordinates, feature, mask_width, mask_height, 
                        smoothing, direction, float_output_type,
                        min_value=0.0, max_value=1.0):
@@ -440,7 +442,7 @@ class FeatureToFloat(FlexExternalModulator):
     
     RETURN_TYPES = ("FLOAT",)
     FUNCTION = "get_audio_weights"
-    CATEGORY = "RyanOnTheInside/Audio"
+
 
     def get_audio_weights(self, feature):
         data = []
@@ -448,8 +450,9 @@ class FeatureToFloat(FlexExternalModulator):
             data.append(feature.get_value_at_frame(i))
         return (data,) 
     
-#TODO: sub somthing else
-#TODO: really, sub something else
+
+#TODO: sub somthing logical
+_depth_category = "RyanOnTheInside/DepthModifiers"
 @apply_tooltips
 class DepthShapeModifier(FlexExternalModulator):
     @classmethod
@@ -469,7 +472,7 @@ class DepthShapeModifier(FlexExternalModulator):
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "modify_depth"
-    CATEGORY = "RyanOnTheInside/DepthModifiers"
+    CATEGORY = _depth_category
 
     def modify_depth(self, depth_map, mask, gradient_steepness, depth_min, depth_max, strength):
         device = depth_map.device
@@ -549,6 +552,7 @@ class DepthShapeModifier(FlexExternalModulator):
         return gradient_steepness, depth_min, depth_max, strength
     
 
+
 @apply_tooltips
 class DepthShapeModifierPrecise(FlexExternalModulator):
     @classmethod
@@ -567,7 +571,7 @@ class DepthShapeModifierPrecise(FlexExternalModulator):
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "modify_depth"
-    CATEGORY = "RyanOnTheInside/DepthModifiers"
+    CATEGORY = _depth_category
 
     def modify_depth(self, depth_map, mask, gradient_steepness, depth_min, depth_max, strength, composite_method):
         device = depth_map.device

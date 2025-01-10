@@ -163,7 +163,7 @@ class TemporalMaskBase(MaskBase, ABC):
             }
         }
     
-    CATEGORY="RyanOnTheInside/TemporalMasks"
+    CATEGORY="RyanOnTheInside/Masks/TemporalMasks"
 
     def __init__(self):
         super().__init__()
@@ -236,7 +236,7 @@ class OpticalFlowMaskBase(MaskBase, ABC):
             }
         }
 
-    CATEGORY="RyanOnTheInside/OpticalFlowMasks"
+    CATEGORY="RyanOnTheInside/OpticalFlow"
 
     def __init__(self):
         super().__init__()

@@ -11,6 +11,7 @@ import shutil
 
 #NOTE: THIS IS LEGACY FOR BACKWARD COMPATIBILITY. FUNCTIONALLY REPLACED BY TOOLTIPS.
 #NOTE: allows for central management and inheritance of class variables for help documentation
+#TODO: move all progress hooks here?
 class RyanOnTheInside(metaclass=CombinedMeta):
     @classmethod
     def get_description(cls):
@@ -103,7 +104,6 @@ from .nodes.flex.feature_extractors_whisper import(
 
 from .nodes.flex.feature_extractors_audio import(
     AudioFeatureExtractor,
-    AudioFeatureExtractorFirst,
     PitchRangeNode,
     PitchRangePresetNode,
     PitchRangeByNoteNode,
@@ -127,6 +127,7 @@ from .nodes.flex.visualizers import(
     ProximityVisualizer,
     EffectVisualizer,
     PitchVisualizer,
+    PreviewFeature,
 )
 
 
@@ -250,7 +251,7 @@ from .nodes.flex.feature_modulation import (
     FeatureScaler,
     FeatureSmoothing,
     FeatureFade,
-    PreviewFeature,
+    
     FeatureMath,
     FeatureRebase,
     FeatureTruncateOrExtend,
@@ -310,12 +311,20 @@ os.makedirs(midi_path, exist_ok=True)
 extension_path = os.path.join(os.path.dirname(folder_paths.__file__), "web", "extensions")
 my_extension_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "web", "extensions")
 
-# Copy our extension files to ComfyUI's extensions directory
+# Create RyanOnTheInside subfolder in ComfyUI extensions
+roti_extension_path = os.path.join(extension_path, "RyanOnTheInside")
+os.makedirs(roti_extension_path, exist_ok=True)
+
+# Clean up existing files in the RyanOnTheInside folder
+for file in os.listdir(roti_extension_path):
+    os.remove(os.path.join(roti_extension_path, file))
+
+# Copy our extension files to ComfyUI's extensions/RyanOnTheInside directory
 if os.path.exists(my_extension_path):
     for file in os.listdir(my_extension_path):
         if file.endswith('.js'):
             src = os.path.join(my_extension_path, file)
-            dst = os.path.join(extension_path, file)
+            dst = os.path.join(roti_extension_path, file)
             print(f"[RyanOnTheInside] Copying extension file: {file}")
             shutil.copy2(src, dst)
 
@@ -427,7 +436,7 @@ NODE_CLASS_MAPPINGS = {
 #TODO duplicate progress bar
 #TODO increase angle of chromatic abberation to  720
 #TODO: support negative feature values for opposit direction......
-    "AudioFeatureExtractorFirst": AudioFeatureExtractorFirst,
+
     
     "PitchFeatureExtractor":        PitchFeatureExtractor,
     "RhythmFeatureExtractor":       RhythmFeatureExtractor,
@@ -516,7 +525,9 @@ NODE_CLASS_MAPPINGS = {
     "MovingShape":                  MovingShape,
     "_mfc":                         _mfc,
     "TextMaskNode":                 TextMaskNode,
-    "MaskCompositePlus":                MaskCompositePlus,
+    #TODO: make useful
+    # "MaskCompositePlus":                MaskCompositePlus,
+    
     "AdvancedLuminanceMask":        AdvancedLuminanceMask,
     "TranslucentComposite":        TranslucentComposite,
 
@@ -536,69 +547,33 @@ EXTENSION_WEB_DIRS = ["./web/extensions"]
 
 NODE_DISPLAY_NAME_MAPPINGS = {
 
-    "FlexAudioVisualizerCircular": "**BETA** Flex Audio Visualizer Circular",
-    "FlexAudioVisualizerLine": "**BETA** Flex Audio Visualizer Line",
+    "ProximityVisualizer":          "Preview Proximity",
+    "EffectVisualizer":             "Preview Effect",
+    "PitchVisualizer":              "Preview Pitch",
 
     "FlexVideoSpeed":            "**BETA** Flex Video Speed",
-    "FlexVideoDirection":        "Flex Video Direction",
     "FlexVideoFrameBlend":       "**BETA**Flex Video Frame Blend",
-    "FlexVideoSeek":            "Flex Video Seek",
-
-
-    "MaskMorph": "Temporal Mask Morph",
-    "MaskTransform":"Temporal Mask Transform",
-    "MaskMath":"Temporal Mask Math",
-    "MaskRings":"Temporal Mask Rings",
-    "MaskWarp":"Temporal Mask Warp",
-
-    
-    "OpticalFlowMaskModulation": "Optical Flow Mask Modulation",
-    "OpticalFlowParticleSystem":"Optical Flow Particle System",
-    #"OpticalFlowDirectionMask":"Optical Flow Direction Mask",
-    
-    "ParticleEmissionMask":"Particle Emission Mask",
-    "Vortex": "Vortex",
-    "GravityWell":"Gravity Well",
-    "ParticleEmitter": "Particle Emitter",
-    "EmitterMovement":"Emitter Movement",
-    "SpringJointSetting":"Spring Joint Setting",
-    "StaticBody":"Static Body",
-    "ParticleColorModulation":"Particle Color Modulation",
-    "ParticleSizeModulation": "Particle Size Modulation",
-    "ParticleSpeedModulation":"Particle Speed Modulation",
-
-  
-    "AudioSeparator": "Audio Separator",
 
     "AudioFeatureVisualizer": "Audio Feature Visualizer ***BETA***" ,
-    "Frequency Filter Custom": "Frequency Filter Custom",
-    "Frequency Filter Preset": "Frequency Filter Preset",
-    "AudioFilter": "Audio Filter",
+    
   
 
     "MIDILoadAndExtract":   "MIDI Load & Feature Extract",
     "PitchRangeByNoteNode": "Pitch Range By Note",
-    "AudioFeatureExtractor": "Audio Feature & Extractor",
+    "AudioFeatureExtractor": "Audio Feature Extractor",
     "TimeFeatureNode":          "Time Feature",
     "DepthFeatureNode":"Depth Feature",
     "BrightnessFeatureNode":"Brightness Feature",
     "MotionFeatureNode":"Motion Feature",
 
-    "FeatureMixer":                 "FeatureMod Mixer",
-    "FeatureAccumulate":            "FeatureMod Accumulate",
-    "FeatureCombine":               "FeatureMod Combine",
-    "FeatureOscillator":            "FeatureMod Oscillator",
-    "FeatureScaler":                "FeatureMod Scaler",
-    "FeatureSmoothing":             "FeatureMod Smoothing",
-    "FeatureMath":                  "FeatureMod Math",
-    "MovingShape": "Moving Shape",
-    "TextMaskNode":"Text Mask Node",
 
 
-    "DyeImage" : "Dye Image",
+
+
+
     "ImageCASBatch": "Image Contrast Adaptive Sharpen Batch",
     "ImageIntervalSelectPercentage":  "Image Interval Select %",
-    "ImageScaleToTarget": "Upscale To Target",
+    "ImageScaleToTarget": "Upscale Image To Target",
 
     "FeatureToSplineData": "***BETA*** Feature To Spline Data",
     "SplineFeatureModulator": "***BETA*** Spline Feature Modulator",

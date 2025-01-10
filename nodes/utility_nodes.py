@@ -6,11 +6,15 @@ from abc import ABC
 from ..tooltips import apply_tooltips
  
 class UtilityNode(RyanOnTheInside, ABC):
+    #NOTE: for forward compatibility
     CATEGORY="RyanOnTheInside/Utility"
 
+class BatchUtilityNode(UtilityNode):
+    #NOTE: for forward compatibility
+    CATEGORY= f"{UtilityNode.CATEGORY}/Batches"
 
 @apply_tooltips
-class ImageIntervalSelect(UtilityNode):
+class ImageIntervalSelect(BatchUtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -41,9 +45,9 @@ class ImageIntervalSelect(UtilityNode):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "select_interval"
 
-#NOTE eh
+#NOTE eh FIX MEH
 @apply_tooltips
-class ImageIntervalSelectPercentage(UtilityNode):
+class ImageIntervalSelectPercentage(BatchUtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -73,7 +77,7 @@ class ImageIntervalSelectPercentage(UtilityNode):
     FUNCTION = "select_percentage_interval"
 
 @apply_tooltips
-class ImageChunks(UtilityNode):
+class ImageChunks(BatchUtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -103,7 +107,7 @@ class ImageChunks(UtilityNode):
 
 #TODO inherit from ImageChunk reuse
 @apply_tooltips
-class VideoChunks(UtilityNode):
+class VideoChunks(BatchUtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -147,7 +151,7 @@ class VideoChunks(UtilityNode):
     FUNCTION = "chunk_images_into_grids"
 
 @apply_tooltips
-class Image_Shuffle(UtilityNode):
+class Image_Shuffle(BatchUtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
         return {

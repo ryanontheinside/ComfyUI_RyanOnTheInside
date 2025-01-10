@@ -59,7 +59,7 @@ class FeatureExtractorBase(RyanOnTheInside, ABC):
         self.current_progress = 0
         self.total_steps = 0
     
-    CATEGORY="RyanOnTheInside/FlexFeatures"
+    CATEGORY="RyanOnTheInside/FlexFeatures/Sources"
 
 @apply_tooltips
 class ManualFeatureNode(FeatureExtractorBase):
@@ -82,6 +82,7 @@ class ManualFeatureNode(FeatureExtractorBase):
 
     RETURN_TYPES = ("FEATURE",)
     FUNCTION = "create_feature"
+    CATEGORY = f"{FeatureExtractorBase.CATEGORY}/Manual"
 
     def _apply_interpolation(self, frame_count, frame_rate, frame_numbers, values, last_value, interpolation_method, width=None, height=None):
         """Shared interpolation logic"""
@@ -147,6 +148,7 @@ class ManualFeatureFromPipe(ManualFeatureNode):
         }
 
     FUNCTION = "create_feature_from_pipe"
+    CATEGORY = f"{FeatureExtractorBase.CATEGORY}/Manual"
 
     def create_feature_from_pipe(self, feature_pipe, frame_numbers, values, last_value, interpolation_method):
         # Parse inputs
@@ -165,6 +167,63 @@ class ManualFeatureFromPipe(ManualFeatureNode):
 
         return (manual_feature, feature_pipe)
 
+@apply_tooltips
+class DrawableFeatureNode(FeatureExtractorBase):
+    #TODO: add logic to truncate on frame count change
+    @classmethod
+    def feature_type(cls) -> type[BaseFeature]:
+        return DrawableFeature
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            **super().INPUT_TYPES(),
+            "required": {
+                **super().INPUT_TYPES()["required"],
+                "points": ("STRING", {"default": "[]"}),  # JSON string of points
+                "min_value": ("FLOAT", {"default": 0.0, "min": -100.0, "max": 100.0, "step": 0.1}),
+                "max_value": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.1}),
+                "interpolation_method": (["linear", "cubic", "nearest", "zero", "hold", "ease_in", "ease_out"], {"default": "linear"}),
+                "fill_value": ("FLOAT", {"default": 0.0, "min": -100.0, "max": 100.0, "step": 0.1}),
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE",)
+    FUNCTION = "create_feature"
+    CATEGORY = f"{FeatureExtractorBase.CATEGORY}/Manual"
+    
+    def create_feature(self, points, frame_rate, frame_count, width, height, extraction_method, interpolation_method, min_value, max_value, fill_value):
+        try:
+            point_data = json.loads(points)
+            if not isinstance(point_data, list):
+                raise ValueError("Points data must be a list")
+            # Validate points format
+            for point in point_data:
+                if not isinstance(point, list) or len(point) != 2:
+                    raise ValueError("Each point must be a [frame, value] pair")
+                if not (isinstance(point[0], (int, float)) and isinstance(point[1], (float))):
+                    raise ValueError("Frame must be number, value must be float")
+                if point[0] < 0 or point[0] > frame_count:
+                    raise ValueError(f"Frame {point[0]} out of bounds")
+                if point[1] < min_value or point[1] > max_value:
+                    raise ValueError(f"Value {point[1]} outside range [{min_value}, {max_value}]")
+        except json.JSONDecodeError:
+            raise ValueError("Invalid JSON format for points")
+
+        drawable_feature = DrawableFeature(
+            "drawable_feature",
+            frame_rate,
+            frame_count,
+            width,
+            height,
+            point_data,
+            method=interpolation_method,
+            min_value=min_value,
+            max_value=max_value,
+            fill_value=fill_value
+        )
+        drawable_feature.extract()
+        return (drawable_feature,)
    
 @apply_tooltips
 class TimeFeatureNode(FeatureExtractorBase):
@@ -349,64 +408,7 @@ class AreaFeatureNode(FeatureExtractorBase):
         area_feature = AreaFeature("area_feature", frame_rate, frame_count, width, height, masks, extraction_method, threshold)
         area_feature.extract()
         return (area_feature,)
-    
-@apply_tooltips
-class DrawableFeatureNode(FeatureExtractorBase):
-    #TODO: add logic to truncate on frame count change
-    @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        return DrawableFeature
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "points": ("STRING", {"default": "[]"}),  # JSON string of points
-                "min_value": ("FLOAT", {"default": 0.0, "min": -100.0, "max": 100.0, "step": 0.1}),
-                "max_value": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.1}),
-                "interpolation_method": (["linear", "cubic", "nearest", "zero", "hold", "ease_in", "ease_out"], {"default": "linear"}),
-                "fill_value": ("FLOAT", {"default": 0.0, "min": -100.0, "max": 100.0, "step": 0.1}),
-            }
-        }
-
-    RETURN_TYPES = ("FEATURE",)
-    FUNCTION = "create_feature"
-
-    def create_feature(self, points, frame_rate, frame_count, width, height, extraction_method, interpolation_method, min_value, max_value, fill_value):
-        try:
-            point_data = json.loads(points)
-            if not isinstance(point_data, list):
-                raise ValueError("Points data must be a list")
-            # Validate points format
-            for point in point_data:
-                if not isinstance(point, list) or len(point) != 2:
-                    raise ValueError("Each point must be a [frame, value] pair")
-                if not (isinstance(point[0], (int, float)) and isinstance(point[1], (float))):
-                    raise ValueError("Frame must be number, value must be float")
-                if point[0] < 0 or point[0] > frame_count:
-                    raise ValueError(f"Frame {point[0]} out of bounds")
-                if point[1] < min_value or point[1] > max_value:
-                    raise ValueError(f"Value {point[1]} outside range [{min_value}, {max_value}]")
-        except json.JSONDecodeError:
-            raise ValueError("Invalid JSON format for points")
-
-        drawable_feature = DrawableFeature(
-            "drawable_feature",
-            frame_rate,
-            frame_count,
-            width,
-            height,
-            point_data,
-            method=interpolation_method,
-            min_value=min_value,
-            max_value=max_value,
-            fill_value=fill_value
-        )
-        drawable_feature.extract()
-        return (drawable_feature,)
-    
+        
     
 @apply_tooltips
 class FeatureInfoNode(RyanOnTheInside):
@@ -424,20 +426,30 @@ class FeatureInfoNode(RyanOnTheInside):
             }
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "INT", "INT", "INT", "INT")
-    RETURN_NAMES = ("name", "type", "frame_rate", "frame_count", "width", "height")
+    RETURN_TYPES = ("STRING", "STRING", "INT","FLOAT", "INT", "INT", "INT", "FLOAT", "FLOAT")
+    RETURN_NAMES = ("name", "type", "frame_rate","frame_rate_float", "frame_count", "width", "height", "min_value", "max_value")
     FUNCTION = "get_info"
-    CATEGORY = "Ryan/Features"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Utilities"
 
     def get_info(self, feature):
         """Extract common information from the feature"""
+
+
+        #TODO: rename attr to thresholds impending
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]        # Use feature.min_value and feature.max_value if available, otherwise use actual min/max
+        min_val = getattr(feature, 'min_value', min(values))
+        max_val = getattr(feature, 'max_value', max(values))
+
         return (
             feature.name,
             feature.type,
             feature.frame_rate,
+            float(feature.frame_rate),
             feature.frame_count,
             feature.width if feature.width is not None else 0,
-            feature.height if feature.height is not None else 0
+            feature.height if feature.height is not None else 0,
+            min_val,
+            max_val
         )
 
 

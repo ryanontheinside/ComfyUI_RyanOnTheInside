@@ -20,7 +20,7 @@ class PoseInterpolator(RyanOnTheInside):
 
     RETURN_TYPES = ("POSE_KEYPOINT",)
     FUNCTION = "interpolate_poses"
-    CATEGORY = "RyanOnTheInside/Poses"
+    CATEGORY = "RyanOnTheInside/ExperimentalWIP"
 
     def interpolate_poses(self, pose_1, pose_2, feature, strength, interpolation_mode, omit_missing_points):
         print("Debug: Starting interpolate_poses method")

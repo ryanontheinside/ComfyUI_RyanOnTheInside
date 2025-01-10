@@ -47,7 +47,7 @@ class ParticleSystemMaskBase(MaskBase, ABC):
 
     RETURN_TYPES = ("MASK", "IMAGE")
     FUNCTION = "main_function"
-    CATEGORY="RyanOnTheInside/ParticleSystemMasks"
+    CATEGORY="RyanOnTheInside/ParticleSystems"
 
     def __init__(self):
         super().__init__()

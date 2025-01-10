@@ -17,7 +17,7 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
         })
         return base_inputs
 
-    CATEGORY = "RyanOnTheInside/FlexImages"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Targets/Images"
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "apply_effect"
 
