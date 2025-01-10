@@ -325,6 +325,22 @@ Each node type has different parameters that can be modulated:
         "denoise_strength": "Strength of noise reduction (0.0 to 1.0). Higher values smooth out noise while preserving edges."
     }, description="Creates a sophisticated luminance-based mask that preserves translucency, glows, and gradients while intelligently handling non-pure-black backgrounds.")
 
+    # TranslucentComposite tooltips
+    TooltipManager.register_tooltips("TranslucentComposite", {
+        "background": "The base image to composite onto (IMAGE type)",
+        "foreground": "The image to composite over the background (IMAGE type)",
+        "mask": "Mask determining where to apply the composite (MASK type)",
+        "blend_mode": """Blending method for the composite:
+- normal: Standard alpha compositing
+- screen: Brightens the result, good for glows and reflections
+- multiply: Darkens the result, good for shadows and dark glass
+- overlay: Increases contrast while preserving highlights and shadows""",
+        "opacity": "Overall opacity of the composite effect (0.0 to 1.0)",
+        "preserve_transparency": "When enabled, uses the foreground's luminance to modify transparency, creating realistic translucent effects",
+        "luminance_boost": "Adjusts the brightness of the foreground before compositing (-1.0 to 1.0). Useful for enhancing or subduing glow effects",
+        "background_influence": "How much the background colors influence the final result (0.0 to 1.0). Higher values create more realistic integration"
+    }, description="Composites a foreground image onto a background with advanced blending modes and transparency preservation, perfect for realistic translucent effects like glasses or holograms.")
+
     # FlexMaskMorph tooltips (inherits from: FlexMaskBase)
     TooltipManager.register_tooltips("FlexMaskMorph", {
         "morph_type": "Type of morphological operation ('erode', 'dilate', 'open', 'close')",

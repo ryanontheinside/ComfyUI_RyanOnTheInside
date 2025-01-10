@@ -157,6 +157,7 @@ from .nodes.masks.mask_utility_nodes import (
     MovingShape,
     MaskCompositePlus,
     AdvancedLuminanceMask,
+    TranslucentComposite,
 )
 
 from .nodes.utility_nodes import (
@@ -517,6 +518,7 @@ NODE_CLASS_MAPPINGS = {
     "TextMaskNode":                 TextMaskNode,
     "MaskCompositePlus":                MaskCompositePlus,
     "AdvancedLuminanceMask":        AdvancedLuminanceMask,
+    "TranslucentComposite":        TranslucentComposite,
 
     #utility nodes
     "ImageChunk":                   ImageChunks, 

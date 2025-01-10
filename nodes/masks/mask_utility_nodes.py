@@ -339,62 +339,154 @@ class AdvancedLuminanceMask:
         device = image.device
         image_np = image.cpu().numpy()
         
-        # Work with first image if batched
-        if len(image_np.shape) == 4:
-            image_np = image_np[0]
+        # Get batch size and prepare output arrays
+        batch_size = image_np.shape[0] if len(image_np.shape) == 4 else 1
+        if batch_size == 1 and len(image_np.shape) == 3:
+            image_np = image_np[None, ...]
         
-        # Convert to various color spaces for analysis
-        image_rgb = (image_np * 255).astype(np.uint8)
-        image_gray = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2GRAY)
-        image_hsv = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2HSV)
+        masks = []
+        vis_images = []
         
-        # Estimate background color from corners
-        h, w = image_gray.shape
-        corner_size = max(h, w) // background_samples
-        corners = [
-            image_gray[:corner_size, :corner_size],
-            image_gray[:corner_size, -corner_size:],
-            image_gray[-corner_size:, :corner_size],
-            image_gray[-corner_size:, -corner_size:]
-        ]
-        bg_value = np.median([np.median(corner) for corner in corners])
-        
-        # Create initial mask based on luminance difference from background
-        diff_from_bg = np.abs(image_gray.astype(float) - bg_value)
-        initial_mask = diff_from_bg > (luminance_threshold * 255)
-        
-        # Apply bilateral filter to reduce noise while preserving edges
-        if denoise_strength > 0:
-            d = int(denoise_strength * 10)
-            sigma_color = denoise_strength * 75
-            sigma_space = denoise_strength * 75
-            initial_mask = cv2.bilateralFilter(initial_mask.astype(np.float32), d, sigma_color, sigma_space)
-        
-        # Enhance edges and glowing effects
-        if glow_radius > 0:
-            kernel_size = 2 * glow_radius + 1
-            blurred = cv2.GaussianBlur(initial_mask, (kernel_size, kernel_size), 0)
-            mask = np.maximum(initial_mask, blurred * edge_preservation)
-        else:
-            mask = initial_mask
+        # Process each frame in the batch
+        for b in range(batch_size):
+            frame = image_np[b]
             
-        # Calculate luminance-based alpha for transparency
-        luminance = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2LAB)[:,:,0] / 255.0
-        alpha = np.clip(luminance * (1.0 / luminance_threshold), 0, 1)
+            # Convert to various color spaces for analysis
+            frame_rgb = (frame * 255).astype(np.uint8)
+            frame_gray = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2GRAY)
+            frame_hsv = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2HSV)
+            
+            # Estimate background color from corners
+            h, w = frame_gray.shape
+            corner_size = max(h, w) // background_samples
+            corners = [
+                frame_gray[:corner_size, :corner_size],
+                frame_gray[:corner_size, -corner_size:],
+                frame_gray[-corner_size:, :corner_size],
+                frame_gray[-corner_size:, -corner_size:]
+            ]
+            bg_value = np.median([np.median(corner) for corner in corners])
+            
+            # Create initial mask based on luminance difference from background
+            diff_from_bg = np.abs(frame_gray.astype(float) - bg_value)
+            initial_mask = diff_from_bg > (luminance_threshold * 255)
+            
+            # Apply bilateral filter to reduce noise while preserving edges
+            if denoise_strength > 0:
+                d = int(denoise_strength * 10)
+                sigma_color = denoise_strength * 75
+                sigma_space = denoise_strength * 75
+                initial_mask = cv2.bilateralFilter(initial_mask.astype(np.float32), d, sigma_color, sigma_space)
+            
+            # Enhance edges and glowing effects
+            if glow_radius > 0:
+                kernel_size = 2 * glow_radius + 1
+                blurred = cv2.GaussianBlur(initial_mask, (kernel_size, kernel_size), 0)
+                mask = np.maximum(initial_mask, blurred * edge_preservation)
+            else:
+                mask = initial_mask
+                
+            # Calculate luminance-based alpha for transparency
+            luminance = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2LAB)[:,:,0] / 255.0
+            alpha = np.clip(luminance * (1.0 / luminance_threshold), 0, 1)
+            
+            # Combine mask with alpha
+            final_mask = mask * alpha
+            
+            masks.append(final_mask)
+            vis_images.append(np.stack([final_mask, final_mask, final_mask], axis=-1))
         
-        # Combine mask with alpha
-        final_mask = mask * alpha
+        # Convert back to torch tensors
+        masks_tensor = torch.from_numpy(np.stack(masks)).float().to(device)
+        vis_tensor = torch.from_numpy(np.stack(vis_images)).float().to(device)
+        
+        return (masks_tensor, vis_tensor)
+
+@apply_tooltips
+class TranslucentComposite:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "background": ("IMAGE",),
+                "foreground": ("IMAGE",),
+                "mask": ("MASK",),
+                "blend_mode": (["normal", "screen", "multiply", "overlay"],),
+                "opacity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "preserve_transparency": ("BOOLEAN", {"default": True}),
+                "luminance_boost": ("FLOAT", {"default": 0.0, "min": -1.0, "max": 1.0, "step": 0.01}),
+                "background_influence": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 1.0, "step": 0.01}),
+            }
+        }
+    
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "composite"
+    CATEGORY = "RyanOnTheInside/masks/"
+
+    def composite(self, background, foreground, mask, blend_mode, opacity, preserve_transparency, luminance_boost, background_influence):
+        device = background.device
+        
+        # Convert to numpy for processing
+        bg = background.cpu().numpy()
+        fg = foreground.cpu().numpy()
+        mask = mask.cpu().numpy()
+        
+        # Handle batching
+        if len(bg.shape) == 3:
+            bg = bg[None, ...]
+        if len(fg.shape) == 3:
+            fg = fg[None, ...]
+        if len(mask.shape) == 2:
+            mask = mask[None, ...]
+            
+        batch_size = bg.shape[0]
+        result = []
+        
+        for b in range(batch_size):
+            # Convert to float32 for processing
+            bg_frame = (bg[b] * 255).astype(np.float32)
+            fg_frame = (fg[b] * 255).astype(np.float32)
+            mask_frame = mask[b]
+            
+            # Convert to LAB color space for luminance processing
+            bg_lab = cv2.cvtColor(bg_frame.astype(np.uint8), cv2.COLOR_RGB2LAB).astype(np.float32)
+            fg_lab = cv2.cvtColor(fg_frame.astype(np.uint8), cv2.COLOR_RGB2LAB).astype(np.float32)
+            
+            # Apply luminance boost to foreground
+            if luminance_boost != 0:
+                fg_lab[:, :, 0] = np.clip(fg_lab[:, :, 0] + (luminance_boost * 100), 0, 255)
+                fg_frame = cv2.cvtColor(fg_lab.astype(np.uint8), cv2.COLOR_LAB2RGB).astype(np.float32)
+            
+            # Calculate transparency based on luminance if preserve_transparency is True
+            if preserve_transparency:
+                fg_luminance = cv2.cvtColor(fg_frame.astype(np.uint8), cv2.COLOR_RGB2GRAY).astype(np.float32) / 255.0
+                mask_frame = mask_frame * fg_luminance
+            
+            # Apply blend mode
+            if blend_mode == "screen":
+                blended = 255 - ((255 - bg_frame) * (255 - fg_frame) / 255)
+            elif blend_mode == "multiply":
+                blended = (bg_frame * fg_frame) / 255
+            elif blend_mode == "overlay":
+                blended = np.where(bg_frame > 127.5,
+                                 255 - ((255 - 2*(bg_frame-127.5)) * (255-fg_frame)) / 255,
+                                 (2*bg_frame*fg_frame) / 255)
+            else:  # normal
+                blended = fg_frame
+            
+            # Apply background influence
+            if background_influence > 0:
+                bg_influence_mask = cv2.GaussianBlur(mask_frame[..., None], (5, 5), 0) * background_influence
+                blended = blended * (1 - bg_influence_mask) + bg_frame * bg_influence_mask
+            
+            # Final compositing with mask and opacity
+            mask_3ch = np.stack([mask_frame] * 3, axis=-1) * opacity
+            composite = bg_frame * (1 - mask_3ch) + blended * mask_3ch
+            
+            # Normalize and append to results
+            result.append(np.clip(composite, 0, 255) / 255.0)
         
         # Convert back to torch tensor
-        mask_tensor = torch.from_numpy(final_mask).float().to(device)
-        if len(image.shape) == 4:
-            mask_tensor = mask_tensor.unsqueeze(0)
+        result_tensor = torch.from_numpy(np.stack(result)).float().to(device)
         
-        # Create visualization image
-        vis_image = torch.from_numpy(
-            np.stack([final_mask, final_mask, final_mask], axis=-1)
-        ).float().to(device)
-        if len(image.shape) == 4:
-            vis_image = vis_image.unsqueeze(0)
-        
-        return (mask_tensor, vis_image)
+        return (result_tensor,)
