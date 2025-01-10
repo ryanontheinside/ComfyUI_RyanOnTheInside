@@ -315,6 +315,16 @@ Each node type has different parameters that can be modulated:
         "operation": "Operation to combine masks ('add', 'subtract', 'multiply', 'divide', 'min', 'max', 'pixel_wise_min', 'pixel_wise_max')"
     })
 
+    # AdvancedLuminanceMask tooltips
+    TooltipManager.register_tooltips("AdvancedLuminanceMask", {
+        "image": "Input image to create mask from (IMAGE type)",
+        "luminance_threshold": "Base threshold for detecting non-background elements (0.0 to 1.0). Lower values catch more subtle details.",
+        "glow_radius": "Size of the glow effect in pixels (0 to 50). Higher values create larger, softer glows.",
+        "edge_preservation": "How much to preserve sharp edges while allowing glow (0.0 to 1.0). Higher values maintain more edge detail.",
+        "background_samples": "Number of corner samples to determine background color (1 to 100). More samples give better background detection.",
+        "denoise_strength": "Strength of noise reduction (0.0 to 1.0). Higher values smooth out noise while preserving edges."
+    }, description="Creates a sophisticated luminance-based mask that preserves translucency, glows, and gradients while intelligently handling non-pure-black backgrounds.")
+
     # FlexMaskMorph tooltips (inherits from: FlexMaskBase)
     TooltipManager.register_tooltips("FlexMaskMorph", {
         "morph_type": "Type of morphological operation ('erode', 'dilate', 'open', 'close')",

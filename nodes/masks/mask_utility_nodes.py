@@ -314,3 +314,87 @@ class MaskCompositePlus:
             raise ValueError(f"Unknown operation: {operation}")
 
         return (result,)
+
+@apply_tooltips
+class AdvancedLuminanceMask:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "luminance_threshold": ("FLOAT", {"default": 0.05, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "glow_radius": ("INT", {"default": 5, "min": 0, "max": 50, "step": 1}),
+                "edge_preservation": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "background_samples": ("INT", {"default": 10, "min": 1, "max": 100, "step": 1}),
+                "denoise_strength": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 1.0, "step": 0.01}),
+            }
+        }
+    
+    RETURN_TYPES = ("MASK", "IMAGE")
+    FUNCTION = "create_mask"
+    CATEGORY = "RyanOnTheInside/masks/"
+
+    def create_mask(self, image, luminance_threshold, glow_radius, edge_preservation, background_samples, denoise_strength):
+        # Convert to numpy for OpenCV operations
+        device = image.device
+        image_np = image.cpu().numpy()
+        
+        # Work with first image if batched
+        if len(image_np.shape) == 4:
+            image_np = image_np[0]
+        
+        # Convert to various color spaces for analysis
+        image_rgb = (image_np * 255).astype(np.uint8)
+        image_gray = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2GRAY)
+        image_hsv = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2HSV)
+        
+        # Estimate background color from corners
+        h, w = image_gray.shape
+        corner_size = max(h, w) // background_samples
+        corners = [
+            image_gray[:corner_size, :corner_size],
+            image_gray[:corner_size, -corner_size:],
+            image_gray[-corner_size:, :corner_size],
+            image_gray[-corner_size:, -corner_size:]
+        ]
+        bg_value = np.median([np.median(corner) for corner in corners])
+        
+        # Create initial mask based on luminance difference from background
+        diff_from_bg = np.abs(image_gray.astype(float) - bg_value)
+        initial_mask = diff_from_bg > (luminance_threshold * 255)
+        
+        # Apply bilateral filter to reduce noise while preserving edges
+        if denoise_strength > 0:
+            d = int(denoise_strength * 10)
+            sigma_color = denoise_strength * 75
+            sigma_space = denoise_strength * 75
+            initial_mask = cv2.bilateralFilter(initial_mask.astype(np.float32), d, sigma_color, sigma_space)
+        
+        # Enhance edges and glowing effects
+        if glow_radius > 0:
+            kernel_size = 2 * glow_radius + 1
+            blurred = cv2.GaussianBlur(initial_mask, (kernel_size, kernel_size), 0)
+            mask = np.maximum(initial_mask, blurred * edge_preservation)
+        else:
+            mask = initial_mask
+            
+        # Calculate luminance-based alpha for transparency
+        luminance = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2LAB)[:,:,0] / 255.0
+        alpha = np.clip(luminance * (1.0 / luminance_threshold), 0, 1)
+        
+        # Combine mask with alpha
+        final_mask = mask * alpha
+        
+        # Convert back to torch tensor
+        mask_tensor = torch.from_numpy(final_mask).float().to(device)
+        if len(image.shape) == 4:
+            mask_tensor = mask_tensor.unsqueeze(0)
+        
+        # Create visualization image
+        vis_image = torch.from_numpy(
+            np.stack([final_mask, final_mask, final_mask], axis=-1)
+        ).float().to(device)
+        if len(image.shape) == 4:
+            vis_image = vis_image.unsqueeze(0)
+        
+        return (mask_tensor, vis_image)

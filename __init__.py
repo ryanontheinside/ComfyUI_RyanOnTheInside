@@ -156,6 +156,7 @@ from .nodes.masks.mask_utility_nodes import (
     TextMaskNode, 
     MovingShape,
     MaskCompositePlus,
+    AdvancedLuminanceMask,
 )
 
 from .nodes.utility_nodes import (
@@ -423,6 +424,8 @@ NODE_CLASS_MAPPINGS = {
 #TODO make feature info JS display info
 #TODO removethis
 #TODO duplicate progress bar
+#TODO increase angle of chromatic abberation to  720
+#TODO: support negative feature values for opposit direction......
     "AudioFeatureExtractorFirst": AudioFeatureExtractorFirst,
     
     "PitchFeatureExtractor":        PitchFeatureExtractor,
@@ -513,6 +516,7 @@ NODE_CLASS_MAPPINGS = {
     "_mfc":                         _mfc,
     "TextMaskNode":                 TextMaskNode,
     "MaskCompositePlus":                MaskCompositePlus,
+    "AdvancedLuminanceMask":        AdvancedLuminanceMask,
 
     #utility nodes
     "ImageChunk":                   ImageChunks, 
