@@ -234,7 +234,7 @@ from .nodes.depth.depth_base import(
     DepthRippleEffect,
 )
 
-from .nodes.flex.feature_externals import (
+from .nodes.flex.flex_externals import (
     FeatureToWeightsStrategy,
     FeatureToSplineData,
     SplineFeatureModulator,
@@ -284,15 +284,32 @@ from .nodes.preprocessors.pose import PoseInterpolator
 
 from .nodes.doom.doom import Doom
 
+from .nodes.models.flex_model_base import FlexCrossAttentionModulator
+
+
 HAS_ADVANCED_LIVE_PORTRAIT = os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-AdvancedLivePortrait"))
 
 if HAS_ADVANCED_LIVE_PORTRAIT:
-    from .nodes.flex.flex_advanced_live_portrait import FlexExpressionEditor
+
+    from .nodes.flex.flex_externals_advanced_live_portrait import FlexExpressionEditor
 else:
     print("ComfyUI-AdvancedLivePortrait not found. FlexExpressionEditor will not be available. Install ComfyUI-AdvancedLivePortrait and restart ComfyUI.")
 
+# Add after the HAS_ADVANCED_LIVE_PORTRAIT check
+HAS_ANIMATEDIFF = os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-AnimateDiff-Evolved"))
 
-
+if HAS_ANIMATEDIFF:
+    try:
+        from .nodes.flex.flex_externals_animatediff import (
+            FeatureToADKeyframe,
+            FeatureToCameraKeyframe,
+            FeatureToPIAKeyframe,
+        )
+    except Exception as e:
+        print(f"Error loading AnimateDiff feature nodes: {str(e)}")
+        HAS_ANIMATEDIFF = False
+else:
+    print("ComfyUI-AnimateDiff-Evolved not found. AnimateDiff feature nodes will not be available. Install ComfyUI-AnimateDiff-Evolved and restart ComfyUI.")
 
 # Get the directory of the current file
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -332,8 +349,10 @@ NODE_CLASS_MAPPINGS = {
     #NOTE: PoseInterpolator is not working yet
     #"PoseInterpolator": PoseInterpolator,
 
+    "FlexCrossAttentionModulator": FlexCrossAttentionModulator,
     "Doom": Doom,
     "WhisperToPromptTravel": WhisperToPromptTravel,
+
 
     "ManualFeaturePipe": ManualFeaturePipe,
     "ManualFeatureFromPipe": ManualFeatureFromPipe,
@@ -584,6 +603,12 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 if HAS_ADVANCED_LIVE_PORTRAIT:
     NODE_CLASS_MAPPINGS["FlexExpressionEditor"] = FlexExpressionEditor
 
+if HAS_ANIMATEDIFF:
+    NODE_CLASS_MAPPINGS.update({
+        "FeatureToADKeyframe": FeatureToADKeyframe,
+        "FeatureToCameraKeyframe": FeatureToCameraKeyframe,
+        "FeatureToPIAKeyframe": FeatureToPIAKeyframe,
+    })
 
 import re
 

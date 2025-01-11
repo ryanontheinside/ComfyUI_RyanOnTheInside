@@ -13,8 +13,11 @@ import yaml
 from ultralytics import YOLO
 import importlib.util
 
+#TODO / NOTE: this more robust  import  module from path should logically be moved to the FlexExternals baseclass.
+
 #NOTE: attempt to import advanced live portrait
 def import_module_from_path(module_name, module_path):
+
     package_dir = os.path.dirname(module_path)
     original_sys_path = sys.path.copy()
     

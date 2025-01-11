@@ -2,6 +2,9 @@ import torch
 import torch.nn.functional as F
 import numpy  as np
 from ... import RyanOnTheInside
+import os
+import sys
+import importlib.util
 import cv2
 import torch
 import torch.nn.functional as F
@@ -16,6 +19,49 @@ from ...tooltips import apply_tooltips
 
 class FlexExternalModulator(RyanOnTheInside):
     CATEGORY = "RyanOnTheInside/FlexFeatures/Targets/ExternalTargets"
+
+    @staticmethod
+    def import_module_from_path(module_name, module_path):
+        """Helper method to import external modules from other custom node packs.
+        
+        Args:
+            module_name: Name to give the imported module
+            module_path: Path to the module file
+            
+        Returns:
+            The imported module
+        """
+        package_dir = os.path.dirname(module_path)
+        original_sys_path = sys.path.copy()
+        
+        try:
+            # Add the parent directory to sys.path
+            parent_dir = os.path.dirname(package_dir)
+            if parent_dir not in sys.path:
+                sys.path.insert(0, parent_dir)
+                
+            # Create module spec
+            spec = importlib.util.spec_from_file_location(module_name, module_path)
+            if spec is None:
+                raise ImportError(f"Cannot create a module spec for {module_path}")
+                
+            module = importlib.util.module_from_spec(spec)
+            
+            # Add the module to sys.modules
+            sys.modules[module_name] = module
+            
+            # Set up package structure
+            package_name = os.path.basename(package_dir).replace('-', '_')
+            module.__package__ = package_name
+            
+            # Execute the module
+            spec.loader.exec_module(module)
+            
+            return module
+            
+        finally:
+            # Restore original sys.path
+            sys.path = original_sys_path
 
 @apply_tooltips
 class FeatureToWeightsStrategy(FlexExternalModulator):
