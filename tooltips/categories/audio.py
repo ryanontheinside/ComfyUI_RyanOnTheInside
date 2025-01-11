@@ -178,8 +178,30 @@ Supports multiple contours and various visualization styles.""")
 
     # AudioInfo tooltips (inherits from: AudioUtility)
     TooltipManager.register_tooltips("AudioInfo", {
-        "audio": "Input audio to analyze"
-    }, inherits_from='AudioUtility')
+        "audio": "Input audio to analyze",
+        "frame_rate": "Target frame rate for animation timing calculations (frames per second)",
+        "total_frames": "Total number of frames based on audio duration and frame rate",
+        "frames_per_beat": "Number of frames per musical beat at the detected tempo",
+        "frames_per_bar": "Number of frames per musical bar (assumes 4/4 time signature)",
+        "frames_per_quarter": "Number of frames per quarter note",
+        "frames_per_eighth": "Number of frames per eighth note",
+        "audio_duration": "Total duration of the audio in seconds",
+        "beats_per_second": "Number of beats per second based on detected tempo",
+        "detected_bpm": "Detected tempo in beats per minute (BPM)",
+        "sample_rate": "Audio sample rate in Hz",
+        "num_channels": "Number of audio channels (1 for mono, 2 for stereo)",
+        "num_samples": "Total number of audio samples",
+        "max_amplitude": "Maximum absolute amplitude in the audio (0.0 to 1.0)",
+        "mean_amplitude": "Mean absolute amplitude across all samples (0.0 to 1.0)",
+        "rms_amplitude": "Root mean square amplitude - indicates overall perceived loudness (0.0 to 1.0)",
+        "bit_depth": "Bit depth of the audio data (e.g., float32, int16)"
+    }, inherits_from='AudioUtility', description="""Analyzes audio to provide timing and technical information.
+    
+Perfect for:
+- Synchronizing animations with music using detected BPM
+- Planning keyframes based on musical timing
+- Understanding audio properties for processing
+- Creating amplitude-based effects""")
 
     # AudioDither tooltips (inherits from: AudioUtility)
     TooltipManager.register_tooltips("AudioDither", {
