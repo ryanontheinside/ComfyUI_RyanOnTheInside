@@ -137,6 +137,7 @@
             const isInput = node.inputs.some(input => input.widget === widget);
             
             if (isInput) {
+                // TODO
                 // Convert input back to widget using core ComfyUI's convertToWidget function
                 // console.log("[Widget Hotkey] Attempting to convert input back to widget:", widget.name);
                 // convertToWidget(node, widget);

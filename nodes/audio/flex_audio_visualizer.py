@@ -698,6 +698,11 @@ class FlexAudioVisualizerContour(FlexAudioVisualizerBase):
                 "line_width": ("INT", {"default": 2, "min": 1, "max": 10, "step": 1}),
                 "contour_smoothing": ("INT", {"default": 0, "min": 0, "max": 50, "step": 1}),
                 "rotation": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
+                # New parameters for direction and multi-contour
+                "direction": (["outward", "inward", "both"], {"default": "outward"}),
+                "min_contour_area": ("FLOAT", {"default": 100.0, "min": 0.0, "max": 10000.0, "step": 10.0}),
+                "max_contours": ("INT", {"default": 5, "min": 1, "max": 20, "step": 1}),
+                "distribute_by": (["area", "perimeter", "equal"], {"default": "perimeter"}),
             }
         }
 
@@ -712,7 +717,8 @@ class FlexAudioVisualizerContour(FlexAudioVisualizerBase):
     @classmethod
     def get_modifiable_params(cls):
         return ["smoothing", "rotation", "num_points", "fft_size", "min_frequency", "max_frequency", 
-                "bar_length", "line_width", "contour_smoothing", "None"]
+                "bar_length", "line_width", "contour_smoothing", "direction", "min_contour_area", 
+                "max_contours", "None"]
 
     def apply_effect(self, audio, frame_rate, mask, strength, feature_param, feature_mode,
                      audio_feature_param, opt_feature=None, **kwargs):
@@ -753,6 +759,10 @@ class FlexAudioVisualizerContour(FlexAudioVisualizerBase):
         bar_length = kwargs.get('bar_length')
         contour_smoothing = kwargs.get('contour_smoothing')
         rotation = kwargs.get('rotation', 0.0) % 360.0
+        direction = kwargs.get('direction', 'outward')
+        min_contour_area = kwargs.get('min_contour_area', 100.0)
+        max_contours = kwargs.get('max_contours', 5)
+        distribute_by = kwargs.get('distribute_by', 'perimeter')
         
         # Get the frame index from the processor's current state
         frame_index = processor.current_frame if hasattr(processor, 'current_frame') else 0
@@ -769,88 +779,134 @@ class FlexAudioVisualizerContour(FlexAudioVisualizerBase):
         
         if not contours:
             return image
-            
-        # Get the largest contour
-        contour = max(contours, key=cv2.contourArea)
-        
-        # Apply contour smoothing if specified
-        if contour_smoothing > 0:
-            epsilon = contour_smoothing * cv2.arcLength(contour, True) * 0.01
-            contour = cv2.approxPolyDP(contour, epsilon, True)
-        
+
+        # Filter and sort contours by area
+        valid_contours = [c for c in contours if cv2.contourArea(c) >= min_contour_area]
+        valid_contours.sort(key=cv2.contourArea, reverse=True)
+        valid_contours = valid_contours[:max_contours]
+
+        if not valid_contours:
+            return image
+
+        # Calculate distribution weights based on chosen method
+        if distribute_by == 'area':
+            weights = [cv2.contourArea(c) for c in valid_contours]
+        elif distribute_by == 'perimeter':
+            weights = [cv2.arcLength(c, True) for c in valid_contours]
+        else:  # 'equal'
+            weights = [1] * len(valid_contours)
+
+        # Normalize weights
+        total_weight = sum(weights)
+        if total_weight == 0:
+            weights = [1 / len(weights)] * len(weights)
+        else:
+            weights = [w / total_weight for w in weights]
+
         # Get spectrum data
         data = processor.spectrum
         
-        # Resample contour points to match audio data length
-        contour = contour.squeeze()
-        contour_length = len(contour)
-        
-        # Ensure we have enough points for interpolation
-        if contour_length < 2:
-            return image
-        
-        # Ensure the contour is closed
-        if not np.array_equal(contour[0], contour[-1]):
-            contour = np.vstack([contour, contour[0]])
-            contour_length += 1
-        
-        # Apply rotation as an offset along the contour
-        rotation_offset = int((rotation / 360.0) * contour_length)
-        
-        # Create points along the contour with rotation offset
-        indices = (np.linspace(0, contour_length - 1, len(data)) + rotation_offset) % (contour_length - 1)
-        
-        # Interpolate contour points
-        x_coords = np.interp(indices, range(contour_length), contour[:, 0])
-        y_coords = np.interp(indices, range(contour_length), contour[:, 1])
-        
-        # Calculate normals along the contour
-        dx = np.gradient(x_coords)
-        dy = np.gradient(y_coords)
-        
-        # Normalize the normals, handling zero lengths
-        lengths = np.sqrt(dx**2 + dy**2)
-        # Replace zero lengths with 1 to avoid division by zero
-        lengths = np.where(lengths > 0, lengths, 1.0)
-        normals_x = -dy / lengths
-        normals_y = dx / lengths
-        
-        # Replace any remaining NaN values with zeros
-        normals_x = np.nan_to_num(normals_x, 0.0)
-        normals_y = np.nan_to_num(normals_y, 0.0)
+        # Function to process a single contour
+        def process_contour(contour, start_idx, end_idx, direction_multiplier=1.0):
+            # Apply contour smoothing if specified
+            if contour_smoothing > 0:
+                epsilon = contour_smoothing * cv2.arcLength(contour, True) * 0.01
+                contour = cv2.approxPolyDP(contour, epsilon, True)
+            
+            # Prepare contour points
+            contour = contour.squeeze()
+            if len(contour.shape) < 2:  # Handle single-point contours
+                return
+                
+            contour_length = len(contour)
+            if contour_length < 2:
+                return
+                
+            # Ensure the contour is closed
+            if not np.array_equal(contour[0], contour[-1]):
+                contour = np.vstack([contour, contour[0]])
+                contour_length += 1
+            
+            # Apply rotation as an offset along the contour
+            rotation_offset = int((rotation / 360.0) * contour_length)
+            
+            # Get the portion of data for this contour
+            contour_data = data[start_idx:end_idx]
+            num_points = len(contour_data)
+            
+            # Create points along the contour with rotation offset
+            indices = (np.linspace(0, contour_length - 1, num_points) + rotation_offset) % (contour_length - 1)
+            
+            # Interpolate contour points
+            x_coords = np.interp(indices, range(contour_length), contour[:, 0])
+            y_coords = np.interp(indices, range(contour_length), contour[:, 1])
+            
+            # Calculate normals along the contour
+            dx = np.gradient(x_coords)
+            dy = np.gradient(y_coords)
+            
+            # Normalize the normals
+            lengths = np.sqrt(dx**2 + dy**2)
+            lengths = np.where(lengths > 0, lengths, 1.0)
+            normals_x = -dy / lengths
+            normals_y = dx / lengths
+            
+            # Replace any NaN values
+            normals_x = np.nan_to_num(normals_x, 0.0)
+            normals_y = np.nan_to_num(normals_y, 0.0)
 
-        if visualization_method == 'bar':
-            # Draw bars along the contour
-            for i, amplitude in enumerate(data):
-                # Start point on contour
-                x1, y1 = int(x_coords[i]), int(y_coords[i])
-                
-                # End point based on amplitude
-                bar_height = amplitude * bar_length
-                x2 = int(x1 + normals_x[i] * bar_height)
-                y2 = int(y1 + normals_y[i] * bar_height)
-                
-                # Ensure points are within image bounds
-                x1 = np.clip(x1, 0, screen_width - 1)
-                y1 = np.clip(y1, 0, screen_height - 1)
-                x2 = np.clip(x2, 0, screen_width - 1)
-                y2 = np.clip(y2, 0, screen_height - 1)
-                
-                cv2.line(image, (x1, y1), (x2, y2), (1.0, 1.0, 1.0), thickness=line_width)
-        
-        else:  # line mode
-            # Calculate points for the continuous line
-            points = np.column_stack([
-                x_coords + normals_x * data * bar_length,
-                y_coords + normals_y * data * bar_length
-            ]).astype(np.int32)
+            if visualization_method == 'bar':
+                # Draw bars along the contour
+                for i, amplitude in enumerate(contour_data):
+                    x1, y1 = int(x_coords[i]), int(y_coords[i])
+                    
+                    # Apply direction multiplier to the bar length
+                    bar_height = amplitude * bar_length * direction_multiplier
+                    x2 = int(x1 + normals_x[i] * bar_height)
+                    y2 = int(y1 + normals_y[i] * bar_height)
+                    
+                    # Clip coordinates to image bounds
+                    x1 = np.clip(x1, 0, screen_width - 1)
+                    y1 = np.clip(y1, 0, screen_height - 1)
+                    x2 = np.clip(x2, 0, screen_width - 1)
+                    y2 = np.clip(y2, 0, screen_height - 1)
+                    
+                    cv2.line(image, (x1, y1), (x2, y2), (1.0, 1.0, 1.0), thickness=line_width)
             
-            # Clip points to image bounds
-            points[:, 0] = np.clip(points[:, 0], 0, screen_width - 1)
-            points[:, 1] = np.clip(points[:, 1], 0, screen_height - 1)
-            
-            # Draw the continuous line
-            cv2.polylines(image, [points], True, (1.0, 1.0, 1.0), thickness=line_width)
+            else:  # line mode
+                # Calculate points for the continuous line
+                points = np.column_stack([
+                    x_coords + normals_x * contour_data * bar_length * direction_multiplier,
+                    y_coords + normals_y * contour_data * bar_length * direction_multiplier
+                ]).astype(np.int32)
+                
+                # Clip points to image bounds
+                points[:, 0] = np.clip(points[:, 0], 0, screen_width - 1)
+                points[:, 1] = np.clip(points[:, 1], 0, screen_height - 1)
+                
+                # Draw the continuous line
+                cv2.polylines(image, [points], True, (1.0, 1.0, 1.0), thickness=line_width)
+
+        # Distribute data points among contours
+        total_points = len(data)
+        start_idx = 0
         
+        for i, (contour, weight) in enumerate(zip(valid_contours, weights)):
+            num_points = int(round(total_points * weight))
+            if i == len(valid_contours) - 1:  # Last contour gets remaining points
+                num_points = total_points - start_idx
+            end_idx = start_idx + num_points
+
+            if direction == "both":
+                # For "both" direction, process the contour twice with half amplitude
+                process_contour(contour, start_idx, end_idx, 0.5)  # Outward
+                process_contour(contour, start_idx, end_idx, -0.5)  # Inward
+            else:
+                # For single direction, process once with full amplitude
+                direction_multiplier = -1.0 if direction == "inward" else 1.0
+                process_contour(contour, start_idx, end_idx, direction_multiplier)
+
+            start_idx = end_idx
+            
         return image
 

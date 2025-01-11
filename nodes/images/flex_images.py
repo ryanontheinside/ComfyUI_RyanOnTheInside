@@ -232,7 +232,7 @@ class FlexImageChromaticAberration(FlexImageBase):
     def INPUT_TYPES(cls):
         base_inputs = super().INPUT_TYPES()
         base_inputs["required"].update({
-            "shift_amount": ("FLOAT", {"default": 0.01, "min": 0.0, "max": 0.1, "step": 0.001}),
+            "shift_amount": ("FLOAT", {"default": 0.01, "min": 0.0, "max": 0.3, "step": 0.001}),
             "angle": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
         })
         return base_inputs

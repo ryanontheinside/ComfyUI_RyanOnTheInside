@@ -63,8 +63,12 @@ def register_tooltips():
 
     # FlexAudioVisualizerContour tooltips (inherits from: FlexAudioVisualizerBase)
     TooltipManager.register_tooltips("FlexAudioVisualizerContour", {
-        "visualization_method": "Visualization style ('bar' or 'line')",
-        "visualization_feature": "Data source for visualization ('frequency' or 'waveform')",
+        "visualization_method": """Visualization style:
+- bar: Individual bars extending from the contour
+- line: Continuous line following the contour""",
+        "visualization_feature": """Data source for visualization:
+- frequency: Shows frequency spectrum analysis
+- waveform: Shows direct audio amplitude""",
         "smoothing": "Amount of smoothing applied to the visualization (0.0 to 1.0)",
         "rotation": "Rotation angle in degrees (0.0 to 360.0)",
         "num_points": "Number of points in contour visualization (3 to 1000)",
@@ -74,9 +78,21 @@ def register_tooltips():
         "bar_length": "Length of bars extending from contour (1.0 to 100.0 pixels)",
         "line_width": "Width of visualization lines (1 to 10 pixels)",
         "contour_smoothing": "Amount of smoothing applied to the contour (0 to 50)",
-        "mask": "Input mask to define the contour shape",
-        "reflect": "Whether to draw visualization inward (false) or outward (true) from contour"
-    }, inherits_from='FlexAudioVisualizerBase')
+        "mask": "Input mask to find contours from - can contain multiple distinct areas",
+        "direction": """Direction of the visualization relative to the contour:
+- outward: Extends away from the contour
+- inward: Extends towards the center of the contour
+- both: Shows both inward and outward effects simultaneously""",
+        "min_contour_area": "Minimum area threshold for detecting contours (0.0 to 10000.0)",
+        "max_contours": "Maximum number of contours to process (1 to 20)",
+        "distribute_by": """How to distribute audio data among multiple contours:
+- area: Larger contours get more data points
+- perimeter: Longer contours get more data points
+- equal: All contours get equal data points"""
+    }, inherits_from='FlexAudioVisualizerBase', description="""Visualize audio features along mask contours with customizable effects.
+    
+Perfect for creating audio-reactive animations that follow the edges of masks.
+Supports multiple contours and various visualization styles.""")
 
     # FlexAudioBase tooltips (inherits from: FlexBase, RyanOnTheInside)
     TooltipManager.register_tooltips("FlexAudioBase", {
