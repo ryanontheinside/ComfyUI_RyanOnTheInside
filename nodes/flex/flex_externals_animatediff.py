@@ -57,9 +57,9 @@ class FeatureToADKeyframe(FlexExternalModulator):
 
         # Get number of frames from whichever feature is provided
         if scale_feature is not None:
-            num_frames = len(scale_feature[0])
+            num_frames = scale_feature.frame_count
         else:
-            num_frames = len(effect_feature[0])
+            num_frames = effect_feature.frame_count
 
         # Create keyframes for every nth frame based on select_every
         for i in range(0, num_frames, select_every):
@@ -67,8 +67,8 @@ class FeatureToADKeyframe(FlexExternalModulator):
             start_percent = i / (num_frames - 1) if num_frames > 1 else 0.0
             
             # Get values for this frame if features are provided
-            scale_val = float(scale_feature[0][i]) if scale_feature is not None else None
-            effect_val = float(effect_feature[0][i]) if effect_feature is not None else None
+            scale_val = float(scale_feature.get_value_at_frame(i)) if scale_feature is not None else None
+            effect_val = float(effect_feature.get_value_at_frame(i)) if effect_feature is not None else None
 
             # Create keyframe with the values
             keyframe = ADKeyframe(
