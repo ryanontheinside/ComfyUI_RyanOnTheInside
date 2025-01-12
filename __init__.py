@@ -99,7 +99,9 @@ from .nodes.flex.feature_extractors_whisper import(
     ContextModifier,
     WhisperToPromptTravel,
     WhisperTextRenderer,
-    ManualWhisperAlignmentData
+    ManualWhisperAlignmentData,
+    WhisperAutoAdjust,
+    WhisperTimeAdjuster
 )
 
 from .nodes.flex.feature_extractors_audio import(
@@ -483,6 +485,8 @@ NODE_CLASS_MAPPINGS = {
     "TriggerBuilder":               TriggerBuilder,
     "ContextModifier":              ContextModifier,
     "WhisperTextRenderer":         WhisperTextRenderer,
+    "WhisperAutoAdjust":           WhisperAutoAdjust,
+    "WhisperTimeAdjuster":         WhisperTimeAdjuster,
     "ManualWhisperAlignmentData":   ManualWhisperAlignmentData,
 
     "FeatureToWeightsStrategy":     FeatureToWeightsStrategy,

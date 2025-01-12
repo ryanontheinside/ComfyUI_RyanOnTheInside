@@ -637,9 +637,8 @@ class WhisperFeature(BaseFeature):
             except json.JSONDecodeError:
                 raise ValueError("Invalid alignment data format: must be valid JSON string or dict/list")
         else:
-            # If it's already a dict/list, use it directly
             self.alignment_data = alignment_data
-        self.trigger_pairs = trigger_pairs  # Already a dictionary from TriggerBuilder
+        self.trigger_pairs = trigger_pairs  # Now a TriggerSet instance
         self.feature_name = feature_name
         self.available_features = self.get_extraction_methods()
 
@@ -699,11 +698,11 @@ class WhisperFeature(BaseFeature):
             start_frame = int(item["start"] * self.frame_rate)
             end_frame = int(item["end"] * self.frame_rate)
             
-            for trigger in self.trigger_pairs["triggers"]:
+            for trigger in self.trigger_pairs.triggers:  # Access triggers directly from TriggerSet
                 pattern = trigger["pattern"].lower()
                 if pattern in text:
                     start_val, end_val = trigger["values"]
-                    blend_mode = trigger.get("blend_mode", "blend")  # Default to blend if not specified
+                    blend_mode = trigger.get("blend_mode", "blend")
                     
                     # Create temporary array for this trigger's values
                     trigger_data = [0.0] * self.frame_count
@@ -771,6 +770,53 @@ class WhisperFeature(BaseFeature):
             self.extract()
         else:
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
+
+    def find_trigger_start_time(self, pattern):
+        """Find the start time of when a pattern appears in the alignment data"""
+        for segment in self.alignment_data:
+            if pattern.lower() in segment["value"].lower():
+                return segment["start"]
+        return None
+
+    def find_trigger_end_time(self, pattern):
+        """Find the end time of when a pattern appears in the alignment data"""
+        for segment in self.alignment_data:
+            if pattern.lower() in segment["value"].lower():
+                return segment["end"]
+        return None
+
+    def sort_triggers_by_occurrence(self, triggers):
+        """Sort triggers based on when their patterns appear in the text"""
+        def find_first_occurrence(pattern):
+            text = " ".join(segment["value"] for segment in self.alignment_data)
+            return text.lower().find(pattern.lower())
+        
+        return sorted(triggers, key=lambda t: find_first_occurrence(t["pattern"]))
+
+    def get_trigger_frames(self, pattern):
+        """Get the frame range where a trigger pattern occurs"""
+        start_time = self.find_trigger_start_time(pattern)
+        if start_time is None:
+            return None, None
+            
+        end_time = self.find_trigger_end_time(pattern)
+        start_frame = int(start_time * self.frame_rate)
+        end_frame = int(end_time * self.frame_rate)
+        
+        return start_frame, end_frame
+
+    def find_all_trigger_frames(self, pattern):
+        """Find all frame ranges where a trigger pattern occurs"""
+        frame_ranges = []
+        pattern = pattern.lower()
+        
+        for segment in self.alignment_data:
+            if pattern in segment["value"].lower():
+                start_frame = int(segment["start"] * self.frame_rate)
+                end_frame = int(segment["end"] * self.frame_rate)
+                frame_ranges.append((start_frame, end_frame))
+                
+        return frame_ranges
 
 #TODO volume feature
 
