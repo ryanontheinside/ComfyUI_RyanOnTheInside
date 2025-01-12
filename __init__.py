@@ -284,7 +284,7 @@ from .nodes.preprocessors.pose import PoseInterpolator
 
 from .nodes.doom.doom import Doom
 
-from .nodes.models.flex_model_base import FlexCrossAttentionModulator
+# from .nodes.models.flex_model_base import FlexFeatureAttentionControl
 
 
 HAS_ADVANCED_LIVE_PORTRAIT = os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-AdvancedLivePortrait"))
@@ -348,10 +348,11 @@ if os.path.exists(my_extension_path):
 NODE_CLASS_MAPPINGS = {
     #NOTE: PoseInterpolator is not working yet
     #"PoseInterpolator": PoseInterpolator,
-
-    "FlexCrossAttentionModulator": FlexCrossAttentionModulator,
+    # "FlexFeatureAttentionControl": FlexFeatureAttentionControl,
+    
     "Doom": Doom,
     "WhisperToPromptTravel": WhisperToPromptTravel,
+
 
 
     "ManualFeaturePipe": ManualFeaturePipe,
