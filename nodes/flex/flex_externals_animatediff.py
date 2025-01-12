@@ -36,45 +36,49 @@ class FeatureToADKeyframe(FlexExternalModulator):
     def INPUT_TYPES(s):
         return {
             "required": {
-                "feature": ("FEATURE",),
-                "start_percent": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.001}),
-                "guarantee_steps": ("INT", {"default": 1, "min": 0, "max": 10000}),
-                "inherit_missing": ("BOOLEAN", {"default": True}),
+                "select_every": ("INT", {"default": 1, "min": 1, "max": 999}),
             },
             "optional": {
                 "scale_feature": ("FEATURE",),
                 "effect_feature": ("FEATURE",),
             }
         }
-
+    
     RETURN_TYPES = ("AD_KEYFRAMES",)
     FUNCTION = "convert"
+    CATEGORY = "Flex-AnimateDiff"
 
-    def convert(self, feature, start_percent, guarantee_steps, inherit_missing, scale_feature=None, effect_feature=None):
-        # Create a new keyframe group
-        keyframe_group = ADKeyframeGroup()
-        
-        # Convert features to multivals if they exist
-        scale_values = None
-        effect_values = None
-        
+    def convert(self, select_every: int, scale_feature=None, effect_feature=None):
+        if scale_feature is None and effect_feature is None:
+            raise ValueError("At least one of scale_feature or effect_feature must be provided")
+
+        # Create new keyframe group
+        keyframes = ADKeyframeGroup()
+
+        # Get number of frames from whichever feature is provided
         if scale_feature is not None:
-            scale_values = torch.tensor([scale_feature.get_value_at_frame(i) for i in range(scale_feature.frame_count)])
+            num_frames = len(scale_feature[0])
+        else:
+            num_frames = len(effect_feature[0])
+
+        # Create keyframes for every nth frame based on select_every
+        for i in range(0, num_frames, select_every):
+            # Calculate percentage through animation for this frame
+            start_percent = i / (num_frames - 1) if num_frames > 1 else 0.0
             
-        if effect_feature is not None:
-            effect_values = torch.tensor([effect_feature.get_value_at_frame(i) for i in range(effect_feature.frame_count)])
-        
-        # Create keyframe with the feature values
-        keyframe = ADKeyframe(
-            start_percent=start_percent,
-            scale_multival=scale_values,
-            effect_multival=effect_values,
-            inherit_missing=inherit_missing,
-            guarantee_steps=guarantee_steps
-        )
-        
-        keyframe_group.add(keyframe)
-        return (keyframe_group,)
+            # Get values for this frame if features are provided
+            scale_val = float(scale_feature[0][i]) if scale_feature is not None else None
+            effect_val = float(effect_feature[0][i]) if effect_feature is not None else None
+
+            # Create keyframe with the values
+            keyframe = ADKeyframe(
+                start_percent=start_percent,
+                scale_multival=scale_val,
+                effect_multival=effect_val
+            )
+            keyframes.add(keyframe)
+
+        return (keyframes,)
 
 @apply_tooltips
 class FeatureToCameraKeyframe(FlexExternalModulator):
