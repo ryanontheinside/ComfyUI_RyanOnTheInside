@@ -237,7 +237,7 @@ class TimeFeatureNode(FeatureExtractorBase):
             **super().INPUT_TYPES(),
             "required": {
                 **super().INPUT_TYPES()["required"],
-                "speed": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 10.0, "step": 0.1}),
+                "frames_per_cycle": ("INT", {"default": 30, "min": 1, "max": 1000, "step": 1}),  # Number of frames for one cycle
                 "offset": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
             }
         }
@@ -245,9 +245,9 @@ class TimeFeatureNode(FeatureExtractorBase):
     RETURN_TYPES = ("FEATURE",)
     FUNCTION = "create_feature"
 
-    def create_feature(self, extraction_method, speed, offset, frame_rate, frame_count, width, height):
+    def create_feature(self, extraction_method, frames_per_cycle, offset, frame_rate, frame_count, width, height):
         time_feature = TimeFeature("time_effect", frame_rate, frame_count, width, height,
-                                effect_type=extraction_method, speed=speed, offset=offset)
+                                effect_type=extraction_method, speed=frames_per_cycle, offset=offset)
         time_feature.extract()
         return (time_feature,)
     

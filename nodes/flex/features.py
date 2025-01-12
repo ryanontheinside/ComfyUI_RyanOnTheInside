@@ -111,10 +111,11 @@ class ManualFeature(BaseFeature):
         return ease_out
 
 class TimeFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, width, height, effect_type='smooth', speed=1.0, offset=0.0):
+    def __init__(self, name, frame_rate, frame_count, width, height, effect_type='smooth', speed=1, offset=0.0):
         super().__init__(name, "time", frame_rate, frame_count, width, height)
         self.effect_type = effect_type
-        self.speed = speed
+        # speed is now in frames (how many frames to complete one cycle)
+        self.speed = max(1, int(speed))  # Ensure at least 1 frame
         self.offset = offset
 
     @classmethod
@@ -124,8 +125,10 @@ class TimeFeature(BaseFeature):
         ]
 
     def extract(self):
-        t = np.linspace(0, self.frame_count / self.frame_rate, self.frame_count)
-        t = (t * self.speed + self.offset) % 1
+        # Calculate time values based on frames directly
+        frames = np.arange(self.frame_count)
+        # Convert to cycle position (0 to 1) based on speed in frames
+        t = (frames / self.speed + self.offset) % 1
 
         if self.effect_type == 'smooth':
             self.data = t

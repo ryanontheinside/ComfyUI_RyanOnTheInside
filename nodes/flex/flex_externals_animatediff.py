@@ -2,6 +2,7 @@ import os
 from ... import RyanOnTheInside
 from ...tooltips import apply_tooltips
 from .flex_externals import FlexExternalModulator
+import torch
 
 # Get paths
 current_file_path = os.path.abspath(__file__)
@@ -36,24 +37,32 @@ class FeatureToADKeyframe(FlexExternalModulator):
         return {
             "required": {
                 "feature": ("FEATURE",),
-                "scale_feature": ("FEATURE",),
-                "effect_feature": ("FEATURE",),
                 "start_percent": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.001}),
                 "guarantee_steps": ("INT", {"default": 1, "min": 0, "max": 10000}),
                 "inherit_missing": ("BOOLEAN", {"default": True}),
+            },
+            "optional": {
+                "scale_feature": ("FEATURE",),
+                "effect_feature": ("FEATURE",),
             }
         }
 
     RETURN_TYPES = ("AD_KEYFRAMES",)
     FUNCTION = "convert"
 
-    def convert(self, feature, scale_feature, effect_feature, start_percent, guarantee_steps, inherit_missing):
+    def convert(self, feature, start_percent, guarantee_steps, inherit_missing, scale_feature=None, effect_feature=None):
         # Create a new keyframe group
         keyframe_group = ADKeyframeGroup()
         
-        # Convert features to multivals
-        scale_values = [scale_feature.get_value_at_frame(i) for i in range(scale_feature.frame_count)]
-        effect_values = [effect_feature.get_value_at_frame(i) for i in range(effect_feature.frame_count)]
+        # Convert features to multivals if they exist
+        scale_values = None
+        effect_values = None
+        
+        if scale_feature is not None:
+            scale_values = torch.tensor([scale_feature.get_value_at_frame(i) for i in range(scale_feature.frame_count)])
+            
+        if effect_feature is not None:
+            effect_values = torch.tensor([effect_feature.get_value_at_frame(i) for i in range(effect_feature.frame_count)])
         
         # Create keyframe with the feature values
         keyframe = ADKeyframe(
