@@ -630,7 +630,15 @@ class DrawableFeature(BaseFeature):
 class WhisperFeature(BaseFeature):
     def __init__(self, name, frame_rate, frame_count, width, height, alignment_data, trigger_pairs=None, feature_name='word_timing'):
         super().__init__(name, "whisper", frame_rate, frame_count, width, height)
-        self.alignment_data = json.loads(alignment_data) if isinstance(alignment_data, str) else alignment_data
+        # Handle both string and dict/list alignment data
+        if isinstance(alignment_data, str):
+            try:
+                self.alignment_data = json.loads(alignment_data)
+            except json.JSONDecodeError:
+                raise ValueError("Invalid alignment data format: must be valid JSON string or dict/list")
+        else:
+            # If it's already a dict/list, use it directly
+            self.alignment_data = alignment_data
         self.trigger_pairs = trigger_pairs  # Already a dictionary from TriggerBuilder
         self.feature_name = feature_name
         self.available_features = self.get_extraction_methods()

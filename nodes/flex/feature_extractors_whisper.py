@@ -56,18 +56,19 @@ class WhisperFeatureNode(FeatureExtractorBase):
         
         # Parse alignment data to find the last timestamp
         try:
-            data = json.loads(alignment_data)
+            # Handle both string and dict/list alignment data
+            data = alignment_data if not isinstance(alignment_data, str) else json.loads(alignment_data)
             last_end_time = max(segment["end"] for segment in data)
             # Calculate frame_count from audio duration and frame_rate
             frame_count = int(last_end_time * frame_rate) + 1
-        except (json.JSONDecodeError, KeyError) as e:
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
             raise ValueError(f"Invalid alignment data format: {e}")
         
         # Parse trigger set if provided
         triggers = None
         if trigger_set:
             try:
-                triggers = json.loads(trigger_set)
+                triggers = json.loads(trigger_set) if isinstance(trigger_set, str) else trigger_set
             except json.JSONDecodeError:
                 print("Warning: Could not parse trigger_set JSON")
         
