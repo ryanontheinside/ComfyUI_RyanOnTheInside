@@ -355,7 +355,7 @@ class WhisperToPromptTravel:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "segments_alignment": ("STRING", {"multiline": True}), # JSON string of segment alignments
+                "alignment_data": ("whisper_alignment",),
                 "fps": ("FLOAT", {"default": 24.0, "min": 0.1, "max": 120.0}),
             }
         }
