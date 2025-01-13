@@ -109,6 +109,8 @@ class FlexMaskBase(FlexBase, MaskBase):
                 'mask_strength': mask_strength,
                 'subtract_original': subtract_original,
                 'grow_with_blur': grow_with_blur,
+                'strength': strength,
+                'feature_threshold': feature_threshold,
                 **kwargs
             }
             self.initialize_scheduler(num_frames, **all_params)
@@ -119,14 +121,15 @@ class FlexMaskBase(FlexBase, MaskBase):
             
             # Get feature value and determine if effect should be applied
             feature_value = self.get_feature_value(opt_feature, i)
-            apply_effect = feature_value >= feature_threshold if opt_feature is not None else True
-
+            
             # Process frame-specific parameters including MaskBase parameters
             frame_kwargs = {}
             all_params = {
                 'mask_strength': mask_strength,
                 'subtract_original': subtract_original,
                 'grow_with_blur': grow_with_blur,
+                'strength': strength,
+                'feature_threshold': feature_threshold,
                 **kwargs
             }
             
@@ -145,10 +148,15 @@ class FlexMaskBase(FlexBase, MaskBase):
                 else:
                     frame_kwargs[key] = value
 
-            # Extract MaskBase parameters
+            # Extract MaskBase parameters and schedulable parameters
             current_mask_strength = frame_kwargs.pop('mask_strength')
             current_subtract = frame_kwargs.pop('subtract_original')
             current_blur = frame_kwargs.pop('grow_with_blur')
+            current_strength = frame_kwargs.pop('strength')
+            current_threshold = frame_kwargs.pop('feature_threshold')
+
+            # Determine if effect should be applied based on feature value and threshold
+            apply_effect = feature_value is not None and feature_value >= current_threshold
 
             # Process frame with frame-specific parameters
             if apply_effect:
@@ -163,14 +171,14 @@ class FlexMaskBase(FlexBase, MaskBase):
                         feature_param, 
                         base_value, 
                         feature_value, 
-                        strength, 
+                        current_strength,  # Use the scheduled strength
                         feature_mode
                     )
                 
                 processed_mask = self.apply_effect_internal(
                     mask,
                     feature_value=feature_value,
-                    strength=strength,
+                    strength=current_strength,  # Use the scheduled strength
                     **frame_kwargs
                 )
             else:
@@ -178,7 +186,7 @@ class FlexMaskBase(FlexBase, MaskBase):
                     processed_mask = self.process_mask_below_threshold(
                         mask,
                         feature_value=feature_value,
-                        strength=strength,
+                        strength=current_strength,  # Use the scheduled strength
                         **frame_kwargs
                     )
                 else:
