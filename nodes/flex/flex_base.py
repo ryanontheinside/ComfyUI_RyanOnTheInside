@@ -109,9 +109,9 @@ class FlexBase(ABC):
     def apply_effect_internal(self, *args, **kwargs):
         """Internal method to be implemented by subclasses."""
         pass
+
     def process_parameters(self, frame_index: int = 0, feature_value: float = None, 
-                          strength: float = 1.0, feature_param: str = None, 
-                          feature_mode: str = "relative", **kwargs) -> dict:
+                          feature_param: str = None, feature_mode: str = "relative", **kwargs) -> dict:
         """Process parameters considering both scheduling and feature modulation"""
         # Initialize parameter scheduler if not already done
         if self.parameter_scheduler is None:
@@ -128,7 +128,31 @@ class FlexBase(ABC):
 
         # Get all parameters that could be scheduled
         processed_kwargs = {}
+        
+        # Helper function to process schedulable parameters  (strength, feature_threshold)
+        def process_schedulable_param(param_name: str, default_value: float) -> float:
+            value = kwargs.get(param_name, default_value)
+            if isinstance(value, (list, tuple, np.ndarray)):
+
+
+                try:
+                    value = float(value[frame_index])
+                except (IndexError, TypeError):
+                    value = float(value[0])
+            else:
+                value = float(value)
+            processed_kwargs[param_name] = value
+            return value
+
+        # Process parameters needed for feature modulation
+        strength = process_schedulable_param('strength', 1.0)
+        feature_threshold = process_schedulable_param('feature_threshold', 0.0)
+
+        # Process remaining parameters
         for param_name, value in kwargs.items():
+            if param_name in ['strength', 'feature_threshold']:  # Skip already processed parameters
+                continue
+                
             # Pass through any non-numeric parameters
             if param_name not in input_types or input_types[param_name][0] not in ["INT", "FLOAT"]:
                 processed_kwargs[param_name] = value
@@ -154,7 +178,12 @@ class FlexBase(ABC):
 
                 # Apply feature modulation if this is the target parameter
                 if param_name == feature_param and feature_value is not None:
-                    processed_value = self.modulate_param(param_name, base_value, feature_value, strength, feature_mode)
+                    # Only apply modulation if feature value meets threshold
+                    if feature_value >= feature_threshold:
+                        processed_value = self.modulate_param(param_name, base_value, feature_value, strength, feature_mode)
+                    else:
+                        processed_value = base_value
+                        
                     # Convert back to int if needed
                     if input_types[param_name][0] == "INT":
                         processed_kwargs[param_name] = int(processed_value)
