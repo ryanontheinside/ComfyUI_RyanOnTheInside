@@ -522,7 +522,12 @@ class FlexImageWarp(FlexImageBase):
             for _ in range(warp_octaves):
                 freq = warp_frequency * (2 ** _)
                 amp = warp_strength / (2 ** _)
-                noise += amp * np.random.rand(h, w, 2) * np.sin(freq * np.stack((y, x)) / np.array([h, w]))
+                # Calculate phase grid
+                phase_x = freq * x / w
+                phase_y = freq * y / h
+                # Generate random noise and modulate with sine waves
+                rand_noise = np.random.rand(h, w, 2)
+                noise += amp * rand_noise * np.stack((np.sin(phase_y), np.sin(phase_x)), axis=-1)
             
             x_warped = x + noise[:,:,0] * w * mask
             y_warped = y + noise[:,:,1] * h * mask
@@ -546,7 +551,7 @@ class FlexImageWarp(FlexImageBase):
         y_warped = np.clip(y_warped, 0, h-1)
         
         # Remap image
-        warped = cv2.remap(image, x_warped, y_warped, cv2.INTER_LINEAR)
+        warped = cv2.remap(image, x_warped.astype(np.float32), y_warped.astype(np.float32), cv2.INTER_LINEAR)
         
         return warped
     
