@@ -322,7 +322,7 @@ class FlexMaskBinary(FlexMaskBase):
     def get_modifiable_params(cls):
         return ["threshold", "None"]
 
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, threshold: float, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, threshold: float, feature_mode: str, **kwargs) -> np.ndarray:
         # Modulate the threshold based on the feature value and strength
         modulated_threshold = self.modulate_param("threshold", threshold, feature_value, strength, kwargs.get("feature_mode", "relative"))
         return (mask > modulated_threshold).astype(np.float32)
