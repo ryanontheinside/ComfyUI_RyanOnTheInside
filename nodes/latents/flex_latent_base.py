@@ -22,6 +22,10 @@ class FlexLatentBase(RyanOnTheInside, FlexBase):
     RETURN_TYPES = ("LATENT",)
     FUNCTION = "apply_effect"
 
+    def process_below_threshold(self, latent, feature_value=None, **kwargs):
+        """Default behavior for when feature value is below threshold: return latent unchanged."""
+        return latent
+
     def apply_effect(
         self,
         latents,
@@ -52,55 +56,36 @@ class FlexLatentBase(RyanOnTheInside, FlexBase):
             # Get the appropriate latent frame, handling possible shorter sequences
             latent = latents_np[i % latents_np.shape[0]]
             
-            # Set frame index for parameter processing
-            kwargs['frame_index'] = i
-
-            # Get feature value (0.5 if no feature provided)
+            # Get feature value
             feature_value = self.get_feature_value(i, opt_feature)
-            feature_value = 0.5 if feature_value is None else feature_value
+            
+            # Process parameters using FlexBase functionality
+            processed_kwargs = self.process_parameters(
+                frame_index=i,
+                feature_value=feature_value,
+                feature_threshold=feature_threshold,
+                strength=strength,
+                feature_param=feature_param,
+                feature_mode=feature_mode,
+                **kwargs
+            )
 
-            # Process parameters based on feature value
-            processed_kwargs = {}
-            for param_name in self.get_modifiable_params():
-                if param_name in kwargs:
-                    param_value = kwargs[param_name]
-                    if isinstance(param_value, (list, tuple, np.ndarray)):
-                        try:
-                            base_value = float(param_value[i])
-                        except (IndexError, TypeError):
-                            base_value = float(param_value[0])
-                    else:
-                        base_value = float(param_value)
-                    
-                    processed_kwargs[param_name] = self.modulate_param(
-                        param_name, base_value, feature_value, strength, feature_mode
-                    )
+            # Ensure frame_index is included in processed_kwargs
+            processed_kwargs['frame_index'] = i
 
-            # Add remaining kwargs
-            for key, value in kwargs.items():
-                if key not in processed_kwargs and key != 'frame_index':
-                    if isinstance(value, (list, tuple, np.ndarray)):
-                        try:
-                            processed_kwargs[key] = value[i]
-                        except (IndexError, TypeError):
-                            processed_kwargs[key] = value[0]
-                    else:
-                        processed_kwargs[key] = value
-
-            # Add feature-related values to kwargs
-            processed_kwargs.update({
-                'feature_value': feature_value,
-                'strength': strength,
-                'feature_param': feature_param,
-                'feature_mode': feature_mode,
-                'frame_index': i
-            })
-
-            # Process the latent
-            if opt_feature is None or feature_value >= feature_threshold:
-                processed_latent = self.apply_effect_internal(latent, **processed_kwargs)
+            # Determine if effect should be applied based on feature value and threshold
+            if feature_value is not None and feature_value >= processed_kwargs['feature_threshold']:
+                processed_latent = self.apply_effect_internal(
+                    latent,
+                    feature_value=feature_value,
+                    **processed_kwargs
+                )
             else:
-                processed_latent = latent
+                processed_latent = self.process_below_threshold(
+                    latent,
+                    feature_value=feature_value,
+                    **processed_kwargs
+                )
 
             result.append(processed_latent)
             self.update_progress()
@@ -114,7 +99,8 @@ class FlexLatentBase(RyanOnTheInside, FlexBase):
         return ({"samples": result_tensor},)
 
     @abstractmethod
-    def apply_effect_internal(self, latent: np.ndarray, **kwargs) -> np.ndarray:
-        """To be implemented by subclasses."""
+    def apply_effect_internal(self, latent: np.ndarray, feature_value: float, strength: float, 
+                            feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
+        """Apply the effect with processed parameters. To be implemented by child classes."""
         pass
 
