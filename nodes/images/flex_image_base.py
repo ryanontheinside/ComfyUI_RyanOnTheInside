@@ -23,17 +23,6 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
 
     def __init__(self):
         super().__init__()  # Initialize FlexBase
-        self.progress_bar = None
-
-    def start_progress(self, total_steps, desc="Processing"):
-        self.progress_bar = ProgressBar(total_steps)
-
-    def update_progress(self):
-        if self.progress_bar:
-            self.progress_bar.update(1)
-
-    def end_progress(self):
-        self.progress_bar = None
 
     @classmethod
     @abstractmethod
@@ -83,9 +72,10 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
                 **kwargs
             )
             
-            #TODO: consider adding threshold check here and calling process_below_threshold if below threshold....
+            #TODO: Currently dont care about a threshold check here, but may want to add it in the future
             # Apply the effect with processed parameters
             processed_image = self.apply_effect_internal(image, **processed_kwargs)
+
 
 
             result.append(processed_image)

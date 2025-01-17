@@ -22,6 +22,9 @@ class FlexLatentBase(RyanOnTheInside, FlexBase):
     RETURN_TYPES = ("LATENT",)
     FUNCTION = "apply_effect"
 
+    def __init__(self):
+        super().__init__()
+
     def process_below_threshold(self, latent, feature_value=None, **kwargs):
         """Default behavior for when feature value is below threshold: return latent unchanged."""
         return latent
@@ -38,16 +41,7 @@ class FlexLatentBase(RyanOnTheInside, FlexBase):
     ):
         latents_np = latents["samples"].cpu().numpy()
 
-        # Determine frame count from either feature, latents, or longest parameter list
-        if opt_feature is not None:
-            num_frames = opt_feature.frame_count
-        else:
-            # Start with number of input frames
-            num_frames = latents_np.shape[0]
-            # Check all parameters for lists/arrays that might be longer
-            for value in kwargs.values():
-                if isinstance(value, (list, tuple, np.ndarray)):
-                    num_frames = max(num_frames, len(value))
+        num_frames = latents_np.shape[0]
 
         self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 
