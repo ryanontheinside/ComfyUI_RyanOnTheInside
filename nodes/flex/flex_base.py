@@ -52,13 +52,9 @@ class FlexBase(ABC):
 
 
     def get_feature_value(self, frame_index: int, feature=None, param_name=None):
-        """Get feature value from either a provided feature or a scheduled parameter"""
+        """Get feature value from a provided feature"""
         if feature is not None:
             return feature.get_value_at_frame(frame_index)
-        elif self.parameter_scheduler and param_name:
-            feature_seq = self.parameter_scheduler.get_as_feature(param_name)
-            if feature_seq is not None:
-                return feature_seq[frame_index]
         return None
 
     @classmethod
@@ -112,10 +108,10 @@ class FlexBase(ABC):
 
     def process_parameters(self, frame_index: int = 0, feature_value: float = None, 
                           feature_param: str = None, feature_mode: str = "relative", **kwargs) -> dict:
-        """Process parameters considering both scheduling and feature modulation"""
+        """Process parameters considering both scheduling and feature modulation.
+        feature_value is treated as pure input and never modulated."""
         # Initialize parameter scheduler if not already done
         if self.parameter_scheduler is None:
-            # Determine frame count from the first array/list parameter we find
             frame_count = kwargs.get('frame_count', 1)
             for value in kwargs.values():
                 if isinstance(value, (list, tuple, np.ndarray)):
@@ -129,12 +125,10 @@ class FlexBase(ABC):
         # Get all parameters that could be scheduled
         processed_kwargs = {}
         
-        # Helper function to process schedulable parameters  (strength, feature_threshold)
+        # Helper function to process schedulable parameters
         def process_schedulable_param(param_name: str, default_value: float) -> float:
             value = kwargs.get(param_name, default_value)
             if isinstance(value, (list, tuple, np.ndarray)):
-
-
                 try:
                     value = float(value[frame_index])
                 except (IndexError, TypeError):
@@ -161,43 +155,46 @@ class FlexBase(ABC):
             try:
                 # Handle different types of inputs
                 if isinstance(value, (list, tuple, np.ndarray)):
-                    # Convert numpy arrays to lists if needed
                     if isinstance(value, np.ndarray):
-                        if value.ndim > 1:  # If multi-dimensional array
-                            value = value.flatten().tolist()  # Flatten and convert to list
+                        if value.ndim > 1:
+                            value = value.flatten().tolist()
                         else:
                             value = value.tolist()
-                    # Use frame_index to get the current value
                     try:
                         base_value = float(value[frame_index])
                     except (IndexError, TypeError):
-                        base_value = float(value[0])  # Fallback to first value
+                        base_value = float(value[0])
                 else:
-                    # Single value
                     base_value = float(value)
 
-                # Apply feature modulation if this is the target parameter
-                if param_name == feature_param and feature_value is not None:
-                    # Only apply modulation if feature value meets threshold
+                # Only modulate if:
+                # 1. This parameter is the target parameter
+                # 2. We have a feature value
+                # 3. The parameter isn't the feature value itself
+                if (param_name == feature_param and 
+                    feature_value is not None and 
+                    feature_param != 'feature_value'):  # Changed this line
+                    
                     if feature_value >= feature_threshold:
                         processed_value = self.modulate_param(param_name, base_value, feature_value, strength, feature_mode)
                     else:
                         processed_value = base_value
                         
-                    # Convert back to int if needed
                     if input_types[param_name][0] == "INT":
                         processed_kwargs[param_name] = int(processed_value)
                     else:
                         processed_kwargs[param_name] = processed_value
                 else:
-                    # Convert to int if needed
                     if input_types[param_name][0] == "INT":
                         processed_kwargs[param_name] = int(base_value)
                     else:
                         processed_kwargs[param_name] = base_value
             except (ValueError, TypeError):
-                # If conversion fails, pass through unchanged
                 processed_kwargs[param_name] = value
+
+        # Ensure feature_value is passed through unmodified
+        if feature_value is not None:
+            processed_kwargs['feature_value'] = feature_value
 
         return processed_kwargs
 

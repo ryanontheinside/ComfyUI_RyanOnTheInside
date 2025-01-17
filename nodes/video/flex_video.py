@@ -22,18 +22,53 @@ class FlexVideoDirection(FlexVideoBase):
         feature_values: np.ndarray,
         **kwargs,
     ) -> np.ndarray:
-        num_frames = video.shape[0]
+        num_output_frames = len(feature_values)
+        num_input_frames = video.shape[0]
         
-        # Normalize feature values to the range [0, 1]
-        normalized_features = np.clip(feature_values, 0.0, 1.0)
+        # Ensure strength and threshold arrays match feature length
+        strength = kwargs.get('strength')
+        feature_threshold = kwargs.get('feature_threshold')
+        
+        # If arrays are wrong length (because they were based on video length), resize them
+        if len(strength) != num_output_frames:
+            if len(strength) == 1:  # If it's a single value expanded
+                strength = np.full(num_output_frames, strength[0])
+            else:  # If it's a different length array
+                strength = np.broadcast_to(strength, (num_output_frames,))
+            
+        if len(feature_threshold) != num_output_frames:
+            if len(feature_threshold) == 1:
+                feature_threshold = np.full(num_output_frames, feature_threshold[0])
+            else:
+                feature_threshold = np.broadcast_to(feature_threshold, (num_output_frames,))
+        
+        # Normalize feature values to 0-1
+        feature_min = np.min(feature_values)
+        feature_max = np.max(feature_values)
+        if feature_max > feature_min:
+            normalized_features = (feature_values - feature_min) / (feature_max - feature_min)
+            normalized_threshold = (feature_threshold - feature_min) / (feature_max - feature_min)
+        else:
+            normalized_features = np.full_like(feature_values, 0.5)
+            normalized_threshold = feature_threshold
 
-        # Map feature values to frame indices in the input video
-        frame_indices = (normalized_features * (num_frames - 1)).astype(int)
-
-        # Ensure frame indices stay within valid bounds
-        frame_indices = np.clip(frame_indices, 0, num_frames - 1)
-
-        # Create the processed video by selecting frames based on the mapped indices
+        # Create output video array matching feature length
+        processed_video = np.empty((num_output_frames, *video.shape[1:]), dtype=video.dtype)
+        
+        # Handle thresholding
+        above_threshold = normalized_features >= normalized_threshold
+        
+        # For frames below threshold, use first frame
+        frame_positions = np.where(
+            above_threshold,
+            normalized_features * (num_input_frames - 1) * strength,
+            np.zeros_like(normalized_features)
+        )
+        
+        # Convert to integer indices with clipping
+        frame_indices = np.clip(frame_positions.astype(int), 0, num_input_frames - 1)
+        
+        # Create the output video by sampling from input video
         processed_video = video[frame_indices]
 
         return processed_video
@@ -66,31 +101,47 @@ class FlexVideoSeek(FlexVideoBase):
     ) -> np.ndarray:
         num_frames = video.shape[0]
         processed_video = np.empty_like(video)
-        strength = kwargs.get('strength', 1.0)
+        strength = kwargs.get('strength', np.ones(num_frames))
+        feature_threshold = kwargs.get('feature_threshold', np.zeros(num_frames))
         seek_speed = 1.0
 
         # Reverse the video if the reverse parameter is True
         if reverse:
             video = video[::-1]
 
-        # Clip feature values between 0 and 1
-        feature_values_clipped = np.clip(feature_values, 0.0, 1.0)
+        # Create a mask for values above threshold (element-wise comparison)
+        above_threshold = feature_values >= feature_threshold
+        
+        # For values below threshold, we'll use 0 speed (stay on current frame)
+        # For values above threshold, we'll use the normalized feature value
+        feature_values_masked = np.where(above_threshold, 
+                                       np.clip(feature_values, 0.0, 1.0), 
+                                       0.0)
 
-        # Apply seek_speed to feature values
-        adjusted_speeds = feature_values_clipped * seek_speed * strength
+        # Apply seek_speed and strength (element-wise multiplication)
+        adjusted_speeds = feature_values_masked * seek_speed * strength
 
-        # Ensure the total adjusted speed matches the number of frames
+        # If all speeds are 0 (all below threshold), use uniform movement
         total_speed = np.sum(adjusted_speeds)
         if total_speed == 0:
             adjusted_speeds = np.ones(num_frames)
         else:
             adjusted_speeds = adjusted_speeds / total_speed * num_frames
 
-        # Calculate cumulative frame positions
+        # Calculate cumulative positions
         cumulative_positions = np.cumsum(adjusted_speeds)
-
-        # Map frame indices based on cumulative positions
-        frame_indices = np.clip(cumulative_positions.astype(int), 0, num_frames - 1)
+        
+        # For frames where feature is below threshold, maintain previous frame
+        frame_indices = np.zeros(num_frames, dtype=int)
+        last_valid_idx = 0
+        
+        for i in range(num_frames):
+            if above_threshold[i]:
+                frame_idx = int(np.clip(cumulative_positions[i], 0, num_frames - 1))
+                last_valid_idx = frame_idx
+            else:
+                frame_idx = last_valid_idx
+            frame_indices[i] = frame_idx
 
         # Create the processed video by selecting frames based on the mapped indices
         for idx in range(num_frames):

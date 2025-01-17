@@ -57,6 +57,13 @@ class FlexVideoSpeed(FlexVideoBase):
         if len(feature_values) != num_frames:
             raise ValueError("feature_values length must match the number of video frames")
 
+        # Get threshold from kwargs
+        feature_threshold = kwargs.get('feature_threshold', 0.0)
+
+        # Apply threshold - zero out values below threshold
+        above_threshold = feature_values >= feature_threshold
+        feature_values = np.where(above_threshold, feature_values, 0.0)
+
         # Adjust feature values based on speed_factor (element-wise comparison)
         adjusted_feature_values = np.where(speed_factor >= 0, 1 - feature_values, feature_values)
 
