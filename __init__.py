@@ -297,7 +297,7 @@ if HAS_ADVANCED_LIVE_PORTRAIT:
 else:
     print("ComfyUI-AdvancedLivePortrait not found. FlexExpressionEditor will not be available. Install ComfyUI-AdvancedLivePortrait and restart ComfyUI.")
 
-# Add after the HAS_ADVANCED_LIVE_PORTRAIT check
+#
 HAS_ANIMATEDIFF = os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-AnimateDiff-Evolved"))
 
 if HAS_ANIMATEDIFF:
@@ -353,31 +353,26 @@ NODE_CLASS_MAPPINGS = {
     # "FlexFeatureAttentionControl": FlexFeatureAttentionControl,
     
     "Doom": Doom,
-    "WhisperToPromptTravel": WhisperToPromptTravel,
-
-
-
-    "ManualFeaturePipe": ManualFeaturePipe,
-    "ManualFeatureFromPipe": ManualFeatureFromPipe,
+    "WhisperToPromptTravel":        WhisperToPromptTravel,
+    "ManualFeaturePipe":            ManualFeaturePipe,
+    "ManualFeatureFromPipe":        ManualFeatureFromPipe,
     #latents
-    "FlexLatentInterpolate":       FlexLatentInterpolate,
+    "FlexLatentInterpolate":        FlexLatentInterpolate,
     "EmbeddingGuidedLatentInterpolate": EmbeddingGuidedLatentInterpolate,
-    "FlexLatentBlend":               FlexLatentBlend,
-    "FlexLatentNoise":               FlexLatentNoise,
+    "FlexLatentBlend":              FlexLatentBlend,
+    "FlexLatentNoise":              FlexLatentNoise,
     "LatentFrequencyBlender":       LatentFrequencyBlender,
     #video
-    "FlexVideoSpeed":              FlexVideoSpeed,
-    "FlexVideoDirection":          FlexVideoDirection,
-    "FlexVideoFrameBlend":         FlexVideoFrameBlend,
-    "FlexVideoSeek":               FlexVideoSeek,
+    "FlexVideoSpeed":               FlexVideoSpeed,
+    "FlexVideoDirection":           FlexVideoDirection,
+    "FlexVideoFrameBlend":          FlexVideoFrameBlend,
+    "FlexVideoSeek":                FlexVideoSeek,
     ###temporal
     "MaskMorph":                    MaskMorph,
     "MaskTransform":                MaskTransform,
     "MaskMath":                     MaskMath,
     "MaskRings":                    MaskRings,
     "MaskWarp":                     MaskWarp,
-
-
 
     #optical flow   
     "OpticalFlowMaskModulation":    OpticalFlowMaskModulation,
@@ -417,11 +412,11 @@ NODE_CLASS_MAPPINGS = {
 
     #flex audio visualizers
     "FlexAudioVisualizerCircular":  FlexAudioVisualizerCircular,
-    "FlexAudioVisualizerLine":     FlexAudioVisualizerLine,
-    "FlexAudioVisualizerContour": FlexAudioVisualizerContour,
+    "FlexAudioVisualizerLine":      FlexAudioVisualizerLine,
+    "FlexAudioVisualizerContour":   FlexAudioVisualizerContour,
     #audio  
     "AudioSeparator":               AudioSeparator,
-    "AudioSeparatorSimple":      AudioSeparatorSimple,
+    "AudioSeparatorSimple":         AudioSeparatorSimple,
     "DownloadOpenUnmixModel":       DownloadOpenUnmixModel,
     # "DownloadCREPEModel":           DownloadCREPEModel,
     "AudioFeatureVisualizer":       AudioFeatureVisualizer,
@@ -440,25 +435,18 @@ NODE_CLASS_MAPPINGS = {
     "AudioDither":                  AudioDither,
     "AudioInfo":                    AudioInfo,
     "AudioGain":                    AudioGain,
-    "AudioFade":                   AudioFade,
+    "AudioFade":                    AudioFade,
     "AudioPad":                     AudioPad,
-    "AudioChannelMerge":           AudioChannelMerge,
-    "AudioChannelSplit":           AudioChannelSplit,
-    "AudioResample":               AudioResample,
-    "AudioVolumeNormalization":    AudioVolumeNormalization,
+    "AudioChannelMerge":            AudioChannelMerge,
+    "AudioChannelSplit":            AudioChannelSplit,
+    "AudioResample":                AudioResample,
+    "AudioVolumeNormalization":     AudioVolumeNormalization,
 
     #features   
     "AudioFeatureExtractor":        AudioFeatureExtractor,
 
-#TODO add framecount from audio
-#TODO time feature from rhythm or framerate or something....tempo? need tempo extractor! frames per measure,  frames per quarter note, etc
-#TODO increase shift amount chromatic aberation
 #TODO make feature info JS display info
-#TODO removethis
-#TODO duplicate progress bar
-#TODO increase angle of chromatic abberation to  720
 #TODO: support negative feature values for opposit direction......
-
     
     "PitchFeatureExtractor":        PitchFeatureExtractor,
     "RhythmFeatureExtractor":       RhythmFeatureExtractor,
@@ -480,25 +468,25 @@ NODE_CLASS_MAPPINGS = {
     "LocationFromPoint":            LocationFromPoint,
     "LocationTransform":            LocationTransform,
     "AreaFeatureNode":              AreaFeatureNode,
-    "FeatureInfoNode":             FeatureInfoNode,
+    "FeatureInfoNode":              FeatureInfoNode,
     "WhisperFeature":               WhisperFeatureNode,
     "TriggerBuilder":               TriggerBuilder,
     "ContextModifier":              ContextModifier,
-    "WhisperTextRenderer":         WhisperTextRenderer,
-    "WhisperAutoAdjust":           WhisperAutoAdjust,
-    "WhisperTimeAdjuster":         WhisperTimeAdjuster,
+    "WhisperTextRenderer":          WhisperTextRenderer,
+    "WhisperAutoAdjust":            WhisperAutoAdjust,
+    "WhisperTimeAdjuster":          WhisperTimeAdjuster,
     "ManualWhisperAlignmentData":   ManualWhisperAlignmentData,
 
     "FeatureToWeightsStrategy":     FeatureToWeightsStrategy,
-    "FeatureToSplineData":         FeatureToSplineData,
-    "SplineFeatureModulator":      SplineFeatureModulator,
-    "FeatureToFloat":              FeatureToFloat,
-    "SplineRhythmModulator":      SplineRhythmModulator,
+    "FeatureToSplineData":          FeatureToSplineData,
+    "SplineFeatureModulator":       SplineFeatureModulator,
+    "FeatureToFloat":               FeatureToFloat,
+    "SplineRhythmModulator":        SplineRhythmModulator,
     "DepthInjection":               DepthInjection,
     "DepthRippleEffect":            DepthRippleEffect,
     "DepthBlender":                 DepthBlender,
     "DepthShapeModifier":           DepthShapeModifier,
-    "DepthShapeModifierPrecise":   DepthShapeModifierPrecise,
+    "DepthShapeModifierPrecise":    DepthShapeModifierPrecise,
     # "DepthMapProtrusion":          DepthMapProtrusion,
     #feature modulation
     "FeatureMixer":                 FeatureMixer,
@@ -511,8 +499,8 @@ NODE_CLASS_MAPPINGS = {
     "PreviewFeature":               PreviewFeature,
     "FeatureRebase":                FeatureRebase,
     "FeatureTruncateOrExtend":      FeatureTruncateOrExtend,
-    "FeatureAccumulate":             FeatureAccumulate,
-    "FeatureContiguousInterpolate":  FeatureContiguousInterpolate,
+    "FeatureAccumulate":            FeatureAccumulate,
+    "FeatureContiguousInterpolate": FeatureContiguousInterpolate,
     "FeatureRenormalize":           FeatureRenormalize,
     "FeatureToFlexIntParam":        FeatureToFlexIntParam,
     "FeatureToFlexFloatParam":      FeatureToFlexFloatParam,
@@ -549,11 +537,12 @@ NODE_CLASS_MAPPINGS = {
     "MovingShape":                  MovingShape,
     "_mfc":                         _mfc,
     "TextMaskNode":                 TextMaskNode,
+    
     #TODO: make useful
     # "MaskCompositePlus":                MaskCompositePlus,
     
     "AdvancedLuminanceMask":        AdvancedLuminanceMask,
-    "TranslucentComposite":        TranslucentComposite,
+    "TranslucentComposite":         TranslucentComposite,
 
     #utility nodes
     "ImageChunk":                   ImageChunks, 
@@ -574,35 +563,22 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ProximityVisualizer":          "Preview Proximity",
     "EffectVisualizer":             "Preview Effect",
     "PitchVisualizer":              "Preview Pitch",
-
-    "FlexVideoSpeed":            "**BETA** Flex Video Speed",
-    "FlexVideoFrameBlend":       "**BETA**Flex Video Frame Blend",
-
-    "AudioFeatureVisualizer": "Audio Feature Visualizer ***BETA***" ,
-    
-  
-
-    "MIDILoadAndExtract":   "MIDI Load & Feature Extract",
-    "PitchRangeByNoteNode": "Pitch Range By Note",
-    "AudioFeatureExtractor": "Audio Feature Extractor",
-    "TimeFeatureNode":          "Time Feature",
-    "DepthFeatureNode":"Depth Feature",
-    "BrightnessFeatureNode":"Brightness Feature",
-    "MotionFeatureNode":"Motion Feature",
-
-
-
-
-
-
-    "ImageCASBatch": "Image Contrast Adaptive Sharpen Batch",
-    "ImageIntervalSelectPercentage":  "Image Interval Select %",
-    "ImageScaleToTarget": "Upscale Image To Target",
-
-    "FeatureToSplineData": "***BETA*** Feature To Spline Data",
-    "SplineFeatureModulator": "***BETA*** Spline Feature Modulator",
-    "SplineRhythmModulator": "***BETA*** Spline Rhythm Modulator",
-
+    "FlexVideoSpeed":               "**BETA** Flex Video Speed",
+    "FlexVideoFrameBlend":          "**BETA**Flex Video Frame Blend",
+    "AudioFeatureVisualizer":       "Audio Feature Visualizer ***BETA***" ,
+    "MIDILoadAndExtract":           "MIDI Load & Feature Extract",
+    "PitchRangeByNoteNode":         "Pitch Range By Note",
+    "AudioFeatureExtractor":        "Audio Feature Extractor",
+    "TimeFeatureNode":              "Time Feature",
+    "DepthFeatureNode":             "Depth Feature",
+    "BrightnessFeatureNode":        "Brightness Feature",
+    "MotionFeatureNode":            "Motion Feature",
+    "ImageCASBatch":                "Image Contrast Adaptive Sharpen Batch",
+    "ImageIntervalSelectPercentage":"Image Interval Select %",
+    "ImageScaleToTarget":           "Upscale Image To Target",
+    "FeatureToSplineData":          "***BETA*** Feature To Spline Data",
+    "SplineFeatureModulator":       "***BETA*** Spline Feature Modulator",
+    "SplineRhythmModulator":        "***BETA*** Spline Rhythm Modulator",
 }
 
 if HAS_ADVANCED_LIVE_PORTRAIT:
@@ -638,15 +614,12 @@ from server import PromptServer
 from pathlib import Path
 
 if hasattr(PromptServer, "instance"):
-
     # NOTE: we add an extra static path to avoid comfy mechanism
     # that loads every script in web. 
     # 
     # Again credit to KJNodes and MTB nodes
-
     PromptServer.instance.app.add_routes(
         [web.static("/ryanontheinside_web_async", (Path(__file__).parent.absolute() / "ryanontheinside_web_async").as_posix())]
     )
-
 #register tooltips after all classes are initialized
 register_all_tooltips()

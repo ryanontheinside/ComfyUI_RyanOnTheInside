@@ -133,18 +133,14 @@ class FeatureToFlexIntParam(SchedulerNode):
             }
         }
     
-    RETURN_TYPES = ("INT", "IMAGE")
-    RETURN_NAMES = ("PARAMETER", "FEATURE_VISUALIZATION")
+    RETURN_TYPES = ("INT",)
+    RETURN_NAMES = ("PARAMETER",)
     
     def convert(self, feature, lower_threshold, upper_threshold, invert_output):
         values = self.process_values(feature, lower_threshold, upper_threshold, invert_output)
         # Round to integers
         int_values = [int(round(v)) for v in values]
-        return (int_values, self.visualize(feature))
-    
-    def visualize(self, feature):
-        # Return a blank image for now - can be enhanced later
-        return np.zeros((1, 64, 64, 3), dtype=np.float32)
+        return (int_values,)
 
 @apply_tooltips
 class FeatureToFlexFloatParam(SchedulerNode):
@@ -160,13 +156,9 @@ class FeatureToFlexFloatParam(SchedulerNode):
             }
         }
     
-    RETURN_TYPES = ("FLOAT", "IMAGE")
-    RETURN_NAMES = ("PARAMETER", "FEATURE_VISUALIZATION")
+    RETURN_TYPES = ("FLOAT",)
+    RETURN_NAMES = ("PARAMETER",)
     
     def convert(self, feature, lower_threshold, upper_threshold, invert_output):
         values = self.process_values(feature, lower_threshold, upper_threshold, invert_output)
-        return (values, self.visualize(feature))
-    
-    def visualize(self, feature):
-        # Return a blank image for now - can be enhanced later
-        return np.zeros((1, 64, 64, 3), dtype=np.float32) 
+        return (values,) 
