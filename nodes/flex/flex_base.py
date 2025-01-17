@@ -199,9 +199,5 @@ class FlexBase(ABC):
                 # If conversion fails, pass through unchanged
                 processed_kwargs[param_name] = value
 
-        
-        processed_kwargs['feature_param'] = feature_param
-        processed_kwargs['feature_mode'] = feature_mode
-
         return processed_kwargs
 

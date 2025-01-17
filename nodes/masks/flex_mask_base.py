@@ -51,7 +51,8 @@ class FlexMaskBase(FlexBase, MaskBase):
 
     #TODO update this to make the contract more clear (feature_mode, feature_param, etc)
     @abstractmethod
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, 
+                            feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
         """Apply the effect with processed parameters. To be implemented by child classes."""
         pass
 
