@@ -199,6 +199,7 @@ class AudioSubtract(AudioUtility):
         subtracted_waveform = waveform1 - waveform2
         return ({"waveform": subtracted_waveform, "sample_rate": sample_rate},)
 
+#TODO: TOO SLOW
 @apply_tooltips
 class AudioInfo(AudioUtility):
     @classmethod

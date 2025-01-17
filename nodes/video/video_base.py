@@ -24,16 +24,8 @@ class FlexVideoBase(FlexBase, ABC):
     def apply_effect(self, images, strength, feature_mode, feature_threshold, opt_feature=None, **kwargs):
         images_np = images.cpu().numpy()
 
-        # Determine frame count from either feature, images, or longest parameter list
-        if opt_feature is not None:
-            num_frames = opt_feature.frame_count
-        else:
-            # Start with number of input frames
-            num_frames = images_np.shape[0]
-            # Check all parameters for lists/arrays that might be longer
-            for value in kwargs.values():
-                if isinstance(value, (list, tuple, np.ndarray)):
-                    num_frames = max(num_frames, len(value))
+        num_frames = images_np.shape[0]
+
 
         self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 
