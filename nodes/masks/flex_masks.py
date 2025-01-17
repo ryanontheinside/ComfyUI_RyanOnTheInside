@@ -354,7 +354,7 @@ class FlexMaskWavePropagation(FlexMaskBase):
         self.wave_field = None
         self.frame_count = 0
 
-    def process_mask_below_threshold(self, mask, feature_value, strength, **kwargs):
+    def process_below_threshold(self, mask, feature_value, strength, **kwargs):
         """Reset wave field when below threshold"""
         self.wave_field = None
         self.frame_count = 0
@@ -518,7 +518,7 @@ class FlexMaskEmanatingRings(FlexMaskBase):
 
         return result
 
-    def process_mask_below_threshold(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
+    def process_below_threshold(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
         # Continue the animation but don't create new rings
         return self.apply_effect_internal(mask, 0, strength, **kwargs)
 

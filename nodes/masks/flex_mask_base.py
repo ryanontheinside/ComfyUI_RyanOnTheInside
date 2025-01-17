@@ -11,23 +11,18 @@ class FlexMaskBase(FlexBase, MaskBase):
     
     @classmethod
     def INPUT_TYPES(cls):
-        # Get input types from FlexBase (which already has list_ok added)
+        # Get input types from FlexBase
         base_inputs = super().INPUT_TYPES()
         
         # Get MaskBase inputs
         mask_inputs = MaskBase.INPUT_TYPES()
         
-        # First rename MaskBase's strength to mask_strength
+        # First rename MaskBase's strength to mask_strength so as to  not conflict with FlexBase's strength
         mask_inputs["required"]["mask_strength"] = mask_inputs["required"].pop("strength")
         
-        # Update the base inputs (preserving list_ok decorators)
+        # Update the base inputs with mask inputs
         base_inputs["required"].update(mask_inputs["required"])
         
-        # Add feature-specific inputs
-        base_inputs["required"].update({
-            "feature_param": (cls.get_modifiable_params(),),
-            "feature_mode": (["relative", "absolute"], {"default": "relative"}),
-        })
         
         # Update optional inputs
         if "optional" in mask_inputs:
@@ -69,6 +64,10 @@ class FlexMaskBase(FlexBase, MaskBase):
             **kwargs
         )[0]  # Remove batch dimension
 
+    def process_below_threshold(self, mask, feature_value=None, **kwargs):
+        """Default behavior for when feature value is below threshold: return mask unchanged."""
+        return mask
+
     def apply_effect(self, masks, opt_feature=None, strength=1.0, feature_threshold=0.0, 
                     mask_strength=1.0, invert=False, subtract_original=0.0, 
                     grow_with_blur=0.0, feature_param=None, feature_mode="relative", **kwargs):
@@ -83,7 +82,7 @@ class FlexMaskBase(FlexBase, MaskBase):
             mask = masks[i].numpy()
             
             # Get feature value
-            feature_value = self.get_feature_value(opt_feature, i)
+            feature_value = self.get_feature_value(i, opt_feature)
             
             # Process parameters using FlexBase functionality
             processed_kwargs = self.process_parameters(
@@ -107,14 +106,11 @@ class FlexMaskBase(FlexBase, MaskBase):
                     **processed_kwargs
                 )
             else:
-                if hasattr(self, 'process_mask_below_threshold'):
-                    processed_mask = self.process_mask_below_threshold(
-                        mask,
-                        feature_value=feature_value,
-                        **processed_kwargs
-                    )
-                else:
-                    processed_mask = mask
+                processed_mask = self.process_below_threshold(
+                    mask,
+                    feature_value=feature_value,
+                    **processed_kwargs
+                )
 
             # Apply mask operations
             frame_result = self.apply_mask_operation(

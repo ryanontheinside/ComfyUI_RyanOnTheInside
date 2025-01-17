@@ -83,8 +83,10 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
                 **kwargs
             )
             
+            #TODO: consider adding threshold check here and calling process_below_threshold if below threshold....
             # Apply the effect with processed parameters
             processed_image = self.apply_effect_internal(image, **processed_kwargs)
+
 
             result.append(processed_image)
             self.update_progress()
