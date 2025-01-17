@@ -22,19 +22,6 @@ class FlexAudioBase(FlexBase, RyanOnTheInside):
             "target_fps": ("FLOAT", {"default": 3.0, "min": 1.0, "max": 60.0, "step": 1.0}),
         })
         
-        # Update optional inputs
-        base_optional.update({
-            "opt_feature": ("FEATURE",),
-            "opt_feature_pipe": ("FEATURE_PIPE",),
-            "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-            "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-            "feature_param": (
-                cls.get_modifiable_params(), 
-                {"default": cls.get_modifiable_params()[0] if cls.get_modifiable_params() else "None"}
-            ),
-            "feature_mode": (["relative", "absolute"], {"default": "relative"}),
-        })
-
         return {
             "required": base_required,
             "optional": base_optional,
@@ -47,15 +34,6 @@ class FlexAudioBase(FlexBase, RyanOnTheInside):
     def __init__(self):
         super().__init__()
 
-    def start_progress(self, total_steps, desc="Processing"):
-        self.progress_bar = ProgressBar(total_steps)
-
-    def update_progress(self):
-        if self.progress_bar:
-            self.progress_bar.update(1)
-
-    def end_progress(self):
-        self.progress_bar = None
 
     @classmethod
     @abstractmethod
@@ -63,7 +41,7 @@ class FlexAudioBase(FlexBase, RyanOnTheInside):
         """Return a list of parameter names that can be modulated."""
         return []
 
-    def apply_effect(self, audio, opt_feature=None, opt_feature_pipe=None, strength=1.0, feature_threshold=0.0, feature_param=None, feature_mode="relative", target_fps=3.0, **kwargs):
+    def apply_effect(self, audio, opt_feature=None, strength=1.0, feature_threshold=0.0, feature_param=None, feature_mode="relative", target_fps=3.0, **kwargs):
         waveform = audio['waveform']  # Shape: [Batch, Channels, Samples]
         sample_rate = audio['sample_rate']
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -72,9 +50,12 @@ class FlexAudioBase(FlexBase, RyanOnTheInside):
         audio_duration = waveform.shape[-1] / sample_rate
         num_frames = int(audio_duration * target_fps)
 
-        if opt_feature_pipe is not None:
-            original_num_frames = opt_feature_pipe.frame_count
+        if opt_feature is not None:
+            original_num_frames = opt_feature.frame_count
             num_frames = min(num_frames, original_num_frames)
+
+        # Initialize parameter scheduler
+        self.initialize_scheduler(num_frames, **kwargs)
 
         self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 
@@ -88,15 +69,15 @@ class FlexAudioBase(FlexBase, RyanOnTheInside):
         processed_frames = []
 
         # Pre-compute averaged feature values if feature is provided
-        if opt_feature is not None and opt_feature_pipe is not None:
+        if opt_feature is not None:
             feature_values = np.array([
                 0.5 if self.get_feature_value(i, opt_feature) is None 
                 else self.get_feature_value(i, opt_feature) 
-                for i in range(opt_feature_pipe.frame_count)
+                for i in range(opt_feature.frame_count)
             ])
-            frames_per_segment = max(1, opt_feature_pipe.frame_count // num_frames)
+            frames_per_segment = max(1, opt_feature.frame_count // num_frames)
             averaged_features = [np.mean(feature_values[i:i+frames_per_segment]) 
-                                 for i in range(0, opt_feature_pipe.frame_count, frames_per_segment)]
+                                 for i in range(0, opt_feature.frame_count, frames_per_segment)]
         else:
             averaged_features = [None] * num_frames  # No feature modulation
 
@@ -110,16 +91,24 @@ class FlexAudioBase(FlexBase, RyanOnTheInside):
 
             feature_value = averaged_features[i]
             
-            kwargs['frame_index'] = i
-            kwargs['sample_rate'] = sample_rate
+            # Process parameters using base class functionality
+            processed_kwargs = self.process_parameters(
+                frame_index=i,
+                feature_value=feature_value,
+                feature_threshold=feature_threshold,
+                strength=strength,
+                feature_param=feature_param,
+                feature_mode=feature_mode,
+                sample_rate=sample_rate,
+                **kwargs
+            )
 
             if feature_value is not None and feature_value >= feature_threshold:
                 try:
                     processed_frame = self.process_audio_frame(
-                        audio_frame, feature_value, strength,
-                        feature_param=feature_param,
+                        audio_frame,feature_param=feature_param,
                         feature_mode=feature_mode,
-                        **kwargs
+                        **processed_kwargs
                     )
                 except Exception as e:
                     import traceback
@@ -128,7 +117,7 @@ class FlexAudioBase(FlexBase, RyanOnTheInside):
                     processed_frame = audio_frame
             else:
                 # Process without feature modulation
-                processed_frame = self.apply_effect_internal(audio_frame, **kwargs)
+                processed_frame = self.apply_effect_internal(audio_frame, **processed_kwargs)
 
             if i > 0:
                 # Apply cross-fade with previous frame
