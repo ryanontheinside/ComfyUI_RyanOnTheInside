@@ -25,6 +25,7 @@ app.registerExtension({
             const onResize = nodeType.prototype.onResize;
             const onSerialize = nodeType.prototype.onSerialize;
             const onConfigure = nodeType.prototype.onConfigure;
+            const onConnectionsChange = nodeType.prototype.onConnectionsChange;
             
             // Add serialization support
             nodeType.prototype.onSerialize = function(o) {
@@ -45,10 +46,107 @@ app.registerExtension({
                 }
             };
             
+            // Add connection change handler
+            nodeType.prototype.onConnectionsChange = function(slotType, slot, isConnected, link_info, output) {
+                console.log("onConnectionsChange:", { slotType, slot, isConnected, link_info });
+                
+                if (onConnectionsChange) {
+                    onConnectionsChange.apply(this, arguments);
+                }
+                
+                // Handle frame_count input connection changes
+                if (slotType === LiteGraph.INPUT) {
+                    const input = this.inputs[slot];
+                    console.log("Input connection change:", { input, name: input?.name });
+                    
+                    if (input && input.name === "frame_count") {
+                        if (isConnected && link_info) {
+                            // When connected, we'll need to listen for value changes
+                            const inputNode = link_info.origin_id ? this.graph._nodes_by_id[link_info.origin_id] : null;
+                            console.log("Connected node:", inputNode);
+                            
+                            if (inputNode) {
+                                // Store the connected node for later reference
+                                this.frameCountInputNode = inputNode;
+                                // Trigger initial update
+                                this.onInputUpdated();
+                            }
+                        } else {
+                            // When disconnected, clear the reference
+                            this.frameCountInputNode = null;
+                        }
+                        // Redraw since frame count may have changed
+                        this.setDirtyCanvas(true, true);
+                    }
+                }
+            };
+
+            // Add handler for input value changes
+            nodeType.prototype.onInputUpdated = function() {
+                console.log("onInputUpdated called");
+                
+                // Find frame_count input
+                const frameCountInput = this.inputs.find(input => input.name === "frame_count");
+                console.log("Frame count input:", frameCountInput);
+                
+                if (frameCountInput && frameCountInput.link !== null) {
+                    // Get the connected node
+                    const link = this.graph.links[frameCountInput.link];
+                    console.log("Link:", link);
+                    
+                    if (link && link.origin_id) {
+                        const inputNode = this.graph._nodes_by_id[link.origin_id];
+                        console.log("Input node:", inputNode);
+                        
+                        if (inputNode) {
+                            // Try to get value from node's widget first
+                            const widget = inputNode.widgets?.[0];
+                            let frameCount;
+                            if (widget) {
+                                console.log("Getting frame count from widget:", widget.value);
+                                frameCount = widget.value;
+                            } else {
+                                // Fallback to output value if no widget
+                                frameCount = inputNode.getOutputData(link.origin_slot);
+                                console.log("Getting frame count from output:", frameCount);
+                            }
+                            
+                            if (frameCount !== undefined && frameCount !== null) {
+                                // Update the widget value
+                                const frameCountWidget = this.widgets.find(w => w.name === "frame_count");
+                                if (frameCountWidget) {
+                                    frameCountWidget.value = frameCount;
+                                    console.log("Updated widget value to:", frameCount);
+                                    // Redraw the graph
+                                    this.setDirtyCanvas(true, true);
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
             // Override onNodeCreated to initialize the node
             nodeType.prototype.onNodeCreated = function() {
                 // console.log("Node created, initializing node");
                 const r = onNodeCreated?.apply(this, arguments);
+                
+                // Add trigger for input updates
+                this.onInputTriggered = this.onInputUpdated.bind(this);
+                
+                // Register for input triggers
+                if (!this.inputs) {
+                    this.inputs = [];
+                }
+                
+                // Find or create frame_count input
+                let frameCountInput = this.inputs.find(input => input.name === "frame_count");
+                if (frameCountInput) {
+                    // Add trigger callback
+                    frameCountInput.onTrigger = this.onInputTriggered;
+                    // Set mode to trigger on value change
+                    frameCountInput.mode = LiteGraph.UP | LiteGraph.DOWN;
+                }
                 
                 // Remove default points widget if it exists
                 const pointsWidgetIndex = this.widgets.findIndex(w => w.name === "points");
@@ -154,6 +252,34 @@ app.registerExtension({
                 return height + 10;  // Add padding
             };
             
+            // Get current frame count value, checking both widget and input
+            nodeType.prototype.getCurrentFrameCount = function() {
+                // First check if we have a connected input
+                const frameCountInput = this.inputs.find(input => input.name === "frame_count");
+                if (frameCountInput && frameCountInput.link !== null) {
+                    const link = this.graph.links[frameCountInput.link];
+                    if (link) {
+                        const inputNode = this.graph._nodes_by_id[link.origin_id];
+                        if (inputNode) {
+                            // Try to get value from node's widget first
+                            const widget = inputNode.widgets?.[0];
+                            if (widget) {
+                                console.log("Getting frame count from widget:", widget.value);
+                                return widget.value;
+                            }
+                            // Fallback to output value if no widget
+                            const frameCount = inputNode.getOutputData(link.origin_slot);
+                            console.log("Getting frame count from output:", frameCount);
+                            return frameCount;
+                        }
+                    }
+                }
+                
+                // Fallback to widget value
+                const frameCountWidget = this.widgets.find(w => w.name === "frame_count");
+                return frameCountWidget?.value || 30;  // Default to 30 if no value found
+            };
+
             // Override onDrawForeground to draw the graph
             nodeType.prototype.onDrawForeground = function(ctx) {
                 if (onDrawForeground) {
@@ -187,7 +313,7 @@ app.registerExtension({
                 ctx.lineWidth = 0.5;
                 
                 // Vertical lines (frames) and labels
-                const frameCount = this.widgets.find(w => w.name === "frame_count")?.value || 30;
+                const frameCount = this.getCurrentFrameCount();
                 const maxFrame = frameCount - 1;  // Maximum valid frame
                 const frameStep = Math.max(1, Math.floor(maxFrame / 10));
                 ctx.fillStyle = "#888";
@@ -314,7 +440,7 @@ app.registerExtension({
                 const graphHeight = Math.max(200, this.size[1] - widgetAreaHeight - margin * 2);
                 const graphY = widgetAreaHeight + margin;
                 
-                const frameCount = this.widgets.find(w => w.name === "frame_count")?.value || 30;
+                const frameCount = this.getCurrentFrameCount();
                 const maxFrame = frameCount - 1;
                 
                 // Calculate frame (x value) and clamp to valid range
