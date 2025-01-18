@@ -564,36 +564,96 @@ class FlexImageTiltShift(FlexImageBase):
             "focus_position_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
             "focus_width": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01}),
             "focus_height": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01}),
-            "focus_shape": (["rectangle", "ellipse"], {"default": "rectangle"}),
+            "focus_shape": (["rectangle", "ellipse", "gradient"], {"default": "gradient"}),
+            "bokeh_shape": (["circular", "hexagonal", "star"], {"default": "circular"}),
+            "bokeh_size": ("FLOAT", {"default": 0.5, "min": 0.1, "max": 2.0, "step": 0.1}),
+            "bokeh_brightness": ("FLOAT", {"default": 1.2, "min": 0.5, "max": 2.0, "step": 0.1}),
+            "chromatic_aberration": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
         })
         return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["blur_amount", "focus_position_x", "focus_position_y", "focus_width", "focus_height", "None"]
+        return ["blur_amount", "focus_position_x", "focus_position_y", "focus_width", "focus_height", 
+                "bokeh_size", "bokeh_brightness", "chromatic_aberration", "None"]
+
+    def _create_bokeh_kernel(self, size, shape, brightness):
+        # Create bokeh kernel based on shape
+        kernel_size = int(size * 20) | 1  # Ensure odd size
+        center = kernel_size // 2
+        kernel = np.zeros((kernel_size, kernel_size), dtype=np.float32)
+        
+        if shape == "circular":
+            y, x = np.ogrid[-center:center+1, -center:center+1]
+            mask = x*x + y*y <= center*center
+            kernel[mask] = 1.0
+            
+        elif shape == "hexagonal":
+            for y in range(kernel_size):
+                for x in range(kernel_size):
+                    # Hexagonal distance calculation
+                    dx = abs(x - center)
+                    dy = abs(y - center)
+                    if dx * 0.866025 + dy * 0.5 <= center:
+                        kernel[y, x] = 1.0
+                        
+        elif shape == "star":
+            for y in range(kernel_size):
+                for x in range(kernel_size):
+                    dx = x - center
+                    dy = y - center
+                    angle = np.arctan2(dy, dx)
+                    dist = np.sqrt(dx*dx + dy*dy)
+                    # Create 6-point star shape
+                    star_factor = np.abs(np.sin(3 * angle))
+                    if dist <= center * (0.8 + 0.2 * star_factor):
+                        kernel[y, x] = 1.0
+        
+        # Normalize and apply brightness
+        kernel = kernel / np.sum(kernel) * brightness
+        return kernel
 
     def apply_effect_internal(self, image: np.ndarray, blur_amount: float, focus_position_x: float, 
                               focus_position_y: float, focus_width: float, focus_height: float, 
-                              focus_shape: str, **kwargs) -> np.ndarray:
+                              focus_shape: str, bokeh_shape: str, bokeh_size: float,
+                              bokeh_brightness: float, chromatic_aberration: float, **kwargs) -> np.ndarray:
         h, w = image.shape[:2]
-        mask = np.zeros((h, w), dtype=np.float32)
         center_x, center_y = int(w * focus_position_x), int(h * focus_position_y)
         width, height = int(w * focus_width), int(h * focus_height)
 
+        # Create focus mask
+        mask = np.zeros((h, w), dtype=np.float32)
         if focus_shape == "rectangle":
             cv2.rectangle(mask, 
                           (center_x - width//2, center_y - height//2),
                           (center_x + width//2, center_y + height//2),
                           1, -1)
-        else:  # ellipse
+        elif focus_shape == "ellipse":
             cv2.ellipse(mask, 
                         (center_x, center_y),
                         (width//2, height//2),
                         0, 0, 360, 1, -1)
+        else:  # gradient
+            y, x = np.ogrid[0:h, 0:w]
+            # Create smooth gradient based on distance from focus center
+            dx = (x - center_x) / (width/2)
+            dy = (y - center_y) / (height/2)
+            dist = np.sqrt(dx*dx + dy*dy)
+            mask = np.clip(1 - dist, 0, 1)
 
+        # Apply gaussian blur to mask for smooth transition
         mask = cv2.GaussianBlur(mask, (0, 0), sigmaX=min(width, height) / 6)
-        blurred = cv2.GaussianBlur(image, (0, 0), sigmaX=blur_amount)
-        result = image * mask[:,:,np.newaxis] + blurred * (1 - mask[:,:,np.newaxis])
+
+        # Create bokeh kernel
+        bokeh_kernel = self._create_bokeh_kernel(bokeh_size, bokeh_shape, bokeh_brightness)
+        
+        # Process each channel separately for chromatic aberration
+        result = np.zeros_like(image)
+        for c in range(3):
+            # Apply channel-specific blur offset for chromatic aberration
+            offset = (c - 1) * chromatic_aberration * blur_amount
+            channel_blur = cv2.filter2D(image[..., c], -1, bokeh_kernel * (blur_amount + offset))
+            result[..., c] = image[..., c] * mask + channel_blur * (1 - mask)
 
         return np.clip(result, 0, 1)
     

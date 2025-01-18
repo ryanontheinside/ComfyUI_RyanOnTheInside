@@ -28,6 +28,7 @@ This repository has been updated to Version 2.0! After careful consideration, I 
 - **Text as Features**: New integration with Open AI Whisper allows text to be used as a feature source, with a fully modular trigger system
 - **Enhanced External Integration**: Deeper compatibility with external node packs
 - **More Intuitive**: Redesigned with user experience in mind
+- **Image Improvements**: Major improvements to FlexImage nodes. One might say they are more than useful now.
 - **And much more!**
 
 ### ⚠️ Breaking Changes Notice

@@ -147,12 +147,22 @@ Each node type has different parameters that can be modulated:
 
     # FlexImageTiltShift tooltips (inherits from: FlexImageBase)
     TooltipManager.register_tooltips("FlexImageTiltShift", {
-        "blur_amount": "Amount of blur applied to out-of-focus areas (0.0 to 50.0)",
-        "focus_position_x": "Horizontal position of focus center. 0 = left, 1 = right (0.0 to 1.0)",
-        "focus_position_y": "Vertical position of focus center. 0 = top, 1 = bottom (0.0 to 1.0)",
-        "focus_width": "Width of the focus area relative to image width (0.0 to 1.0)",
-        "focus_height": "Height of the focus area relative to image height (0.0 to 1.0)",
-        "focus_shape": "Shape of the focus area:\n- rectangle: Sharp-edged focus region\n- ellipse: Smooth oval focus region",
+        "blur_amount": "Amount of blur applied to out-of-focus areas. Higher values create stronger depth-of-field effect (0.0 to 50.0)",
+        "focus_position_x": "Horizontal position of focus center. 0 = left edge, 1 = right edge (0.0 to 1.0)",
+        "focus_position_y": "Vertical position of focus center. 0 = top edge, 1 = bottom edge (0.0 to 1.0)",
+        "focus_width": "Width of the in-focus area relative to image width. Larger values keep more of the image sharp (0.0 to 1.0)",
+        "focus_height": "Height of the in-focus area relative to image height. Larger values keep more of the image sharp (0.0 to 1.0)",
+        "focus_shape": """Shape of the focus area:
+- rectangle: Sharp-edged focus region with clear boundaries
+- ellipse: Smooth oval focus region for natural transitions
+- gradient: Continuous focus falloff for realistic depth simulation""",
+        "bokeh_shape": """Shape of out-of-focus highlights:
+- circular: Natural, round bokeh like modern lenses
+- hexagonal: Six-sided bokeh typical of vintage lenses
+- star: Decorative star-shaped bokeh for artistic effect""",
+        "bokeh_size": "Size of bokeh highlights in out-of-focus areas. Larger values create more pronounced bokeh effects (0.1 to 2.0)",
+        "bokeh_brightness": "Brightness multiplier for bokeh highlights. Higher values make bright points more prominent (0.5 to 2.0)",
+        "chromatic_aberration": "Amount of color fringing in out-of-focus areas. Simulates lens dispersion effects (0.0 to 1.0)",
         "feature_param": """Choose which parameter to modulate:
         
 - blur_amount: Dynamically adjust blur intensity
@@ -160,6 +170,9 @@ Each node type has different parameters that can be modulated:
 - focus_position_y: Dynamically adjust vertical focus
 - focus_width: Dynamically adjust focus area width
 - focus_height: Dynamically adjust focus area height
+- bokeh_size: Dynamically adjust bokeh highlight size
+- bokeh_brightness: Dynamically adjust bokeh intensity
+- chromatic_aberration: Dynamically adjust color fringing
 - None: No parameter modulation"""
     }, inherits_from='FlexImageBase')
 
