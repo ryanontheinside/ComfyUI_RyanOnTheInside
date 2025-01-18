@@ -21,8 +21,8 @@
 This repository has been updated to Version 2.0! After careful consideration, I decided that a complete update was better than maintaining legacy support indefinitely. This new version brings significant improvements while maintaining all existing functionality. This update was done with user experience, extensibility, and functionality in mind.
 
 ### 🎉 What's New in V2
--**EVERYTHING is Controllable!** Previously, usually one parameter was controllable by a feature per target node. Now ANY parameter, of any Flex node, can now be controlled by a feature. This not only enables some of the same things to be done with less nodes, but also enables MANY more things that were not previously possible.  
-- **Optional Feature Inputs**: Feature inputs are now optional! This means these nodes double as a powerful suite for image, mask, and video manipulation even without reactivity
+-**EVERYTHING reacts to EVERYTHING!** Now you can modulate ALL parameters of ALL Flex nodes!  
+- **Optional Feature Inputs**: Feature inputs are now optional! This means these nodes double as a powerful suite for image, mask, and video manipulation even without reactivity!
 - **Cleaner Workflows**: The feature_pipe is gone! Less noodles, more intuitive connections
 - **Manual Feature Creation**: New interface for drawing/creating features manually - far more powerful than it might seem!
 - **Text as Features**: New integration with Open AI Whisper allows text to be used as a feature source, with a fully modular trigger system
@@ -75,49 +75,7 @@ git checkout main
 
 <details><summary><h3>🆕 Recent Updates:</h3></summary>
 
-- 12/14/24 - **FeatureToFloat**: Convert features to float data. 
-- 11/20/24 - **AdvancedLivePortrait Compatibility**: Exciting news! The AdvancedLivePortrait nodes are now compatible with our feature system, enabling dynamic control over facial animations!
-- 11/19/24 - **AudioInfo**: Added a node that returns audio information, including duration, sample rate, number of channels, number of samples, max amplitude, mean amplitude, and RMS amplitude.
-- 11/8/24 - **DOOM**: Will it run DOOM? Yes. Yes it will.
-- 11/6/24 - **Some cleanup in prep for v2**: Control CogVideo by converting features to spline data
-- 11/1/24 - **Feature to Spline Data**: Control CogVideo by convert features to spline data
-- 10/28/24 - **FlexImageHorizontalToVertical**: Converts horizontal images to vertical format with customizable background effects.
-- 10/23/24 - **Flex Images Now Feature Optional**: You no longer need to specify a feature to use Flex Image nodes.
-- 10/20/24 - **Audio Visualization Nodes**: Over 1 TRILLION ways to customize!
-  - **FlexAudioVisualizerCircular**: Creates circular audio visualizations based on frequency or waveform data.
-  - **FlexAudioVisualizerLine**: Generates linear audio visualizations with customizable styles and parameters.
-- 10/20/24 - **ImageScaleToTarget**: New node that upscales images to match a target image's size.
-- 10/20/24 - **FlexImageHueShift**: Applies a hue shift effect to images, with optional feature modulation.
-- 10/20/24 - **FlexImageDepthWarp**: Warps images based on depth maps, creating pseudo-3D effects.
-- 10/18/24 - **Manual Feature**: create features manually.
-- 10/18/24 - **Flex image transform and more**: Transform images with your features!
-- 10/13/24 - **Depthflow Nodes Compatibility**: Exciting news! The Depthflow Nodes pack by akatz-ai is now compatible with my feature system, opening up new possibilities for dynamic parallax animations!
-- 10/12/24 - **A LOT**: I added a lot of new nodes, fixed a lot of bugs, and cleaned up a lot of the code. I will be detailing the cool stuff on YouTube at some point in this timeline  of ours
-  - **FeatureContiguousInterpolate**: Interpolates contiguous segments of a feature that meet a threshold criteria.
-  - **FeatureRebase**: Rebases feature values within specified thresholds.
-  - **Latents as flex feature targets**: WORK IN PROGRESS Base class for latent nodes, providing a common interface and functionality for various latent operations.
-  - **Audio Utility and Effect Nodes**: Added an incomplete set of audio processing nodes.
-  - **And more**
-- 10/3/24 - **FeatureAccumulate**: Adds a new feature modifier that accumulates feature values over time, creating a cumulative effect.
-- 9/30/23 - **FlexVideoSeek Node**: Added a new video manipulation node that allows for dynamic frame seeking based on feature inputs. This node enables creation of time-warping effects, music-reactive video manipulations, and other temporal distortions.
-- 9/30/23 - **Audio Utility and Effect Nodes**: Added a comprehensive set of audio processing nodes:
-  - Utility Nodes: AudioPad, AudioVolumeNormalization, AudioResample, AudioChannelMerge, AudioChannelSplit, AudioConcatenate, AudioCombine
-  - Effect Nodes: AudioPitchShift, AudioTimeStretch, AudioFade, AudioGain, AudioDither
-  These nodes provide powerful tools for manipulating and processing audio within ComfyUI workflows.
-- 9/28/24 - **Video TARGET**: Adds video as a feature target! While all feature targets are inherently *tiiime* based, this additional allows for *video-level* modulation as opposed to modulating individual frames to varying degrees over time. Novel!
-- 9/27/24 - MIDI feature bug fix
-- 9/25/24 - **FlexImageContrast**: Adds contrast and brightness to images, with an option to preserve luminosity.
-- 9/15/24 - **alot** Depth From Shape, Audio Pitch Feature, Pitch Range  filters, new MIDI keybord for Pitch Range specification, Image from audio, mask from audio, Improved depth chamber, wave propagation, emanating rings,   and a lot more 
-- 9/8/24 - **Area Feature**: Adds area  as a  driving reactivity feature!
-- 9/7/24 - **Proximity Feature**: Adds proximity as a driving reactivity feature! Allows for the distince of objects from one another to control other nodes.
-- 9/5/24 - **FlexImageParallax**: Add illusory depth.
-- 9/3/24 - **FlexMaskDepthChamber**: Mask anything within a given depth range
-- 9/3/24 - **FeatureFade**: another feature modifier  to allow mixing of features, controled by features. Think mixing depth and motion features according to a kick drum or somthing. Ridiculous.
-- 9/1/24 - **Utility Nodes**: Added many utility nodes for batch manipulation and more
-- 8/31/24 - **FlexMaskRandomShapes**: Create dynamic shapes. Cooler than it sounds!
-- 8/30/24 - **FlexMaskEmanatingRings**: Create dynamic, expanding ring patterns emanating from mask edges.
-- 8/30/24 - **FlexMaskWavePropagation**: Simulate wave-like distortions propagating from mask boundaries.
-- 8/29/24 - **Added feature reactivity to paricle simulations**
+**VERSION 2.0**
 
 </details>
 
