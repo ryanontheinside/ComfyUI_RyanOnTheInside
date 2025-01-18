@@ -44,6 +44,7 @@ class FlexImagePosterize(FlexImageBase):
             "dither_strength": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 1.0, "step": 0.01}),
             "channel_separation": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01}),
             "gamma": ("FLOAT", {"default": 1.2, "min": 0.1, "max": 2.2, "step": 0.1}),
+            "dither_method": (["ordered", "floyd", "none"], {"default": "ordered"}),
         })
         return base_inputs
 
@@ -52,41 +53,59 @@ class FlexImagePosterize(FlexImageBase):
         return ["max_levels", "dither_strength", "channel_separation", "gamma", "None"]
 
     def apply_effect_internal(self, image: np.ndarray, max_levels: int, dither_strength: float, 
-                              channel_separation: float, gamma: float, **kwargs) -> np.ndarray:
+                              channel_separation: float, gamma: float, dither_method: str, **kwargs) -> np.ndarray:
         # Apply gamma correction
         image_gamma = np.power(image, gamma)
         
-        # Convert image to uint8
-        image_uint8 = (image_gamma * 255).astype(np.uint8)
+        # Initialize result array
+        result = np.zeros_like(image_gamma)
         
-        posterized = np.zeros_like(image_uint8)
+        # Create ordered dither pattern if needed
+        if dither_method == "ordered":
+            bayer_pattern = np.array([[0, 8, 2, 10],
+                                    [12, 4, 14, 6],
+                                    [3, 11, 1, 9],
+                                    [15, 7, 13, 5]], dtype=np.float32) / 16.0
+            h, w = image.shape[:2]
+            # Tile the pattern to match image size
+            pattern_h = (h + 3) // 4
+            pattern_w = (w + 3) // 4
+            dither_pattern = np.tile(bayer_pattern, (pattern_h, pattern_w))[:h, :w]
+            dither_pattern = dither_pattern[..., np.newaxis] * dither_strength
         
         for c in range(3):  # RGB channels
-            # Calculate levels for each channel
+            # Calculate levels for each channel with separation
             channel_levels = int(np.clip(2 + (max_levels - 2) * (1 + channel_separation * (c - 1)), 2, max_levels))
             
-            # Posterize
-            div = 256 // channel_levels
-            posterized[:,:,c] = (image_uint8[:,:,c] // div) * div
+            # Get current channel
+            channel = image_gamma[..., c]
+            
+            if dither_method == "ordered":
+                # Add ordered dither pattern
+                channel = np.clip(channel + dither_pattern[..., 0] - 0.5 * dither_strength, 0, 1)
+            
+            # Quantize
+            scale = (channel_levels - 1)
+            quantized = np.round(channel * scale) / scale
+            
+            if dither_method == "floyd":
+                # Efficient Floyd-Steinberg dithering using convolution
+                error = (channel - quantized) * dither_strength
+                
+                # Prepare error diffusion kernel
+                kernel = np.array([[0, 0, 0],
+                                [0, 0, 7/16],
+                                [3/16, 5/16, 1/16]])
+                
+                # Apply error diffusion
+                from scipy.signal import convolve2d
+                error_diffused = convolve2d(error, kernel, mode='same')
+                quantized = np.clip(quantized + error_diffused, 0, 1)
+            
+            result[..., c] = quantized
         
-        if dither_strength > 0:
-            # Apply Floyd-Steinberg dithering with adjustable strength
-            error = (image_uint8.astype(np.float32) - posterized) * dither_strength
-            h, w = image.shape[:2]
-            for c in range(3):  # RGB channels
-                for i in range(h - 1):
-                    for j in range(w - 1):
-                        old_pixel = posterized[i, j, c]
-                        new_pixel = np.clip(old_pixel + error[i, j, c], 0, 255)
-                        quant_error = old_pixel - new_pixel
-                        posterized[i, j, c] = new_pixel
-                        error[i, j+1, c] += quant_error * 7 / 16
-                        error[i+1, j-1, c] += quant_error * 3 / 16
-                        error[i+1, j, c] += quant_error * 5 / 16
-                        error[i+1, j+1, c] += quant_error * 1 / 16
-        
-        # Convert back to float32 and apply gamma correction
-        return np.power(posterized.astype(np.float32) / 255.0, 1/gamma)
+        # Apply inverse gamma correction
+        return np.power(result, 1/gamma)
     
 @apply_tooltips
 class FlexImageKaleidoscope(FlexImageBase):
@@ -197,35 +216,151 @@ class FlexImageGlitch(FlexImageBase):
     def INPUT_TYPES(cls):
         base_inputs = super().INPUT_TYPES()
         base_inputs["required"].update({
-            "shift_amount": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.01}),
-            "scan_lines": ("INT", {"default": 10, "min": 0, "max": 100, "step": 1}),
-            "color_shift": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "glitch_type": (["digital", "analog", "compression", "wave", "corrupt"], {"default": "digital"}),
+            "intensity": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "block_size": ("INT", {"default": 32, "min": 8, "max": 128, "step": 8}),
+            "wave_amplitude": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "wave_frequency": ("FLOAT", {"default": 5.0, "min": 0.1, "max": 20.0, "step": 0.1}),
+            "corruption_amount": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "time_seed": ("INT", {"default": 0, "min": 0, "max": 10000, "step": 1}),
         })
         return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["shift_amount", "scan_lines", "color_shift", "None"]
+        return ["intensity", "block_size", "wave_amplitude", "wave_frequency", "corruption_amount", "time_seed", "None"]
 
-    def apply_effect_internal(self, image: np.ndarray, shift_amount: float, scan_lines: int, color_shift: float, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, image: np.ndarray, glitch_type: str, intensity: float, 
+                            block_size: int, wave_amplitude: float, wave_frequency: float,
+                            corruption_amount: float, time_seed: int, **kwargs) -> np.ndarray:
         h, w = image.shape[:2]
-
-        # Apply horizontal shift
-        shift = int(w * shift_amount)
-        result = np.roll(image, shift, axis=1)
-
-        # Add scan lines
-        if scan_lines > 0:
-            scan_line_mask = np.zeros((h, w))
-            scan_line_mask[::scan_lines] = 1
-            result = result * (1 - scan_line_mask)[:,:,np.newaxis] + scan_line_mask[:,:,np.newaxis]
-
-        # Apply color channel shift
-        if color_shift > 0:
-            color_shift_amount = int(w * color_shift)
-            result[:,:,0] = np.roll(result[:,:,0], color_shift_amount, axis=1)
-            result[:,:,2] = np.roll(result[:,:,2], -color_shift_amount, axis=1)
-
+        
+        # Add smart padding - using reflection for most natural look
+        pad_size = max(int(min(h, w) * 0.1), 32)  # At least 32 pixels or 10% of size
+        padded = cv2.copyMakeBorder(image, pad_size, pad_size, pad_size, pad_size, 
+                                  cv2.BORDER_REFLECT_101)
+        
+        ph, pw = padded.shape[:2]
+        result = padded.copy()
+        
+        # Set random seed for reproducibility
+        np.random.seed(time_seed)
+        
+        # Apply effects as before, but now working with padded image
+        if glitch_type == "digital":
+            for c in range(3):
+                shift_x = int(pw * intensity * np.random.uniform(-0.1, 0.1))
+                shift_y = int(ph * intensity * np.random.uniform(-0.1, 0.1))
+                result[..., c] = np.roll(np.roll(padded[..., c], shift_x, axis=1), shift_y, axis=0)
+            
+            num_blocks = int(intensity * 10)
+            for _ in range(num_blocks):
+                x = np.random.randint(0, pw - block_size)
+                y = np.random.randint(0, ph - block_size)
+                block = result[y:y+block_size, x:x+block_size].copy()
+                
+                shift_x = int(block_size * np.random.uniform(-1, 1))
+                shift_y = int(block_size * np.random.uniform(-1, 1))
+                
+                new_x = np.clip(x + shift_x, 0, pw - block_size)
+                new_y = np.clip(y + shift_y, 0, ph - block_size)
+                
+                result[new_y:new_y+block_size, new_x:new_x+block_size] = block
+                
+        elif glitch_type == "compression":
+            # Simulate JPEG compression artifacts
+            num_blocks_y = ph // block_size
+            num_blocks_x = pw // block_size
+            
+            for by in range(num_blocks_y):
+                for bx in range(num_blocks_x):
+                    y1, y2 = by * block_size, (by + 1) * block_size
+                    x1, x2 = bx * block_size, (bx + 1) * block_size
+                    
+                    # Random block corruption
+                    if np.random.random() < corruption_amount:
+                        # Quantization effect
+                        block = result[y1:y2, x1:x2]
+                        # Simulate DCT quantization
+                        quant_level = int(8 * intensity)
+                        block = (block * quant_level).astype(int) / quant_level
+                        # Add blocking artifacts
+                        block += np.random.uniform(-0.1, 0.1, block.shape) * intensity
+                        result[y1:y2, x1:x2] = block
+                
+        elif glitch_type == "wave":
+            y_coords, x_coords = np.mgrid[0:ph, 0:pw]
+            
+            for i in range(3):
+                freq = wave_frequency * (i + 1)
+                amp = wave_amplitude / (i + 1)
+                
+                x_offset = amp * pw * np.sin(2 * np.pi * y_coords / ph * freq + time_seed * 0.1)
+                y_offset = amp * ph * np.cos(2 * np.pi * x_coords / pw * freq + time_seed * 0.1)
+                
+                x_map = (x_coords + x_offset * intensity).astype(np.float32)
+                y_map = (y_coords + y_offset * intensity).astype(np.float32)
+                
+                x_map = np.clip(x_map, 0, pw-1)
+                y_map = np.clip(y_map, 0, ph-1)
+                
+                result = cv2.remap(result, x_map, y_map, cv2.INTER_LINEAR)
+        
+        elif glitch_type == "corrupt":
+            # Data corruption simulation
+            for _ in range(int(corruption_amount * 20)):
+                # Random line corruption
+                if np.random.random() < 0.5:
+                    y = np.random.randint(0, ph)
+                    length = int(pw * np.random.uniform(0.1, 0.5))
+                    start = np.random.randint(0, pw - length)
+                    
+                    # Corrupt line with various effects
+                    corrupt_type = np.random.choice(['repeat', 'shift', 'noise'])
+                    if corrupt_type == 'repeat':
+                        result[y, start:start+length] = result[y, start]
+                    elif corrupt_type == 'shift':
+                        shift = np.random.randint(-50, 50)
+                        result[y, start:start+length] = np.roll(result[y, start:start+length], shift, axis=0)
+                    else:  # noise
+                        result[y, start:start+length] = np.random.random((length, 3))
+                
+                # Block corruption
+                else:
+                    y = np.random.randint(0, ph - block_size)
+                    x = np.random.randint(0, pw - block_size)
+                    
+                    # Different corruption patterns
+                    pattern = np.random.choice(['solid', 'noise', 'repeat'])
+                    if pattern == 'solid':
+                        result[y:y+block_size, x:x+block_size] = np.random.random(3)
+                    elif pattern == 'noise':
+                        result[y:y+block_size, x:x+block_size] = np.random.random((block_size, block_size, 3))
+                    else:  # repeat
+                        result[y:y+block_size, x:x+block_size] = result[y, x]
+        
+        elif glitch_type == "analog":
+            # Simulate analog TV distortion
+            # Add scan lines
+            scan_lines = np.ones((ph, pw, 3))
+            scan_lines[::2] *= 0.8
+            result *= scan_lines
+            
+            # Add noise
+            noise = np.random.normal(0, 0.1 * intensity, (ph, pw, 3))
+            result += noise
+            
+            # Add vertical hold distortion
+            hold_offset = int(ph * 0.1 * intensity * np.sin(time_seed * 0.1))
+            result = np.roll(result, hold_offset, axis=0)
+            
+            # Add ghosting
+            ghost = np.roll(result, int(pw * 0.05 * intensity), axis=1) * 0.3
+            result = result * 0.7 + ghost
+        
+        # Extract the center portion (removing padding)
+        result = result[pad_size:pad_size+h, pad_size:pad_size+w]
+        
         return np.clip(result, 0, 1)
 
 @apply_tooltips
@@ -301,26 +436,123 @@ class FlexImageBloom(FlexImageBase):
             "threshold": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 1.0, "step": 0.01}),
             "blur_amount": ("FLOAT", {"default": 10.0, "min": 0.0, "max": 50.0, "step": 0.1}),
             "intensity": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "num_passes": ("INT", {"default": 4, "min": 1, "max": 8, "step": 1}),
+            "color_bleeding": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "falloff": ("FLOAT", {"default": 1.2, "min": 0.1, "max": 3.0, "step": 0.1}),
+            "surface_scatter": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "normal_influence": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 1.0, "step": 0.01}),
+        })
+        base_inputs["optional"].update({
+            "opt_normal_map": ("IMAGE",),
         })
         return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["threshold", "blur_amount", "intensity", "None"]
+        return ["threshold", "blur_amount", "intensity", "num_passes", "color_bleeding", "falloff", "surface_scatter", "normal_influence", "None"]
 
     def apply_effect_internal(self, image: np.ndarray, threshold: float, blur_amount: float, 
-                              intensity: float, **kwargs) -> np.ndarray:
-        # Extract bright areas
-        bright_areas = np.maximum(image - threshold, 0) / (1 - threshold)
-
-        # Apply gaussian blur
-        blurred = gaussian_filter(bright_areas, sigma=blur_amount)
-
-        # Combine with original image
-        result = image + blurred * intensity
-
+                              intensity: float, num_passes: int, color_bleeding: float,
+                              falloff: float, surface_scatter: float, normal_influence: float,
+                              opt_normal_map: np.ndarray = None, **kwargs) -> np.ndarray:
+        # Convert to float32 for better precision
+        image = image.astype(np.float32)
+        
+        # Extract bright areas with smooth threshold
+        brightness = np.max(image, axis=2)
+        bright_mask = np.clip((brightness - threshold) / (1 - threshold), 0, 1)
+        bright_mask = np.power(bright_mask, falloff)
+        
+        # Initialize accumulator for bloom effect
+        bloom_accumulator = np.zeros_like(image)
+        
+        # Process normal map if provided
+        if opt_normal_map is not None:
+            # Extract the normal map for the current frame and ensure it's numpy
+            if torch.is_tensor(opt_normal_map):
+                opt_normal_map = opt_normal_map.cpu().numpy()
+            
+            if len(opt_normal_map.shape) > 3:  # If batched
+                frame_index = kwargs.get('frame_index', 0)
+                opt_normal_map = opt_normal_map[frame_index]
+            
+            # Resize normal map to match image dimensions if needed
+            h, w = image.shape[:2]
+            if opt_normal_map.shape[:2] != (h, w):
+                opt_normal_map = cv2.resize(opt_normal_map, (w, h), interpolation=cv2.INTER_LINEAR)
+            
+            # Convert normal map from [0,1] to [-1,1] range
+            normals = opt_normal_map * 2.0 - 1.0
+            
+            # Calculate surface alignment factors using numpy operations
+            view_vector = np.array([0, 0, 1])
+            surface_alignment = np.zeros((h, w), dtype=np.float32)
+            for i in range(3):  # Manual dot product
+                surface_alignment += normals[..., i] * view_vector[i]
+            surface_alignment = (surface_alignment + 1) * 0.5  # Normalize to [0,1]
+            
+            # Create directional kernels based on surface normals
+            y_grad, x_grad = np.gradient(surface_alignment)
+            angles = np.arctan2(y_grad, x_grad)
+            strengths = np.sqrt(x_grad**2 + y_grad**2)
+        
+        # Multi-pass gaussian blur at different scales
+        for i in range(num_passes):
+            # Calculate sigma for this pass (increasing with each pass)
+            current_sigma = blur_amount * (1 + i)
+            
+            # Extract color information with color bleeding control
+            color_contribution = image * (1 - color_bleeding) + np.mean(image, axis=2, keepdims=True) * color_bleeding
+            
+            # Apply bright mask with pass-specific weighting
+            pass_contribution = color_contribution * bright_mask[..., np.newaxis]
+            
+            if opt_normal_map is not None:
+                # Apply anisotropic gaussian blur based on surface normals
+                for c in range(3):
+                    channel = pass_contribution[..., c]
+                    
+                    # Calculate directional sigmas based on surface normals
+                    sigma_x = current_sigma * (1 + strengths * surface_scatter * np.cos(angles))
+                    sigma_y = current_sigma * (1 + strengths * surface_scatter * np.sin(angles))
+                    
+                    # Blend between directional and uniform blur based on normal influence
+                    uniform_blur = gaussian_filter(channel, sigma=current_sigma)
+                    directional_blur = np.zeros_like(channel)
+                    
+                    # Apply directional blur
+                    for angle in np.linspace(0, np.pi, 4):  # Sample 4 directions
+                        rot_sigma_x = sigma_x * np.cos(angle) - sigma_y * np.sin(angle)
+                        rot_sigma_y = sigma_x * np.sin(angle) + sigma_y * np.cos(angle)
+                        # Take mean of sigma values for each direction
+                        sigma_y_mean = np.mean(np.abs(rot_sigma_y))
+                        sigma_x_mean = np.mean(np.abs(rot_sigma_x))
+                        directional_blur += gaussian_filter(channel, sigma=[sigma_y_mean, sigma_x_mean])
+                    
+                    directional_blur /= 4  # Average the directional samples
+                    
+                    # Blend between uniform and directional blur
+                    blurred_channel = uniform_blur * (1 - normal_influence) + directional_blur * normal_influence
+                    pass_contribution[..., c] = blurred_channel
+                
+                # Modulate blur by surface alignment
+                pass_contribution *= (1 - surface_alignment[..., np.newaxis] * surface_scatter)
+            else:
+                # Regular gaussian blur if no normal map
+                pass_contribution = gaussian_filter(pass_contribution, sigma=[current_sigma, current_sigma, 0])
+            
+            # Weight contribution based on pass number (later passes contribute less)
+            pass_weight = 1.0 / (2 ** i)
+            bloom_accumulator += pass_contribution * pass_weight
+        
+        # Normalize accumulator
+        bloom_accumulator /= np.sum([1.0 / (2 ** i) for i in range(num_passes)])
+        
+        # Combine with original image using intensity
+        result = image + bloom_accumulator * intensity
+        
         return np.clip(result, 0, 1)
-
+    
 @apply_tooltips
 class FlexImageTiltShift(FlexImageBase):
     @classmethod

@@ -28,10 +28,14 @@ Each node type has different parameters that can be modulated:
 
     # FlexImagePosterize tooltips (inherits from: FlexImageBase)
     TooltipManager.register_tooltips("FlexImagePosterize", {
-        "max_levels": "Maximum number of color levels per channel (2 to 256)",
-        "dither_strength": "Intensity of dithering effect (0.0 to 1.0)",
-        "channel_separation": "Degree of separation between color channels (0.0 to 1.0)",
-        "gamma": "Gamma correction applied before posterization (0.1 to 2.2)",
+        "max_levels": "Maximum number of color levels per channel. Higher values preserve more color detail (2 to 256)",
+        "dither_strength": "Intensity of dithering effect. Higher values reduce color banding (0.0 to 1.0)",
+        "channel_separation": "Degree of separation between color channels. Creates color shift effects (0.0 to 1.0)",
+        "gamma": "Gamma correction applied before posterization. Affects brightness distribution (0.1 to 2.2)",
+        "dither_method": """Method used for dithering:
+- ordered: Fast Bayer matrix dithering, good for retro effects
+- floyd: Floyd-Steinberg dithering, better for natural gradients
+- none: No dithering, creates sharp color transitions""",
         "feature_param": """Choose which parameter to modulate:
         
 - max_levels: Dynamically adjust color quantization
@@ -74,31 +78,43 @@ Each node type has different parameters that can be modulated:
 
     # FlexImageGlitch tooltips (inherits from: FlexImageBase)
     TooltipManager.register_tooltips("FlexImageGlitch", {
-        "shift_amount": "Magnitude of horizontal shift (0.0 to 1.0)",
-        "scan_lines": "Number of scan lines to add (0 to 100)",
-        "color_shift": "Amount of color channel separation (0.0 to 1.0)",
+        "glitch_type": """Type of glitch effect to apply:
+- digital: RGB channel shifts and block displacement
+- analog: Classic TV distortion with scan lines and ghosting
+- compression: JPEG-like block artifacts
+- wave: Smooth wave distortions
+- corrupt: Random data corruption effects""",
+        "intensity": "Overall strength of the glitch effect (0.0 to 1.0)",
+        "block_size": "Size of blocks for digital glitches and compression artifacts (8 to 128)",
+        "wave_amplitude": "Height of wave distortions (0.0 to 1.0)",
+        "wave_frequency": "Frequency of wave patterns (0.1 to 20.0)",
+        "corruption_amount": "Probability and intensity of corruption artifacts (0.0 to 1.0)",
+        "time_seed": "Seed for random glitch generation. Same seed produces same pattern (0 to 10000)",
         "feature_param": """Choose which parameter to modulate:
         
-- shift_amount: Dynamically adjust glitch displacement
-- scan_lines: Dynamically adjust line density
-- color_shift: Dynamically adjust color separation
+- intensity: Dynamically adjust effect strength
+- block_size: Dynamically adjust artifact size
+- wave_amplitude: Dynamically adjust wave height
+- wave_frequency: Dynamically adjust wave frequency
+- corruption_amount: Dynamically adjust corruption intensity
+- time_seed: Dynamically change random patterns
 - None: No parameter modulation"""
     }, inherits_from='FlexImageBase')
 
     # FlexImageChromaticAberration tooltips (inherits from: FlexImageBase)
     TooltipManager.register_tooltips("FlexImageChromaticAberration", {
-        "shift_amount": "Magnitude of color channel shift (0.0 to 0.1)",
-        "angle": "Angle of the shift effect (0.0 to 360.0)",
+        "shift_amount": "Amount of RGB channel separation. Higher values create more color fringing (0.0 to 0.5)",
+        "angle": "Direction of the chromatic aberration effect in degrees. 0° is horizontal, 90° is vertical (0.0 to 720.0)",
         "feature_param": """Choose which parameter to modulate:
         
-- shift_amount: Dynamically adjust color separation amount
+- shift_amount: Dynamically adjust color separation
 - angle: Dynamically adjust separation direction
 - None: No parameter modulation"""
     }, inherits_from='FlexImageBase')
 
     # FlexImagePixelate tooltips (inherits from: FlexImageBase)
     TooltipManager.register_tooltips("FlexImagePixelate", {
-        "pixel_size": "Size of each pixelated block (1 to 100)",
+        "pixel_size": "Size of each pixelated block. Larger values create more pronounced pixelation (1 to 100)",
         "feature_param": """Choose which parameter to modulate:
         
 - pixel_size: Dynamically adjust pixelation size
@@ -107,25 +123,36 @@ Each node type has different parameters that can be modulated:
 
     # FlexImageBloom tooltips (inherits from: FlexImageBase)
     TooltipManager.register_tooltips("FlexImageBloom", {
-        "threshold": "Brightness threshold for the bloom effect (0.0 to 1.0)",
-        "blur_amount": "Amount of blur applied to the bloom (0.0 to 50.0)",
-        "intensity": "Strength of the bloom effect (0.0 to 1.0)",
+        "threshold": "Brightness threshold for bloom effect. Only pixels brighter than this value will glow (0.0 to 1.0)",
+        "blur_amount": "Base radius of the bloom effect. Higher values create softer, more diffused glow (0.0 to 50.0)",
+        "intensity": "Overall strength of the bloom effect. Controls the brightness of the glow (0.0 to 1.0)",
+        "num_passes": "Number of bloom passes. More passes create layered, atmospheric glow effects (1 to 8)",
+        "color_bleeding": "Amount of color spreading between bright areas. Higher values create more color mixing (0.0 to 1.0)",
+        "falloff": "How quickly the bloom effect diminishes with distance. Higher values create tighter, more focused glow (0.1 to 3.0)",
+        "surface_scatter": "How much the bloom follows surface geometry when using normal map. Affects glow distribution (0.0 to 1.0)",
+        "normal_influence": "Strength of normal map's influence on bloom direction. Controls surface-aware lighting (0.0 to 1.0)",
+        "opt_normal_map": "Optional normal map for surface-aware bloom. Enables realistic light scattering based on surface geometry",
         "feature_param": """Choose which parameter to modulate:
         
-- threshold: Dynamically adjust glow threshold
-- blur_amount: Dynamically adjust glow spread
-- intensity: Dynamically adjust glow strength
+- threshold: Dynamically adjust bloom threshold
+- blur_amount: Dynamically adjust bloom radius
+- intensity: Dynamically adjust bloom strength
+- num_passes: Dynamically adjust bloom quality
+- color_bleeding: Dynamically adjust color spread
+- falloff: Dynamically adjust bloom falloff
+- surface_scatter: Dynamically adjust surface influence
+- normal_influence: Dynamically adjust normal map impact
 - None: No parameter modulation"""
     }, inherits_from='FlexImageBase')
 
     # FlexImageTiltShift tooltips (inherits from: FlexImageBase)
     TooltipManager.register_tooltips("FlexImageTiltShift", {
-        "blur_amount": "Strength of the blur effect (0.0 to 50.0)",
-        "focus_position_x": "X-coordinate of the focus center (0.0 to 1.0)",
-        "focus_position_y": "Y-coordinate of the focus center (0.0 to 1.0)",
-        "focus_width": "Width of the focus area (0.0 to 1.0)",
-        "focus_height": "Height of the focus area (0.0 to 1.0)",
-        "focus_shape": "Shape of the focus area ('rectangle' or 'ellipse')",
+        "blur_amount": "Amount of blur applied to out-of-focus areas (0.0 to 50.0)",
+        "focus_position_x": "Horizontal position of focus center. 0 = left, 1 = right (0.0 to 1.0)",
+        "focus_position_y": "Vertical position of focus center. 0 = top, 1 = bottom (0.0 to 1.0)",
+        "focus_width": "Width of the focus area relative to image width (0.0 to 1.0)",
+        "focus_height": "Height of the focus area relative to image height (0.0 to 1.0)",
+        "focus_shape": "Shape of the focus area:\n- rectangle: Sharp-edged focus region\n- ellipse: Smooth oval focus region",
         "feature_param": """Choose which parameter to modulate:
         
 - blur_amount: Dynamically adjust blur intensity
