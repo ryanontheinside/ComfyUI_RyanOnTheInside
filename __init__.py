@@ -176,8 +176,10 @@ from .nodes.utility_nodes import (
 
 from .nodes.images.image_utility_nodes import (
     DyeImage,
+    ColorPicker,
     ImageCASBatch,
     ImageScaleToTarget
+
 )
 
 from .nodes.masks.flex_masks import (
@@ -522,6 +524,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexImageHorizontalToVertical":FlexImageHorizontalToVertical,
 
 
+
     #visulizers
     "ProximityVisualizer":          ProximityVisualizer,
     "EffectVisualizer":             EffectVisualizer,
@@ -529,12 +532,14 @@ NODE_CLASS_MAPPINGS = {
 
     #garb   
     "DyeImage":                     DyeImage,
+    "ColorPicker":                  ColorPicker,
     "ImageCASBatch":                ImageCASBatch,
     "ImageScaleToTarget":           ImageScaleToTarget,
     "MovingShape":                  MovingShape,
     "_mfc":                         _mfc,
     "TextMaskNode":                 TextMaskNode,
     
+
     #TODO: make useful
     # "MaskCompositePlus":                MaskCompositePlus,
     
