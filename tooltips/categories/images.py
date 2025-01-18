@@ -79,24 +79,24 @@ Each node type has different parameters that can be modulated:
     # FlexImageGlitch tooltips (inherits from: FlexImageBase)
     TooltipManager.register_tooltips("FlexImageGlitch", {
         "glitch_type": """Type of glitch effect to apply:
-- digital: RGB channel shifts and block displacement
-- analog: Classic TV distortion with scan lines and ghosting
-- compression: JPEG-like block artifacts
-- wave: Smooth wave distortions
-- corrupt: Random data corruption effects""",
-        "intensity": "Overall strength of the glitch effect (0.0 to 1.0)",
-        "block_size": "Size of blocks for digital glitches and compression artifacts (8 to 128)",
-        "wave_amplitude": "Height of wave distortions (0.0 to 1.0)",
-        "wave_frequency": "Frequency of wave patterns (0.1 to 20.0)",
-        "corruption_amount": "Probability and intensity of corruption artifacts (0.0 to 1.0)",
-        "time_seed": "Seed for random glitch generation. Same seed produces same pattern (0 to 10000)",
+- digital: Modern digital artifacts with RGB shifts and block displacement
+- analog: Classic TV distortion with scan lines, ghosting, and vertical hold issues
+- compression: JPEG-like artifacts with block corruption and quantization
+- wave: Smooth wave-based distortions with multiple harmonics
+- corrupt: Random data corruption with line and block artifacts""",
+        "intensity": "Overall strength of the glitch effect. Higher values create more pronounced distortions (0.0 to 1.0)",
+        "block_size": "Size of blocks for digital glitches and compression artifacts. Larger sizes create more visible blocks (8 to 128)",
+        "wave_amplitude": "Height of wave distortions. Controls the magnitude of wave-based displacement (0.0 to 1.0)",
+        "wave_frequency": "Frequency of wave patterns. Higher values create more rapid oscillations (0.1 to 20.0)",
+        "corruption_amount": "Probability and intensity of corruption artifacts. Affects how often and how severely glitches occur (0.0 to 1.0)",
+        "time_seed": "Seed for random glitch generation. Same seed produces consistent glitch patterns (0 to 10000)",
         "feature_param": """Choose which parameter to modulate:
         
-- intensity: Dynamically adjust effect strength
+- intensity: Dynamically adjust overall glitch strength
 - block_size: Dynamically adjust artifact size
-- wave_amplitude: Dynamically adjust wave height
-- wave_frequency: Dynamically adjust wave frequency
-- corruption_amount: Dynamically adjust corruption intensity
+- wave_amplitude: Dynamically adjust wave distortion
+- wave_frequency: Dynamically adjust wave patterns
+- corruption_amount: Dynamically adjust glitch frequency
 - time_seed: Dynamically change random patterns
 - None: No parameter modulation"""
     }, inherits_from='FlexImageBase')
