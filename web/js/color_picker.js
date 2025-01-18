@@ -37,15 +37,15 @@ app.registerExtension({
                 
                 if (this.flags.collapsed) return;
                 
-                // Calculate widget area height
-                const widgetHeight = 90;  // Height for all widgets
+                // Calculate widget area height dynamically
+                const widgetAreaHeight = this.getWidgetAreaHeight();
                 const margin = 10;
                 
-                // Calculate picker area (remaining space after widgets and margins)
+                // Calculate picker area
                 const pickerWidth = this.size[0] - margin * 2;
-                const pickerHeight = this.size[1] - widgetHeight - margin * 2;
+                const pickerHeight = this.size[1] - widgetAreaHeight - margin * 2;
                 const pickerX = margin;
-                const pickerY = widgetHeight + margin;
+                const pickerY = widgetAreaHeight + margin;
                 
                 // Draw color picker background
                 ctx.fillStyle = "#2d2d2d";
@@ -128,102 +128,133 @@ app.registerExtension({
                         ctx.fill();
                     }
                 }
+            };
+            
+            // Calculate widget area height
+            nodeType.prototype.getWidgetAreaHeight = function() {
+                let height = 0;
+                const titleHeight = 30;
+                const widgetSpacing = 4;
                 
-                // Store click area for later
-                this.colorPickerArea = {
+                height += titleHeight;
+                
+                for (const w of this.widgets) {
+                    if (!w.hidden) {
+                        height += w.computeSize?.[1] || 20;
+                        height += widgetSpacing;
+                    }
+                }
+                
+                return height + 10;  // Add padding
+            };
+
+            // Override the onMouseDown method
+            nodeType.prototype.onMouseDown = function(e, pos, graphcanvas) {
+                if (this.flags.collapsed) return false;
+
+                // Use the pos parameter directly like drawable_feature does
+                const [x, y] = pos;
+                
+                console.log("=== Color Picker Click Debug ===");
+                console.log("Raw click event:", e);
+                console.log("Raw position:", pos);
+                console.log("Click position:", x, y);
+                
+                // Calculate widget area height dynamically
+                const widgetAreaHeight = this.getWidgetAreaHeight();
+                const margin = 10;
+                
+                // Calculate picker area
+                const pickerWidth = this.size[0] - margin * 2;
+                const pickerHeight = this.size[1] - widgetAreaHeight - margin * 2;
+                const pickerX = margin;
+                const pickerY = widgetAreaHeight + margin;
+                
+                console.log("Picker area:", {
                     x: pickerX,
                     y: pickerY,
                     width: pickerWidth,
-                    height: pickerHeight
-                };
-            };
-            
-            // Add click handler
-            nodeType.prototype.onMouseDown = function(e, pos, graphcanvas) {
-                if (this.flags.collapsed) return false;
+                    height: pickerHeight,
+                    right: pickerX + pickerWidth,
+                    bottom: pickerY + pickerHeight,
+                    widgetAreaHeight
+                });
                 
-                // Get canvas coordinates like in drawable_feature.js
-                const scale = graphcanvas.ds.scale;
-                const offset = graphcanvas.ds.offset;
-                
-                // Calculate node position in canvas space
-                const nodeX = this.pos[0] * scale + offset[0];
-                const nodeY = this.pos[1] * scale + offset[1];
-                
-                // Get mouse position relative to canvas
-                const rect = graphcanvas.canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-                
-                // Calculate click position relative to node
-                const localX = (mouseX - nodeX) / scale;
-                const localY = (mouseY - nodeY) / scale;
-                
-                console.log("=== Color Picker Click Debug ===");
-                console.log("Scale:", scale);
-                console.log("Offset:", offset);
-                console.log("Node pos:", this.pos);
-                console.log("Node canvas pos:", nodeX, nodeY);
-                console.log("Mouse pos:", mouseX, mouseY);
-                console.log("Local pos:", localX, localY);
-                console.log("Picker area:", this.colorPickerArea);
-                
-                if (this.colorPickerArea) {
-                    const { x: px, y: py, width, height } = this.colorPickerArea;
+                // Check if click is within picker area
+                const isInPickerX = x >= pickerX && x <= pickerX + pickerWidth;
+                const isInPickerY = y >= pickerY && y <= pickerY + pickerHeight;
+                console.log("Click in picker area?", {
+                    inX: isInPickerX,
+                    inY: isInPickerY,
+                    overall: isInPickerX && isInPickerY,
+                    x,
+                    y,
+                    pickerX,
+                    pickerY,
+                    pickerRight: pickerX + pickerWidth,
+                    pickerBottom: pickerY + pickerHeight
+                });
+
+                if (isInPickerX && isInPickerY) {
+                    // Calculate relative position within color picker
+                    const relX = (x - pickerX) / pickerWidth;
+                    const relY = (y - pickerY) / pickerHeight;
                     
-                    // Check if click is within picker area
-                    if (localX >= px && localX <= px + width && localY >= py && localY <= py + height) {
-                        // Calculate relative position within color picker
-                        const relX = (localX - px) / width;
-                        const relY = (localY - py) / height;
-                        
-                        console.log("Click in picker area!");
-                        console.log("Relative position:", relX, relY);
-                        
-                        // Get base hue from X position
-                        const hue = Math.max(0, Math.min(360, relX * 360));
-                        
-                        // Get saturation and value based on Y position
-                        let saturation = 100;
-                        let value = 100;
-                        
-                        if (relY <= 0.5) {
-                            // Top half - full saturation, value varies from 100 to 50
-                            value = 100 - (relY * 2 * 100);
-                        } else {
-                            // Bottom half - value varies from 50 to 0
-                            value = 50 - ((relY - 0.5) * 2 * 100);
-                        }
-                        
-                        value = Math.max(0, Math.min(100, value));
-                        
-                        console.log("HSV values:", { hue, saturation, value });
-                        
-                        // Convert HSV to RGB
-                        const rgb = this.hsvToRgb(hue, saturation, value);
-                        const hexColor = '#' + rgb.map(x => {
-                            const hex = Math.round(Math.max(0, Math.min(255, x))).toString(16);
-                            return hex.length === 1 ? '0' + hex : hex;
-                        }).join('').toUpperCase();
-                        
-                        console.log("Final color:", hexColor);
-                        
-                        // Update color
-                        this.updateColor(hexColor);
-                        
-                        // Trigger widget callbacks
-                        const colorWidget = this.widgets.find(w => w.name === "color");
-                        const rgbWidget = this.widgets.find(w => w.name === "rgb_value");
-                        const hueWidget = this.widgets.find(w => w.name === "hue");
-                        
-                        if (colorWidget?.callback) colorWidget.callback(hexColor);
-                        if (rgbWidget?.callback) rgbWidget.callback(`${Math.round(rgb[0])},${Math.round(rgb[1])},${Math.round(rgb[2])}`);
-                        if (hueWidget?.callback) hueWidget.callback(hue);
-                        
-                        return true;
+                    console.log("Relative position in picker:", {
+                        x: relX,
+                        y: relY,
+                        percentX: (relX * 100).toFixed(2) + "%",
+                        percentY: (relY * 100).toFixed(2) + "%"
+                    });
+                    
+                    // Get base hue from X position
+                    const hue = Math.max(0, Math.min(360, relX * 360));
+                    
+                    // Get saturation and value based on Y position
+                    let saturation = 100;
+                    let value = 100;
+                    
+                    if (relY <= 0.5) {
+                        // Top half - full saturation, value varies from 100 to 50
+                        value = 100 - (relY * 2 * 100);
                     } else {
-                        console.log("Click outside picker area");
+                        // Bottom half - value varies from 50 to 0
+                        value = 50 - ((relY - 0.5) * 2 * 50);
                     }
+                    
+                    value = Math.max(0, Math.min(100, value));
+                    
+                    console.log("Color values:", {
+                        hue: hue.toFixed(2),
+                        saturation,
+                        value: value.toFixed(2)
+                    });
+                    
+                    // Convert HSV to RGB
+                    const rgb = this.hsvToRgb(hue, saturation, value);
+                    const hexColor = '#' + rgb.map(x => {
+                        const hex = Math.round(Math.max(0, Math.min(255, x))).toString(16);
+                        return hex.length === 1 ? '0' + hex : hex;
+                    }).join('').toUpperCase();
+                    
+                    console.log("Final color:", {
+                        rgb: rgb.map(x => Math.round(x)),
+                        hex: hexColor
+                    });
+                    
+                    // Update color
+                    this.updateColor(hexColor);
+                    
+                    // Trigger widget callbacks
+                    const colorWidget = this.widgets.find(w => w.name === "color");
+                    const rgbWidget = this.widgets.find(w => w.name === "rgb_value");
+                    const hueWidget = this.widgets.find(w => w.name === "hue");
+                    
+                    if (colorWidget?.callback) colorWidget.callback(hexColor);
+                    if (rgbWidget?.callback) rgbWidget.callback(`${Math.round(rgb[0])},${Math.round(rgb[1])},${Math.round(rgb[2])}`);
+                    if (hueWidget?.callback) hueWidget.callback(hue);
+                    
+                    return true;
                 }
                 
                 return false;
