@@ -251,13 +251,6 @@ Perfect for:
         "model_type": "Model type to download ('umxl' for compressed stems, 'umxhq' for uncompressed MUSDB18-HQ)"
     }, inherits_from='AudioNodeBase')
 
-    # AudioSeparator tooltips (inherits from: AudioNodeBase)
-    TooltipManager.register_tooltips("AudioSeparator", {
-        "audio": "Input audio to be separated",
-        "video_frames": "Corresponding video frames",
-        "frame_rate": "Frame rate of the video for synchronization"
-    }, inherits_from='AudioNodeBase')
-
     # AudioSeparatorSimple tooltips (inherits from: AudioNodeBase)
     TooltipManager.register_tooltips("AudioSeparatorSimple", {
         "model": "OpenUnmix model for audio separation",

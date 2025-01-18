@@ -38,7 +38,6 @@ from .nodes.masks.temporal_masks import (
     ) 
 
 from .nodes.audio.audio_nodes import (
-    AudioSeparator, 
     AudioSeparatorSimple,
     DownloadOpenUnmixModel,
     # DownloadCREPEModel,
@@ -297,11 +296,12 @@ if HAS_ADVANCED_LIVE_PORTRAIT:
 else:
     print("ComfyUI-AdvancedLivePortrait not found. FlexExpressionEditor will not be available. Install ComfyUI-AdvancedLivePortrait and restart ComfyUI.")
 
-#
-HAS_ANIMATEDIFF = os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-AnimateDiff-Evolved"))
-
+#TODO: improve before exposing
+# HAS_ANIMATEDIFF = os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-AnimateDiff-Evolved"))
+HAS_ANIMATEDIFF = False
 if HAS_ANIMATEDIFF:
     try:
+
         from .nodes.flex.flex_externals_animatediff import (
             FeatureToADKeyframe,
             FeatureToCameraKeyframe,
@@ -322,9 +322,6 @@ folder_paths.add_model_folder_path("midi_files", midi_path)
 
 # Ensure the MIDI files directory exists
 os.makedirs(midi_path, exist_ok=True)
-
-#TODO: implement auto cleanup and file replace!!!
-#IMPORTANT
 
 # Get the path to ComfyUI's web/extensions directory
 extension_path = os.path.join(os.path.dirname(folder_paths.__file__), "web", "extensions")
@@ -415,7 +412,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexAudioVisualizerLine":      FlexAudioVisualizerLine,
     "FlexAudioVisualizerContour":   FlexAudioVisualizerContour,
     #audio  
-    "AudioSeparator":               AudioSeparator,
+
     "AudioSeparatorSimple":         AudioSeparatorSimple,
     "DownloadOpenUnmixModel":       DownloadOpenUnmixModel,
     # "DownloadCREPEModel":           DownloadCREPEModel,
@@ -559,13 +556,14 @@ WEB_DIRECTORY = "./web/js"
 EXTENSION_WEB_DIRS = ["./web/extensions"]
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-
+    "AudioSeparatorSimple":         "Audio Separator",
     "ProximityVisualizer":          "Preview Proximity",
     "EffectVisualizer":             "Preview Effect",
     "PitchVisualizer":              "Preview Pitch",
     "FlexVideoSpeed":               "**BETA** Flex Video Speed",
     "FlexVideoFrameBlend":          "**BETA**Flex Video Frame Blend",
     "AudioFeatureVisualizer":       "Audio Feature Visualizer ***BETA***" ,
+
     "MIDILoadAndExtract":           "MIDI Load & Feature Extract",
     "PitchRangeByNoteNode":         "Pitch Range By Note",
     "AudioFeatureExtractor":        "Audio Feature Extractor",

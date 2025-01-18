@@ -7,10 +7,11 @@ from comfy.ldm.modules.attention import optimized_attention, BasicTransformerBlo
 import torch
 import math
 
-
+#NOTE: TOTALLY EXPERIMENTAL
 
 class FlexFeatureAttentionControl:
     @classmethod
+
     def INPUT_TYPES(s):
         return {"required": { 
             "model": ("MODEL",),
