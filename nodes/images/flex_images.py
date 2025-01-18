@@ -6,10 +6,12 @@ from scipy.ndimage import gaussian_filter
 import torch.nn.functional as F
 from .image_utils import transform_image
 from ...tooltips import apply_tooltips
+from ..node_utilities import string_to_rgb
 
 @apply_tooltips
 class FlexImageEdgeDetect(FlexImageBase):
     @classmethod
+
     def INPUT_TYPES(cls):
         base_inputs = super().INPUT_TYPES()
         base_inputs["required"].update({
@@ -647,34 +649,66 @@ class FlexImageHueShift(FlexImageBase):
         return ["hue_shift", "None"]
 
     def apply_effect_internal(self, image: np.ndarray, hue_shift: float, opt_mask: np.ndarray = None, **kwargs) -> np.ndarray:
-        # Convert RGB to HSV
-        hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+        # Convert to float32 for better precision
+        image = image.astype(np.float32)
 
-        # Create a copy of the original HSV image
-        result_hsv = hsv_image.copy()
-
-        # Apply hue shift
-        result_hsv[:,:,0] = (result_hsv[:,:,0] + hue_shift / 2) % 180
+        # Convert RGB to LCH color space for better hue manipulation
+        # First convert to LAB
+        lab = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
+        
+        # Convert LAB to LCH (cylindrical color space)
+        L = lab[:,:,0]
+        a = lab[:,:,1]
+        b = lab[:,:,2]
+        
+        # Calculate C (chroma) and H (hue) from a,b
+        C = np.sqrt(np.square(a) + np.square(b))
+        H = np.arctan2(b, a)
+        
+        # Apply hue shift in radians (convert from degrees)
+        H_shifted = H + (hue_shift * np.pi / 180.0)
+        
+        # Convert back to LAB
+        a_new = C * np.cos(H_shifted)
+        b_new = C * np.sin(H_shifted)
+        
+        # Reconstruct LAB image
+        lab_shifted = np.stack([L, a_new, b_new], axis=2)
+        
+        # Convert back to RGB
+        result = cv2.cvtColor(lab_shifted, cv2.COLOR_LAB2RGB)
 
         if opt_mask is not None:
-            # Ensure mask has the same shape as the image
-            if opt_mask.shape[:2] != image.shape[:2]:
-                opt_mask = cv2.resize(opt_mask, (image.shape[1], image.shape[0]))
+            # Convert mask to numpy if it's a tensor
+            if torch.is_tensor(opt_mask):
+                opt_mask = opt_mask.cpu().numpy()
+
+            # Select the correct frame from the mask batch
+            frame_index = kwargs.get('frame_index', 0)
+            if len(opt_mask.shape) > 2:
+                opt_mask = opt_mask[frame_index]
+
+            # Ensure mask is 2D
+            if len(opt_mask.shape) > 2:
+                opt_mask = opt_mask.squeeze()
+
+            # Get target dimensions and resize if needed
+            target_height, target_width = image.shape[:2]
+            if opt_mask.shape != (target_height, target_width):
+                opt_mask = cv2.resize(opt_mask.astype(np.float32), (target_width, target_height))
 
             # Normalize mask to range [0, 1]
             if opt_mask.max() > 1:
                 opt_mask = opt_mask / 255.0
 
-            # Expand mask dimensions to match HSV image
+            # Expand mask dimensions to match image
             mask_3d = np.expand_dims(opt_mask, axis=2)
 
-            # Apply the mask
-            result_hsv = hsv_image * (1 - mask_3d) + result_hsv * mask_3d
-
-        # Convert back to RGB
-        result = cv2.cvtColor(result_hsv, cv2.COLOR_HSV2RGB)
+            # Apply the mask by blending original and shifted images
+            result = image * (1 - mask_3d) + result * mask_3d
 
         return np.clip(result, 0, 1)
+
 
 
 import numpy as np
@@ -855,5 +889,6 @@ class FlexImageHorizontalToVertical(FlexImageBase):
         result[y_start_res:y_end_res, x_start_res:x_end_res] = scaled_image[y_start_img:y_end_img, x_start_img:x_end_img]
         
         return np.clip(result, 0, 1)
+
 
      

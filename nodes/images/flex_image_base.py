@@ -71,10 +71,12 @@ class FlexImageBase(RyanOnTheInside, FlexBase):
                 feature_threshold=feature_threshold,
                 **kwargs
             )
+            processed_kwargs["frame_index"] = i
             
             #TODO: Currently dont care about a threshold check here, but may want to add it in the future
             # Apply the effect with processed parameters
             processed_image = self.apply_effect_internal(image, **processed_kwargs)
+
 
 
 

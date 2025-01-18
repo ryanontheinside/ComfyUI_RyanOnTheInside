@@ -14,32 +14,32 @@ class AudioFeatureExtractor(FeatureExtractorBase):
 
     @classmethod
     def INPUT_TYPES(cls):
+        # Get parent input types but exclude frame_count
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs.pop("frame_count", None)
+        
         return {
             **super().INPUT_TYPES(),
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs,
                 "audio": ("AUDIO",),
             }
         }
 
-    RETURN_TYPES = ("FEATURE",)
+    RETURN_TYPES = ("FEATURE", "INT",)
+    RETURN_NAMES = ("feature", "frame_count",)
     FUNCTION = "extract_feature"
     CATEGORY = _category
-    def extract_feature(self, audio, frame_rate, frame_count, width, height, extraction_method):
-        feature = AudioFeature(
-            width=width,
-            height=height,
-            feature_name=extraction_method,
-            audio=audio,
-            frame_count=frame_count,
-            frame_rate=frame_rate,
-            feature_type=extraction_method
-        )
-        feature.extract()
-        return (feature,)
 
+    def extract_feature(self, audio, frame_rate, width, height, extraction_method):
+        # Get audio properties from dictionary
+        waveform = audio["waveform"]
+        sample_rate = audio["sample_rate"]
+        
+        # Calculate frame_count from audio length and frame rate
+        total_samples = waveform.shape[-1]
+        frame_count = int((total_samples / sample_rate) * frame_rate)
 
-    def extract_feature(self, audio, frame_rate, frame_count, width, height, extraction_method):
         feature = AudioFeature(
             width=width,
             height=height,

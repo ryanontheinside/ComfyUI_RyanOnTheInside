@@ -21,7 +21,7 @@
 This repository has been updated to Version 2.0! After careful consideration, I decided that a complete update was better than maintaining legacy support indefinitely. This new version brings significant improvements while maintaining all existing functionality. This update was done with user experience, extensibility, and functionality in mind.
 
 ### 🎉 What's New in V2
--**EVERYTHING reacts to EVERYTHING!** Now you can modulate ALL parameters of ALL Flex nodes!  
+- **EVERYTHING reacts to EVERYTHING:** Now you can modulate ALL parameters of ALL Flex nodes!  
 - **Optional Feature Inputs**: Feature inputs are now optional! This means these nodes double as a powerful suite for image, mask, and video manipulation even without reactivity!
 - **Cleaner Workflows**: The feature_pipe is gone! Less noodles, more intuitive connections
 - **Manual Feature Creation**: New interface for drawing/creating features manually - far more powerful than it might seem!

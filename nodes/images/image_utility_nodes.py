@@ -156,3 +156,72 @@ class ImageScaleToTarget(ImageUtilityNode):
             s = s.movedim(1,-1)
         return (s,)
     
+
+@apply_tooltips
+class ColorPicker(ImageUtilityNode):
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {},  # No visible inputs needed
+            "hidden": {
+                "color": ("STRING", {"default": "#FF0000"}),
+                "rgb_value": ("STRING", {"default": "255,0,0"}),
+                "hue": ("INT", {"default": 0, "min": 0, "max": 360}),
+            },
+        }
+    
+    RETURN_TYPES = ("STRING", "STRING", "INT", "STRING", "STRING", "STRING", "STRING",)
+    RETURN_NAMES = (
+        "hex_color",      # #FF0000 format
+        "rgb_color",      # 255,0,0 format
+        "hue_shift",      # 0-360 integer
+        "rgb_float",      # 1.0,0.0,0.0 format
+        "rgb_percent",    # 100%,0%,0% format
+        "hsl_color",      # hsl(0,100%,50%) format
+        "hsv_color",      # hsv(0,100%,100%) format
+    )
+    FUNCTION = "process_color"
+    CATEGORY = "RyanOnTheInside/Utility/Images"
+    
+    def process_color(self, color="#FF0000", rgb_value="255,0,0", hue=0):
+        # Convert RGB string to integers
+        r, g, b = map(int, rgb_value.split(','))
+        
+        # Calculate RGB float values (0-1)
+        rgb_float = f"{r/255:.3f},{g/255:.3f},{b/255:.3f}"
+        
+        # Calculate RGB percentage values
+        rgb_percent = f"{int(r/255*100)}%,{int(g/255*100)}%,{int(b/255*100)}%"
+        
+        # Calculate HSL
+        r_norm, g_norm, b_norm = r/255, g/255, b/255
+        cmax = max(r_norm, g_norm, b_norm)
+        cmin = min(r_norm, g_norm, b_norm)
+        delta = cmax - cmin
+        
+        # Calculate lightness
+        lightness = (cmax + cmin) / 2
+        
+        # Calculate saturation
+        saturation = 0 if delta == 0 else (delta / (1 - abs(2 * lightness - 1)))
+        
+        # Format HSL string
+        hsl_color = f"hsl({int(hue)},{int(saturation*100)}%,{int(lightness*100)}%)"
+        
+        # Calculate HSV
+        v = cmax
+        s = 0 if cmax == 0 else delta/cmax
+        
+        # Format HSV string
+        hsv_color = f"hsv({int(hue)},{int(s*100)}%,{int(v*100)}%)"
+        
+        return (
+            color,          # hex_color
+            rgb_value,      # rgb_color
+            int(hue),       # hue_shift
+            rgb_float,      # rgb_float
+            rgb_percent,    # rgb_percent
+            hsl_color,      # hsl_color
+            hsv_color,      # hsv_color
+        )
+    
