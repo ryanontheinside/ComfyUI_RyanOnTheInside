@@ -58,14 +58,14 @@ app.registerExtension({
                 const spectrumHeight = pickerHeight / 2;
                 const gradient = ctx.createLinearGradient(pickerX, pickerY, pickerWidth + pickerX, pickerY);
                 
-                // Add rainbow colors
-                gradient.addColorStop(0, "#FF0000");    // Red
-                gradient.addColorStop(0.17, "#FF00FF"); // Magenta
-                gradient.addColorStop(0.33, "#0000FF"); // Blue
-                gradient.addColorStop(0.5, "#00FFFF");  // Cyan
-                gradient.addColorStop(0.67, "#00FF00"); // Green
-                gradient.addColorStop(0.83, "#FFFF00"); // Yellow
-                gradient.addColorStop(1, "#FF0000");    // Red
+                // Add rainbow colors in REVERSED order to match hue calculation
+                gradient.addColorStop(0, "#FF0000");    // Red (0°)
+                gradient.addColorStop(0.17, "#FFFF00"); // Yellow (60°)
+                gradient.addColorStop(0.33, "#00FF00"); // Green (120°)
+                gradient.addColorStop(0.5, "#00FFFF");  // Cyan (180°)
+                gradient.addColorStop(0.67, "#0000FF"); // Blue (240°)
+                gradient.addColorStop(0.83, "#FF00FF"); // Magenta (300°)
+                gradient.addColorStop(1, "#FF0000");    // Red (360°)
                 
                 ctx.fillStyle = gradient;
                 ctx.fillRect(pickerX + 2, pickerY + 2, pickerWidth - 4, spectrumHeight - 4);
