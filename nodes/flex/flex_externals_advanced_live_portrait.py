@@ -12,11 +12,13 @@ import dill
 import yaml
 from ultralytics import YOLO
 import importlib.util
+from .flex_externals import FlexExternalModulator
 
 #TODO / NOTE: this more robust  import  module from path should logically be moved to the FlexExternals baseclass.
 
 #NOTE: attempt to import advanced live portrait
 def import_module_from_path(module_name, module_path):
+
 
     package_dir = os.path.dirname(module_path)
     original_sys_path = sys.path.copy()
@@ -151,10 +153,11 @@ class FlexExpressionEditor(ExpressionEditor):
     RETURN_NAMES = ("image", "flex_motion_link", "save_exp", "command")
     FUNCTION = "run"
     OUTPUT_NODE = True
-    CATEGORY = "RyanOnTheInside/FlexFeatures/Targets/ExternalTargets"
-
+    CATEGORY = f"{FlexExternalModulator.CATEGORY}/Advanced-Live-Portrait"
     @classmethod
     def get_modifiable_params(cls):
+
+
         return ["rotate_pitch", "rotate_yaw", "rotate_roll", "blink", "eyebrow", "wink", "pupil_x", "pupil_y",
                 "aaa", "eee", "woo", "smile", "None"]
 

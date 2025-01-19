@@ -386,7 +386,7 @@ Each node type has different parameters that can be modulated:
         "max_blend": "Maximum blend factor between masks (0.0 to 1.0)",
         "feature_param": """Choose which parameter to modulate:
         
-- blend: Dynamically adjust the blend between masks
+- max_blend: Dynamically adjust the blend between masks
 - None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
@@ -419,7 +419,10 @@ Each node type has different parameters that can be modulated:
 - seed: Dynamically change pattern
 - x_offset: Dynamically adjust horizontal position
 - y_offset: Dynamically adjust vertical position
-- None: No parameter modulation"""
+- None: No parameter modulation""",
+        "formula": "Mathematical formula for feature value mapping ('Linear', 'Quadratic', 'Cubic', 'Sinusoidal', 'Exponential')",
+        "a": "First parameter for fine-tuning the chosen formula (0.1 to 10.0)",
+        "b": "Second parameter for fine-tuning the chosen formula (0.1 to 10.0)"
     }, inherits_from='FlexMaskBase')
 
     # FlexMaskBinary tooltips (inherits from: FlexMaskBase)
@@ -444,20 +447,21 @@ Each node type has different parameters that can be modulated:
 - wave_amplitude: Dynamically adjust wave height
 - wave_decay: Dynamically adjust decay rate
 - wave_frequency: Dynamically adjust oscillation speed
+- max_wave_field: Dynamically adjust field size
 - None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
     # FlexMaskEmanatingRings tooltips (inherits from: FlexMaskBase)
     TooltipManager.register_tooltips("FlexMaskEmanatingRings", {
-        "num_rings": "Number of rings to generate (1 to 50)",
-        "max_ring_width": "Maximum width of each ring (0.01 to 0.9)",
-        "wave_speed": "Speed of ring propagation (0.01 to 0.5)",
+        "ring_speed": "Speed of ring propagation (0.01 to 0.2)",
+        "ring_width": "Width of each ring (0.01 to 0.5)",
+        "ring_falloff": "Rate at which rings fade out (0.0 to 1.0)",
+        "binary_mode": "Whether to output binary rings instead of smooth gradients",
         "feature_param": """Choose which parameter to modulate:
         
-- num_rings: Dynamically adjust number of rings
+- ring_speed: Dynamically adjust propagation speed
 - ring_width: Dynamically adjust ring thickness
-- wave_speed: Dynamically adjust propagation speed
-- all: Dynamically adjust all parameters
+- ring_falloff: Dynamically adjust ring fade rate
 - None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
@@ -472,8 +476,8 @@ Each node type has different parameters that can be modulated:
         "shape_type": "Type of shape to generate",
         "feature_param": """Choose which parameter to modulate:
         
-- num_shapes: Dynamically adjust shape count
-- shape_size: Dynamically adjust shape size
+- max_num_shapes: Dynamically adjust shape count
+- max_shape_size: Dynamically adjust shape size
 - appearance_duration: Dynamically adjust fade-in time
 - disappearance_duration: Dynamically adjust fade-out time
 - None: No parameter modulation"""
@@ -484,13 +488,12 @@ Each node type has different parameters that can be modulated:
         "depth_map": "Input depth map (IMAGE type)",
         "z_front": "Front depth threshold (0.0 to 1.0)",
         "z_back": "Back depth threshold (0.0 to 1.0)",
+        "feature_mode": "Mode of feature modulation ('squeeze', 'expand', 'move_forward', 'move_back')",
         "feature_param": """Choose which parameter to modulate:
         
-- none: No parameter modulation
 - z_front: Dynamically adjust front threshold
 - z_back: Dynamically adjust back threshold
-- both: Dynamically adjust both thresholds""",
-        "feature_mode": "Mode of feature modulation ('squeeze', 'expand', 'move_forward', 'move_back')"
+- None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
     # FlexMaskDepthChamberRelative tooltips (inherits from: FlexMaskBase)
@@ -498,8 +501,12 @@ Each node type has different parameters that can be modulated:
         "depth_map": "Input depth map (IMAGE type)",
         "z1": "First depth threshold (0.0 to 1.0)",
         "z2": "Second depth threshold (0.0 to 1.0)",
-        "feature_param": "Parameter to modulate based on the feature ('None', 'z1', 'z2', 'both')",
-        "feature_mode": "Mode of feature modulation ('squeeze', 'expand')"
+        "feature_mode": "Mode of feature modulation ('squeeze', 'expand')",
+        "feature_param": """Choose which parameter to modulate:
+        
+- z1: Dynamically adjust first threshold
+- z2: Dynamically adjust second threshold
+- None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
     # FlexMaskInterpolate tooltips (inherits from: FlexMaskBase)
@@ -509,7 +516,10 @@ Each node type has different parameters that can be modulated:
         "max_blend": "Maximum blend factor between masks (0.0 to 1.0)",
         "invert_mask_b": "Whether to invert the second mask before interpolation",
         "blend_mode": "Method for blending masks ('normal', 'add', 'multiply', 'overlay', 'soft_light')",
-        "feature_param": "Parameter to modulate based on the feature ('blend', 'None')"
+        "feature_param": """Choose which parameter to modulate:
+        
+- max_blend: Dynamically adjust blend amount
+- None: No parameter modulation"""
     }, inherits_from='FlexMaskBase')
 
     # FlexMaskNormalLighting tooltips (inherits from: FlexMaskNormalBase)

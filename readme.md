@@ -21,15 +21,19 @@
 This repository has been updated to Version 2.0! After careful consideration, I decided that a complete update was better than maintaining legacy support indefinitely. This new version brings significant improvements while maintaining all existing functionality. This update was done with user experience, extensibility, and functionality in mind.
 
 ### 🎉 What's New in V2
-- **EVERYTHING reacts to EVERYTHING:** Now you can modulate ALL parameters of ALL Flex nodes!  
-- **Optional Feature Inputs**: Feature inputs are now optional! This means these nodes double as a powerful suite for image, mask, and video manipulation even without reactivity!
-- **Cleaner Workflows**: The feature_pipe is gone! Less noodles, more intuitive connections
+- **EVERYTHING reacts to EVERYTHING:** Now you can modulate ALL parameters of ALL Flex nodes! Possibilities increased by multiple orders of magnitude.
+- **Optional Feature Inputs**: Feature inputs are now optional! This means these nodes double as a powerful suite for image, mask, and video manipulation even without reactivity! 
+- **More Intuitive**: Redesigned with user experience in mind. Less noodles, more intuitive connections.
+- **Help**: Takes full advantage of ComfyUI's tooltip system.
 - **Manual Feature Creation**: New interface for drawing/creating features manually - far more powerful than it might seem!
 - **Text as Features**: New integration with Open AI Whisper allows text to be used as a feature source, with a fully modular trigger system
 - **Enhanced External Integration**: Deeper compatibility with external node packs
-- **More Intuitive**: Redesigned with user experience in mind
 - **Image Improvements**: Major improvements to FlexImage nodes. One might say they are more than useful now.
+- **Mask Improvements**: Major improvements to FlexMask nodes.
+- **Performance Improvements**: Major performance improvements in many nodes. More to follow.
+- **Feature Modulation**: More robust and feature-rich modulation system.
 - **And much more!**
+
 
 ### ⚠️ Breaking Changes Notice
 Due to ComfyUI's workflow loading mechanism, **existing workflows using these nodes ~~may~~ *will* break after updating**. I did consider this carefully, as I have yet to introduce breaking changes to this node system, but this extensive update  neccesitated a complete overhaul. There will not be a version 3. Rather, version 2 will be updated as needed.
@@ -129,24 +133,12 @@ Dynamic control over various aspects of your workflow:
 - Multiple optical flow algorithms available
 - Create motion-reactive particle simulations
 
-### ⏳ Temporal Effects
-- Apply time-based transformations to masks and images
-- Create evolving animations with various effects (erosion, dilation, warping)
-- Customize with easing functions and palindrome support
+### ⏳ Temporal Effects [DEPRECATED]
+- You can do all of this 7000x with FlexMask nodes.
 
 ## 🤝 Compatible Node Packs
 
-I'm thrilled to announce that external node packs are now compatible with my feature system! Here are some notable examples:
-
-### 🎭 AdvancedLivePortrait
-
-The [AdvancedLivePortrait nodes](https://github.com/Fannovel16/ComfyUI-AdvancedLivePortrait) bring powerful facial animation capabilities to ComfyUI, and now they're fully compatible with our feature system! This means you can create dynamic, responsive facial animations that react to audio, MIDI, motion, and more.
-
-Key features when combined with our system:
-- Control facial expressions using audio features
-- Sync lip movements with speech or music
-- Create dynamic emotional responses based on various inputs
-- Modulate animation parameters in real-time
+I'm thrilled to announce that external node packs are now compatible with the feature system! Here are some notable examples:
 
 ### 🌊 Depthflow Nodes
 
@@ -162,8 +154,27 @@ By combining Depthflow Nodes with my feature system, you can create dynamic, res
 Check out the [Depthflow Nodes repository](https://github.com/akatz-ai/ComfyUI-Depthflow-Nodes) for more information and installation instructions.
 
 
+### 👤 AdvancedLivePortrait
 
-## 📚 Detailed Documentation
+The [AdvancedLivePortrait nodes](https://github.com/Fannovel16/ComfyUI-AdvancedLivePortrait) bring powerful facial animation capabilities to ComfyUI, and now they're fully compatible with our feature system! This means you can create dynamic, responsive facial animations that react to audio, MIDI, motion, and more.
+
+Key features when combined with our system:
+- Control facial expressions using audio features
+- Sync lip movements with speech or music
+- Create dynamic emotional responses based on various inputs
+- Modulate animation parameters in real-time
+
+### 🎭 AnimateDiff
+
+The [AnimateDiff nodes](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved) bring powerful animation capabilities to ComfyUI, and now they're fully compatible with the feature system! This means you can create dynamic, responsive animations that react to audio, MIDI, motion, and more.
+
+### 🎨 Advanced Controlnet
+
+The [Advanced Controlnet](https://github.com/Kosinkadink/ComfyUI-Advanced-ControlNet) COMING SOON
+
+
+## 📚 Overview Documentation
+
 
 <details>
 <summary><h3>Flex Features</h3></summary>
@@ -229,7 +240,7 @@ The Flex Features system allows for dynamic control over various aspects of your
 - **Sentiment Analysis**: Extract emotional content from spoken words
 - **Temporal Alignment**: Map text features to specific timestamps
 
-These features can be used to control IPAdapters, Masks, and Images, creating dynamic and responsive effects that adapt to the input data.
+These features can be used to control almost anything. IPAdapters, masks, images, video.... particle emitters (see below :D)... creating dynamic and responsive effects that adapt to the input data.
 
 </details>
 

@@ -292,30 +292,13 @@ from .nodes.doom.doom import Doom
 # from .nodes.models.flex_model_base import FlexFeatureAttentionControl
 
 
-HAS_ADVANCED_LIVE_PORTRAIT = os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-AdvancedLivePortrait"))
-
-if HAS_ADVANCED_LIVE_PORTRAIT:
-
-    from .nodes.flex.flex_externals_advanced_live_portrait import FlexExpressionEditor
-else:
-    print("ComfyUI-AdvancedLivePortrait not found. FlexExpressionEditor will not be available. Install ComfyUI-AdvancedLivePortrait and restart ComfyUI.")
-
-#TODO: improve before exposing
-# HAS_ANIMATEDIFF = os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-AnimateDiff-Evolved"))
-HAS_ANIMATEDIFF = False
-if HAS_ANIMATEDIFF:
-    try:
-
-        from .nodes.flex.flex_externals_animatediff import (
-            FeatureToADKeyframe,
-            FeatureToCameraKeyframe,
-            FeatureToPIAKeyframe,
-        )
-    except Exception as e:
-        print(f"Error loading AnimateDiff feature nodes: {str(e)}")
-        HAS_ANIMATEDIFF = False
-else:
-    print("ComfyUI-AnimateDiff-Evolved not found. AnimateDiff feature nodes will not be available. Install ComfyUI-AnimateDiff-Evolved and restart ComfyUI.")
+# Import external integrations
+from .external_integration import (
+    HAS_ADVANCED_LIVE_PORTRAIT,
+    HAS_ADVANCED_CONTROLNET,
+    HAS_ANIMATEDIFF,
+    EXTERNAL_NODE_CLASS_MAPPINGS,
+)
 
 # Get the directory of the current file
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -347,7 +330,6 @@ if os.path.exists(my_extension_path):
             dst = os.path.join(roti_extension_path, file)
             print(f"[RyanOnTheInside] Copying extension file: {file}")
             shutil.copy2(src, dst)
-
 NODE_CLASS_MAPPINGS = {
     #NOTE: PoseInterpolator is not working yet
     #"PoseInterpolator": PoseInterpolator,
@@ -565,6 +547,7 @@ NODE_CLASS_MAPPINGS = {
     
 }
 
+
 WEB_DIRECTORY = "./web/js"
 EXTENSION_WEB_DIRS = ["./web/extensions"]
 
@@ -592,19 +575,12 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "SplineRhythmModulator":        "***BETA*** Spline Rhythm Modulator",
 }
 
-if HAS_ADVANCED_LIVE_PORTRAIT:
-    NODE_CLASS_MAPPINGS["FlexExpressionEditor"] = FlexExpressionEditor
-
-if HAS_ANIMATEDIFF:
-    NODE_CLASS_MAPPINGS.update({
-        "FeatureToADKeyframe": FeatureToADKeyframe,
-        "FeatureToCameraKeyframe": FeatureToCameraKeyframe,
-        "FeatureToPIAKeyframe": FeatureToPIAKeyframe,
-    })
+# Update NODE_CLASS_MAPPINGS with external nodes
+NODE_CLASS_MAPPINGS.update(EXTERNAL_NODE_CLASS_MAPPINGS)
 
 import re
 
-suffix = " | RyanOnTheInside"
+suffix = " ⚡🅡🅞🅣🅘"
 
 for node_name in NODE_CLASS_MAPPINGS.keys():
     if node_name not in NODE_DISPLAY_NAME_MAPPINGS:

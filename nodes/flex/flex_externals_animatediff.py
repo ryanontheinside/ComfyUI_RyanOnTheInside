@@ -27,11 +27,11 @@ CAM = ad_camera.CAM
 PIA_RANGES = ad_pia.PIA_RANGES
 InputPIA_PaperPresets = ad_pia.InputPIA_PaperPresets
 
-class FlexExternalModulator(RyanOnTheInside):
-    CATEGORY = "RyanOnTheInside/FlexFeatures/Targets/ExternalTargets"
+_ad_category = f"{FlexExternalModulator.CATEGORY}/AnimateDiff"
 
 @apply_tooltips
 class FeatureToADKeyframe(FlexExternalModulator):
+
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -46,7 +46,8 @@ class FeatureToADKeyframe(FlexExternalModulator):
     
     RETURN_TYPES = ("AD_KEYFRAMES",)
     FUNCTION = "convert"
-    CATEGORY = "Flex-AnimateDiff"
+    CATEGORY = _ad_category
+
 
     def convert(self, select_every: int, scale_feature=None, effect_feature=None):
         if scale_feature is None and effect_feature is None:
@@ -96,6 +97,8 @@ class FeatureToCameraKeyframe(FlexExternalModulator):
 
     RETURN_TYPES = ("AD_KEYFRAMES",)
     FUNCTION = "convert"
+    CATEGORY = _ad_category
+
 
     def convert(self, feature, camera_motion, start_percent, guarantee_steps, inherit_missing):
         # Create a new keyframe group
@@ -131,6 +134,7 @@ class FeatureToPIAKeyframe(FlexExternalModulator):
 
     RETURN_TYPES = ("AD_KEYFRAMES",)
     FUNCTION = "convert"
+    CATEGORY = _ad_category
 
     def convert(self, feature, preset, start_percent, guarantee_steps, inherit_missing):
         # Create a new keyframe group

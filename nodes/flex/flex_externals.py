@@ -98,6 +98,8 @@ class FeatureToWeightsStrategy(FlexExternalModulator):
 
         return (weights_strategy,)
 
+_spline_category = f"{FlexExternalModulator.CATEGORY}/Spline"
+
 @apply_tooltips
 class FeatureToSplineData(FlexExternalModulator):
     @classmethod
@@ -154,10 +156,12 @@ class FeatureToSplineData(FlexExternalModulator):
     RETURN_TYPES = ("MASK", "STRING", "FLOAT", "INT", "STRING",)
     RETURN_NAMES = ("mask", "coord_str", "float", "count", "normalized_str",)
     FUNCTION = "convert"
-
+    CATEGORY = _spline_category
+    
     def convert(self, feature, mask_width, mask_height, sampling_method, interpolation,
                 tension, repeat_output, float_output_type, min_value=0.0, max_value=1.0):
         import torch
+
         import numpy as np
         import json
 
@@ -217,7 +221,6 @@ import numpy as np
 import json
 from scipy.interpolate import interp1d
 
-_spline_category = f"{FlexExternalModulator.CATEGORY}/Spline"
 @apply_tooltips
 class SplineFeatureModulator(FlexExternalModulator):
     @classmethod
