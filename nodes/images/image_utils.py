@@ -302,3 +302,124 @@ def transform_image(image: np.ndarray, transform_type: str, x_value: float, y_va
         return scale_image(image, 1 + x_value, 1 + y_value)
     else:
         raise ValueError(f"Unknown transform type: {transform_type}")
+
+def create_wave_distortion_map(height: int, width: int, frequency: float, amplitude: float, device: torch.device) -> torch.Tensor:
+    """
+    Create a wave distortion displacement map for image warping.
+    
+    :param height: Image height
+    :param width: Image width
+    :param frequency: Wave frequency
+    :param amplitude: Wave amplitude
+    :param device: PyTorch device (GPU/CPU)
+    :return: Displacement map tensor
+    """
+    y, x = torch.meshgrid(
+        torch.arange(height, device=device),
+        torch.arange(width, device=device),
+        indexing='ij'
+    )
+    
+    displacement = amplitude * torch.sin(2 * np.pi * frequency * y.float())
+    return displacement
+
+def extract_and_move_blocks(image: torch.Tensor, block_size: int, shift_range: float, device: torch.device) -> torch.Tensor:
+    """
+    Extract and randomly move blocks in the image.
+    
+    :param image: Input tensor (H,W,C)
+    :param block_size: Size of blocks to move
+    :param shift_range: Maximum shift distance as fraction of image size
+    :param device: PyTorch device (GPU/CPU)
+    :return: Image with moved blocks
+    """
+    h, w = image.shape[:2]
+    result = image.clone()
+    
+    # Calculate maximum shift in pixels
+    max_shift = int(min(h, w) * shift_range)
+    
+    # Create block positions
+    y_blocks = torch.arange(0, h - block_size + 1, block_size, device=device)
+    x_blocks = torch.arange(0, w - block_size + 1, block_size, device=device)
+    
+    # Random shifts for each block
+    shifts_y = torch.randint(-max_shift, max_shift + 1, (len(y_blocks), len(x_blocks)), device=device)
+    shifts_x = torch.randint(-max_shift, max_shift + 1, (len(y_blocks), len(x_blocks)), device=device)
+    
+    # Apply shifts using tensor operations
+    for i, y in enumerate(y_blocks):
+        for j, x in enumerate(x_blocks):
+            # Source block coordinates
+            y1, y2 = y, y + block_size
+            x1, x2 = x, x + block_size
+            
+            # Target coordinates with shift
+            new_y = torch.clamp(y + shifts_y[i,j], 0, h - block_size)
+            new_x = torch.clamp(x + shifts_x[i,j], 0, w - block_size)
+            
+            # Move block
+            result[new_y:new_y+block_size, new_x:new_x+block_size] = image[y1:y2, x1:x2]
+    
+    return result
+
+def apply_compression_artifacts(image: torch.Tensor, block_size: int, quality: float, device: torch.device) -> torch.Tensor:
+    """
+    Simulate compression artifacts using block-wise operations.
+    
+    :param image: Input tensor (H,W,C)
+    :param block_size: Size of compression blocks
+    :param quality: Quality factor (0-1)
+    :param device: PyTorch device (GPU/CPU)
+    :return: Image with compression artifacts
+    """
+    h, w = image.shape[:2]
+    result = image.clone()
+    
+    # Quantization levels based on quality
+    levels = int(2 + (1 - quality) * 14)  # 2-16 levels
+    
+    # Process blocks
+    for y in range(0, h - block_size + 1, block_size):
+        for x in range(0, w - block_size + 1, block_size):
+            block = image[y:y+block_size, x:x+block_size]
+            
+            # Quantize block values
+            block_q = torch.round(block * (levels - 1)) / (levels - 1)
+            
+            # Add block edges
+            edge_strength = (1 - quality) * 0.1
+            block_q += edge_strength * (torch.rand_like(block_q) - 0.5)
+            
+            result[y:y+block_size, x:x+block_size] = block_q
+    
+    return torch.clamp(result, 0, 1)
+
+def apply_line_corruption(image: torch.Tensor, corruption_probability: float, device: torch.device) -> torch.Tensor:
+    """
+    Apply random line corruption effects.
+    
+    :param image: Input tensor (H,W,C)
+    :param corruption_probability: Probability of line corruption
+    :param device: PyTorch device (GPU/CPU)
+    :return: Image with corrupted lines
+    """
+    h, w = image.shape[:2]
+    result = image.clone()
+    
+    # Generate random line positions
+    line_mask = torch.rand(h, device=device) < corruption_probability
+    
+    # Different corruption types for selected lines
+    for y in torch.where(line_mask)[0]:
+        corruption_type = torch.randint(0, 3, (1,), device=device)
+        
+        if corruption_type == 0:  # Shift
+            shift = torch.randint(-w//4, w//4 + 1, (1,), device=device)
+            result[y] = torch.roll(image[y], shift.item(), dims=0)
+        elif corruption_type == 1:  # Noise
+            result[y] = torch.rand_like(image[y])
+        else:  # Repeat
+            result[y] = image[y].roll(1, dims=0)
+    
+    return result
