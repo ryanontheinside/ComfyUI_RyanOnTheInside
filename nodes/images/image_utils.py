@@ -169,43 +169,7 @@ def apply_gaussian_blur_gpu(x: torch.Tensor, kernel_size: int, sigma: float) -> 
     
     return blurred.squeeze(0) if len(x.shape) == 4 else blurred
 
-def apply_sharpen(image: np.ndarray, intensity: float, kernel_size: int, sigma: float = 1.0) -> np.ndarray:
-    blurred = cv2.GaussianBlur(image, (kernel_size, kernel_size), sigma)
-    sharpened = cv2.addWeighted(image, 1 + intensity, blurred, -intensity, 0)
-    return np.clip(sharpened, 0, 1)
 
-def apply_edge_detect(image: np.ndarray, intensity: float, kernel_size: int) -> np.ndarray:
-    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    edges = cv2.Canny(np.uint8(gray * 255), 100, 200)
-    edges = edges.astype(float) / 255.0
-    return np.clip(image * (1 - intensity) + np.dstack([edges] * 3) * intensity, 0, 1)
-
-def apply_emboss(image: np.ndarray, intensity: float, kernel_size: int) -> np.ndarray:
-    kernel = np.array([[-1,-1,0], [-1,0,1], [0,1,1]])
-    if kernel_size > 3:
-        kernel = cv2.resize(kernel, (kernel_size, kernel_size), interpolation=cv2.INTER_LINEAR)
-    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    embossed = cv2.filter2D(gray, -1, kernel * intensity)
-    embossed = (embossed - np.min(embossed)) / (np.max(embossed) - np.min(embossed))
-    return np.clip(image * (1 - intensity) + np.dstack([embossed] * 3) * intensity, 0, 1)
-
-def apply_posterize(image: np.ndarray, intensity: float, levels: int, dither: bool = False) -> np.ndarray:
-    effective_levels = int(np.clip(levels * (1 - intensity) + 2 * intensity, 2, levels))
-    quantized = np.round(image * (effective_levels - 1)) / (effective_levels - 1)
-    if dither:
-        error = image - quantized
-        quantized += np.random.uniform(-0.5/effective_levels, 0.5/effective_levels, image.shape)
-    return np.clip(quantized, 0, 1)
-
-def apply_brightness(image: np.ndarray, intensity: float, midpoint: float = 0.5, preserve_luminosity: bool = False) -> np.ndarray:
-    adjusted = image + intensity
-    
-    if preserve_luminosity:
-        original_luminosity = np.mean(image)
-        adjusted_luminosity = np.mean(adjusted)
-        adjusted *= original_luminosity / adjusted_luminosity
-    
-    return np.clip(adjusted, 0, 1)
 
 def apply_contrast(image: np.ndarray, intensity: float, midpoint: float = 0.5, preserve_luminosity: bool = False) -> np.ndarray:
     factor = 1 + intensity
