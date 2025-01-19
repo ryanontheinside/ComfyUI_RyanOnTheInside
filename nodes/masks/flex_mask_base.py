@@ -51,9 +51,16 @@ class FlexMaskBase(FlexBase, MaskBase):
 
     #TODO update this to make the contract more clear (feature_mode, feature_param, etc)
     @abstractmethod
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, 
-                            feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
-        """Apply the effect with processed parameters. To be implemented by child classes."""
+    def apply_effect_internal(self, mask: np.ndarray, **kwargs) -> np.ndarray:
+        """Apply the effect with processed parameters.
+        
+        Args:
+            mask: The input mask to process
+            **kwargs: All parameters needed for the effect, already processed by the base class
+            
+        Returns:
+            The processed mask
+        """
         pass
 
     def process_mask(self, mask: np.ndarray, strength: float, **kwargs) -> np.ndarray:
@@ -65,7 +72,7 @@ class FlexMaskBase(FlexBase, MaskBase):
             **kwargs
         )[0]  # Remove batch dimension
 
-    def process_below_threshold(self, mask, feature_value=None, **kwargs):
+    def process_below_threshold(self, mask, **kwargs):
         """Default behavior for when feature value is below threshold: return mask unchanged."""
         return mask
 
@@ -103,15 +110,14 @@ class FlexMaskBase(FlexBase, MaskBase):
             if feature_value is not None and feature_value >= processed_kwargs['feature_threshold']:
                 processed_mask = self.apply_effect_internal(
                     mask,
-                    feature_value=feature_value,
                     **processed_kwargs
                 )
             else:
                 processed_mask = self.process_below_threshold(
                     mask,
-                    feature_value=feature_value,
                     **processed_kwargs
                 )
+
 
             # Apply mask operations
             frame_result = self.apply_mask_operation(

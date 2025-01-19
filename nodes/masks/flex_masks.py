@@ -29,72 +29,49 @@ class FlexMaskMorph(FlexMaskBase):
     @classmethod
     def get_modifiable_params(cls):
         """Return parameters that can be modulated by features"""
-        return ["kernel_size", "iterations", "None"]
+        return ["max_kernel_size", "max_iterations", "None"]
 
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, morph_type: str, max_kernel_size: int, max_iterations: int, feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
-        # If feature_param is None, ignore feature_value entirely
-        if feature_param == "None":
-            kernel_size = max_kernel_size
-            iterations = max_iterations
-        # Otherwise, handle parameter modulation based on selection
-        elif feature_param == "kernel_size":
-            kernel_size = self.modulate_param("kernel_size", max_kernel_size, feature_value, strength, feature_mode)
-            kernel_size = max(3, int(kernel_size))  # Ensure odd number >= 3
-            if kernel_size % 2 == 0:
-                kernel_size += 1
-            iterations = max_iterations
-        elif feature_param == "iterations":
-            kernel_size = max_kernel_size
-            iterations = self.modulate_param("iterations", max_iterations, feature_value, strength, feature_mode)
-            iterations = max(1, int(iterations))
+    def apply_effect_internal(self, mask: np.ndarray, morph_type: str, **kwargs) -> np.ndarray:
+        # Get values from kwargs - they'll have the same names as defined in INPUT_TYPES
+        kernel_size = kwargs['max_kernel_size']
+        iterations = kwargs['max_iterations']
+
+        # Ensure kernel_size is odd and >= 3
+        kernel_size = max(3, int(kernel_size))
+        if kernel_size % 2 == 0:
+            kernel_size += 1
+
+        # Ensure iterations is >= 1
+        iterations = max(1, int(iterations))
+
         return morph_mask(mask, morph_type, kernel_size, iterations)
 
 @apply_tooltips
 class FlexMaskWarp(FlexMaskBase):
+    #TODO: check warp functions for efficacy.....
     @classmethod
     def INPUT_TYPES(cls):
-        # Get base inputs (which already have list_ok decorators)
         base_inputs = super().INPUT_TYPES()
-        
-        # Update required inputs
         base_inputs["required"].update({
             "warp_type": (["perlin", "radial", "swirl"],),
             "frequency": ("FLOAT", {"default": 0.1, "min": 0.01, "max": 1.0, "step": 0.01}),
             "max_amplitude": ("FLOAT", {"default": 30.0, "min": 0.1, "max": 500.0, "step": 0.1}),
             "octaves": ("INT", {"default": 3, "min": 1, "max": 8, "step": 1}),
         })
-        
         return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
         """Return parameters that can be modulated by features"""
-        return ["amplitude", "frequency", "octaves", "None"]
+        return ["max_amplitude", "frequency", "octaves", "None"]
 
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, warp_type: str, frequency: float, max_amplitude: float, octaves: int, feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
-        # If feature_param is None, use direct values without modulation
-        if feature_param == "None":
-            amplitude = max_amplitude
-            frequency_val = frequency
-            octaves_val = octaves
-        # Otherwise, handle parameter modulation based on selection
-        elif feature_param == "amplitude":
-            amplitude = self.modulate_param("amplitude", max_amplitude, feature_value, strength, feature_mode)
-            frequency_val = frequency
-            octaves_val = octaves
-        elif feature_param == "frequency":
-            amplitude = max_amplitude
-            frequency_val = self.modulate_param("frequency", frequency, feature_value, strength, feature_mode)
-            # Ensure frequency doesn't get too close to zero to prevent division issues
-            frequency_val = max(0.01, frequency_val)  # Minimum frequency of 0.01
-            octaves_val = octaves
-        elif feature_param == "octaves":
-            amplitude = max_amplitude
-            frequency_val = frequency
-            octaves_val = self.modulate_param("octaves", octaves, feature_value, strength, feature_mode)
-            octaves_val = max(1, int(octaves_val))
+    def apply_effect_internal(self, mask: np.ndarray, warp_type: str, **kwargs) -> np.ndarray:
+        # Get values from kwargs - they'll have the same names as defined in INPUT_TYPES
+        amplitude = kwargs['max_amplitude']
+        frequency = kwargs['frequency']
+        octaves = kwargs['octaves']
         
-        return warp_mask(mask, warp_type, frequency_val, amplitude, octaves_val)
+        return warp_mask(mask, warp_type, frequency, amplitude, octaves)
 
 @apply_tooltips
 class FlexMaskTransform(FlexMaskBase):
@@ -113,20 +90,12 @@ class FlexMaskTransform(FlexMaskBase):
     @classmethod
     def get_modifiable_params(cls):
         """Return parameters that can be modulated by features"""
-        return ["x_value", "y_value", "None"]
+        return ["max_x_value", "max_y_value", "None"]
 
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, transform_type: str, max_x_value: float, max_y_value: float, feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
-        # If feature_param is None, use direct values without modulation
-        if feature_param == "None":
-            x_value = max_x_value
-            y_value = max_y_value
-        # Otherwise, handle parameter modulation based on selection
-        elif feature_param == "x_value":
-            x_value = self.modulate_param("x_value", max_x_value, feature_value, strength, feature_mode)
-            y_value = max_y_value
-        elif feature_param == "y_value":
-            x_value = max_x_value
-            y_value = self.modulate_param("y_value", max_y_value, feature_value, strength, feature_mode)
+    def apply_effect_internal(self, mask: np.ndarray, transform_type: str, **kwargs) -> np.ndarray:
+        # Get values from kwargs - they'll have the same names as defined in INPUT_TYPES
+        x_value = kwargs['max_x_value']
+        y_value = kwargs['max_y_value']
         
         return transform_mask(mask, transform_type, x_value, y_value)
 
@@ -147,19 +116,15 @@ class FlexMaskMath(FlexMaskBase):
     @classmethod
     def get_modifiable_params(cls):
         """Return parameters that can be modulated by features"""
-        return ["blend", "None"]
+        return ["max_blend", "None"]
 
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, mask_b: torch.Tensor, combination_method: str, max_blend: float, feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, mask: np.ndarray, mask_b: torch.Tensor, combination_method: str, **kwargs) -> np.ndarray:
+        # Get the frame index and handle mask_b indexing
         frame_index = kwargs.get('frame_index', 0)
         mask_b = mask_b[frame_index].numpy()
         
-        # If feature_param is None, use direct values without modulation
-        if feature_param == "None":
-            blend = max_blend
-        # Otherwise, handle parameter modulation based on selection
-        elif feature_param == "blend":
-            blend = self.modulate_param("blend", max_blend, feature_value, strength, feature_mode)
-            blend = np.clip(blend, 0.0, 1.0)  # Ensure blend stays in valid range
+        # Get value from kwargs - it'll have the same name as defined in INPUT_TYPES
+        blend = kwargs['max_blend']
         
         return combine_masks(mask, mask_b, combination_method, blend)
 
@@ -178,24 +143,12 @@ class FlexMaskOpacity(FlexMaskBase):
     @classmethod
     def get_modifiable_params(cls):
         """Return parameters that can be modulated by features"""
-        return ["opacity", "None"]
+        return ["max_opacity", "None"]
 
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, max_opacity: float, feature_param: str, feature_mode: str, frame_index: int = 0, **kwargs) -> np.ndarray:
-        # If feature_param is None, use direct values without modulation
-        if feature_param == "None":
-            opacity = max_opacity
-        # Otherwise, handle parameter modulation based on selection
-        elif feature_param == "opacity":
-            opacity = self.modulate_param(
-                "opacity",
-                max_opacity,
-                feature_value,
-                strength,
-                feature_mode,
-                frame_index
-            )
-            opacity = np.clip(opacity, 0.0, 1.0)  # Ensure opacity stays in valid range
-        
+    def apply_effect_internal(self, mask: np.ndarray, **kwargs) -> np.ndarray:
+        # Get value from kwargs - it'll have the same name as defined in INPUT_TYPES
+        opacity = kwargs['max_opacity']
+        opacity = np.clip(opacity, 0.0, 1.0)  # Ensure opacity stays in valid range
         return mask * opacity
 
 @apply_tooltips
@@ -242,59 +195,30 @@ class FlexMaskVoronoiScheduled(FlexMaskBase):
         t = feature_value
         return self.formulas[formula](t, a, b)
 
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, 
-                     distance_metric: str, scale: float, detail: int, randomness: float, 
-                     seed: int, x_offset: float, y_offset: float, feature_param: str,
-                     formula: str, a: float, b: float, feature_mode: str, **kwargs) -> np.ndarray:
-        
+    def apply_effect_internal(self, mask: np.ndarray, distance_metric: str, formula: str, a: float, b: float, feature_value: float, **kwargs) -> np.ndarray:
         height, width = mask.shape[:2]
 
         # Generate schedule value for modulation
         schedule_value = self.generate_schedule(formula, feature_value, a, b)
 
-        # If feature_param is None, use direct values without modulation
-        if feature_param == "None":
-            scale_val = scale
-            detail_val = detail
-            randomness_val = randomness
-            seed_val = seed
-            x_offset_val = x_offset
-            y_offset_val = y_offset
-        else:
-            # Initialize with base values
-            scale_val = scale
-            detail_val = detail
-            randomness_val = randomness
-            seed_val = seed
-            x_offset_val = x_offset
-            y_offset_val = y_offset
+        # Get the pre-processed values from kwargs
+        scale = kwargs['scale']
+        detail = max(10, int(kwargs['detail']))  # Ensure detail is at least 10 and an integer
+        randomness = max(0.0, kwargs['randomness'])  # Ensure randomness is non-negative
+        seed = int(kwargs['seed'])
+        x_offset = kwargs['x_offset']
+        y_offset = kwargs['y_offset']
 
-            # Apply modulation based on feature_param
-            if feature_param == "scale":
-                scale_val = self.modulate_param("scale", scale, schedule_value, strength, feature_mode)
-            elif feature_param == "detail":
-                detail_val = self.modulate_param("detail", detail, schedule_value, strength, feature_mode)
-                detail_val = max(10, int(detail_val))
-            elif feature_param == "randomness":
-                randomness_val = self.modulate_param("randomness", randomness, schedule_value, strength, feature_mode)
-                randomness_val = max(0.0, randomness_val)
-            elif feature_param == "seed":
-                seed_val = int(seed + (schedule_value * strength * 1000000))
-            elif feature_param == "x_offset":
-                x_offset_val = self.modulate_param("x_offset", x_offset, schedule_value, strength, feature_mode)
-            elif feature_param == "y_offset":
-                y_offset_val = self.modulate_param("y_offset", y_offset, schedule_value, strength, feature_mode)
-
-        # Create VoronoiNoise instance with modulated parameters
+        # Create VoronoiNoise instance with parameters
         voronoi = VoronoiNoise(
             width=width, 
             height=height, 
-            scale=[scale_val], 
-            detail=[detail_val], 
-            seed=[seed_val], 
-            randomness=[randomness_val],
-            X=[x_offset_val],
-            Y=[y_offset_val],
+            scale=[scale], 
+            detail=[detail], 
+            seed=[seed], 
+            randomness=[randomness],
+            X=[x_offset],
+            Y=[y_offset],
             distance_metric=distance_metric,
             batch_size=1,
             device=get_torch_device()
@@ -322,10 +246,10 @@ class FlexMaskBinary(FlexMaskBase):
     def get_modifiable_params(cls):
         return ["threshold", "None"]
 
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, threshold: float, feature_mode: str, **kwargs) -> np.ndarray:
-        # Modulate the threshold based on the feature value and strength
-        modulated_threshold = self.modulate_param("threshold", threshold, feature_value, strength, kwargs.get("feature_mode", "relative"))
-        return (mask > modulated_threshold).astype(np.float32)
+    def apply_effect_internal(self, mask: np.ndarray, **kwargs) -> np.ndarray:
+        # Get the pre-processed threshold value from kwargs
+        threshold = kwargs['threshold']
+        return (mask > threshold).astype(np.float32)
 
 #TODO: stateful node: make reset of state consistent, make state update pattern consistent, consistant state initialization in init
 @apply_tooltips
@@ -347,7 +271,8 @@ class FlexMaskWavePropagation(FlexMaskBase):
     @classmethod
     def get_modifiable_params(cls):
         """Return parameters that can be modulated by features"""
-        return ["wave_speed", "wave_amplitude", "wave_decay", "wave_frequency", "None"]
+        return ["wave_speed", "wave_amplitude", "wave_decay", "wave_frequency", "max_wave_field", "None"]
+
 
     def __init__(self):
         super().__init__()
@@ -360,38 +285,14 @@ class FlexMaskWavePropagation(FlexMaskBase):
         self.frame_count = 0
         return mask
 
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, 
-                     wave_speed: float, wave_amplitude: float, wave_decay: float, 
-                     wave_frequency: float, max_wave_field: float, feature_param: str, 
-                     feature_mode: str, **kwargs) -> np.ndarray:
-        # If feature_param is None, use direct values without modulation
-        if feature_param == "None":
-            speed = wave_speed
-            amplitude = wave_amplitude
-            decay = wave_decay
-            frequency = wave_frequency
-        else:
-            # Apply modulation based on feature_param
-            if feature_param == "wave_speed":
-                speed = self.modulate_param("wave_speed", wave_speed, feature_value, strength, feature_mode)
-                amplitude = wave_amplitude
-                decay = wave_decay
-                frequency = wave_frequency
-            elif feature_param == "wave_amplitude":
-                speed = wave_speed
-                amplitude = self.modulate_param("wave_amplitude", wave_amplitude, feature_value, strength, feature_mode)
-                decay = wave_decay
-                frequency = wave_frequency
-            elif feature_param == "wave_decay":
-                speed = wave_speed
-                amplitude = wave_amplitude
-                decay = self.modulate_param("wave_decay", wave_decay, feature_value, strength, feature_mode)
-                frequency = wave_frequency
-            elif feature_param == "wave_frequency":
-                speed = wave_speed
-                amplitude = wave_amplitude
-                decay = wave_decay
-                frequency = self.modulate_param("wave_frequency", wave_frequency, feature_value, strength, feature_mode)
+    def apply_effect_internal(self, mask: np.ndarray, **kwargs) -> np.ndarray:
+        # Get pre-processed values from kwargs
+        max_wave_field = kwargs['max_wave_field']
+        wave_speed = kwargs['wave_speed']
+        wave_amplitude = kwargs['wave_amplitude']
+        wave_decay = kwargs['wave_decay']
+        wave_frequency = kwargs['wave_frequency']
+
 
         # Initialize wave field if needed
         if self.wave_field is None:
@@ -405,7 +306,7 @@ class FlexMaskWavePropagation(FlexMaskBase):
         # Create wave sources from mask
         wave_sources = np.where(mask > 0.5)
         for y, x in zip(*wave_sources):
-            source_amplitude = amplitude * np.sin(2 * np.pi * frequency * self.frame_count * dt)
+            source_amplitude = wave_amplitude * np.sin(2 * np.pi * wave_frequency * self.frame_count * dt)
             self.wave_field[y, x] = source_amplitude
 
         # Propagate waves
@@ -416,10 +317,10 @@ class FlexMaskWavePropagation(FlexMaskBase):
                 laplacian = (self.wave_field[y+1, x] + self.wave_field[y-1, x] + 
                            self.wave_field[y, x+1] + self.wave_field[y, x-1] - 
                            4 * self.wave_field[y, x])
-                new_field[y, x] = self.wave_field[y, x] + speed * dt * laplacian
+                new_field[y, x] = self.wave_field[y, x] + wave_speed * dt * laplacian
 
         # Apply decay
-        new_field *= np.exp(-decay * dt)
+        new_field *= np.exp(-wave_decay * dt)
 
         # Update wave field
         self.wave_field = new_field
@@ -429,6 +330,7 @@ class FlexMaskWavePropagation(FlexMaskBase):
         return result.astype(np.float32)
 
 #TODO: stateful node: make reset of state consistent, make state update pattern consistent, consistant state initialization in init
+#TODO: FIX THIS #IMPORTANT
 @apply_tooltips
 class FlexMaskEmanatingRings(FlexMaskBase):
     @classmethod
@@ -448,15 +350,13 @@ class FlexMaskEmanatingRings(FlexMaskBase):
     @classmethod
     def get_modifiable_params(cls):
         """Return parameters that can be modulated by features"""
-        return ["num_rings", "ring_width", "wave_speed", "all", "None"]
+        return ["num_rings", "max_ring_width", "wave_speed", "all", "None"]
 
     def __init__(self):
         super().__init__()
         self.rings = []
 
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float,
-                     num_rings: int, max_ring_width: float, wave_speed: float,
-                     feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, mask: np.ndarray, **kwargs) -> np.ndarray:
         height, width = mask.shape
         distance = distance_transform_edt(1 - mask)
         max_distance = np.max(distance)
@@ -470,38 +370,19 @@ class FlexMaskEmanatingRings(FlexMaskBase):
                 new_rings.append(ring)
         self.rings = new_rings
 
-        # If feature_param is None, use direct values without modulation
-        if feature_param == "None":
-            adjusted_num_rings = num_rings
-            adjusted_max_ring_width = max_ring_width
-            adjusted_wave_speed = wave_speed
-        else:
-            # Apply modulation based on feature_param
-            if feature_param in ["num_rings", "all"]:
-                adjusted_num_rings = self.modulate_param("num_rings", num_rings, feature_value, strength, feature_mode)
-                adjusted_num_rings = max(1, int(adjusted_num_rings))
-            else:
-                adjusted_num_rings = num_rings
-
-            if feature_param in ["ring_width", "all"]:
-                adjusted_max_ring_width = self.modulate_param("ring_width", max_ring_width, feature_value, strength, feature_mode)
-                adjusted_max_ring_width = np.clip(adjusted_max_ring_width, 0.01, 0.9)
-            else:
-                adjusted_max_ring_width = max_ring_width
-
-            if feature_param in ["wave_speed", "all"]:
-                adjusted_wave_speed = self.modulate_param("wave_speed", wave_speed, feature_value, strength, feature_mode)
-                adjusted_wave_speed = np.clip(adjusted_wave_speed, 0.01, 0.5)
-            else:
-                adjusted_wave_speed = wave_speed
+        # Get pre-processed values from kwargs
+        num_rings = max(1, int(kwargs['num_rings']))
+        max_ring_width = kwargs['max_ring_width']
+        wave_speed = kwargs['wave_speed']
 
         # Create new rings if feature_value > 0 or feature_param is None
-        if feature_value > 0 or feature_param == "None":
-            for i in range(adjusted_num_rings):
+        feature_value = kwargs.get('feature_value', 0)
+        if feature_value > 0 or kwargs.get('feature_param') == "None":
+            for i in range(num_rings):
                 self.rings.append({
-                    'progress': i / adjusted_num_rings,
-                    'ring_width': adjusted_max_ring_width,
-                    'wave_speed': adjusted_wave_speed
+                    'progress': i / num_rings,
+                    'ring_width': max_ring_width,
+                    'wave_speed': wave_speed
                 })
 
         # Create emanating rings
@@ -519,8 +400,9 @@ class FlexMaskEmanatingRings(FlexMaskBase):
         return result
 
     def process_below_threshold(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
-        # Continue the animation but don't create new rings
-        return self.apply_effect_internal(mask, 0, strength, **kwargs)
+        # Continue the animation but don't create new rings by forcing feature_value to 0
+        kwargs['feature_value'] = 0
+        return self.apply_effect_internal(mask, **kwargs)
 
 #TODO: stateful node: make reset of state consistent, make state update pattern consistent, consistant state initialization in init
 @apply_tooltips
@@ -539,65 +421,36 @@ class FlexMaskRandomShapes(FlexMaskBase):
                 "appearance_method": (["grow", "pop", "fade"],),
                 "easing_function": (["linear","ease_in_out", "bounce","elastic"],),
                 "shape_type": (get_available_shapes(),),
-                "feature_param": (["None", "num_shapes", "shape_size", "appearance_duration", "disappearance_duration"],),
+                "feature_param": (["None", "max_num_shapes", "max_shape_size", "appearance_duration", "disappearance_duration"],),
             }
         }
 
     @classmethod
     def get_modifiable_params(cls):
         """Return parameters that can be modulated by features"""
-        return ["num_shapes", "shape_size", "appearance_duration", "disappearance_duration", "None"]
+        return ["max_num_shapes", "max_shape_size", "appearance_duration", "disappearance_duration", "None"]
 
     def __init__(self):
         super().__init__()
         self.shapes = []
         self.frame_count = 0
 
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float,
-                     max_num_shapes: int, max_shape_size: float, appearance_duration: int,
-                     disappearance_duration: int, appearance_method: str, easing_function: str,
-                     shape_type: str, feature_param: str, feature_mode: str, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, mask: np.ndarray, appearance_method: str, easing_function: str, shape_type: str, **kwargs) -> np.ndarray:
         height, width = mask.shape
         result_mask = mask.copy()
 
-        # If feature_param is None, use direct values without modulation
-        if feature_param == "None":
-            num_shapes = max_num_shapes
-            shape_size = max_shape_size
-            app_duration = appearance_duration
-            disapp_duration = disappearance_duration
-        else:
-            # Apply modulation based on feature_param
-            if feature_param == "num_shapes":
-                num_shapes = self.modulate_param("num_shapes", max_num_shapes, feature_value, strength, feature_mode)
-                num_shapes = max(1, int(num_shapes))
-                shape_size = max_shape_size
-                app_duration = appearance_duration
-                disapp_duration = disappearance_duration
-            elif feature_param == "shape_size":
-                num_shapes = max_num_shapes
-                shape_size = self.modulate_param("shape_size", max_shape_size, feature_value, strength, feature_mode)
-                shape_size = np.clip(shape_size, 0.01, 1.0)
-                app_duration = appearance_duration
-                disapp_duration = disappearance_duration
-            elif feature_param == "appearance_duration":
-                num_shapes = max_num_shapes
-                shape_size = max_shape_size
-                app_duration = self.modulate_param("appearance_duration", appearance_duration, feature_value, strength, feature_mode)
-                app_duration = max(1, int(app_duration))
-                disapp_duration = disappearance_duration
-            elif feature_param == "disappearance_duration":
-                num_shapes = max_num_shapes
-                shape_size = max_shape_size
-                app_duration = appearance_duration
-                disapp_duration = self.modulate_param("disappearance_duration", disappearance_duration, feature_value, strength, feature_mode)
-                disapp_duration = max(1, int(disapp_duration))
+        # Get pre-processed values from kwargs
+        num_shapes = max(1, int(kwargs['max_num_shapes']))
+        shape_size = kwargs['max_shape_size']
+        app_duration = max(1, int(kwargs['appearance_duration']))
+        disapp_duration = max(1, int(kwargs['disappearance_duration']))
 
         # Remove completed shapes
         self.shapes = [shape for shape in self.shapes if shape['frame'] < shape['total_frames']]
 
         # Add new shapes if needed (when feature_value > 0 or feature_param is None)
-        if feature_value > 0 or feature_param == "None":
+        feature_value = kwargs.get('feature_value', 0)
+        if feature_value > 0 or kwargs.get('feature_param') == "None":
             while len(self.shapes) < num_shapes:
                 center = (np.random.randint(0, width), np.random.randint(0, height))
                 if shape_type == "random":
@@ -646,6 +499,14 @@ class FlexMaskRandomShapes(FlexMaskBase):
 
 @apply_tooltips
 class FlexMaskDepthChamber(FlexMaskBase):
+    """
+    This class is a special case that handles its own parameter modulation instead of using the base class's modulation system.
+    This is intentional because:
+    1. It uses paired parameters (z_front/z_back) that define a range and must be modulated together
+    2. The feature_modes (squeeze, expand, move_forward, move_back) operate on both values in coordinated ways
+    3. The relationship between parameters must be maintained (e.g., ensuring proper depth range)
+    4. Moving this logic to the base class would add complexity without clear benefits
+    """
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -655,7 +516,7 @@ class FlexMaskDepthChamber(FlexMaskBase):
                 "depth_map": ("IMAGE",),
                 "z_front": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "z_back": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "feature_param": (["none", "z_front", "z_back", "both"],),
+                # "feature_param": (["none", "z_front", "z_back", "both"],),
                 "feature_mode": (["squeeze", "expand", "move_forward", "move_back"],),
             }
         }
@@ -665,46 +526,48 @@ class FlexMaskDepthChamber(FlexMaskBase):
         """Return parameters that can be modulated by features"""
         return ["z_front", "z_back", "both", "None"]
 
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, 
-                     depth_map: torch.Tensor, z_front: float, z_back: float, feature_param: str, 
-                     feature_mode: str, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, mask: np.ndarray, depth_map: torch.Tensor, feature_mode: str, z_front: float, z_back: float,  **kwargs) -> np.ndarray:
         frame_index = kwargs.get('frame_index', 0)
         depth_map_frame = depth_map[frame_index].cpu().numpy()
         depth_map_frame = depth_map_frame[:, :, 0]
 
-        # If feature_param is None, use direct values without modulation
-        if feature_param == "None":
-            z_front_val = z_front
-            z_back_val = z_back
+        #initialize values
+        z_front_val = z_front
+        z_back_val = z_back
+
+
+        feature_value = kwargs.get('feature_value', 0)
+        strength = kwargs.get('strength', 1.0)
+        feature_param = kwargs.get('feature_param', 'None')            
+        # Apply modulation based on feature_mode and feature_param
+        if feature_mode == "squeeze":
+
+            if feature_param in ["z_front", "both"]:
+                z_front_val = z_front - (z_front - z_back) * strength * feature_value / 2 if z_front > z_back else z_front + (z_back - z_front) * strength * feature_value / 2
+            if feature_param in ["z_back", "both"]:
+                z_back_val = z_back + (z_front - z_back) * strength * feature_value / 2 if z_back < z_front else z_back - (z_back - z_front) * strength * feature_value / 2
+        elif feature_mode == "expand":
+            if feature_param in ["z_front", "both"]:
+                z_front_val = min(1.0, z_front + (z_front - z_back) * strength * feature_value / 2) if z_front > z_back else max(0.0, z_front - (z_back - z_front) * strength * feature_value / 2)
+            if feature_param in ["z_back", "both"]:
+                z_back_val = max(0.0, z_back - (z_front - z_back) * strength * feature_value / 2) if z_back < z_front else min(1.0, z_back + (z_back - z_front) * strength * feature_value / 2)
+        elif feature_mode == "move_forward":
+            if feature_param in ["z_front", "both"]:
+                z_front_val = min(1.0, z_front + strength * feature_value)
+            if feature_param in ["z_back", "both"]:
+                z_back_val = min(1.0, z_back + strength * feature_value)
+        elif feature_mode == "move_back":
+            if feature_param in ["z_front", "both"]:
+                z_front_val = max(0.0, z_front - strength * feature_value)
+            if feature_param in ["z_back", "both"]:
+                z_back_val = max(0.0, z_back - strength * feature_value)
         else:
             z_front_val = z_front
             z_back_val = z_back
-            
-            # Apply modulation based on feature_mode and feature_param
-            if feature_mode == "squeeze":
-                if feature_param in ["z_front", "both"]:
-                    z_front_val = z_front - (z_front - z_back) * strength * feature_value / 2 if z_front > z_back else z_front + (z_back - z_front) * strength * feature_value / 2
-                if feature_param in ["z_back", "both"]:
-                    z_back_val = z_back + (z_front - z_back) * strength * feature_value / 2 if z_back < z_front else z_back - (z_back - z_front) * strength * feature_value / 2
-            elif feature_mode == "expand":
-                if feature_param in ["z_front", "both"]:
-                    z_front_val = min(1.0, z_front + (z_front - z_back) * strength * feature_value / 2) if z_front > z_back else max(0.0, z_front - (z_back - z_front) * strength * feature_value / 2)
-                if feature_param in ["z_back", "both"]:
-                    z_back_val = max(0.0, z_back - (z_front - z_back) * strength * feature_value / 2) if z_back < z_front else min(1.0, z_back + (z_back - z_front) * strength * feature_value / 2)
-            elif feature_mode == "move_forward":
-                if feature_param in ["z_front", "both"]:
-                    z_front_val = min(1.0, z_front + strength * feature_value)
-                if feature_param in ["z_back", "both"]:
-                    z_back_val = min(1.0, z_back + strength * feature_value)
-            elif feature_mode == "move_back":
-                if feature_param in ["z_front", "both"]:
-                    z_front_val = max(0.0, z_front - strength * feature_value)
-                if feature_param in ["z_back", "both"]:
-                    z_back_val = max(0.0, z_back - strength * feature_value)
-
         # Create the depth mask
         if z_back_val < z_front_val:
             depth_mask = (depth_map_frame >= z_back_val) & (depth_map_frame <= z_front_val)
+
         else:
             depth_mask = (depth_map_frame >= z_back_val) | (depth_map_frame <= z_front_val)
 
@@ -717,6 +580,15 @@ class FlexMaskDepthChamber(FlexMaskBase):
 
 @apply_tooltips
 class FlexMaskDepthChamberRelative(FlexMaskBase):
+    """
+    This class is a special case that handles its own parameter modulation instead of using the base class's modulation system.
+    This is intentional because:
+    1. It uses paired parameters (z1/z2) that define boundaries and must be modulated together
+    2. The feature_modes (squeeze, expand) operate on both values in coordinated ways
+    3. Both values must be scaled relative to ROI size, adding another layer of complexity
+    4. The relationship between parameters must be maintained (e.g., proper ordering of z1/z2)
+    5. Moving this logic to the base class would add complexity without clear benefits
+    """
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -750,11 +622,15 @@ class FlexMaskDepthChamberRelative(FlexMaskBase):
         sizes = [self.calculate_roi_size(mask) for mask in masks]
         return torch.median(torch.tensor(sizes)).item()
 
-    def apply_effect_internal(self, mask: torch.Tensor, feature_value: float, strength: float, 
-                     depth_map: torch.Tensor, z1: float, z2: float, feature_param: str, 
-                     feature_mode: str, **kwargs) -> torch.Tensor:
+    def apply_effect_internal(self, mask: torch.Tensor, depth_map: torch.Tensor, z1: float, z2: float, **kwargs) -> torch.Tensor:
         frame_index = kwargs.get('frame_index', 0)
         depth_map_frame = depth_map[frame_index, :, :, 0]
+
+        # Get feature parameters from kwargs
+        feature_value = kwargs.get('feature_value', 0)
+        strength = kwargs.get('strength', 1.0)
+        feature_param = kwargs.get('feature_param', 'None')
+        feature_mode = kwargs.get('feature_mode', 'squeeze')
 
         # Calculate the ROI size for the current frame
         roi_size = self.calculate_roi_size(mask)
@@ -796,6 +672,7 @@ class FlexMaskDepthChamberRelative(FlexMaskBase):
         return output_mask
 
 @apply_tooltips
+#TODO: delete this or merge with Math, or make unique
 class FlexMaskInterpolate(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -818,12 +695,10 @@ class FlexMaskInterpolate(FlexMaskBase):
     @classmethod
     def get_modifiable_params(cls):
         """Return parameters that can be modulated by features"""
-        return ["blend", "None"]
+        return ["max_blend", "None"]
 
-    def apply_effect_internal(self, mask: np.ndarray, feature_value: float, strength: float, 
-                     mask_b: torch.Tensor, interpolation_method: str, max_blend: float,
-                     invert_mask_b: bool, blend_mode: str, feature_param: str, 
-                     feature_mode: str, **kwargs) -> np.ndarray:
+    def apply_effect_internal(self, mask: np.ndarray, mask_b: torch.Tensor, interpolation_method: str, 
+                            invert_mask_b: bool, blend_mode: str, **kwargs) -> np.ndarray:
         frame_index = kwargs.get('frame_index', 0)
         mask_b_frame = mask_b[frame_index].numpy()
 
@@ -834,12 +709,8 @@ class FlexMaskInterpolate(FlexMaskBase):
         if mask.shape != mask_b_frame.shape:
             mask_b_frame = cv2.resize(mask_b_frame, (mask.shape[1], mask.shape[0]), interpolation=cv2.INTER_LINEAR)
 
-        # Handle blend parameter based on feature_param
-        if feature_param == "None":
-            blend = max_blend
-        elif feature_param == "blend":
-            blend = self.modulate_param("blend", max_blend, feature_value, strength, feature_mode)
-            blend = np.clip(blend, 0.0, 1.0)  # Ensure blend stays in valid range
+        # Get pre-processed blend value from kwargs
+        blend = kwargs['max_blend']
 
         # Apply interpolation method to compute weight
         if interpolation_method == "linear":
