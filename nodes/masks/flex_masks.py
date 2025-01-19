@@ -339,7 +339,6 @@ class FlexMaskEmanatingRings(FlexMaskBase):
             **super().INPUT_TYPES(),
             "required": {
                 **super().INPUT_TYPES()["required"],
-                "spawn_threshold": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "ring_speed": ("FLOAT", {"default": 0.05, "min": 0.01, "max": 0.2, "step": 0.01}),
                 "ring_width": ("FLOAT", {"default": 0.2, "min": 0.01, "max": 0.5, "step": 0.01}),
                 "ring_falloff": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
@@ -349,7 +348,8 @@ class FlexMaskEmanatingRings(FlexMaskBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["speed", "width", "falloff", "None"]
+        return ["ring_speed", "ring_width", "ring_falloff", "None"]
+
 
     def __init__(self):
         super().__init__()
@@ -365,7 +365,6 @@ class FlexMaskEmanatingRings(FlexMaskBase):
         
     def apply_effect_internal(self, mask: np.ndarray, **kwargs) -> np.ndarray:
         # Get processed parameters
-        spawn_threshold = kwargs['spawn_threshold']
         ring_speed = kwargs['ring_speed']
         ring_width = kwargs['ring_width']
         ring_falloff = kwargs['ring_falloff']

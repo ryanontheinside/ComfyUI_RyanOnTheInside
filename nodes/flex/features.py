@@ -16,6 +16,42 @@ class BaseFeature(ABC):
         self.data = None
         self.features = None
         self.inverted = False
+        self._min_value = None
+        self._max_value = None
+
+    @property
+    def min_value(self):
+        """Get minimum value - either set explicitly or calculated from data"""
+        if self._min_value is not None:
+            return self._min_value
+        
+        if self.data is not None:
+            return float(np.min(self.data))
+        elif self.features is not None and hasattr(self, 'feature_name'):
+            return float(min(self.features[self.feature_name]))
+        return 0.0  # Default fallback
+
+    @min_value.setter
+    def min_value(self, value):
+        """Set minimum value explicitly"""
+        self._min_value = float(value)
+
+    @property
+    def max_value(self):
+        """Get maximum value - either set explicitly or calculated from data"""
+        if self._max_value is not None:
+            return self._max_value
+        
+        if self.data is not None:
+            return float(np.max(self.data))
+        elif self.features is not None and hasattr(self, 'feature_name'):
+            return float(max(self.features[self.feature_name]))
+        return 1.0  # Default fallback
+
+    @max_value.setter
+    def max_value(self, value):
+        """Set maximum value explicitly"""
+        self._max_value = float(value)
 
     @abstractmethod
     def extract(self):
@@ -545,11 +581,12 @@ class DrawableFeature(BaseFeature):
         super().__init__(name, "drawn", frame_rate, frame_count, width, height)
         self.points = points  # List of (frame, value) tuples
         self.method = method
-        #TODO: rename these to threshholds, and add a min_value and max_value to baseclass extracting min and max from data
-        self.min_value = min_value
-        self.max_value = max_value
+        self._min_value = float(min_value)
+        self._max_value = float(max_value)
         self.fill_value = fill_value
         
+
+
     def extract(self):
         """Convert drawn points into a continuous feature curve"""
         if not self.points:

@@ -27,8 +27,7 @@ class FeatureModulationBase(RyanOnTheInside):
                 self.name = f"{name_prefix}_{original_feature.name}"
                 if invert_output:
                     self.name = f"Inverted_{self.name}"
-                self.frame_rate = original_feature.frame_rate
-                self.frame_count = len(processed_values)
+
                 
                 if invert_output:
                     min_val, max_val = min(processed_values), max(processed_values)
@@ -559,7 +558,6 @@ class FeatureAccumulate(FeatureModulationBase):
         return (processed_feature,)
     
 
-
 import numpy as np
 from scipy.interpolate import interp1d
 
@@ -637,7 +635,7 @@ class FeatureInterpolator(FeatureModulationBase):
         return {
             "required": {
                 "feature": ("FEATURE",),
-                "interpolation_method": (["zero", "linear", "cubic", "nearest", "previous", "next", "quadratic"],),
+                "interpolation_method": (["zero", "hold", "linear", "cubic", "nearest", "previous", "next", "quadratic"],),
                 "threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "min_difference": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "min_distance": ("INT", {"default": 1, "min": 1, "max": 100, "step": 1}),
@@ -660,7 +658,7 @@ class FeatureInterpolator(FeatureModulationBase):
         last_index = None
         
         for i, v in enumerate(values):
-            # Check threshold
+            # Check threshold directly
             if v >= threshold:
                 # Check minimum difference from last point
                 if last_value is None or abs(v - last_value) >= min_difference:
@@ -683,34 +681,50 @@ class FeatureInterpolator(FeatureModulationBase):
         # Handle extrapolation
         fill_value = "extrapolate" if extrapolate else (significant_values[0], significant_values[-1])
         
-        # Create interpolator based on method
+        # Generate output values
         if interpolation_method == "zero":
-            # Zero-order hold (step function)
-            f = interp1d(x, y, kind='zero', bounds_error=False, fill_value=fill_value)
-        elif interpolation_method == "linear":
-            f = interp1d(x, y, kind='linear', bounds_error=False, fill_value=fill_value)
-        elif interpolation_method == "cubic":
-            # Need at least 4 points for cubic, fallback to quadratic if not enough points
-            if len(x) >= 4:
-                f = interp1d(x, y, kind='cubic', bounds_error=False, fill_value=fill_value)
-            else:
-                f = interp1d(x, y, kind='quadratic', bounds_error=False, fill_value=fill_value)
-        elif interpolation_method == "nearest":
-            f = interp1d(x, y, kind='nearest', bounds_error=False, fill_value=fill_value)
-        elif interpolation_method == "previous":
-            f = interp1d(x, y, kind='previous', bounds_error=False, fill_value=fill_value)
-        elif interpolation_method == "next":
-            f = interp1d(x, y, kind='next', bounds_error=False, fill_value=fill_value)
-        elif interpolation_method == "quadratic":
-            # Need at least 3 points for quadratic, fallback to linear if not enough points
-            if len(x) >= 3:
-                f = interp1d(x, y, kind='quadratic', bounds_error=False, fill_value=fill_value)
-            else:
+            # Only set values at exact points, everything else is zero
+            interpolated = np.zeros(feature.frame_count)
+            for idx, val in zip(significant_indices, significant_values):
+                interpolated[idx] = val
+        elif interpolation_method == "hold":
+            # Hold each value until the next point
+            interpolated = np.zeros(feature.frame_count)
+            for i in range(len(significant_indices)-1):
+                start_idx = significant_indices[i]
+                end_idx = significant_indices[i+1]
+                interpolated[start_idx:end_idx] = significant_values[i]
+            # Handle the last point
+            interpolated[significant_indices[-1]:] = significant_values[-1]
+            # Handle the beginning if needed
+            if significant_indices[0] > 0:
+                interpolated[:significant_indices[0]] = significant_values[0] if extrapolate else 0
+        else:
+            # Create interpolator based on method
+            if interpolation_method == "linear":
                 f = interp1d(x, y, kind='linear', bounds_error=False, fill_value=fill_value)
-        
-        # Generate interpolated values for all frames
-        x_new = np.arange(feature.frame_count)
-        interpolated = f(x_new)
+            elif interpolation_method == "cubic":
+                # Need at least 4 points for cubic, fallback to quadratic if not enough points
+                if len(x) >= 4:
+                    f = interp1d(x, y, kind='cubic', bounds_error=False, fill_value=fill_value)
+                else:
+                    f = interp1d(x, y, kind='quadratic', bounds_error=False, fill_value=fill_value)
+            elif interpolation_method == "nearest":
+                f = interp1d(x, y, kind='nearest', bounds_error=False, fill_value=fill_value)
+            elif interpolation_method == "previous":
+                f = interp1d(x, y, kind='previous', bounds_error=False, fill_value=fill_value)
+            elif interpolation_method == "next":
+                f = interp1d(x, y, kind='next', bounds_error=False, fill_value=fill_value)
+            elif interpolation_method == "quadratic":
+                # Need at least 3 points for quadratic, fallback to linear if not enough points
+                if len(x) >= 3:
+                    f = interp1d(x, y, kind='quadratic', bounds_error=False, fill_value=fill_value)
+                else:
+                    f = interp1d(x, y, kind='linear', bounds_error=False, fill_value=fill_value)
+            
+            # Generate interpolated values for all frames
+            x_new = np.arange(feature.frame_count)
+            interpolated = f(x_new)
         
         # Create processed feature
         processed_feature = self.create_processed_feature(feature, interpolated, "Interpolated", invert_output)

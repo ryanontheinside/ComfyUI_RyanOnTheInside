@@ -241,7 +241,8 @@ class PreviewFeature(RyanOnTheInside):
         x_ticks = range(0, len(values), step)
         plt.xticks(x_ticks, [str(x) for x in x_ticks])
         
-        y_min, y_max = min(values), max(values)
+        # Use feature's min_value and max_value properties
+        y_min, y_max = feature.min_value, feature.max_value
         y_range = y_max - y_min
         plt.ylim(y_min - 0.05*y_range, y_max + 0.05*y_range)
         
