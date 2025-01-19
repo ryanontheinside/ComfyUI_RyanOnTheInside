@@ -335,74 +335,103 @@ class FlexMaskWavePropagation(FlexMaskBase):
 class FlexMaskEmanatingRings(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
-        cls.feature_threshold_default = 0.25
         return {
             **super().INPUT_TYPES(),
             "required": {
                 **super().INPUT_TYPES()["required"],
-                "num_rings": ("INT", {"default": 4, "min": 1, "max": 50, "step": 1}),
-                "max_ring_width": ("FLOAT", {"default": 0.5, "min": 0.01, "max": 0.9, "step": 0.01}),
-                "wave_speed": ("FLOAT", {"default": 0.05, "min": 0.01, "max": 0.5, "step": 0.01}),
-                "feature_param": (["None", "num_rings", "ring_width", "wave_speed", "all"],),
+                "spawn_threshold": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "ring_speed": ("FLOAT", {"default": 0.05, "min": 0.01, "max": 0.2, "step": 0.01}),
+                "ring_width": ("FLOAT", {"default": 0.2, "min": 0.01, "max": 0.5, "step": 0.01}),
+                "ring_falloff": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "binary_mode": ("BOOLEAN", {"default": False}),
             }
         }
 
     @classmethod
     def get_modifiable_params(cls):
-        """Return parameters that can be modulated by features"""
-        return ["num_rings", "max_ring_width", "wave_speed", "all", "None"]
+        return ["speed", "width", "falloff", "None"]
 
     def __init__(self):
         super().__init__()
         self.rings = []
-
-    def apply_effect_internal(self, mask: np.ndarray, **kwargs) -> np.ndarray:
-        height, width = mask.shape
-        distance = distance_transform_edt(1 - mask)
-        max_distance = np.max(distance)
-        normalized_distance = distance / max_distance
-
-        # Update existing rings
-        new_rings = []
-        for ring in self.rings:
-            ring['progress'] += ring['wave_speed']
-            if ring['progress'] < 1:
-                new_rings.append(ring)
-        self.rings = new_rings
-
-        # Get pre-processed values from kwargs
-        num_rings = max(1, int(kwargs['num_rings']))
-        max_ring_width = kwargs['max_ring_width']
-        wave_speed = kwargs['wave_speed']
-
-        # Create new rings if feature_value > 0 or feature_param is None
-        feature_value = kwargs.get('feature_value', 0)
-        if feature_value > 0 or kwargs.get('feature_param') == "None":
-            for i in range(num_rings):
-                self.rings.append({
-                    'progress': i / num_rings,
-                    'ring_width': max_ring_width,
-                    'wave_speed': wave_speed
-                })
-
-        # Create emanating rings
-        rings = np.zeros_like(mask)
-        for ring in self.rings:
-            ring_progress = ring['progress'] % 1
-            ring_width = ring['ring_width'] * (1 - ring_progress)  # Rings get thinner as they move out
-            ring_outer = normalized_distance < ring_progress
-            ring_inner = normalized_distance < (ring_progress - ring_width)
-            rings = np.logical_or(rings, np.logical_xor(ring_outer, ring_inner))
-
-        # Combine with original mask
-        result = np.logical_or(mask, rings).astype(np.float32)
-
-        return result
-
-    def process_below_threshold(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
-        # Continue the animation but don't create new rings by forcing feature_value to 0
+        # Cache the distance transform result
+        self.last_mask = None
+        self.cached_distance = None
+        self.cached_max_distance = None
+        
+    def process_below_threshold(self, mask: np.ndarray, **kwargs) -> np.ndarray:
         kwargs['feature_value'] = 0
         return self.apply_effect_internal(mask, **kwargs)
+        
+    def apply_effect_internal(self, mask: np.ndarray, **kwargs) -> np.ndarray:
+        # Get processed parameters
+        spawn_threshold = kwargs['spawn_threshold']
+        ring_speed = kwargs['ring_speed']
+        ring_width = kwargs['ring_width']
+        ring_falloff = kwargs['ring_falloff']
+        feature_value = kwargs.get('feature_value', 0)
+        binary_mode = kwargs.get('binary_mode', False)
+        
+        # Use cached distance transform if mask hasn't changed
+        if self.last_mask is None or not np.array_equal(mask, self.last_mask):
+            distance = distance_transform_edt(1 - mask)
+            max_distance = np.max(distance)
+            if max_distance > 0:
+                normalized_distance = distance / max_distance
+            else:
+                normalized_distance = distance
+            # Cache results
+            self.last_mask = mask.copy()
+            self.cached_distance = normalized_distance
+            self.cached_max_distance = max_distance
+        else:
+            normalized_distance = self.cached_distance
+            max_distance = self.cached_max_distance
+
+        if max_distance == 0:
+            return mask.copy()
+
+        # Only spawn new ring if feature_value is non-zero
+        if feature_value > 0:
+            self.rings.append({
+                'progress': 0.0,
+                'speed': ring_speed,
+                'width': ring_width,
+                'intensity': feature_value,
+                'birth_time': kwargs.get('frame_index', 0)
+            })
+
+        # Always start with the original mask
+        result = mask.copy()
+        new_rings = []
+
+        # Process all rings at once using vectorized operations
+        if binary_mode:
+            # Binary mode - sharp rings without falloff
+            for ring in self.rings:
+                ring['progress'] += ring['speed']
+                if ring['progress'] < 1.0:
+                    # Create sharp ring boundaries
+                    ring_outer = normalized_distance < ring['progress']
+                    ring_inner = normalized_distance < (ring['progress'] - ring['width'])
+                    ring_mask = np.logical_xor(ring_outer, ring_inner)
+                    result = np.logical_or(result, ring_mask)
+                    new_rings.append(ring)
+        else:
+            # Smooth mode - with falloff
+            for ring in self.rings:
+                ring['progress'] += ring['speed']
+                if ring['progress'] < 1.0:
+                    # Vectorized ring calculation
+                    ring_center = normalized_distance - ring['progress']
+                    ring_mask = np.exp(-np.square(ring_center/ring['width']) * 4)
+                    fade = np.power(1.0 - ring['progress'], ring_falloff * 3)
+                    ring_mask *= fade * ring['intensity']
+                    result = np.maximum(result, ring_mask)
+                    new_rings.append(ring)
+
+        self.rings = new_rings
+        return (result > 0.5 if binary_mode else result).astype(np.float32)
 
 #TODO: stateful node: make reset of state consistent, make state update pattern consistent, consistant state initialization in init
 @apply_tooltips
