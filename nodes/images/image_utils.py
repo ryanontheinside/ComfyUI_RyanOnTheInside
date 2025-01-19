@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import torch
 
 def apply_blend_mode(base_image: np.ndarray, blend_image: np.ndarray, mode: str, opacity: float) -> np.ndarray:
     """
@@ -116,6 +117,57 @@ def normalize_array(arr: np.ndarray) -> np.ndarray:
 def apply_blur(image: np.ndarray, intensity: float, kernel_size: int, sigma: float = 0) -> np.ndarray:
     blurred = cv2.GaussianBlur(image, (kernel_size, kernel_size), sigma)
     return blurred
+
+def create_gaussian_kernel_gpu(kernel_size: int, sigma: float, device: torch.device) -> torch.Tensor:
+    """
+    Create a 2D Gaussian kernel for GPU-accelerated blur operations.
+    
+    :param kernel_size: Size of the kernel (must be odd)
+    :param sigma: Standard deviation of the Gaussian
+    :param device: PyTorch device (GPU or CPU)
+    :return: Gaussian kernel tensor ready for convolution
+    """
+    # Create 1D Gaussian kernel
+    x = torch.linspace(-kernel_size // 2 + 1, kernel_size // 2, kernel_size, device=device)
+    gauss = torch.exp(-x.pow(2) / (2 * sigma ** 2))
+    kernel = gauss / gauss.sum()
+    
+    # Create 2D kernel by outer product
+    kernel = kernel.unsqueeze(0) * kernel.unsqueeze(1)
+    
+    # Normalize and reshape for conv2d
+    kernel = kernel / kernel.sum()
+    kernel = kernel.view(1, 1, kernel_size, kernel_size)
+    return kernel.repeat(3, 1, 1, 1)  # Repeat for RGB channels
+
+def apply_gaussian_blur_gpu(x: torch.Tensor, kernel_size: int, sigma: float) -> torch.Tensor:
+    """
+    Apply Gaussian blur using GPU acceleration via PyTorch.
+    
+    :param x: Input tensor in format (C, H, W) or (N, C, H, W)
+    :param kernel_size: Size of the Gaussian kernel (must be odd)
+    :param sigma: Standard deviation of the Gaussian
+    :return: Blurred tensor in same format as input
+    """
+    if kernel_size < 3:
+        return x
+        
+    # Ensure input is in the right format (N, C, H, W)
+    if len(x.shape) == 3:
+        x = x.unsqueeze(0)
+    
+    # Create gaussian kernel
+    kernel = create_gaussian_kernel_gpu(kernel_size, sigma, x.device)
+    
+    # Apply padding to prevent border artifacts
+    pad_size = kernel_size // 2
+    x_padded = torch.nn.functional.pad(x, (pad_size, pad_size, pad_size, pad_size), mode='reflect')
+    
+    # Apply convolution for each channel
+    groups = x.shape[1]  # Number of channels
+    blurred = torch.nn.functional.conv2d(x_padded, kernel, groups=groups, padding=0)
+    
+    return blurred.squeeze(0) if len(x.shape) == 4 else blurred
 
 def apply_sharpen(image: np.ndarray, intensity: float, kernel_size: int, sigma: float = 1.0) -> np.ndarray:
     blurred = cv2.GaussianBlur(image, (kernel_size, kernel_size), sigma)

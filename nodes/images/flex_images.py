@@ -4,7 +4,7 @@ import numpy as np
 from .flex_image_base import FlexImageBase
 from scipy.ndimage import gaussian_filter
 import torch.nn.functional as F
-from .image_utils import transform_image
+from .image_utils import transform_image, apply_gaussian_blur_gpu
 from ...tooltips import apply_tooltips
 from ..node_utilities import string_to_rgb
 
@@ -439,118 +439,127 @@ class FlexImageBloom(FlexImageBase):
             "num_passes": ("INT", {"default": 4, "min": 1, "max": 8, "step": 1}),
             "color_bleeding": ("FLOAT", {"default": 0.2, "min": 0.0, "max": 1.0, "step": 0.01}),
             "falloff": ("FLOAT", {"default": 1.2, "min": 0.1, "max": 3.0, "step": 0.1}),
-            "surface_scatter": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-            "normal_influence": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 1.0, "step": 0.01}),
         })
         base_inputs["optional"].update({
             "opt_normal_map": ("IMAGE",),
+            "opt_mask": ("MASK",),
         })
         return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["threshold", "blur_amount", "intensity", "num_passes", "color_bleeding", "falloff", "surface_scatter", "normal_influence", "None"]
+        return ["threshold", "blur_amount", "intensity", "num_passes", "color_bleeding", "falloff", "None"]
 
     def apply_effect_internal(self, image: np.ndarray, threshold: float, blur_amount: float, 
                               intensity: float, num_passes: int, color_bleeding: float,
-                              falloff: float, surface_scatter: float, normal_influence: float,
-                              opt_normal_map: np.ndarray = None, **kwargs) -> np.ndarray:
-        # Convert to float32 for better precision
-        image = image.astype(np.float32)
+                              falloff: float, opt_normal_map: np.ndarray = None, 
+                              opt_mask: np.ndarray = None, **kwargs) -> np.ndarray:
+        # Set up device (GPU if available, CPU if not)
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        
+        # Convert input image to tensor
+        image_tensor = torch.from_numpy(image).to(device)
         
         # Extract bright areas with smooth threshold
-        brightness = np.max(image, axis=2)
-        bright_mask = np.clip((brightness - threshold) / (1 - threshold), 0, 1)
-        bright_mask = np.power(bright_mask, falloff)
+        brightness = torch.max(image_tensor, dim=2)[0]
+        bright_mask = torch.clip((brightness - threshold) / (1 - threshold), 0, 1)
+        bright_mask = torch.pow(bright_mask, falloff)
         
-        # Initialize accumulator for bloom effect
-        bloom_accumulator = np.zeros_like(image)
+        # Process optional mask if provided
+        if opt_mask is not None:
+            # Convert mask to tensor and ensure correct shape
+            if torch.is_tensor(opt_mask):
+                mask_tensor = opt_mask.to(device)
+            else:
+                mask_tensor = torch.from_numpy(opt_mask).to(device)
+            
+            # Handle batched masks
+            if len(mask_tensor.shape) > 2:
+                frame_index = kwargs.get('frame_index', 0)
+                mask_tensor = mask_tensor[frame_index]
+            
+            # Ensure mask is 2D
+            if len(mask_tensor.shape) > 2:
+                mask_tensor = mask_tensor.squeeze()
+            
+            # Resize mask if needed
+            if mask_tensor.shape != bright_mask.shape:
+                mask_tensor = torch.nn.functional.interpolate(
+                    mask_tensor.unsqueeze(0).unsqueeze(0),
+                    size=bright_mask.shape,
+                    mode='bilinear'
+                ).squeeze()
+            
+            # Combine mask with brightness mask
+            bright_mask = bright_mask * mask_tensor
+        
+        # Pre-calculate color bleeding contribution
+        if color_bleeding > 0:
+            mean_color = torch.mean(image_tensor, dim=2, keepdim=True)
+            color_contribution = image_tensor * (1 - color_bleeding) + mean_color * color_bleeding
+        else:
+            color_contribution = image_tensor
+        
+        # Initialize accumulator and calculate pass weights
+        bloom_accumulator = torch.zeros_like(image_tensor)
+        pass_weights = torch.tensor([1.0 / (2 ** i) for i in range(num_passes)], device=device)
+        pass_weights /= pass_weights.sum()
         
         # Process normal map if provided
         if opt_normal_map is not None:
-            # Extract the normal map for the current frame and ensure it's numpy
             if torch.is_tensor(opt_normal_map):
-                opt_normal_map = opt_normal_map.cpu().numpy()
-            
-            if len(opt_normal_map.shape) > 3:  # If batched
-                frame_index = kwargs.get('frame_index', 0)
-                opt_normal_map = opt_normal_map[frame_index]
-            
-            # Resize normal map to match image dimensions if needed
-            h, w = image.shape[:2]
-            if opt_normal_map.shape[:2] != (h, w):
-                opt_normal_map = cv2.resize(opt_normal_map, (w, h), interpolation=cv2.INTER_LINEAR)
-            
-            # Convert normal map from [0,1] to [-1,1] range
-            normals = opt_normal_map * 2.0 - 1.0
-            
-            # Calculate surface alignment factors using numpy operations
-            view_vector = np.array([0, 0, 1])
-            surface_alignment = np.zeros((h, w), dtype=np.float32)
-            for i in range(3):  # Manual dot product
-                surface_alignment += normals[..., i] * view_vector[i]
-            surface_alignment = (surface_alignment + 1) * 0.5  # Normalize to [0,1]
-            
-            # Create directional kernels based on surface normals
-            y_grad, x_grad = np.gradient(surface_alignment)
-            angles = np.arctan2(y_grad, x_grad)
-            strengths = np.sqrt(x_grad**2 + y_grad**2)
-        
-        # Multi-pass gaussian blur at different scales
-        for i in range(num_passes):
-            # Calculate sigma for this pass (increasing with each pass)
-            current_sigma = blur_amount * (1 + i)
-            
-            # Extract color information with color bleeding control
-            color_contribution = image * (1 - color_bleeding) + np.mean(image, axis=2, keepdims=True) * color_bleeding
-            
-            # Apply bright mask with pass-specific weighting
-            pass_contribution = color_contribution * bright_mask[..., np.newaxis]
-            
-            if opt_normal_map is not None:
-                # Apply anisotropic gaussian blur based on surface normals
-                for c in range(3):
-                    channel = pass_contribution[..., c]
-                    
-                    # Calculate directional sigmas based on surface normals
-                    sigma_x = current_sigma * (1 + strengths * surface_scatter * np.cos(angles))
-                    sigma_y = current_sigma * (1 + strengths * surface_scatter * np.sin(angles))
-                    
-                    # Blend between directional and uniform blur based on normal influence
-                    uniform_blur = gaussian_filter(channel, sigma=current_sigma)
-                    directional_blur = np.zeros_like(channel)
-                    
-                    # Apply directional blur
-                    for angle in np.linspace(0, np.pi, 4):  # Sample 4 directions
-                        rot_sigma_x = sigma_x * np.cos(angle) - sigma_y * np.sin(angle)
-                        rot_sigma_y = sigma_x * np.sin(angle) + sigma_y * np.cos(angle)
-                        # Take mean of sigma values for each direction
-                        sigma_y_mean = np.mean(np.abs(rot_sigma_y))
-                        sigma_x_mean = np.mean(np.abs(rot_sigma_x))
-                        directional_blur += gaussian_filter(channel, sigma=[sigma_y_mean, sigma_x_mean])
-                    
-                    directional_blur /= 4  # Average the directional samples
-                    
-                    # Blend between uniform and directional blur
-                    blurred_channel = uniform_blur * (1 - normal_influence) + directional_blur * normal_influence
-                    pass_contribution[..., c] = blurred_channel
-                
-                # Modulate blur by surface alignment
-                pass_contribution *= (1 - surface_alignment[..., np.newaxis] * surface_scatter)
+                normal_tensor = opt_normal_map.to(device)
             else:
-                # Regular gaussian blur if no normal map
-                pass_contribution = gaussian_filter(pass_contribution, sigma=[current_sigma, current_sigma, 0])
+                normal_tensor = torch.from_numpy(opt_normal_map).to(device)
             
-            # Weight contribution based on pass number (later passes contribute less)
-            pass_weight = 1.0 / (2 ** i)
-            bloom_accumulator += pass_contribution * pass_weight
+            if len(normal_tensor.shape) > 3:
+                normal_tensor = normal_tensor[kwargs.get('frame_index', 0)]
+            
+            # Convert normal map to [-1,1] range
+            normals = normal_tensor * 2.0 - 1.0
+            
+            # Calculate surface alignment
+            view_vector = torch.tensor([0, 0, 1], device=device)
+            surface_alignment = torch.sum(normals * view_vector, dim=2)
+            surface_alignment = (surface_alignment + 1) * 0.5
         
-        # Normalize accumulator
-        bloom_accumulator /= np.sum([1.0 / (2 ** i) for i in range(num_passes)])
+        # Multi-pass gaussian blur
+        for i in range(num_passes):
+            # Calculate kernel size based on blur amount
+            kernel_size = int(blur_amount * (1 + i)) | 1  # Ensure odd
+            kernel_size = max(3, min(kernel_size, min(image.shape[:2])))
+            sigma = kernel_size / 6.0
+            
+            # Apply bright mask with color contribution
+            pass_contribution = color_contribution * bright_mask.unsqueeze(-1)
+            
+            # Apply gaussian blur
+            if opt_normal_map is not None:
+                # Apply directional blur based on normal map
+                pass_contribution = apply_gaussian_blur_gpu(
+                    pass_contribution.permute(2, 0, 1),
+                    kernel_size,
+                    sigma
+                ).permute(1, 2, 0)
+                
+                # Modulate by surface alignment
+                pass_contribution = pass_contribution * (1 - surface_alignment.unsqueeze(-1))
+            else:
+                # Standard gaussian blur
+                pass_contribution = apply_gaussian_blur_gpu(
+                    pass_contribution.permute(2, 0, 1),
+                    kernel_size,
+                    sigma
+                ).permute(1, 2, 0)
+            
+            # Add weighted contribution to accumulator
+            bloom_accumulator += pass_contribution * pass_weights[i]
         
         # Combine with original image using intensity
-        result = image + bloom_accumulator * intensity
+        result = image_tensor + bloom_accumulator * intensity
         
+        # Convert back to numpy and ensure range
+        result = result.cpu().numpy()
         return np.clip(result, 0, 1)
     
 @apply_tooltips
