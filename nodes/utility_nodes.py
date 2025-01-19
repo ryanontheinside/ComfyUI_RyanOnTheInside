@@ -20,16 +20,13 @@ class ImageIntervalSelect(BatchUtilityNode):
         return {
             "required": {
                 "image": ("IMAGE",),
-                "interval": ("FLOAT", {"default": 1, "min": 1, "max": 100000, "step": 1}),
-                "start_at": ("FLOAT", {"default": 0, "min": 0, "max": 100000, "step": 1}),
-                "end_at": ("FLOAT", {"default": 0, "min": 0, "max": 100000, "step": 1}),
+                "interval": ("INT", {"default": 1, "min": 1, "max": 100000, "step": 1}),
+                "start_at": ("INT", {"default": 0, "min": 0, "max": 100000, "step": 1}),
+                "end_at": ("INT", {"default": 0, "min": 0, "max": 100000, "step": 1}),
             },
         }
     
     def select_interval(self, image, interval=1, start_at=0, end_at=0):
-        interval = int(interval)
-        start_at = int(start_at)
-        end_at = int(end_at)
         # Set default for end_at if it is None
         if end_at == 0:
             end_at = len(image)
