@@ -445,8 +445,11 @@ NODE_CLASS_MAPPINGS = {
     "AudioFeatureExtractor":        AudioFeatureExtractor,
 
 #TODO make feature info JS display info
+#TODO: FloatFeatureExtractor
+#TODO: check forced normalization  of DrawableFeatureNode
 #TODO: support negative feature values for opposit direction......
     
+
     "PitchFeatureExtractor":        PitchFeatureExtractor,
     "RhythmFeatureExtractor":       RhythmFeatureExtractor,
     

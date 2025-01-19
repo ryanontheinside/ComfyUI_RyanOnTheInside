@@ -231,12 +231,13 @@ class DepthBlender(FlexDepthBase):
     def get_modifiable_params(cls):
         return ["strength", "None"]
 
-    def apply_effect_internal(self, depth_map: np.ndarray, other_depth_maps, frame_index, **kwargs) -> np.ndarray:
-        blend_mode = kwargs.get('blend_mode')
+    def apply_effect_internal(self, depth_map: np.ndarray, other_depth_maps, blend_mode, **kwargs) -> np.ndarray:
         strength = kwargs.get('strength', 1.0)
-
+        frame_index = kwargs.get('frame_index')
         # Get the other depth map for the current frame
+
         other_depth_map = other_depth_maps[frame_index].cpu().numpy()
+
 
         if blend_mode == "add":
             blended_depth = depth_map + other_depth_map

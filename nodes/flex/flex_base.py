@@ -195,6 +195,8 @@ class FlexBase(ABC):
         # Ensure feature_value is passed through unmodified
         if feature_value is not None:
             processed_kwargs['feature_value'] = feature_value
-
+        processed_kwargs['frame_index'] = frame_index
+        processed_kwargs['feature_param'] = feature_param
+        processed_kwargs['feature_mode'] = feature_mode
         return processed_kwargs
 
