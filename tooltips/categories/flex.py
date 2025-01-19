@@ -616,3 +616,37 @@ The feature's maximum value will be mapped to this threshold."""
     
 Ideal for controlling parameters that accept decimal values, like strengths or ratios.
 The output will automatically adjust to match the constraints of the target parameter.""")
+
+    # FeatureInterpolator tooltips (inherits from: FeatureModulationBase)
+    TooltipManager.register_tooltips("FeatureInterpolator", {
+        "feature": "Input feature to interpolate",
+        "interpolation_method": """Choose interpolation method:
+- zero: Step function between points
+- linear: Straight lines between points
+- cubic: Smooth curves (needs 4+ points)
+- nearest: Jump to nearest point value
+- previous: Hold previous value
+- next: Jump to next value early
+- quadratic: Smooth curves (needs 3+ points)""",
+        "threshold": "Only consider points above this value (0.0 to 1.0)",
+        "min_difference": "Minimum value change required between points (0.0 to 1.0)",
+        "min_distance": "Minimum frames between points (1 to 100)",
+        "extrapolate": "Whether to extend values beyond the first/last points"
+    }, inherits_from='FeatureModulationBase', description="""Interpolate between significant points in a feature.
+    
+Combine with different interpolation methods and point selection criteria to create custom curves.
+Great for smoothing, step functions, or custom animation curves.""")
+
+    # FeaturePeakDetector tooltips (inherits from: FeatureModulationBase)
+    TooltipManager.register_tooltips("FeaturePeakDetector", {
+        "feature": "Input feature to detect peaks from",
+        "prominence": "How much a peak needs to stand out from surrounding values (0.0 to 1.0)",
+        "distance": "Minimum number of frames between peaks (1 to 100)",
+        "width": "Minimum width of peaks in frames (1 to 100)",
+        "plateau_size": "Minimum size of flat peaks in frames (1 to 100)",
+        "detect_valleys": "When enabled, detects troughs instead of peaks"
+    }, inherits_from='FeatureModulationBase', description="""Detect significant peaks or valleys in any feature.
+    
+Works with any type of feature data (audio, motion, etc).
+Outputs a binary signal (1.0 at peaks, 0.0 elsewhere).
+Great for detecting significant moments or transitions.""")

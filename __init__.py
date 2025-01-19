@@ -261,6 +261,8 @@ from .nodes.flex.feature_modulation import (
     FeatureAccumulate,
     FeatureContiguousInterpolate,
     FeatureRenormalize,
+    FeatureInterpolator,
+    FeaturePeakDetector,
 )
 
 from .nodes.audio.flex_audio import (
@@ -350,6 +352,9 @@ NODE_CLASS_MAPPINGS = {
     #NOTE: PoseInterpolator is not working yet
     #"PoseInterpolator": PoseInterpolator,
     # "FlexFeatureAttentionControl": FlexFeatureAttentionControl,
+    
+    "FeatureInterpolator":          FeatureInterpolator,
+    "FeaturePeakDetector":          FeaturePeakDetector,
     
     "Doom": Doom,
     "WhisperToPromptTravel":        WhisperToPromptTravel,

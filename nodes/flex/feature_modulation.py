@@ -4,6 +4,8 @@ import torch
 import random
 from ..node_utilities import apply_easing
 from ...tooltips import apply_tooltips
+from scipy.interpolate import interp1d
+from scipy.signal import find_peaks
 
 @apply_tooltips
 class FeatureModulationBase(RyanOnTheInside):
@@ -626,5 +628,140 @@ class FeatureContiguousInterpolate(FeatureModulationBase):
                         interpolated[idx] = fade_out_values[i]
 
         processed_feature = self.create_processed_feature(feature, interpolated, "Interpolated", invert_output)
+        return (processed_feature,)
+
+@apply_tooltips
+class FeatureInterpolator(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "interpolation_method": (["zero", "linear", "cubic", "nearest", "previous", "next", "quadratic"],),
+                "threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "min_difference": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "min_distance": ("INT", {"default": 1, "min": 1, "max": 100, "step": 1}),
+                "extrapolate": ("BOOLEAN", {"default": False}),
+                **super().INPUT_TYPES()["required"],
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
+    FUNCTION = "modulate"
+
+    def modulate(self, feature, interpolation_method, threshold, min_difference, min_distance, extrapolate, invert_output):
+        # Get feature values
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        # Find significant points based on threshold and difference
+        significant_indices = []
+        last_value = None
+        last_index = None
+        
+        for i, v in enumerate(values):
+            # Check threshold
+            if v >= threshold:
+                # Check minimum difference from last point
+                if last_value is None or abs(v - last_value) >= min_difference:
+                    # Check minimum distance from last point
+                    if last_index is None or (i - last_index) >= min_distance:
+                        significant_indices.append(i)
+                        last_value = v
+                        last_index = i
+        
+        if not significant_indices:
+            # If no significant points found, return original feature
+            return (feature,)
+            
+        significant_values = [values[i] for i in significant_indices]
+        
+        # Create interpolation function
+        x = np.array(significant_indices)
+        y = np.array(significant_values)
+        
+        # Handle extrapolation
+        fill_value = "extrapolate" if extrapolate else (significant_values[0], significant_values[-1])
+        
+        # Create interpolator based on method
+        if interpolation_method == "zero":
+            # Zero-order hold (step function)
+            f = interp1d(x, y, kind='zero', bounds_error=False, fill_value=fill_value)
+        elif interpolation_method == "linear":
+            f = interp1d(x, y, kind='linear', bounds_error=False, fill_value=fill_value)
+        elif interpolation_method == "cubic":
+            # Need at least 4 points for cubic, fallback to quadratic if not enough points
+            if len(x) >= 4:
+                f = interp1d(x, y, kind='cubic', bounds_error=False, fill_value=fill_value)
+            else:
+                f = interp1d(x, y, kind='quadratic', bounds_error=False, fill_value=fill_value)
+        elif interpolation_method == "nearest":
+            f = interp1d(x, y, kind='nearest', bounds_error=False, fill_value=fill_value)
+        elif interpolation_method == "previous":
+            f = interp1d(x, y, kind='previous', bounds_error=False, fill_value=fill_value)
+        elif interpolation_method == "next":
+            f = interp1d(x, y, kind='next', bounds_error=False, fill_value=fill_value)
+        elif interpolation_method == "quadratic":
+            # Need at least 3 points for quadratic, fallback to linear if not enough points
+            if len(x) >= 3:
+                f = interp1d(x, y, kind='quadratic', bounds_error=False, fill_value=fill_value)
+            else:
+                f = interp1d(x, y, kind='linear', bounds_error=False, fill_value=fill_value)
+        
+        # Generate interpolated values for all frames
+        x_new = np.arange(feature.frame_count)
+        interpolated = f(x_new)
+        
+        # Create processed feature
+        processed_feature = self.create_processed_feature(feature, interpolated, "Interpolated", invert_output)
+        return (processed_feature,)
+
+@apply_tooltips
+class FeaturePeakDetector(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "prominence": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "distance": ("INT", {"default": 1, "min": 1, "max": 100, "step": 1}),
+                "width": ("INT", {"default": 1, "min": 1, "max": 100, "step": 1}),
+                "plateau_size": ("INT", {"default": 1, "min": 1, "max": 100, "step": 1}),
+                "detect_valleys": ("BOOLEAN", {"default": False}),
+                **super().INPUT_TYPES()["required"],
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
+    FUNCTION = "modulate"
+
+    def modulate(self, feature, prominence, distance, width, plateau_size, detect_valleys, invert_output):
+        # Get feature values
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        # Convert to numpy array for processing
+        signal = np.array(values)
+        
+        # If detecting valleys, invert the signal temporarily
+        if detect_valleys:
+            signal = -signal
+            
+        # Find peaks with given parameters
+        peaks, properties = find_peaks(
+            signal,
+            prominence=prominence,  # Minimum prominence of peaks
+            distance=distance,      # Minimum distance between peaks
+            width=width,           # Minimum width of peaks
+            plateau_size=plateau_size  # Minimum size of flat peaks
+        )
+        
+        # Create output signal where peaks are 1.0 and everything else is 0.0
+        peak_signal = np.zeros_like(signal)
+        peak_signal[peaks] = 1.0
+        
+        # Create processed feature
+        name_prefix = "Valleys" if detect_valleys else "Peaks"
+        processed_feature = self.create_processed_feature(feature, peak_signal, name_prefix, invert_output)
         return (processed_feature,)
 
