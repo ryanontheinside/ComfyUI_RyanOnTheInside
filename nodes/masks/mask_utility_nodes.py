@@ -333,73 +333,139 @@ class AdvancedLuminanceMask:
     FUNCTION = "create_mask"
     CATEGORY = _category
 
+    def gaussian_kernel(self, kernel_size, sigma, device):
+        """Create a 2D Gaussian kernel on the specified device"""
+        x = torch.linspace(-kernel_size // 2, kernel_size // 2, kernel_size, device=device)
+        kernel_1d = torch.exp(-0.5 * (x / sigma).pow(2))
+        kernel_2d = kernel_1d[:, None] * kernel_1d[None, :]
+        return kernel_2d / kernel_2d.sum()
+
+    def gaussian_blur(self, x, kernel_size, sigma):
+        """Apply Gaussian blur using separable convolution"""
+        device = x.device
+        padding = kernel_size // 2
+        kernel = self.gaussian_kernel(kernel_size, sigma, device)
+        kernel = kernel.view(1, 1, kernel_size, kernel_size)
+        
+        if len(x.shape) == 3:
+            x = x.unsqueeze(0)
+        
+        # Expand kernel for each input channel
+        if x.shape[1] > 1:
+            kernel = kernel.repeat(x.shape[1], 1, 1, 1)
+        
+        # Use groups parameter for efficient channel-wise convolution
+        return torch.nn.functional.conv2d(
+            torch.nn.functional.pad(x, (padding, padding, padding, padding), mode='reflect'),
+            kernel,
+            groups=x.shape[1]
+        )
+
+    def bilateral_filter_torch(self, x, d, sigma_color, sigma_space):
+        """GPU-optimized bilateral filter implementation"""
+        device = x.device
+        b, c, h, w = x.shape
+        
+        # Create coordinate grids
+        y_coords = torch.arange(-(d//2), d//2 + 1, device=device)
+        x_coords = torch.arange(-(d//2), d//2 + 1, device=device)
+        
+        # Create meshgrid
+        xx, yy = torch.meshgrid(x_coords, y_coords, indexing='ij')
+        
+        # Compute spatial weights
+        spatial_weight = torch.exp(-(xx.pow(2) + yy.pow(2)) / (2 * sigma_space ** 2))
+        spatial_weight = spatial_weight.view(1, 1, d, d)
+        
+        pad_size = d // 2
+        x_pad = torch.nn.functional.pad(x, (pad_size,)*4, mode='reflect')
+        
+        result = torch.zeros_like(x)
+        
+        # Process in chunks for memory efficiency
+        chunk_size = min(32, h)
+        for i in range(0, h, chunk_size):
+            end_i = min(i + chunk_size, h)
+            chunk_height = end_i - i
+            
+            # Extract patches
+            patches = x_pad[:, :, i:end_i+d-1, :].unfold(2, d, 1).unfold(3, d, 1)
+            patches = patches.contiguous()
+            
+            # Get center pixels for the chunk
+            center = x[:, :, i:end_i, :].unsqueeze(-1).unsqueeze(-1)
+            
+            # Compute color weights for the chunk
+            diff = (patches - center).pow(2)
+            color_weight = torch.exp(-diff / (2 * sigma_color ** 2))
+            
+            # Apply both weights
+            weights = spatial_weight * color_weight
+            norm_factor = weights.sum(dim=(-2, -1), keepdim=True).clamp(min=1e-8)
+            weights = weights / norm_factor
+            
+            # Apply weighted average
+            result[:, :, i:end_i, :] = (patches * weights).sum(dim=(-2, -1))
+        
+        return result
+
     def create_mask(self, image, luminance_threshold, glow_radius, edge_preservation, background_samples, denoise_strength):
-        # Convert to numpy for OpenCV operations
         device = image.device
-        image_np = image.cpu().numpy()
+        batch_size = image.shape[0] if len(image.shape) == 4 else 1
         
-        # Get batch size and prepare output arrays
-        batch_size = image_np.shape[0] if len(image_np.shape) == 4 else 1
-        if batch_size == 1 and len(image_np.shape) == 3:
-            image_np = image_np[None, ...]
+        if len(image.shape) == 3:
+            image = image.unsqueeze(0)
+            
+        # Ensure image is in BCHW format
+        if image.shape[-1] == 3:  # If image is in BHWC format
+            image = image.permute(0, 3, 1, 2)
+            
+        # RGB to Grayscale conversion using torch
+        rgb_weights = torch.tensor([0.299, 0.587, 0.114], device=device)
+        gray = torch.einsum('bchw,c->bhw', image, rgb_weights).unsqueeze(1)
         
-        masks = []
-        vis_images = []
+        # Background estimation using corner sampling
+        h, w = gray.shape[2:]
+        corner_size = max(h, w) // background_samples
+        corners = [
+            gray[:, :, :corner_size, :corner_size],
+            gray[:, :, :corner_size, -corner_size:],
+            gray[:, :, -corner_size:, :corner_size],
+            gray[:, :, -corner_size:, -corner_size:]
+        ]
+        bg_value = torch.stack([c.median() for c in corners]).median().view(1, 1, 1, 1)
         
-        # Process each frame in the batch
-        for b in range(batch_size):
-            frame = image_np[b]
-            
-            # Convert to various color spaces for analysis
-            frame_rgb = (frame * 255).astype(np.uint8)
-            frame_gray = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2GRAY)
-            frame_hsv = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2HSV)
-            
-            # Estimate background color from corners
-            h, w = frame_gray.shape
-            corner_size = max(h, w) // background_samples
-            corners = [
-                frame_gray[:corner_size, :corner_size],
-                frame_gray[:corner_size, -corner_size:],
-                frame_gray[-corner_size:, :corner_size],
-                frame_gray[-corner_size:, -corner_size:]
-            ]
-            bg_value = np.median([np.median(corner) for corner in corners])
-            
-            # Create initial mask based on luminance difference from background
-            diff_from_bg = np.abs(frame_gray.astype(float) - bg_value)
-            initial_mask = diff_from_bg > (luminance_threshold * 255)
-            
-            # Apply bilateral filter to reduce noise while preserving edges
-            if denoise_strength > 0:
-                d = int(denoise_strength * 10)
-                sigma_color = denoise_strength * 75
-                sigma_space = denoise_strength * 75
-                initial_mask = cv2.bilateralFilter(initial_mask.astype(np.float32), d, sigma_color, sigma_space)
-            
-            # Enhance edges and glowing effects
-            if glow_radius > 0:
-                kernel_size = 2 * glow_radius + 1
-                blurred = cv2.GaussianBlur(initial_mask, (kernel_size, kernel_size), 0)
-                mask = np.maximum(initial_mask, blurred * edge_preservation)
-            else:
-                mask = initial_mask
-                
-            # Calculate luminance-based alpha for transparency
-            luminance = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2LAB)[:,:,0] / 255.0
-            alpha = np.clip(luminance * (1.0 / luminance_threshold), 0, 1)
-            
-            # Combine mask with alpha
-            final_mask = mask * alpha
-            
-            masks.append(final_mask)
-            vis_images.append(np.stack([final_mask, final_mask, final_mask], axis=-1))
+        # Create initial mask
+        diff_from_bg = torch.abs(gray - bg_value)
+        initial_mask = (diff_from_bg > luminance_threshold).float()
         
-        # Convert back to torch tensors
-        masks_tensor = torch.from_numpy(np.stack(masks)).float().to(device)
-        vis_tensor = torch.from_numpy(np.stack(vis_images)).float().to(device)
+        # Apply denoising if needed
+        if denoise_strength > 0:
+            d = max(3, int(denoise_strength * 10))
+            sigma_color = denoise_strength * 75
+            sigma_space = denoise_strength * 75
+            initial_mask = self.bilateral_filter_torch(initial_mask, d, sigma_color, sigma_space)
         
-        return (masks_tensor, vis_tensor)
+        # Apply glow effect
+        if glow_radius > 0:
+            kernel_size = 2 * glow_radius + 1
+            sigma = glow_radius / 3
+            blurred = self.gaussian_blur(initial_mask, kernel_size, sigma)
+            mask = torch.maximum(initial_mask, blurred * edge_preservation)
+        else:
+            mask = initial_mask
+        
+        # Calculate luminance-based alpha
+        luminance = gray.squeeze(1)
+        alpha = torch.clamp(luminance * (1.0 / luminance_threshold), 0, 1)
+        
+        # Combine mask with alpha
+        final_mask = mask.squeeze(1) * alpha
+        
+        # Create visualization tensor
+        vis_tensor = final_mask.unsqueeze(-1).repeat(1, 1, 1, 3)
+        
+        return (final_mask, vis_tensor)
 
 @apply_tooltips
 class TranslucentComposite:
