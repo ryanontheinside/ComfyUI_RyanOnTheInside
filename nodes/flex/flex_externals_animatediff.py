@@ -89,8 +89,7 @@ class FeatureToCameraKeyframe(FlexExternalModulator):
             "required": {
                 "feature": ("FEATURE",),
                 "camera_motion": (CAM._LIST,),
-                "start_percent": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.001}),
-                "guarantee_steps": ("INT", {"default": 1, "min": 0, "max": 10000}),
+                "select_every": ("INT", {"default": 1, "min": 1, "max": 999}),
                 "inherit_missing": ("BOOLEAN", {"default": True}),
             }
         }
@@ -99,23 +98,27 @@ class FeatureToCameraKeyframe(FlexExternalModulator):
     FUNCTION = "convert"
     CATEGORY = _ad_category
 
-
-    def convert(self, feature, camera_motion, start_percent, guarantee_steps, inherit_missing):
+    def convert(self, feature, camera_motion, select_every, inherit_missing):
         # Create a new keyframe group
         keyframe_group = ADKeyframeGroup()
         
-        # Get camera motion values for each frame
-        camera_values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
-        
-        # Create keyframe with camera control values
-        keyframe = ADKeyframe(
-            start_percent=start_percent,
-            cameractrl_multival=camera_values,  # This will control the strength of the camera motion
-            inherit_missing=inherit_missing,
-            guarantee_steps=guarantee_steps
-        )
-        
-        keyframe_group.add(keyframe)
+        # Create keyframes for every nth frame based on select_every
+        for i in range(0, feature.frame_count, select_every):
+            # Calculate percentage through animation for this frame
+            start_percent = i / (feature.frame_count - 1) if feature.frame_count > 1 else 0.0
+            
+            # Get camera value for this frame
+            camera_val = float(feature.get_value_at_frame(i))
+            
+            # Create keyframe with camera control value
+            keyframe = ADKeyframe(
+                start_percent=start_percent,
+                cameractrl_multival=camera_val,  # Single value for this frame
+                inherit_missing=inherit_missing
+            )
+            
+            keyframe_group.add(keyframe)
+            
         return (keyframe_group,)
 
 @apply_tooltips

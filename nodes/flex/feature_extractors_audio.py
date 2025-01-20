@@ -6,18 +6,11 @@ from ...tooltips import apply_tooltips
 
 _category = f"{FeatureExtractorBase.CATEGORY}/Audio"
 
-@apply_tooltips
-class AudioFeatureExtractor(FeatureExtractorBase):
-    @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        return AudioFeature
-
+class AudioFeatureExtractorMixin:
     @classmethod
     def INPUT_TYPES(cls):
-        # Get parent input types but exclude frame_count
         parent_inputs = super().INPUT_TYPES()["required"]
-        parent_inputs.pop("frame_count", None)
-        
+        parent_inputs["frame_count"] = ("INT", {"default": 0, "min": 0})
         return {
             **super().INPUT_TYPES(),
             "required": {
@@ -26,34 +19,41 @@ class AudioFeatureExtractor(FeatureExtractorBase):
             }
         }
 
+    def calculate_target_frame_count(self, audio, frame_rate, frame_count):
+        """Calculate the target frame count based on audio length and specified frame count"""
+        waveform = audio["waveform"]
+        sample_rate = audio["sample_rate"]
+        natural_frame_count = int((waveform.shape[-1] / sample_rate) * frame_rate)
+        return frame_count if frame_count > 0 else natural_frame_count
+
+@apply_tooltips
+class AudioFeatureExtractor(AudioFeatureExtractorMixin, FeatureExtractorBase):
+    @classmethod
+    def feature_type(cls) -> type[BaseFeature]:
+        return AudioFeature
+
     RETURN_TYPES = ("FEATURE", "INT",)
     RETURN_NAMES = ("feature", "frame_count",)
     FUNCTION = "extract_feature"
     CATEGORY = _category
 
-    def extract_feature(self, audio, frame_rate, width, height, extraction_method):
-        # Get audio properties from dictionary
-        waveform = audio["waveform"]
-        sample_rate = audio["sample_rate"]
-        
-        # Calculate frame_count from audio length and frame rate
-        total_samples = waveform.shape[-1]
-        frame_count = int((total_samples / sample_rate) * frame_rate)
+    def extract_feature(self, audio, frame_rate, frame_count, width, height, extraction_method):
+        target_frame_count = self.calculate_target_frame_count(audio, frame_rate, frame_count)
 
         feature = AudioFeature(
             width=width,
             height=height,
             feature_name=extraction_method,
             audio=audio,
-            frame_count=frame_count,
+            frame_count=target_frame_count,
             frame_rate=frame_rate,
             feature_type=extraction_method
         )
         feature.extract()
-        return (feature, frame_count)
+        return (feature, target_frame_count)
 
 @apply_tooltips
-class RhythmFeatureExtractor(FeatureExtractorBase):
+class RhythmFeatureExtractor(AudioFeatureExtractorMixin, FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
         return RhythmFeature
@@ -64,7 +64,6 @@ class RhythmFeatureExtractor(FeatureExtractorBase):
             **super().INPUT_TYPES(),
             "required": {
                 **super().INPUT_TYPES()["required"],
-                "audio": ("AUDIO",),
                 "time_signature": ("INT", {"default": 4, "min": 1, "max": 12, "step": 1}),
             },
         }
@@ -74,12 +73,14 @@ class RhythmFeatureExtractor(FeatureExtractorBase):
     CATEGORY = _category
 
     def extract_feature(self, audio, extraction_method, time_signature, frame_rate, frame_count, width, height):
+        target_frame_count = self.calculate_target_frame_count(audio, frame_rate, frame_count)
+
         feature = RhythmFeature(
             width=width,
             height=height,
             feature_name=extraction_method,
             audio=audio,
-            frame_count=frame_count,
+            frame_count=target_frame_count,
             frame_rate=frame_rate,
             feature_type=extraction_method,
             time_signature=time_signature
@@ -88,7 +89,7 @@ class RhythmFeatureExtractor(FeatureExtractorBase):
         return (feature,)
 
 @apply_tooltips
-class PitchFeatureExtractor(FeatureExtractorBase):
+class PitchFeatureExtractor(AudioFeatureExtractorMixin, FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[BaseFeature]:
         return PitchFeature
@@ -99,12 +100,10 @@ class PitchFeatureExtractor(FeatureExtractorBase):
             **super().INPUT_TYPES(),
             "required": {
                 **super().INPUT_TYPES()["required"],
-                "audio": ("AUDIO",),
                 "opt_crepe_model":(["none", "medium", "tiny", "small", "large", "full"], {"default": "medium"})
             },
             "optional": {
                 "opt_pitch_range_collections": ("PITCH_RANGE_COLLECTION",),
-                # "": ("CREPE_MODEL",),
             },
         }
 
@@ -115,12 +114,15 @@ class PitchFeatureExtractor(FeatureExtractorBase):
     def extract_feature(self, audio, frame_rate, frame_count, width, height, extraction_method, opt_pitch_range_collections=None, opt_crepe_model=None):
         if opt_pitch_range_collections is None:
             opt_pitch_range_collections = []
+
+        target_frame_count = self.calculate_target_frame_count(audio, frame_rate, frame_count)
+
         feature = PitchFeature(
             width=width,
             height=height,
             feature_name=extraction_method,
             audio=audio,
-            frame_count=frame_count,
+            frame_count=target_frame_count,
             frame_rate=frame_rate,
             pitch_range_collections=opt_pitch_range_collections,
             feature_type=extraction_method,
