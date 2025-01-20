@@ -1,5 +1,6 @@
 import { app } from "../../scripts/app.js";
 import { ComfyWidgets } from "../../scripts/widgets.js";
+import { FeatureTemplates } from "./feature_templates.js";
 
 
 //TODO: add handling for maximum frame count change
@@ -257,13 +258,61 @@ app.registerExtension({
                     // console.error("Failed to restore points:", e);
                 }
                 
+
+                // Add template dropdown and controls
+                const templateWidget = this.addWidget("combo", "Template", "selected_template", (v) => {}, { 
+                    values: [
+                        "none",
+                        // Basic waveforms
+                        "sine",
+                        "square",
+                        "triangle",
+                        "sawtooth",
+                        // Animation curves
+                        "easeInOut",
+                        "easeIn",
+                        "easeOut",
+                        // Special patterns
+                        "bounce",
+                        "pulse",
+                        "random",
+                        "smoothRandom",
+                        "heartbeat",
+                        "steps"
+                    ],
+                    value: "none"
+                });
+                templateWidget.name = "template";
+
+                // Add cycles control
+                const cyclesWidget = this.addWidget("number", "Template Cycles", "template_cycles", function(v) {
+                    return Math.max(0.1, Math.min(200, v));
+                }, { 
+                    value: 1.0,
+                    min: 0.1,
+                    max: 200,
+                    step: 0.1,
+                    precision: 2
+                });
+                cyclesWidget.name = "template_cycles";
+                cyclesWidget.value = 1.0; // Explicitly set initial value
+
+                // Add load template button
+                const loadButton = this.addWidget("button", "Load Template", "load", () => {
+                    const templateWidget = this.widgets.find(w => w.name === "template");
+                    if (templateWidget && templateWidget.value && templateWidget.value !== "none") {
+                        this.loadTemplate(templateWidget.value);
+                    }
+                });
+
+
                 // Add clear button widget
                 this.addWidget("button", "Clear Graph", "clear", () => {
                     this.points = [];
                     this.updatePointsValue();
                     this.setDirtyCanvas(true, true);
                 });
-                
+
                 // Add handlers for min/max value changes
                 const minValueWidget = this.widgets.find(w => w.name === "min_value");
                 const maxValueWidget = this.widgets.find(w => w.name === "max_value");
@@ -596,8 +645,17 @@ app.registerExtension({
                 const pointIndex = this.findNearPoint(x, y);
                 
                 if (pointIndex !== null) {
-                    this.selectedPoint = pointIndex;
-                    this.dragStartPos = [...pos];
+                    if (this.isDragging && this.selectedPoint !== null) {
+                        // If already dragging and clicked, drop the point
+                        this.isDragging = false;
+                        this.selectedPoint = null;
+                        this.dragStartPos = null;
+                    } else {
+                        // Start dragging
+                        this.selectedPoint = pointIndex;
+                        this.dragStartPos = [...pos];
+                        this.isDragging = true;
+                    }
                 } else {
                     // Not on a point - add new point
                     const [frame, value] = this.coordsToGraphValues(x, y);
@@ -636,30 +694,22 @@ app.registerExtension({
                     return false;
                 }
                 
-                if (this.dragStartPos && this.selectedPoint !== null) {
-                    // If we've moved more than 5 pixels, start dragging
-                    const dragDist = Math.sqrt(
-                        Math.pow(pos[0] - this.dragStartPos[0], 2) + 
-                        Math.pow(pos[1] - this.dragStartPos[1], 2)
-                    );
-                    
-                    if (dragDist > 5) {
-                        this.isDragging = true;
-                        const [frame, value] = this.coordsToGraphValues(x, y);
-                        const frameCount = this.widgets.find(w => w.name === "frame_count")?.value || 30;
-                        const maxFrame = frameCount - 1;
-                        // Keep strict < frameCount for dragging to prevent edge issues
-                        if (frame >= 0 && frame <= maxFrame) {
-                            // Check if there's already a point at the target frame (except selected point)
-                            const existingIndex = this.points.findIndex((p, i) => 
-                                i !== this.selectedPoint && p[0] === frame);
-                            
-                            if (existingIndex === -1) {
-                                this.points[this.selectedPoint] = [frame, value];
-                                this.points.sort((a, b) => a[0] - b[0]);
-                                this.selectedPoint = this.points.findIndex(p => p[0] === frame);
-                                this.updatePointsValue();
-                            }
+                if (this.isDragging && this.selectedPoint !== null) {
+                    const [frame, value] = this.coordsToGraphValues(x, y);
+                    const frameCount = this.widgets.find(w => w.name === "frame_count")?.value || 30;
+                    const maxFrame = frameCount - 1;
+                    // Keep strict < frameCount for dragging to prevent edge issues
+                    if (frame >= 0 && frame <= maxFrame) {
+                        // Check if there's already a point at the target frame (except selected point)
+                        const existingIndex = this.points.findIndex((p, i) => 
+                            i !== this.selectedPoint && p[0] === frame);
+                        
+                        if (existingIndex === -1) {
+                            this.points[this.selectedPoint] = [frame, value];
+                            this.points.sort((a, b) => a[0] - b[0]);
+                            this.selectedPoint = this.points.findIndex(p => 
+                                p[0] === frame && p[1] === value);
+                            this.updatePointsValue();
                         }
                     }
                 } else {
@@ -673,15 +723,11 @@ app.registerExtension({
             };
             
             nodeType.prototype.onMouseUp = function(e, pos) {
-                // If we have a selected point but never started dragging, it's a click - delete the point
-                if (this.selectedPoint !== null && !this.isDragging) {
-                    this.points.splice(this.selectedPoint, 1);
-                    this.updatePointsValue();
+                // Only clear states if we're not in dragging mode
+                if (!this.isDragging) {
+                    this.selectedPoint = null;
+                    this.dragStartPos = null;
                 }
-                
-                this.isDragging = false;
-                this.selectedPoint = null;
-                this.dragStartPos = null;
                 this.mouseDownTime = null;
                 this.setDirtyCanvas(true, true);
                 return false;
@@ -734,6 +780,21 @@ app.registerExtension({
                 this.dragStartPos = null;
                 this.setDirtyCanvas(true, true);
                 return false;
+            };
+
+            // Template loading method
+            nodeType.prototype.loadTemplate = function(templateName) {
+                const frameCount = this.getCurrentFrameCount();
+                const minValue = this.widgets.find(w => w.name === "min_value")?.value ?? 0;
+                const maxValue = this.widgets.find(w => w.name === "max_value")?.value ?? 1;
+                const cyclesWidget = this.widgets.find(w => w.name === "template_cycles");
+                const cycles = cyclesWidget?.value ?? 1;
+                
+                if (templateName in FeatureTemplates) {
+                    this.points = FeatureTemplates[templateName](frameCount, minValue, maxValue, cycles);
+                    this.updatePointsValue();
+                    this.setDirtyCanvas(true, true);
+                }
             };
         }
     }
