@@ -259,7 +259,11 @@ Great for creating music videos, reactive animations, or automated effects.""")
 - rms_energy: Continuous energy level - smoother than amplitude, good for sustained effects
 - spectral_centroid: Brightness of the sound - high for sharp/crisp sounds, low for bass/warm sounds
 - onset_strength: Detects new sounds/beats - perfect for rhythmic effects
-- chroma_features: Musical note content - useful for harmony-based effects"""
+- chroma_features: Musical note content - useful for harmony-based effects""",
+        "frame_count": """Number of frames to generate (default of 0 will automatically calculate frames from audio length and frame rate).
+        
+When set to 0, automatically calculates frames from audio length and frame rate.
+When specified, interpolates feature to match the target frame count."""
     }, inherits_from='FeatureExtractorBase')
 
     # RhythmFeatureExtractor tooltips (inherits from: FeatureExtractorBase)
@@ -275,7 +279,11 @@ Great for creating music videos, reactive animations, or automated effects.""")
 - rhythm_regularity: How steady the rhythm is - use for stability-based effects
 - down_beats: Marks main beats (1st beat) - strong rhythmic emphasis
 - up_beats: Marks other beats - lighter rhythmic emphasis""",
-        "time_signature": "Number of beats per measure (e.g., 4 for 4/4 time)"
+        "time_signature": "Number of beats per measure (e.g., 4 for 4/4 time)",
+        "frame_count": """Number of frames to generate (default of 0 will automatically calculate frames from audio length and frame rate).
+        
+When set to 0, automatically calculates frames from audio length and frame rate.
+When specified, interpolates feature to match the target frame count."""
     }, inherits_from='FeatureExtractorBase')
 
     # PitchFeatureExtractor tooltips (inherits from: FeatureExtractorBase)
@@ -293,7 +301,12 @@ Great for creating music videos, reactive animations, or automated effects.""")
 - tiny/small: Fast but less accurate
 - medium: Good balance of speed and accuracy
 - large/full: Most accurate but slower""",
-        "opt_pitch_range_collections": "Optional collections of pitch ranges to consider"
+        "opt_pitch_range_collections": "Optional collections of pitch ranges to consider",
+        "frame_count": """Number of frames to generate (default of 0 will automatically calculate frames from audio length and frame rate).
+        
+
+When set to 0, automatically calculates frames from audio length and frame rate.
+When specified, interpolates feature to match the target frame count."""
     }, inherits_from='FeatureExtractorBase')
 
     # PitchAbstraction tooltips (inherits from: RyanOnTheInside)
@@ -650,3 +663,18 @@ Great for smoothing, step functions, or custom animation curves.""")
 Works with any type of feature data (audio, motion, etc).
 Outputs a binary signal (1.0 at peaks, 0.0 elsewhere).
 Great for detecting significant moments or transitions.""")
+
+    # FloatFeatureNode tooltips (inherits from: FeatureExtractorBase)
+    TooltipManager.register_tooltips("FloatFeatureNode", {
+        "float_values": """Comma-separated list of float values (e.g., "0.0, 0.5, 1.0").
+        
+These values will be automatically normalized to the 0-1 range and interpolated to match the frame count.""",
+        "extraction_method": """Choose how to process the float values:
+
+- raw: Direct normalized values - good for precise control
+- smooth: Apply smoothing to the values - creates gentler transitions
+- cumulative: Running sum of values - good for progressive effects""",
+    }, inherits_from='FeatureExtractorBase', description="""Convert a sequence of float values into a feature.
+    
+Perfect for creating custom animation curves or controlling effects with specific numeric sequences.
+Values are automatically normalized and can be processed in different ways.""")
