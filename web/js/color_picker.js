@@ -109,12 +109,15 @@ script.onload = () => {
                         const widgetAreaHeight = this.getWidgetAreaHeight();
                         const availableHeight = Math.max(200, this.size[1] - widgetAreaHeight - margin * 2);
                         const availableWidth = this.size[0] - margin * 2;
-                        const pickerSize = Math.min(availableWidth, availableHeight - 40); // Leave room for slider
+                        
+                        // Reserve space for the brightness slider (40px) and its margin (20px)
+                        const totalSliderSpace = 100;
+                        const maxWheelSize = Math.min(availableWidth, availableHeight - totalSliderSpace);
                         
                         // Update container height
                         container.style.height = `${availableHeight}px`;
                         
-                        return pickerSize;
+                        return maxWheelSize;
                     };
                     
                     // Initialize iro color picker after widget is added to DOM
