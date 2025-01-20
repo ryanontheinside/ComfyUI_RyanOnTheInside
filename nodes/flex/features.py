@@ -91,6 +91,39 @@ class BaseFeature(ABC):
         self.inverted = not self.inverted
         return self
     
+class FloatFeature(BaseFeature):
+    def __init__(self, name, frame_rate, frame_count, width, height, float_values, feature_type='raw'):
+        super().__init__(name, "float", frame_rate, frame_count, width, height)
+        self.float_values = np.array(float_values)
+        self.feature_type = feature_type
+        self.available_features = self.get_extraction_methods()
+
+    @classmethod
+    def get_extraction_methods(cls):
+        return ["raw", "smooth", "cumulative"]
+
+    def extract(self):
+        if len(self.float_values) != self.frame_count:
+            # Interpolate to match frame count if necessary
+            x = np.linspace(0, 1, len(self.float_values))
+            x_new = np.linspace(0, 1, self.frame_count)
+            self.float_values = np.interp(x_new, x, self.float_values)
+
+        if self.feature_type == "raw":
+            self.data = self.float_values
+        elif self.feature_type == "smooth":
+            # Apply simple moving average smoothing
+            window_size = max(3, self.frame_count // 30)  # Dynamic window size
+            kernel = np.ones(window_size) / window_size
+            self.data = np.convolve(self.float_values, kernel, mode='same')
+        elif self.feature_type == "cumulative":
+            # Cumulative sum of values
+            self.data = np.cumsum(self.float_values)
+        else:
+            raise ValueError(f"Unsupported feature type: {self.feature_type}")
+
+        return self
+
 class ManualFeature(BaseFeature):
     def __init__(self, name, frame_rate, frame_count, width, height, start_frame, end_frame, start_value, end_value, method='linear'):
         super().__init__(name, "manual", frame_rate, frame_count, width, height)
@@ -179,7 +212,7 @@ class TimeFeature(BaseFeature):
         else:
             raise ValueError("Unsupported effect type")
         
-        return self.normalize()
+        return self
 
 class DepthFeature(BaseFeature):
     def __init__(self, name, frame_rate, frame_count, width, height, depth_maps, feature_name='mean_depth'):
@@ -545,7 +578,7 @@ class AreaFeature(BaseFeature):
             
             self.data.append(area)
         
-        return self.normalize()
+        return self
 
     def normalize(self):
         if self.data:

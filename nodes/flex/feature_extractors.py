@@ -1,6 +1,6 @@
 from .feature_pipe import FeaturePipe
 from ... import RyanOnTheInside
-from .features import ManualFeature, TimeFeature, DepthFeature, ColorFeature, BrightnessFeature, MotionFeature, AreaFeature, BaseFeature, DrawableFeature
+from .features import ManualFeature, TimeFeature, DepthFeature, ColorFeature, BrightnessFeature, MotionFeature, AreaFeature, BaseFeature, DrawableFeature, FloatFeature
 from abc import ABC, abstractmethod
 from tqdm import tqdm
 from comfy.utils import ProgressBar
@@ -10,6 +10,8 @@ import torch
 from scipy.interpolate import interp1d
 import json
 from ...tooltips import apply_tooltips
+
+
 
 @apply_tooltips
 class FeatureExtractorBase(RyanOnTheInside, ABC):
@@ -61,6 +63,36 @@ class FeatureExtractorBase(RyanOnTheInside, ABC):
     
     CATEGORY="RyanOnTheInside/FlexFeatures/Sources"
 
+@apply_tooltips
+class FloatFeatureNode(FeatureExtractorBase):
+    @classmethod
+    def feature_type(cls) -> type[BaseFeature]:
+        return FloatFeature
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()["required"]
+        return {
+            "required": {
+                **parent_inputs,
+                "float_values": ("STRING", {"default": "0.0, 0.5, 1.0", "multiline": True}),
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE",)
+    FUNCTION = "create_feature"
+
+    def create_feature(self, float_values, frame_rate, frame_count, width, height, extraction_method):
+        # Parse float values from string
+        try:
+            values = [float(x.strip()) for x in float_values.split(",")]
+        except ValueError:
+            raise ValueError("Invalid float values. Please provide comma-separated numbers.")
+
+        float_feature = FloatFeature("float_feature", frame_rate, frame_count, width, height, values, extraction_method)
+        float_feature.extract()
+        return (float_feature,)
+    
 @apply_tooltips
 class ManualFeatureNode(FeatureExtractorBase):
     @classmethod
