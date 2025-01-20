@@ -448,7 +448,7 @@ class FlexImageBloom(FlexImageBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return ["threshold", "blur_amount", "intensity", "num_passes", "color_bleeding", "falloff", "None"]
+        return ["intensity", "threshold", "blur_amount", "num_passes", "color_bleeding", "falloff", "None"]
 
     def apply_effect_internal(self, image: np.ndarray, threshold: float, blur_amount: float, 
                               intensity: float, num_passes: int, color_bleeding: float,
