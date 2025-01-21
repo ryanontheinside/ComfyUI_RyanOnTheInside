@@ -71,13 +71,11 @@ class FlexLatentBase(RyanOnTheInside, FlexBase):
             if feature_value is not None and feature_value >= processed_kwargs['feature_threshold']:
                 processed_latent = self.apply_effect_internal(
                     latent,
-                    feature_value=feature_value,
                     **processed_kwargs
                 )
             else:
                 processed_latent = self.process_below_threshold(
                     latent,
-                    feature_value=feature_value,
                     **processed_kwargs
                 )
 
