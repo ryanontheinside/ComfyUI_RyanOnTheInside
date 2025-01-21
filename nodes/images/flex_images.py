@@ -938,7 +938,7 @@ class FlexImageHueShift(FlexImageBase):
     def INPUT_TYPES(cls):
         base_inputs = super().INPUT_TYPES()
         base_inputs["required"].update({
-            "hue_shift": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 360.0, "step": 1.0}),
+            "hue_shift": ("INT", {"default": 0, "min": 0, "max": 360, "step": 1}),
         })
         base_inputs["optional"].update({
             "opt_mask": ("MASK",),

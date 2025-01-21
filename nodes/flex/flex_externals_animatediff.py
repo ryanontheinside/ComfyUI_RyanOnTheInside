@@ -4,6 +4,8 @@ from ...tooltips import apply_tooltips
 from .flex_externals import FlexExternalModulator
 import torch
 
+#NOTE: work in progress
+
 # Get paths
 current_file_path = os.path.abspath(__file__)
 current_directory = os.path.dirname(current_file_path)

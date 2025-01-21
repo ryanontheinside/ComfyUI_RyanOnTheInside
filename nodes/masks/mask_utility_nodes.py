@@ -8,11 +8,13 @@ from tqdm import tqdm
 import comfy.utils
 from scipy import interpolate
 from ...tooltips import apply_tooltips
+from ... import ProgressMixin
 
 _category = "RyanOnTheInside/Masks"
 
+
 @apply_tooltips
-class MovingShape:
+class MovingShape(ProgressMixin):
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -99,9 +101,9 @@ class MovingShape:
         progress = np.concatenate([np.zeros(delay), progress])
 
         images = []
-        pbar = comfy.utils.ProgressBar(num_frames)
+        self.start_progress(num_frames, desc="Generating moving shape frames")
 
-        for i, prog in tqdm(enumerate(progress), desc='Generating frames', total=num_frames):
+        for i, prog in enumerate(progress):
             mask = np.zeros((frame_height, frame_width, 1), dtype=np.float32)
 
             # Calculate shape position
@@ -132,8 +134,9 @@ class MovingShape:
                 cv2.fillPoly(mask, [points], 1)
 
             images.append(torch.from_numpy(mask))
-            pbar.update(1)
+            self.update_progress()
 
+        self.end_progress()
         images_tensor = torch.stack(images, dim=0).squeeze(-1)
         return (images_tensor,)
 
@@ -150,7 +153,7 @@ class MovingShape:
             raise ValueError("Invalid RGB!")
         
 @apply_tooltips
-class TextMaskNode:
+class TextMaskNode(ProgressMixin):
     @classmethod
     def INPUT_TYPES(s):
         font_list = sorted([f.name for f in matplotlib.font_manager.fontManager.ttflist])
@@ -199,7 +202,6 @@ class TextMaskNode:
             font_obj = ImageFont.load_default()
 
         max_width = int(width * max_width_ratio)
-
         wrapped_text = textwrap.fill(text, width=max_width // font_size)
 
         temp_img = Image.new('RGB', (width, height))
@@ -212,7 +214,9 @@ class TextMaskNode:
         x = int((width - text_width) * x_position)
         y = int((height - text_height) * y_position)
 
-        for _ in range(batch_size):
+        self.start_progress(batch_size, desc="Generating text masks")
+
+        for i in range(batch_size):
             image = Image.new('RGB', (width, height), color=background_color)
             draw = ImageDraw.Draw(image)
 
@@ -220,19 +224,19 @@ class TextMaskNode:
             txt_draw = ImageDraw.Draw(txt_img)
 
             txt_draw.multiline_text((x, y), wrapped_text, font=font_obj, fill=font_color)
-
             rotated_txt_img = txt_img.rotate(rotation, expand=1, fillcolor=(0, 0, 0, 0))
-
             image.paste(rotated_txt_img, (0, 0), rotated_txt_img)
 
             gray_image = image.convert('L')
-
             mask = np.array(gray_image).astype(np.float32) / 255.0
             masks.append(mask)
 
             image_np = np.array(image).astype(np.float32) / 255.0
             images.append(image_np)
 
+            self.update_progress()
+
+        self.end_progress()
         mask_tensor = torch.from_numpy(np.stack(masks))
         image_tensor = torch.from_numpy(np.stack(images))
 
@@ -315,7 +319,7 @@ class MaskCompositePlus:
         return (result,)
 
 @apply_tooltips
-class AdvancedLuminanceMask:
+class AdvancedLuminanceMask(ProgressMixin):
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -384,29 +388,38 @@ class AdvancedLuminanceMask:
         
         # Process in chunks for memory efficiency
         chunk_size = min(32, h)
-        for i in range(0, h, chunk_size):
-            end_i = min(i + chunk_size, h)
-            chunk_height = end_i - i
-            
-            # Extract patches
-            patches = x_pad[:, :, i:end_i+d-1, :].unfold(2, d, 1).unfold(3, d, 1)
-            patches = patches.contiguous()
-            
-            # Get center pixels for the chunk
-            center = x[:, :, i:end_i, :].unsqueeze(-1).unsqueeze(-1)
-            
-            # Compute color weights for the chunk
-            diff = (patches - center).pow(2)
-            color_weight = torch.exp(-diff / (2 * sigma_color ** 2))
-            
-            # Apply both weights
-            weights = spatial_weight * color_weight
-            norm_factor = weights.sum(dim=(-2, -1), keepdim=True).clamp(min=1e-8)
-            weights = weights / norm_factor
-            
-            # Apply weighted average
-            result[:, :, i:end_i, :] = (patches * weights).sum(dim=(-2, -1))
+        num_chunks = (h + chunk_size - 1) // chunk_size
+        total_steps = num_chunks * b
         
+        self.start_progress(total_steps, desc="Applying bilateral filter")
+        
+        for b_idx in range(b):
+            for i in range(0, h, chunk_size):
+                end_i = min(i + chunk_size, h)
+                chunk_height = end_i - i
+                
+                # Extract patches
+                patches = x_pad[b_idx:b_idx+1, :, i:end_i+d-1, :].unfold(2, d, 1).unfold(3, d, 1)
+                patches = patches.contiguous()
+                
+                # Get center pixels for the chunk
+                center = x[b_idx:b_idx+1, :, i:end_i, :].unsqueeze(-1).unsqueeze(-1)
+                
+                # Compute color weights for the chunk
+                diff = (patches - center).pow(2)
+                color_weight = torch.exp(-diff / (2 * sigma_color ** 2))
+                
+                # Apply both weights
+                weights = spatial_weight * color_weight
+                norm_factor = weights.sum(dim=(-2, -1), keepdim=True).clamp(min=1e-8)
+                weights = weights / norm_factor
+                
+                # Apply weighted average
+                result[b_idx:b_idx+1, :, i:end_i, :] = (patches * weights).sum(dim=(-2, -1))
+                
+                self.update_progress()
+        
+        self.end_progress()
         return result
 
     def create_mask(self, image, luminance_threshold, glow_radius, edge_preservation, background_samples, denoise_strength):
@@ -435,9 +448,10 @@ class AdvancedLuminanceMask:
         ]
         bg_value = torch.stack([c.median() for c in corners]).median().view(1, 1, 1, 1)
         
-        # Create initial mask
+        # Create initial mask based on luminance difference
         diff_from_bg = torch.abs(gray - bg_value)
-        initial_mask = (diff_from_bg > luminance_threshold).float()
+        # Instead of binary threshold, use a smooth ramp
+        initial_mask = torch.clamp(diff_from_bg / luminance_threshold, 0, 1)
         
         # Apply denoising if needed
         if denoise_strength > 0:
@@ -468,7 +482,7 @@ class AdvancedLuminanceMask:
         return (final_mask, vis_tensor)
 
 @apply_tooltips
-class TranslucentComposite:
+class TranslucentComposite(ProgressMixin):
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -506,6 +520,8 @@ class TranslucentComposite:
             
         batch_size = bg.shape[0]
         result = []
+        
+        self.start_progress(batch_size, desc="Compositing frames")
         
         for b in range(batch_size):
             # Convert to float32 for processing
@@ -550,6 +566,9 @@ class TranslucentComposite:
             
             # Normalize and append to results
             result.append(np.clip(composite, 0, 255) / 255.0)
+            self.update_progress()
+        
+        self.end_progress()
         
         # Convert back to torch tensor
         result_tensor = torch.from_numpy(np.stack(result)).float().to(device)

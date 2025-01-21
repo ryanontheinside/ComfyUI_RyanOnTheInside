@@ -2,14 +2,13 @@ import torch
 import numpy as np
 from abc import ABC, abstractmethod
 from comfy.utils import ProgressBar
-from ... import RyanOnTheInside
 from ..flex.flex_base import FlexBase
 import cv2
 from ...tooltips import apply_tooltips
 
 #NOTE: in hindsight, much of this would have been better suited as mask-based operations
 @apply_tooltips
-class FlexDepthBase(RyanOnTheInside, FlexBase):
+class FlexDepthBase(FlexBase):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -26,11 +25,12 @@ class FlexDepthBase(RyanOnTheInside, FlexBase):
     FUNCTION = "apply_effect"
 
     def __init__(self):
-        self.progress_bar = None
+        super().__init__()
 
     @classmethod
     @abstractmethod
     def get_modifiable_params(cls):
+
         """Return a list of parameter names that can be modulated."""
         return []
 

@@ -36,7 +36,9 @@ Each node type has different parameters that can be modulated:
         "effect_duration": "Number of frames over which the effect is applied (0 to 1000, 0 means full range)",
         "temporal_easing": "Controls how the effect strength changes over time ('ease_in_out', 'linear', 'bounce', 'elastic', 'none')",
         "palindrome": "When enabled, the effect plays forward then reverses within the specified duration"
-    }, inherits_from=['MaskBase', 'ABC'], description="Create time-based mask animations with precise control over timing, duration, and easing.")
+    }, inherits_from=['MaskBase', 'ABC'], description="[DEPRECATED] these effects can be acheived with more control using the FlexMask nodes")
+
+
 
     # OpticalFlowMaskBase tooltips (inherits from: MaskBase, ABC)
     TooltipManager.register_tooltips("OpticalFlowMaskBase", {

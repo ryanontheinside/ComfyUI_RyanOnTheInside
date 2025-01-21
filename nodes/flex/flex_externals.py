@@ -16,6 +16,8 @@ from skimage.segmentation import watershed
 from scipy import ndimage as ndi
 import math
 from ...tooltips import apply_tooltips
+from ... import ProgressMixin
+
 
 class FlexExternalModulator(RyanOnTheInside):
     CATEGORY = "RyanOnTheInside/FlexFeatures/Targets/ExternalTargets"
@@ -157,7 +159,7 @@ class FeatureToSplineData(FlexExternalModulator):
     RETURN_NAMES = ("mask", "coord_str", "float", "count", "normalized_str",)
     FUNCTION = "convert"
     CATEGORY = _spline_category
-    
+
     def convert(self, feature, mask_width, mask_height, sampling_method, interpolation,
                 tension, repeat_output, float_output_type, min_value=0.0, max_value=1.0):
         import torch
@@ -500,6 +502,7 @@ class FeatureToFloat(FlexExternalModulator):
         return (data,) 
     
 
+
 #TODO: sub somthing logical
 _depth_category = "RyanOnTheInside/DepthModifiers"
 @apply_tooltips
@@ -748,4 +751,30 @@ class DepthShapeModifierPrecise(FlexExternalModulator):
             elif feature_param == "strength":
                 strength *= value
         return gradient_steepness, depth_min, depth_max, strength
+    
+
+@apply_tooltips
+class FeatureToMask(FlexExternalModulator):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+            }
+        }
+
+    RETURN_TYPES = ("MASK",)
+    FUNCTION = "convert"
+
+    def convert(self, feature):
+        # Get dimensions from feature
+        height = feature.height
+        width = feature.width
+        
+        # Get all normalized values at once
+        normalized_data = feature.get_normalized_data()
+        
+        # Create masks for all frames at once by expanding the normalized data
+        masks_out = normalized_data.unsqueeze(-1).unsqueeze(-1).expand(-1, height, width)
+        return (masks_out,)
     

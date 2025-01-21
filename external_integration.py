@@ -43,8 +43,9 @@ else:
 if HAS_ADVANCED_CONTROLNET:
     try:
         from .nodes.flex.flex_externals_advanced_controlnet import (
-            FeatureToTimestepKeyframe,
             FeatureToLatentKeyframe,
+            #WIP
+            # FeatureToTimestepKeyframe,
         )
     except Exception as e:
         print(f"Error loading Advanced-ControlNet feature nodes: {str(e)}")
@@ -61,8 +62,9 @@ if HAS_ANIMATEDIFF:
     try:
         from .nodes.flex.flex_externals_animatediff import (
             FeatureToADKeyframe,
-            FeatureToCameraKeyframe,
-            FeatureToPIAKeyframe,
+            #WIP
+            # FeatureToCameraKeyframe,
+            # FeatureToPIAKeyframe,
         )
     except Exception as e:
         print(f"Error loading AnimateDiff feature nodes: {str(e)}")
@@ -83,13 +85,13 @@ if HAS_ADVANCED_LIVE_PORTRAIT:
 
 if HAS_ADVANCED_CONTROLNET:
     EXTERNAL_NODE_CLASS_MAPPINGS.update({
-        "FeatureToTimestepKeyframe": FeatureToTimestepKeyframe,
+        # "FeatureToTimestepKeyframe": FeatureToTimestepKeyframe,
         "FeatureToLatentKeyframe": FeatureToLatentKeyframe,
     })
 
 if HAS_ANIMATEDIFF:
     EXTERNAL_NODE_CLASS_MAPPINGS.update({
         "FeatureToADKeyframe": FeatureToADKeyframe,
-        "FeatureToCameraKeyframe": FeatureToCameraKeyframe,
-        "FeatureToPIAKeyframe": FeatureToPIAKeyframe,
+        # "FeatureToCameraKeyframe": FeatureToCameraKeyframe,
+        # "FeatureToPIAKeyframe": FeatureToPIAKeyframe,
     })

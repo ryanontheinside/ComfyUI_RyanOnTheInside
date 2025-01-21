@@ -4,11 +4,13 @@ import numpy as np
 import torch
 from ...tooltips import apply_tooltips
 from .parameter_scheduling import ParameterScheduler
+from ... import ProgressMixin
 
 @apply_tooltips
-class FlexBase(ABC):
+class FlexBase(ProgressMixin, ABC):
     @classmethod
     def INPUT_TYPES(cls):
+
         base_inputs = {
             "required": {
                 "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
@@ -28,19 +30,9 @@ class FlexBase(ABC):
 
 
     def __init__(self):
-        self.progress_bar = None
         self.parameter_scheduler = None
         self.frame_count = None
 
-    def start_progress(self, total_steps, desc="Processing"):
-        self.progress_bar = ProgressBar(total_steps)
-
-    def update_progress(self):
-        if self.progress_bar:
-            self.progress_bar.update(1)
-
-    def end_progress(self):
-        self.progress_bar = None
 
     def initialize_scheduler(self, frame_count: int, **kwargs):
         """Initialize parameter scheduler with all numeric parameters"""

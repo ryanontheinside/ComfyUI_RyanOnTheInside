@@ -1,22 +1,18 @@
-from .feature_pipe import FeaturePipe
-from ... import RyanOnTheInside
 from .features import ManualFeature, TimeFeature, DepthFeature, ColorFeature, BrightnessFeature, MotionFeature, AreaFeature, BaseFeature, DrawableFeature, FloatFeature
 from abc import ABC, abstractmethod
-from tqdm import tqdm
-from comfy.utils import ProgressBar
-import typing
 import numpy as np
-import torch
 from scipy.interpolate import interp1d
 import json
 from ...tooltips import apply_tooltips
+from ... import ProgressMixin
 
 
 
 @apply_tooltips
-class FeatureExtractorBase(RyanOnTheInside, ABC):
+class FeatureExtractorBase(ProgressMixin, ABC):
     @classmethod
     @abstractmethod
+
     def feature_type(cls) -> type[BaseFeature]:
         pass
 
@@ -33,33 +29,6 @@ class FeatureExtractorBase(RyanOnTheInside, ABC):
                 "height": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 64}),
             }
         }
-
-    def __init__(self):
-        self.progress_bar = None
-        self.tqdm_bar = None
-        self.current_progress = 0
-        self.total_steps = 0
-
-    def start_progress(self, total_steps, desc="Processing"):
-        self.progress_bar = ProgressBar(total_steps)
-        self.tqdm_bar = tqdm(total=total_steps, desc=desc, leave=False)
-        self.current_progress = 0
-        self.total_steps = total_steps
-
-    def update_progress(self, step=1):
-        self.current_progress += step
-        if self.progress_bar:
-            self.progress_bar.update(step)
-        if self.tqdm_bar:
-            self.tqdm_bar.update(step)
-
-    def end_progress(self):
-        if self.tqdm_bar:
-            self.tqdm_bar.close()
-        self.progress_bar = None
-        self.tqdm_bar = None
-        self.current_progress = 0
-        self.total_steps = 0
     
     CATEGORY="RyanOnTheInside/FlexFeatures/Sources"
 
@@ -443,7 +412,7 @@ class AreaFeatureNode(FeatureExtractorBase):
         
     
 @apply_tooltips
-class FeatureInfoNode(RyanOnTheInside):
+class FeatureInfoNode():
     """
     Node that extracts common information from feature inputs.
     """

@@ -1,7 +1,6 @@
 from .features import WhisperFeature, BaseFeature
 from .feature_extractors import FeatureExtractorBase
 import json
-from typing import Dict, List, Tuple, Union
 import torch
 import torch.nn.functional as F
 from pathlib import Path
@@ -9,7 +8,6 @@ import textwrap
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 from ...tooltips import apply_tooltips
-from ... import RyanOnTheInside
 
 #NOTE: below is an example of the data we are expecting. 
 # This is built to work with ComfyUI-Whisper, but only the json structure below is required.
@@ -218,7 +216,7 @@ class WhisperFeatureNode(FeatureExtractorBase):
         return (whisper_feature, output_images) if output_images is not None else (whisper_feature, None)
 
 @apply_tooltips
-class TriggerBuilder(RyanOnTheInside):
+class TriggerBuilder:
     """Creates triggers that respond to specific words or phrases in the Whisper transcription.
     Can be chained together to create complex trigger combinations.
     
@@ -281,7 +279,7 @@ class TriggerBuilder(RyanOnTheInside):
         return (trigger_set,)
 
 @apply_tooltips
-class ContextModifier(RyanOnTheInside):
+class ContextModifier:
     """Modifies trigger behavior based on context.
     
     Example Usage:

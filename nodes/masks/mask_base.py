@@ -15,15 +15,16 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple
 import pymunk
 import cv2
-from ..audio.audio_processor_legacy import AudioFeatureExtractor
-from ... import RyanOnTheInside
 from ...tooltips import apply_tooltips
+from ... import ProgressMixin
+
 
 
 @apply_tooltips
-class MaskBase(RyanOnTheInside, ABC):
+class MaskBase(ProgressMixin, ABC):
     @classmethod
     def INPUT_TYPES(cls):
+
         return {
             "required": {
                 "masks": ("MASK",),
@@ -40,10 +41,6 @@ class MaskBase(RyanOnTheInside, ABC):
     def __init__(self):
         self.pre_processors = []
         self.post_processors = []
-        self.progress_bar = None
-        self.tqdm_bar = None
-        self.current_progress = 0
-        self.total_steps = 0
 
     def add_pre_processor(self, func):
         self.pre_processors.append(func)
@@ -63,26 +60,6 @@ class MaskBase(RyanOnTheInside, ABC):
             mask = processor(mask)
         return mask
 
-    def start_progress(self, total_steps, desc="Processing"):
-        self.progress_bar = ProgressBar(total_steps)
-        self.tqdm_bar = tqdm(total=total_steps, desc=desc, leave=False)
-        self.current_progress = 0
-        self.total_steps = total_steps
-
-    def update_progress(self, step=1):
-        self.current_progress += step
-        if self.progress_bar:
-            self.progress_bar.update(step)
-        if self.tqdm_bar:
-            self.tqdm_bar.update(step)
-
-    def end_progress(self):
-        if self.tqdm_bar:
-            self.tqdm_bar.close()
-        self.progress_bar = None
-        self.tqdm_bar = None
-        self.current_progress = 0
-        self.total_steps = 0
 
     @abstractmethod
     def process_mask(self, mask: np.ndarray, strength: float, **kwargs) -> np.ndarray:

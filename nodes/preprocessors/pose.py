@@ -2,10 +2,11 @@ import numpy as np
 from ... import RyanOnTheInside
 from comfy.utils import ProgressBar
 from ...tooltips import apply_tooltips
-
+from ... import ProgressMixin
 @apply_tooltips
-class PoseInterpolator(RyanOnTheInside):
+class PoseInterpolator(ProgressMixin):
     @classmethod
+
     def INPUT_TYPES(cls):
         return {
             "required": {
@@ -25,7 +26,8 @@ class PoseInterpolator(RyanOnTheInside):
     def interpolate_poses(self, pose_1, pose_2, feature, strength, interpolation_mode, omit_missing_points):
         print("Debug: Starting interpolate_poses method")
         num_frames = feature.frame_count
-        self.progress_bar = ProgressBar(num_frames)
+        self.start_progress(num_frames)
+
 
         result_poses = []
 
@@ -48,10 +50,12 @@ class PoseInterpolator(RyanOnTheInside):
                 interpolated_people.append(interpolated_person)
 
             result_poses.append({'people': interpolated_people, 'canvas_height': pose_data_1['canvas_height'], 'canvas_width': pose_data_1['canvas_width']})
-            self.progress_bar.update(1)
+            self.update_progress(1)
 
-        self.progress_bar = None
+
+        self.end_progress()
         return (result_poses,)
+
 
     def match_poses(self, start_poses, end_poses):
         pose_count = min(len(start_poses), len(end_poses))

@@ -2,7 +2,8 @@ from .tooltips import TooltipManager, apply_tooltips
 from .tooltips.categories import register_all_tooltips
 
 # Register tooltips immediately after import
-
+from comfy.utils import ProgressBar
+from tqdm import tqdm
 from .node_configs.node_configs import CombinedMeta
 from collections import OrderedDict
 import os
@@ -16,6 +17,28 @@ class RyanOnTheInside(metaclass=CombinedMeta):
     @classmethod
     def get_description(cls):
         return ""
+
+class ProgressMixin:
+    def start_progress(self, total_steps, desc="Processing"):
+        self.progress_bar = ProgressBar(total_steps)
+        self.tqdm_bar = tqdm(total=total_steps, desc=desc, leave=False)
+        self.current_progress = 0
+        self.total_steps = total_steps
+
+    def update_progress(self, step=1):
+        self.current_progress += step
+        if self.progress_bar:
+            self.progress_bar.update(step)
+        if self.tqdm_bar:
+            self.tqdm_bar.update(step)
+
+    def end_progress(self):
+        if self.tqdm_bar:
+            self.tqdm_bar.close()
+        self.progress_bar = None
+        self.tqdm_bar = None
+        self.current_progress = 0
+        self.total_steps = 0
 
 print("""
 [RyanOnTheInside] Loading...
@@ -90,6 +113,7 @@ from .nodes.flex.feature_extractors import(
     ManualFeatureFromPipe,
     DrawableFeatureNode,
     FeatureInfoNode,
+    FloatFeatureNode
 )
 
 from .nodes.flex.feature_extractors_whisper import( 
@@ -245,7 +269,9 @@ from .nodes.flex.flex_externals import (
     DepthShapeModifier,
     DepthShapeModifierPrecise,
     FeatureToFloat,
+    FeatureToMask,
 )
+
 
 from .nodes.flex.feature_modulation import (
     FeatureMixer,
@@ -432,8 +458,6 @@ NODE_CLASS_MAPPINGS = {
     "AudioFeatureExtractor":        AudioFeatureExtractor,
 
 #TODO make feature info JS display info
-#TODO: FloatFeatureExtractor
-#TODO: check forced normalization  of DrawableFeatureNode
 #TODO: support negative feature values for opposit direction......
     
 
@@ -445,11 +469,13 @@ NODE_CLASS_MAPPINGS = {
     "PitchRangeByNoteNode":         PitchRangeByNoteNode,
     "MIDILoadAndExtract":           MIDILoadAndExtract,
     "TimeFeatureNode":              TimeFeatureNode,
+    "FloatFeatureNode":             FloatFeatureNode,
     "ManualFeatureNode":            ManualFeatureNode,
     "ManualFeatureFromPipe":        ManualFeatureFromPipe,
     "DrawableFeatureNode":          DrawableFeatureNode,
     "DepthFeatureNode":             DepthFeatureNode,
     "ColorFeatureNode":             ColorFeatureNode,
+
     "BrightnessFeatureNode":        BrightnessFeatureNode,
     "MotionFeatureNode":            MotionFeatureNode,
     "LocationFromMask":             LocationFromMask,
@@ -470,11 +496,13 @@ NODE_CLASS_MAPPINGS = {
     "FeatureToSplineData":          FeatureToSplineData,
     "SplineFeatureModulator":       SplineFeatureModulator,
     "FeatureToFloat":               FeatureToFloat,
+    "FeatureToMask":                 FeatureToMask,
     "SplineRhythmModulator":        SplineRhythmModulator,
     "DepthInjection":               DepthInjection,
     "DepthRippleEffect":            DepthRippleEffect,
     "DepthBlender":                 DepthBlender,
     "DepthShapeModifier":           DepthShapeModifier,
+
     "DepthShapeModifierPrecise":    DepthShapeModifierPrecise,
     # "DepthMapProtrusion":          DepthMapProtrusion,
     #feature modulation
@@ -573,10 +601,17 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "FeatureToSplineData":          "***BETA*** Feature To Spline Data",
     "SplineFeatureModulator":       "***BETA*** Spline Feature Modulator",
     "SplineRhythmModulator":        "***BETA*** Spline Rhythm Modulator",
+    "MaskMorph":                    "Mask Morph [DEPRECATED]",
+    "MaskTransform":                "Mask Transform [DEPRECATED]",
+    "MaskMath":                    "Mask Math [DEPRECATED]",
+    "MaskRings":                   "Mask Rings [DEPRECATED]",
+    "MaskWarp":                    "Mask Warp [DEPRECATED]",
+
 }
 
 # Update NODE_CLASS_MAPPINGS with external nodes
 NODE_CLASS_MAPPINGS.update(EXTERNAL_NODE_CLASS_MAPPINGS)
+
 
 import re
 

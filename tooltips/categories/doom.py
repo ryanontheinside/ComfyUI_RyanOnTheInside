@@ -8,4 +8,4 @@ def register_tooltips():
     # Doom tooltips
     TooltipManager.register_tooltips("Doom", {
         # TODO: Add parameter tooltips
-    })
+    }, description="It's Doom.")

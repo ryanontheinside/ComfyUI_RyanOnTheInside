@@ -76,6 +76,13 @@ class BaseFeature(ABC):
         if self.data is not None:
             self.data = (self.data - np.min(self.data)) / (np.max(self.data) - np.min(self.data))
         return self
+    
+
+    def get_normalized_data(self):
+        if self.data is not None:
+            return (self.data - np.min(self.data)) / (np.max(self.data) - np.min(self.data))
+        return None
+    
 
     def invert(self):
         if self.data is not None:

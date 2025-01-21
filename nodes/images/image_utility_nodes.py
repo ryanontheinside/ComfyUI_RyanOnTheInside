@@ -3,22 +3,10 @@ import torch.nn.functional as F
 from ..node_utilities import string_to_rgb 
 from ... import RyanOnTheInside
 from comfy.utils import ProgressBar, common_upscale
-
+from ... import ProgressMixin
 from ...tooltips import apply_tooltips
 
-class ImageUtilityNode(RyanOnTheInside):
-    def __init__(self):
-        self.progress_bar = None
-
-    def start_progress(self, total_steps, desc="Processing"):
-        self.progress_bar = ProgressBar(total_steps)
-
-    def update_progress(self):
-        if self.progress_bar:
-            self.progress_bar.update(1)
-
-    def end_progress(self):
-        self.progress_bar = None
+class ImageUtilityNode(ProgressMixin):
     CATEGORY = "RyanOnTheInside/Utility/Images"
 
 @apply_tooltips
@@ -157,71 +145,53 @@ class ImageScaleToTarget(ImageUtilityNode):
         return (s,)
     
 
-@apply_tooltips
-class ColorPicker(ImageUtilityNode):
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {},  # No visible inputs needed
-            "hidden": {
-                "color": ("STRING", {"default": "#FF0000"}),
-                "rgb_value": ("STRING", {"default": "255,0,0"}),
-                "hue": ("INT", {"default": 0, "min": 0, "max": 360}),
-            },
-        }
+import json
+
+class ColorPicker:
+    """
+    A node that provides a color picker interface and outputs hex color, RGB color, and hue values.
+    """
     
-    RETURN_TYPES = ("STRING", "STRING", "INT", "STRING", "STRING", "STRING", "STRING",)
-    RETURN_NAMES = (
-        "hex_color",      # #FF0000 format
-        "rgb_color",      # 255,0,0 format
-        "hue_shift",      # 0-360 integer
-        "rgb_float",      # 1.0,0.0,0.0 format
-        "rgb_percent",    # 100%,0%,0% format
-        "hsl_color",      # hsl(0,100%,50%) format
-        "hsv_color",      # hsv(0,100%,100%) format
-    )
+    CATEGORY = "RyanOnTheInside"
     FUNCTION = "process_color"
-    CATEGORY = "RyanOnTheInside/Utility/Images"
+    RETURN_TYPES = ("STRING", "STRING", "INT")
+    RETURN_NAMES = ("hex_color", "rgb_color", "hue_shift")
     
-    def process_color(self, color="#FF0000", rgb_value="255,0,0", hue=0):
-        # Convert RGB string to integers
-        r, g, b = map(int, rgb_value.split(','))
-        
-        # Calculate RGB float values (0-1)
-        rgb_float = f"{r/255:.3f},{g/255:.3f},{b/255:.3f}"
-        
-        # Calculate RGB percentage values
-        rgb_percent = f"{int(r/255*100)}%,{int(g/255*100)}%,{int(b/255*100)}%"
-        
-        # Calculate HSL
-        r_norm, g_norm, b_norm = r/255, g/255, b/255
-        cmax = max(r_norm, g_norm, b_norm)
-        cmin = min(r_norm, g_norm, b_norm)
-        delta = cmax - cmin
-        
-        # Calculate lightness
-        lightness = (cmax + cmin) / 2
-        
-        # Calculate saturation
-        saturation = 0 if delta == 0 else (delta / (1 - abs(2 * lightness - 1)))
-        
-        # Format HSL string
-        hsl_color = f"hsl({int(hue)},{int(saturation*100)}%,{int(lightness*100)}%)"
-        
-        # Calculate HSV
-        v = cmax
-        s = 0 if cmax == 0 else delta/cmax
-        
-        # Format HSV string
-        hsv_color = f"hsv({int(hue)},{int(s*100)}%,{int(v*100)}%)"
-        
-        return (
-            color,          # hex_color
-            rgb_value,      # rgb_color
-            int(hue),       # hue_shift
-            rgb_float,      # rgb_float
-            rgb_percent,    # rgb_percent
-            hsl_color,      # hsl_color
-            hsv_color,      # hsv_color
-        )
-    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "color": ("STRING", {"default": '{"hex":"#FF0000","rgb":"255,0,0","hue":0}'})
+            }
+        }
+
+    def process_color(self, color):
+        try:
+            # Parse the JSON data from the widget
+            color_data = json.loads(color)
+            
+            # Extract values with defaults
+            hex_color = color_data.get("hex", "#FF0000").upper()  # Ensure uppercase for consistency
+            rgb_value = color_data.get("rgb", "255,0,0")
+            hue = color_data.get("hue", 0)
+            
+            # Convert RGB string to integers for validation
+            try:
+                r, g, b = map(int, rgb_value.split(','))
+                # Ensure RGB values are in valid range
+                r = max(0, min(255, r))
+                g = max(0, min(255, g))
+                b = max(0, min(255, b))
+                # Reconstruct validated RGB string
+                rgb_value = f"{r},{g},{b}"
+            except ValueError:
+                rgb_value = "255,0,0"  # Default if parsing fails
+            
+            # Ensure hue is in valid range (0-360)
+            hue = max(0, min(360, int(hue)))
+            
+            return (hex_color, rgb_value, hue)
+            
+        except (json.JSONDecodeError, KeyError):
+            # Return defaults if JSON parsing fails
+            return ("#FF0000", "255,0,0", 0) 
