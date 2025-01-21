@@ -1,27 +1,18 @@
 import os
 
 # Variables to track the availability of external modules
-HAS_ADVANCED_LIVE_PORTRAIT = os.path.exists(
-    os.path.join(
-        os.path.dirname(os.path.dirname(__file__)),
-        "ComfyUI-AdvancedLivePortrait"
-    )
-)
+alp_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-AdvancedLivePortrait")
+HAS_ADVANCED_LIVE_PORTRAIT = os.path.exists(alp_path)
+print(f"Checking for AdvancedLivePortrait at: {alp_path}")
 
-HAS_ADVANCED_CONTROLNET = os.path.exists(
-    os.path.join(
-        os.path.dirname(os.path.dirname(__file__)),
-        "ComfyUI-Advanced-ControlNet"
-    )
-)
+acn_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-Advanced-ControlNet")
+HAS_ADVANCED_CONTROLNET = os.path.exists(acn_path)
+print(f"Checking for Advanced-ControlNet at: {acn_path}")
 
 #WIP
-HAS_ANIMATEDIFF = os.path.exists(
-    os.path.join(
-        os.path.dirname(os.path.dirname(__file__)),
-        "ComfyUI-AnimateDiff-Evolved"
-    )
-)
+ad_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-AnimateDiff-Evolved")
+HAS_ANIMATEDIFF = os.path.exists(ad_path)
+print(f"Checking for AnimateDiff-Evolved at: {ad_path}")
 
 # HAS_ANIMATEDIFF=False
 
