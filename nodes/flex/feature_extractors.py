@@ -44,19 +44,16 @@ class FloatFeatureNode(FeatureExtractorBase):
         return {
             "required": {
                 **parent_inputs,
-                "float_values": ("STRING", {"default": "0.0, 0.5, 1.0", "multiline": True}),
+                "floats": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01,  "forceInput": True}),
             }
         }
+
 
     RETURN_TYPES = ("FEATURE",)
     FUNCTION = "create_feature"
 
-    def create_feature(self, float_values, frame_rate, frame_count, width, height, extraction_method):
-        # Parse float values from string
-        try:
-            values = [float(x.strip()) for x in float_values.split(",")]
-        except ValueError:
-            raise ValueError("Invalid float values. Please provide comma-separated numbers.")
+    def create_feature(self, value, frame_rate, frame_count, width, height, extraction_method):
+        values = value if isinstance(value, list) else [value]
 
         float_feature = FloatFeature("float_feature", frame_rate, frame_count, width, height, values, extraction_method)
         float_feature.extract()
