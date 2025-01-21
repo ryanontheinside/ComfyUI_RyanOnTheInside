@@ -105,7 +105,6 @@ class FlexAudioVisualizerBase(FlexBase, RyanOnTheInside):
                 "frame_rate": ("FLOAT", {"default": 30.0, "min": 1.0, "max": 240.0, "step": 1.0}),
                 "screen_width": ("INT", {"default": 768, "min": 100, "max": 1920, "step": 1}),
                 "screen_height": ("INT", {"default": 464, "min": 100, "max": 1080, "step": 1}),
-                "audio_feature_param": (cls.get_modifiable_params(), {"default": "None"}),
                 "position_x": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "position_y": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
             },
@@ -229,8 +228,9 @@ class FlexAudioVisualizerBase(FlexBase, RyanOnTheInside):
         feature_value = np.mean(np.abs(processor.spectrum))
         return processor.spectrum.copy(), feature_value
 
-    def apply_effect(self, audio, frame_rate, screen_width, screen_height, strength, feature_param, feature_mode,
-                    audio_feature_param, opt_feature=None, **kwargs):
+    def apply_effect(self, audio, frame_rate, screen_width, screen_height, 
+                     strength, feature_param, feature_mode, feature_threshold,
+                    opt_feature=None, **kwargs):
         # Calculate num_frames based on audio duration and frame_rate
         audio_duration = len(audio['waveform'].squeeze(0).mean(axis=0)) / audio['sample_rate']
         num_frames = int(audio_duration * frame_rate)
@@ -249,15 +249,17 @@ class FlexAudioVisualizerBase(FlexBase, RyanOnTheInside):
             # First process parameters to get the correct values for this frame
             processed_kwargs = self.process_parameters(
                 frame_index=i,
-                feature_value=None,  # Will be set after getting audio data
+                feature_value=self.get_feature_value(i, opt_feature) if opt_feature is not None else None,
+                feature_param=feature_param if opt_feature is not None else None,
+                feature_mode=feature_mode if opt_feature is not None else None,
                 strength=strength,
-                feature_param=None,  # Will be set after getting audio data
-                feature_mode=feature_mode,
+                feature_threshold=feature_threshold,
                 **kwargs
             )
+            processed_kwargs["frame_index"] = i
             
             # Get audio data using the processed parameters
-            spectrum, audio_feature_value = self.process_audio_data(
+            spectrum, _ = self.process_audio_data(
                 processor, 
                 i,
                 processed_kwargs.get('visualization_feature'),
@@ -267,30 +269,6 @@ class FlexAudioVisualizerBase(FlexBase, RyanOnTheInside):
                 processed_kwargs.get('min_frequency'),
                 processed_kwargs.get('max_frequency')
             )
-
-            # Now process parameters again with audio feature if needed
-            if audio_feature_param != "None":
-                processed_kwargs = self.process_parameters(
-                    frame_index=i,
-                    feature_value=audio_feature_value,
-                    strength=strength,
-                    feature_param=audio_feature_param,
-                    feature_mode=feature_mode,
-                    **processed_kwargs
-                )
-
-            # Modulate parameters based on opt_feature if provided
-            if opt_feature is not None and feature_param != "None":
-                feature_value = opt_feature.get_value_at_frame(i)
-                if feature_value is not None:
-                    processed_kwargs = self.process_parameters(
-                        frame_index=i,
-                        feature_value=feature_value,
-                        strength=strength,
-                        feature_param=feature_param,
-                        feature_mode=feature_mode,
-                        **processed_kwargs
-                    )
 
             # Generate the image for the current frame
             image = self.apply_effect_internal(processor, **processed_kwargs)
@@ -721,7 +699,7 @@ class FlexAudioVisualizerContour(FlexAudioVisualizerBase):
                 "max_contours", "None"]
 
     def apply_effect(self, audio, frame_rate, mask, strength, feature_param, feature_mode,
-                     audio_feature_param, opt_feature=None, **kwargs):
+                     feature_threshold, opt_feature=None, **kwargs):
         # Get dimensions from mask
         batch_size, screen_height, screen_width = mask.shape
         
@@ -731,8 +709,8 @@ class FlexAudioVisualizerContour(FlexAudioVisualizerBase):
         # Call parent with mask dimensions as screen dimensions
         return super().apply_effect(
             audio, frame_rate, screen_width, screen_height,
-            strength, feature_param, feature_mode,
-            audio_feature_param, opt_feature, **kwargs
+            strength, feature_param, feature_mode, feature_threshold,
+            opt_feature, **kwargs
         )
 
     def get_audio_data(self, processor: BaseAudioProcessor, frame_index, **kwargs):
