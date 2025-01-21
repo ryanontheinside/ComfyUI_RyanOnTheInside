@@ -531,70 +531,197 @@ When specified, interpolates feature to match the target frame count."""
 
     # WhisperFeatureNode tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("WhisperFeatureNode", {
-        "alignment_data": "JSON string containing Whisper transcription alignment data",
-        "trigger_set": "Set of triggers that define value sequences based on spoken words",
-        "context_size": "Number of words to consider for context (0-10)",
-        "overlap_mode": "How to handle overlapping triggers: blend (smooth transition), replace (use latest), or add (combine values)",
-        "feature_name": "Type of feature to extract: word_timing (peaks at words), segment_timing (plateaus during segments), trigger_values (word-based values), speech_density (words/sec), silence_ratio (speech vs silence)"
-    }, inherits_from='FeatureExtractorBase', description="Extract features from Whisper speech transcription data. Create timing, trigger, and density features based on speech patterns.")
+        "alignment_data": """Whisper transcription alignment data (from ComfyUI-Whisper).
+Contains word-level or segment-level timing information for speech.""",
+        "trigger_set": """Optional set of word-based triggers that define value sequences.
+Each trigger specifies how to respond when certain words or phrases are spoken.""",
+        "context_size": """Number of surrounding words to consider for context (0-10).
+Larger values provide more context for trigger decisions but may increase processing time.""",
+        "overlap_mode": """How to handle overlapping triggers:
+- blend: Smooth transition between overlapping values
+- replace: Use the most recent trigger's value
+- add: Combine values from all active triggers""",
+        "extraction_method": """Type of feature to extract:
+- word_timing: Creates peaks at each word (good for word-synced effects)
+- segment_timing: Creates plateaus during speech segments (good for sustained effects)
+- trigger_values: Generates values based on word-based triggers
+- speech_density: Measures words per second (good for intensity-based effects)
+- silence_ratio: Tracks speech vs silence ratio (good for pacing-based effects)"""
+    }, inherits_from='FeatureExtractorBase', description="""Extract features from Whisper speech transcription data.
+    
+Create timing, trigger, and density features based on speech patterns.
+Perfect for syncing effects with spoken words or creating speech-reactive animations.
+Works with ComfyUI-Whisper output for precise speech-to-animation synchronization.""")
 
     # TriggerBuilder tooltips (inherits from: RyanOnTheInside)
     TooltipManager.register_tooltips("TriggerBuilder", {
-        "pattern": "Word or phrase to match in the transcription",
-        "start_value": "Value when the word starts (0-1)",
-        "end_value": "Value when the word ends (0-1)",
-        "match_mode": "How to match the pattern: exact (whole word), contains (substring), regex (patterns), phonetic (similar sounds)",
-        "fade_type": "Value transition: none (instant), linear (smooth), smooth (eased)",
-        "duration_frames": "Duration in frames (0 = use word duration)",
-        "blend_mode": "How this trigger combines with previous ones: blend (average), add (sum), multiply (product), max (highest)",
-        "previous_triggers": "Optional previous trigger set to chain with"
-    }, inherits_from='RyanOnTheInside', description="Create triggers that respond to specific words or phrases in Whisper transcriptions. Can be chained together to build complex combinations.")
-
+        "pattern": """Word or phrase to match in the transcription.
+Can be a single word, multiple words, or a pattern depending on match_mode.""",
+        "start_value": """Value when the matched word/phrase starts (0-1).
+Controls the initial intensity of the effect.""",
+        "end_value": """Value when the matched word/phrase ends (0-1).
+Controls the final intensity of the effect.""",
+        "match_mode": """How to match the pattern:
+- exact: Match whole words only
+- contains: Match substrings within words
+- regex: Use regular expressions for complex patterns
+- phonetic: Match similar-sounding words""",
+        "fade_type": """How values transition:
+- none: Instant change
+- linear: Smooth linear transition
+- smooth: Eased transition with acceleration/deceleration""",
+        "duration_frames": """Duration of the effect in frames.
+0 = use actual word duration
+>0 = force specific duration""",
+        "blend_mode": """How this trigger combines with others:
+- blend: Average with other active triggers
+- add: Sum all active trigger values
+- multiply: Multiply active trigger values
+- max: Use highest active trigger value""",
+        "fill_behavior": """How to handle frames between triggers:
+- none: No values between triggers
+- hold: Keep last trigger value
+- loop: Repeat trigger sequence""",
+        "previous_triggers": "Optional previous trigger set to chain with",
+        "trigger_image": """Optional image to associate with the trigger.
+Can be used for visual effects or overlays."""
+    }, inherits_from='RyanOnTheInside', description="""Create triggers that respond to specific words or phrases in Whisper transcriptions.
+    
+Chain multiple triggers together to build complex word-reactive animations.
+Perfect for creating effects that respond to specific spoken content.
+Can be used with images for word-synced visual effects.""")
 
     # ContextModifier tooltips (inherits from: RyanOnTheInside)
     TooltipManager.register_tooltips("ContextModifier", {
-        "trigger_set": "Set of triggers to modify",
-        "modifier_type": "Context type: timing (duration/position), sentiment (positive/negative), speaker (who's speaking), sequence (pattern in word sequence)",
-        "condition": "Python expression that determines when to apply modification. Available variables depend on modifier_type",
-        "value_adjust": "How much to modify trigger values (1.0 = no change, >1.0 amplify, <1.0 reduce)",
-        "window_size": "Number of words to look at for context"
-    }, inherits_from='RyanOnTheInside', description="Modify trigger behavior based on speech context. Can adjust values based on word timing, sentiment, speaker changes, or sequence patterns.")
+        "trigger_set": "Input trigger set to modify based on context",
+        "modifier_type": """Type of context to consider:
+- timing: Word duration and position in sentence
+- sentiment: Positive/negative emotional context
+- speaker: Speaker identity and changes
+- sequence: Patterns in word sequence""",
+        "condition": """Python expression that determines when to apply modification.
+Available variables depend on modifier_type:
+- timing: duration, start, end
+- sentiment: is_positive, sentiment_score
+- speaker: speaker_id, is_new_speaker
+- sequence: index, total_words""",
+        "value_adjust": """How much to modify trigger values:
+1.0 = no change
+>1.0 = amplify effect
+<1.0 = reduce effect""",
+        "window_size": """Number of words to analyze for context.
+Larger windows provide more context but may be less responsive."""
+    }, inherits_from='RyanOnTheInside', description="""Modify trigger behavior based on speech context.
+    
+Adjust effect intensity based on:
+- Word timing and duration
+- Speech sentiment/emotion
+- Speaker changes
+- Word sequence patterns
+Perfect for creating context-aware animations.""")
 
     # WhisperToPromptTravel tooltips (inherits from: RyanOnTheInside)
     TooltipManager.register_tooltips("WhisperToPromptTravel", {
-        "segments_alignment": "JSON string of Whisper segment alignments",
-        "fps": "Frame rate for converting time to frame numbers"
-    }, inherits_from='RyanOnTheInside', description="Convert Whisper transcription timing to prompt travel format for text animation.")
+        "alignment_data": """Whisper transcription alignment data.
+Contains timing information for speech segments.""",
+        "fps": """Frame rate for converting time to frame numbers.
+Should match your video's frame rate."""
+    }, inherits_from='RyanOnTheInside', description="""Convert Whisper transcription timing to prompt travel format.
+    
+Creates frame-based prompt sequences for text animation.
+Perfect for syncing text prompts with speech.
+Compatible with ComfyUI prompt travel nodes.""")
 
     # WhisperTextRenderer tooltips (inherits from: RyanOnTheInside)
     TooltipManager.register_tooltips("WhisperTextRenderer", {
-        "images": "Input video frames",
+        "images": "Input video frames to overlay text on",
         "feature": "Whisper feature containing alignment data",
-        "font_size": "Size of the rendered text",
-        "font_name": "Font to use for rendering",
-        "position": "Vertical position of text",
-        "horizontal_align": "Horizontal alignment of text",
-        "margin": "Margin from frame edges",
-        "animation_type": "Type of text animation",
-        "animation_duration": "Duration of text animations",
-        "max_width": "Maximum width for text wrapping",
-        "bg_color": "Background color in hex format",
-        "text_color": "Text color in hex format",
-        "opacity": "Overall opacity of text overlay"
-    }, inherits_from='RyanOnTheInside', description="Render animated text overlays from Whisper transcription with various animation styles.")
+        "font_size": "Size of the rendered text (8-256 pixels)",
+        "font_name": """Font to use for rendering.
+Uses system-independent built-in fonts.""",
+        "position": """Vertical position of text:
+- top: Align to top of frame
+- middle: Center vertically
+- bottom: Align to bottom of frame""",
+        "horizontal_align": """Horizontal text alignment:
+- left: Align to left edge
+- center: Center horizontally
+- right: Align to right edge""",
+        "margin": "Distance from frame edges in pixels",
+        "animation_type": """Type of text animation:
+- none: Static text
+- fade: Smooth fade in/out
+- pop: Scale animation
+- slide: Sliding animation""",
+        "animation_duration": "Length of animation in frames",
+        "max_width": """Maximum width for text wrapping.
+0 = use full frame width""",
+        "bg_color": "Background color in hex format (#RRGGBB)",
+        "text_color": "Text color in hex format (#RRGGBB)",
+        "opacity": "Overall opacity of text overlay (0.0-1.0)"
+    }, inherits_from='RyanOnTheInside', description="""Render animated text overlays from Whisper transcription.
+    
+Create professional subtitles and captions with:
+- Multiple animation styles
+- Flexible positioning
+- Color customization
+- Automatic text wrapping
+Perfect for adding subtitles or creating lyric videos.""")
 
     # ManualWhisperAlignmentData tooltips (inherits from: RyanOnTheInside)
     TooltipManager.register_tooltips("ManualWhisperAlignmentData", {
-        "alignment_text": "JSON objects defining speech segments. Each object needs: value (text content), start (time in seconds), end (time in seconds)"
-    }, inherits_from='RyanOnTheInside', description="""Creates alignment data from manually entered text and timings.
+        "alignment_text": """JSON array of speech segments.
+Each object needs:
+- value: Text content
+- start: Start time in seconds
+- end: End time in seconds
+
+Example format:
+[
+  {"value": "Hello", "start": 0.0, "end": 0.5},
+  {"value": "world", "start": 0.6, "end": 1.0}
+]"""
+    }, inherits_from='RyanOnTheInside', description="""Create manual alignment data for testing or custom timing.
     
-    **Note**: For proper whisper alignment data, you should use ComfyUI-Whisper:
-    https://github.com/yuvraj108c/ComfyUI-Whisper
-   
-    You can enter either word alignments or segment alignments.
-    Format should match ComfyUI-Whisper output.
+Note: For production use, you should use ComfyUI-Whisper:
+https://github.com/yuvraj108c/ComfyUI-Whisper
+
+This node is useful for:
+- Testing without audio
+- Creating custom timing
+- Manual subtitle creation""")
+
+    # WhisperTimeAdjuster tooltips (inherits from: RyanOnTheInside)
+    TooltipManager.register_tooltips("WhisperTimeAdjuster", {
+        "alignment_data": "Whisper alignment data to adjust",
+        "time_offset": """Seconds to shift all timestamps:
+- Positive: Delay speech timing
+- Negative: Advance speech timing
+- 0.0: No adjustment"""
+    }, inherits_from='RyanOnTheInside', description="""Manually adjust timing in Whisper alignment data.
     
-""")
+Perfect for:
+- Fixing audio/video sync issues
+- Compensating for delays
+- Fine-tuning speech timing""")
+
+    # WhisperAutoAdjust tooltips (inherits from: RyanOnTheInside)
+    TooltipManager.register_tooltips("WhisperAutoAdjust", {
+        "alignment_data": "Whisper alignment data to adjust",
+        "audio": "Audio data to analyze for speech onset",
+        "detection_window": """Window size for energy detection:
+- Larger: More stable but less precise
+- Smaller: More precise but may be noisy""",
+        "energy_threshold": """Energy threshold for speech detection:
+- Lower: More sensitive to quiet speech
+- Higher: Only detects clear speech"""
+    }, inherits_from='RyanOnTheInside', description="""Automatically adjust Whisper timing by detecting speech.
+    
+Uses audio analysis to:
+- Find actual speech start
+- Align transcription with audio
+- Fix timing offsets automatically
+Perfect for batch processing or when manual adjustment is impractical.""")
 
     # SchedulerNode tooltips (inherits from: RyanOnTheInside)
     TooltipManager.register_tooltips("SchedulerNode", {
