@@ -20,7 +20,6 @@ def register_tooltips():
         "strength": "Strength of parameter modulation (0.0 to 1.0)",
         "feature_param": "Parameter to modulate based on the optional feature input",
         "feature_mode": "Mode of parameter modulation ('relative' or 'absolute')",
-        "audio_feature_param": "Parameter to modulate based on audio features",
         "position_x": "Horizontal position of the visualization center (0.0 to 1.0)",
         "position_y": "Vertical position of the visualization center (0.0 to 1.0)",
         "opt_feature": "Optional feature input for parameter modulation"
