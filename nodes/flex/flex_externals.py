@@ -771,10 +771,23 @@ class FeatureToMask(FlexExternalModulator):
         height = feature.height
         width = feature.width
         
-        # Get all normalized values at once
+        # Get normalized data as numpy array
         normalized_data = feature.get_normalized_data()
+        if normalized_data is None:
+            # If no data available, use frame-by-frame normalization
+            normalized_data = np.array([feature.get_value_at_frame(i) for i in range(feature.frame_count)])
+            if len(normalized_data) > 0:
+                min_val = np.min(normalized_data)
+                max_val = np.max(normalized_data)
+                if max_val > min_val:
+                    normalized_data = (normalized_data - min_val) / (max_val - min_val)
+                else:
+                    normalized_data = np.zeros_like(normalized_data)
+        
+        # Convert to torch tensor and reshape for broadcasting
+        normalized_tensor = torch.from_numpy(normalized_data).float()
         
         # Create masks for all frames at once by expanding the normalized data
-        masks_out = normalized_data.unsqueeze(-1).unsqueeze(-1).expand(-1, height, width)
+        masks_out = normalized_tensor.unsqueeze(-1).unsqueeze(-1).expand(-1, height, width)
         return (masks_out,)
     

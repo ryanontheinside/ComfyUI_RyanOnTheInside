@@ -80,14 +80,23 @@ class FlexMaskBase(FlexBase, MaskBase):
                     mask_strength=1.0, invert=False, subtract_original=0.0, 
                     grow_with_blur=0.0, feature_param=None, feature_mode="relative", **kwargs):
         """Main entry point for the Flex system."""
-        num_frames = masks.shape[0]
+        if opt_feature is not None:
+            num_frames = opt_feature.frame_count
+        else:
+            # Start with number of input frames
+            num_frames = masks.shape[0]
+            # Check all parameters for lists/arrays that might be longer
+            for value in kwargs.values():
+                if isinstance(value, (list, tuple, np.ndarray)):
+                    num_frames = max(num_frames, len(value))
+
         original_masks = masks.clone()
 
         self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 
         result = []
         for i in range(num_frames):
-            mask = masks[i].numpy()
+            mask = masks[i % masks.shape[0]].numpy()
             
             # Get feature value
             feature_value = self.get_feature_value(i, opt_feature)
@@ -118,11 +127,10 @@ class FlexMaskBase(FlexBase, MaskBase):
                     **processed_kwargs
                 )
 
-
-            # Apply mask operations
+            # Apply mask operations using modulo for original mask indexing
             frame_result = self.apply_mask_operation(
                 processed_mask[np.newaxis, ...],
-                original_masks[i:i+1],
+                original_masks[i % masks.shape[0]:i % masks.shape[0]+1],
                 processed_kwargs['mask_strength'],
                 invert,
                 processed_kwargs['subtract_original'],
