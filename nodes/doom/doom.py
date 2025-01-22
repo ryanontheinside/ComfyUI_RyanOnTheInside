@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 import torch
 
-class Doom:
+class Doom_:
     @classmethod
     def INPUT_TYPES(cls):
         return {

@@ -123,7 +123,7 @@ class AudioChannelSplit(AudioUtility):
         return (audio_list,)
 
 @apply_tooltips
-class AudioConcatenate(AudioUtility):
+class Audio_Concatenate(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
         return {

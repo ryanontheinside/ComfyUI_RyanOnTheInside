@@ -97,7 +97,7 @@ from .nodes.audio.audio_nodes_utility import (
     AudioVolumeNormalization,
     Audio_Combine,
     AudioSubtract,
-    AudioConcatenate,
+    Audio_Concatenate,
     AudioDither,
     AudioInfo,
 )
@@ -313,7 +313,7 @@ from .nodes.flex.feature_pipe import ManualFeaturePipe
 
 from .nodes.preprocessors.pose import PoseInterpolator
 
-from .nodes.doom.doom import Doom
+from .nodes.doom.doom import Doom_
 
 # from .nodes.models.flex_model_base import FlexFeatureAttentionControl
 
@@ -364,7 +364,7 @@ NODE_CLASS_MAPPINGS = {
     "FeatureInterpolator":          FeatureInterpolator,
     "FeaturePeakDetector":          FeaturePeakDetector,
     
-    "Doom": Doom,
+    "Doom_": Doom_,
     "WhisperToPromptTravel":        WhisperToPromptTravel,
     "ManualFeaturePipe":            ManualFeaturePipe,
     "ManualFeatureFromPipe":        ManualFeatureFromPipe,
@@ -439,9 +439,9 @@ NODE_CLASS_MAPPINGS = {
     "EmptyMaskFromAudio":           EmptyMaskFromAudio,
     "EmptyImageFromAudio":          EmptyImageFromAudio,
     "EmptyImageAndMaskFromAudio":   EmptyImageAndMaskFromAudio,
-    "AudioCombine":                 Audio_Combine,
+    "Audio_Combine":                 Audio_Combine,
     "AudioSubtract":                AudioSubtract,
-    "AudioConcatenate":             AudioConcatenate,
+    "Audio_Concatenate":             Audio_Concatenate,
     "AudioPitchShift":              AudioPitchShift,
     "AudioTimeStretch":             AudioTimeStretch,
     "AudioDither":                  AudioDither,
@@ -569,7 +569,7 @@ NODE_CLASS_MAPPINGS = {
     "ImageInterval":                ImageIntervalSelect,
     "VideoChunk":                   VideoChunks,
     "ImageDifference":              ImageDifference,
-    "ImageShuffle":                 Image_Shuffle,
+    "Image_Shuffle":                Image_Shuffle,
     "SwapDevice":                   SwapDevice,
     "ImageIntervalSelectPercentage":ImageIntervalSelectPercentage,
     
@@ -607,10 +607,17 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "MaskRings":                   "Mask Rings [DEPRECATED]",
     "MaskWarp":                    "Mask Warp [DEPRECATED]",
 
+    "Image_Shuffle":                 "Image Shuffle ROTI",
+    "Audio_Combine":                 "Audio Combine ROTI",
+    "Audio_Concatenate":             "Audio Concatenate ROTI",
+    "Doom_":                        "DOOM",
 }
+
+
 
 # Update NODE_CLASS_MAPPINGS with external nodes
 NODE_CLASS_MAPPINGS.update(EXTERNAL_NODE_CLASS_MAPPINGS)
+
 
 
 import re
