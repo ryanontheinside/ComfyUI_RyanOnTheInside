@@ -2,23 +2,14 @@ import torch
 import torch.nn.functional as F
 from ..node_utilities import string_to_rgb 
 from ... import RyanOnTheInside
-from comfy.utils import ProgressBar
+from comfy.utils import ProgressBar, common_upscale
+from ... import ProgressMixin
+from ...tooltips import apply_tooltips
 
-class ImageUtilityNode(RyanOnTheInside):
-    def __init__(self):
-        self.progress_bar = None
+class ImageUtilityNode(ProgressMixin):
+    CATEGORY = "RyanOnTheInside/Utility/Images"
 
-    def start_progress(self, total_steps, desc="Processing"):
-        self.progress_bar = ProgressBar(total_steps)
-
-    def update_progress(self):
-        if self.progress_bar:
-            self.progress_bar.update(1)
-
-    def end_progress(self):
-        self.progress_bar = None
-    CATEGORY = "RyanOnTheInside/image/utility"
-
+@apply_tooltips
 class DyeImage(ImageUtilityNode):
     @classmethod
     def INPUT_TYPES(s):
@@ -51,6 +42,7 @@ class DyeImage(ImageUtilityNode):
 
 # From https://github.com/Jamy-L/Pytorch-Contrast-Adaptive-Sharpening/
 # THEN from comfyui essentials shoutout MATEO
+@apply_tooltips
 class ImageCASBatch(ImageUtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
@@ -63,7 +55,6 @@ class ImageCASBatch(ImageUtilityNode):
         }
 
     RETURN_TYPES = ("IMAGE",)
-    CATEGORY = "essentials/image processing"
     FUNCTION = "execute"
 
     def execute(self, image, amount, batch_size):
@@ -122,7 +113,8 @@ class ImageCASBatch(ImageUtilityNode):
 
         return output
 
-from comfy.utils import common_upscale
+
+@apply_tooltips
 class ImageScaleToTarget(ImageUtilityNode):
     upscale_methods = ["nearest-exact", "bilinear", "area", "bicubic", "lanczos"]
     crop_methods = ["disabled", "center"]
@@ -135,8 +127,6 @@ class ImageScaleToTarget(ImageUtilityNode):
                               "crop": (s.crop_methods,)}}
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "upscale"
-
-    CATEGORY = "image/upscaling"
 
     def upscale(self, image, upscale_method, target_image, crop):
         b,height,width,c = target_image.shape
@@ -154,3 +144,54 @@ class ImageScaleToTarget(ImageUtilityNode):
             s = s.movedim(1,-1)
         return (s,)
     
+
+import json
+
+class ColorPicker:
+    """
+    A node that provides a color picker interface and outputs hex color, RGB color, and hue values.
+    """
+    
+    CATEGORY = "RyanOnTheInside"
+    FUNCTION = "process_color"
+    RETURN_TYPES = ("STRING", "STRING", "INT")
+    RETURN_NAMES = ("hex_color", "rgb_color", "hue_shift")
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "color": ("STRING", {"default": '{"hex":"#FF0000","rgb":"255,0,0","hue":0}'})
+            }
+        }
+
+    def process_color(self, color):
+        try:
+            # Parse the JSON data from the widget
+            color_data = json.loads(color)
+            
+            # Extract values with defaults
+            hex_color = color_data.get("hex", "#FF0000").upper()  # Ensure uppercase for consistency
+            rgb_value = color_data.get("rgb", "255,0,0")
+            hue = color_data.get("hue", 0)
+            
+            # Convert RGB string to integers for validation
+            try:
+                r, g, b = map(int, rgb_value.split(','))
+                # Ensure RGB values are in valid range
+                r = max(0, min(255, r))
+                g = max(0, min(255, g))
+                b = max(0, min(255, b))
+                # Reconstruct validated RGB string
+                rgb_value = f"{r},{g},{b}"
+            except ValueError:
+                rgb_value = "255,0,0"  # Default if parsing fails
+            
+            # Ensure hue is in valid range (0-360)
+            hue = max(0, min(360, int(hue)))
+            
+            return (hex_color, rgb_value, hue)
+            
+        except (json.JSONDecodeError, KeyError):
+            # Return defaults if JSON parsing fails
+            return ("#FF0000", "255,0,0", 0) 

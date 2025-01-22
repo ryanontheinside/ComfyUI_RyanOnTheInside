@@ -8,11 +8,11 @@ import torch
 from .vfi_utils import preprocess_frames, postprocess_frames
 from .video_base import FlexVideoBase
 import numpy as np
-from ..flex.feature_pipe import FeaturePipe
 from scipy.interpolate import interp1d
 from ..masks.mask_utils import calculate_optical_flow
 import cv2
 import comfy.model_management as mm
+from ...tooltips import apply_tooltips
 
 BASE_MODEL_DOWNLOAD_URLS = [
     "https://github.com/styler00dollar/VSGAN-tensorrt-docker/releases/download/models/",
@@ -25,13 +25,15 @@ RIFE_CKPT_NAME_VER_DICT = {
     "rife49.pth": "4.7",
 }
 
+@apply_tooltips
 class FlexVideoSpeed(FlexVideoBase):
     @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()
         return {
+            **parent_inputs,  # Keep all parent inputs including optional
             "required": {
-                **super().INPUT_TYPES()["required"],
-                "feature_pipe": ("FEATURE_PIPE",),
+                **parent_inputs["required"],
                 "speed_factor": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.1}),
                 "interpolation_mode": (["none", "linear", "Farneback", "rife47", "rife49"],),
                 "fast_mode": ("BOOLEAN", {"default": True}),
@@ -44,26 +46,30 @@ class FlexVideoSpeed(FlexVideoBase):
     def get_modifiable_params(cls):
         return ["speed_factor"]
 
-    def apply_effect_internal(self, video: np.ndarray, feature_values: np.ndarray, feature_pipe: FeaturePipe, 
-                              speed_factor: float, interpolation_mode: str, fast_mode: bool, ensemble: bool, 
-                              scale_factor: float, **kwargs):
+    def apply_effect_internal(self, video: np.ndarray, feature_values: np.ndarray, 
+                              speed_factor: np.ndarray, interpolation_mode: str, fast_mode: bool, ensemble: bool, 
+                              scale_factor: float, opt_feature=None, **kwargs):
         num_frames = video.shape[0]
-        total_duration = feature_pipe.frame_count / feature_pipe.frame_rate
-        frame_rate = feature_pipe.frame_rate
+        frame_rate = opt_feature.frame_rate
+        total_duration = num_frames / frame_rate
 
         # Ensure feature_values is the same length as video frames
         if len(feature_values) != num_frames:
             raise ValueError("feature_values length must match the number of video frames")
 
-        # Adjust feature values based on speed_factor
-        if speed_factor >= 0:
-            adjusted_feature_values = 1 - feature_values
-        else:
-            adjusted_feature_values = feature_values
+        # Get threshold from kwargs
+        feature_threshold = kwargs.get('feature_threshold', 0.0)
+
+        # Apply threshold - zero out values below threshold
+        above_threshold = feature_values >= feature_threshold
+        feature_values = np.where(above_threshold, feature_values, 0.0)
+
+        # Adjust feature values based on speed_factor (element-wise comparison)
+        adjusted_feature_values = np.where(speed_factor >= 0, 1 - feature_values, feature_values)
 
         # Calculate frame durations based on adjusted feature values and speed factor
         base_duration = 1 / frame_rate
-        adjusted_frame_durations = base_duration + (adjusted_feature_values * abs(speed_factor) * base_duration)
+        adjusted_frame_durations = base_duration + (adjusted_feature_values * np.abs(speed_factor) * base_duration)
 
         cumulative_times = np.cumsum(adjusted_frame_durations)
 
@@ -71,7 +77,7 @@ class FlexVideoSpeed(FlexVideoBase):
         normalized_cumulative_times = cumulative_times * (total_duration / cumulative_times[-1])
 
         # Create an array of the target timestamps that the final video must have
-        target_timestamps = np.linspace(0, total_duration, feature_pipe.frame_count)
+        target_timestamps = np.linspace(0, total_duration, num_frames)
 
         # Interpolate the adjusted frames based on the normalized timestamps
         frame_indices = np.interp(target_timestamps, normalized_cumulative_times, np.arange(num_frames))

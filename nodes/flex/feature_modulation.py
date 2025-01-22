@@ -1,12 +1,13 @@
 from ... import RyanOnTheInside
 import numpy as np
-import matplotlib.pyplot as plt
 import torch
-from io import BytesIO
-from PIL import Image
 import random
 from ..node_utilities import apply_easing
+from ...tooltips import apply_tooltips
+from scipy.interpolate import interp1d
+from scipy.signal import find_peaks
 
+@apply_tooltips
 class FeatureModulationBase(RyanOnTheInside):
     CATEGORY = "RyanOnTheInside/FlexFeatures/FeatureModulators"
     FUNCTION = "modulate"
@@ -19,55 +20,6 @@ class FeatureModulationBase(RyanOnTheInside):
             }
         }
     
-    def visualize(self, feature, width=1920, height=1080):
-        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
-        frames = len(values)
-        
-        plt.figure(figsize=(width/100, height/100), dpi=100)
-        plt.style.use('dark_background')
-        
-        plt.plot(values, color='dodgerblue', linewidth=2)
-        
-        plt.xlabel('Frame', color='white', fontsize=14)
-        plt.ylabel('Value', color='white', fontsize=14)
-        
-        plt.grid(True, linestyle='--', alpha=0.3, color='gray')
-        
-        plt.tick_params(axis='both', colors='white', labelsize=12)
-        
-        max_ticks = 10
-        step = max(1, frames // max_ticks)
-        x_ticks = range(0, frames, step)
-        plt.xticks(x_ticks, [str(x) for x in x_ticks])
-        
-        y_min, y_max = min(values), max(values)
-        y_range = y_max - y_min
-        plt.ylim(y_min - 0.05*y_range, y_max + 0.05*y_range)
-        
-        plt.gca().spines['top'].set_visible(False)
-        plt.gca().spines['right'].set_visible(False)
-        plt.gca().spines['bottom'].set_color('white')
-        plt.gca().spines['left'].set_color('white')
-        
-        plt.title(f'Feature: {feature.name}', color='white', fontsize=16)
-        
-        plt.tight_layout(pad=0.5)
-        
-        buf = BytesIO()
-        plt.savefig(buf, format='png', facecolor='black', edgecolor='none')
-        buf.seek(0)
-        
-        img = Image.open(buf)
-        img_array = np.array(img)
-        img_tensor = torch.from_numpy(img_array).float() / 255.0
-        if img_tensor.dim() == 3:
-            img_tensor = img_tensor.unsqueeze(0)
-        
-        plt.close()  
-        buf.close()  
-        
-        return img_tensor
-
     def create_processed_feature(self, original_feature, processed_values, name_prefix="Processed", invert_output=False):
         class ProcessedFeature(type(original_feature)):
             def __init__(self, original_feature, processed_values, invert_output):
@@ -75,8 +27,7 @@ class FeatureModulationBase(RyanOnTheInside):
                 self.name = f"{name_prefix}_{original_feature.name}"
                 if invert_output:
                     self.name = f"Inverted_{self.name}"
-                self.frame_rate = original_feature.frame_rate
-                self.frame_count = len(processed_values)
+
                 
                 if invert_output:
                     min_val, max_val = min(processed_values), max(processed_values)
@@ -92,6 +43,7 @@ class FeatureModulationBase(RyanOnTheInside):
 
         return ProcessedFeature(original_feature, processed_values, invert_output)
 
+@apply_tooltips
 class FeatureMixer(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -113,8 +65,8 @@ class FeatureMixer(FeatureModulationBase):
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "IMAGE")
-    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
     FUNCTION = "modulate"
 
     def modulate(self, feature, base_gain, floor, ceiling, peak_sharpness, valley_sharpness, attack, release, smoothing, feature_threshold, rise_detection_threshold, rise_smoothing_factor, invert_output):
@@ -130,12 +82,10 @@ class FeatureMixer(FeatureModulationBase):
         
         gained = [v * base_gain for v in normalized]
         
-        
         def waveshape(v):
             return v**peak_sharpness if v > 0.5 else 1 - (1-v)**valley_sharpness
         waveshaped = [waveshape(v) for v in gained]
         
-       
         def apply_envelope(values, attack, release):
             envelope = []
             current = values[0]
@@ -147,8 +97,7 @@ class FeatureMixer(FeatureModulationBase):
                 envelope.append(current)
             return envelope
         enveloped = apply_envelope(waveshaped, attack, release)
-       
-       
+        
         def smooth_values(values, smoothing_factor):
             smoothed = values.copy()
             for i in range(1, len(values)):
@@ -163,7 +112,7 @@ class FeatureMixer(FeatureModulationBase):
         final_values = [max(floor, min(ceiling, v)) for v in adjusted]
         
         processed_feature = self.create_processed_feature(feature, final_values, "Processed", invert_output)
-        return (processed_feature, self.visualize(processed_feature))
+        return (processed_feature,)
 
     def apply_rise_time_adjustment(self, values, rise_detection_threshold, rise_smoothing_factor):
         if all(v == 0 for v in values):
@@ -188,6 +137,7 @@ class FeatureMixer(FeatureModulationBase):
 
         return adjusted
     
+@apply_tooltips
 class FeatureScaler(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -202,8 +152,8 @@ class FeatureScaler(FeatureModulationBase):
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "IMAGE")
-    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
 
     def modulate(self, feature, scale_type, min_output, max_output, exponent, invert_output):
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
@@ -223,8 +173,9 @@ class FeatureScaler(FeatureModulationBase):
         final_values = [min_output + v * (max_output - min_output) for v in scaled]
         
         processed_feature = self.create_processed_feature(feature, final_values, "Scaled", invert_output)
-        return (processed_feature, self.visualize(processed_feature))
+        return (processed_feature,)
 
+@apply_tooltips
 class FeatureCombine(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -239,8 +190,8 @@ class FeatureCombine(FeatureModulationBase):
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "IMAGE")
-    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
 
     def modulate(self, feature1, feature2, operation, weight1, weight2, invert_output):
         values1 = [feature1.get_value_at_frame(i) for i in range(feature1.frame_count)]
@@ -265,8 +216,9 @@ class FeatureCombine(FeatureModulationBase):
             combined = [min(weight1 * v1, weight2 * v2) for v1, v2 in zip(values1, values2)]
         
         processed_feature = self.create_processed_feature(feature1, combined, "Combined", invert_output)
-        return (processed_feature, self.visualize(processed_feature))
+        return (processed_feature,)
 
+@apply_tooltips
 class FeatureMath(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -279,8 +231,8 @@ class FeatureMath(FeatureModulationBase):
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "IMAGE")
-    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
     FUNCTION = "modulate"
 
     def modulate(self, feature, y, operation, invert_output):
@@ -300,8 +252,9 @@ class FeatureMath(FeatureModulationBase):
             result = [min(v, y) for v in values]
         
         processed_feature = self.create_processed_feature(feature, result, "MathResult", invert_output)
-        return (processed_feature, self.visualize(processed_feature))
+        return (processed_feature,)
     
+@apply_tooltips
 class FeatureSmoothing(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -316,8 +269,8 @@ class FeatureSmoothing(FeatureModulationBase):
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "IMAGE")
-    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
 
     def modulate(self, feature, smoothing_type, window_size, alpha, sigma, invert_output):
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
@@ -344,8 +297,9 @@ class FeatureSmoothing(FeatureModulationBase):
         adjusted_smoothed = [v + adjustment for v in smoothed]
         
         processed_feature = self.create_processed_feature(feature, adjusted_smoothed, "Smoothed", invert_output)
-        return (processed_feature, self.visualize(processed_feature))
+        return (processed_feature,)
 
+@apply_tooltips
 class FeatureOscillator(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -361,8 +315,8 @@ class FeatureOscillator(FeatureModulationBase):
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "IMAGE")
-    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
 
     def modulate(self, feature, oscillator_type, frequency, amplitude, phase_shift, blend, invert_output):
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
@@ -380,10 +334,11 @@ class FeatureOscillator(FeatureModulationBase):
         blended = [v * (1 - blend) + osc * blend for v, osc in zip(values, oscillation)]
         
         processed_feature = self.create_processed_feature(feature, blended, "Oscillated", invert_output)
-        return (processed_feature, self.visualize(processed_feature))
+        return (processed_feature,)
 
 
 #NOTE  separated from FeatureMath for ease  of  use.
+@apply_tooltips
 class FeatureFade(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -399,8 +354,8 @@ class FeatureFade(FeatureModulationBase):
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "IMAGE")
-    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
 
     def modulate(self, feature1, feature2, fader, invert_output, control_feature=None):
         values1 = [feature1.get_value_at_frame(i) for i in range(feature1.frame_count)]
@@ -421,9 +376,10 @@ class FeatureFade(FeatureModulationBase):
         combined = [(1 - f) * v1 + f * v2 for v1, v2, f in zip(values1, values2, fader_values)]
         
         processed_feature = self.create_processed_feature(feature1, combined, "Faded", invert_output)
-        return (processed_feature, self.visualize(processed_feature))
+        return (processed_feature,)
 
 #NOTE: this class is technically redundant to FeatureMixer, but it's kept for clarity and ease of use.
+@apply_tooltips
 class FeatureRebase(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -436,17 +392,15 @@ class FeatureRebase(FeatureModulationBase):
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "IMAGE")
-    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
     FUNCTION = "rebase"
 
     def rebase(self, feature, lower_threshold, upper_threshold, invert_output):
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
         
-        # Apply thresholds
         rebased_values = [v if lower_threshold <= v <= upper_threshold else 0 for v in values]
         
-        # Re-normalize the values
         min_val, max_val = min(rebased_values), max(rebased_values)
         if min_val == max_val:
             normalized = [0 for _ in rebased_values]  # All values are the same, normalize to 0
@@ -454,8 +408,9 @@ class FeatureRebase(FeatureModulationBase):
             normalized = [(v - min_val) / (max_val - min_val) for v in rebased_values]
         
         processed_feature = self.create_processed_feature(feature, normalized, "Rebased", invert_output)
-        return (processed_feature, self.visualize(processed_feature))
+        return (processed_feature,)
 
+@apply_tooltips
 class FeatureRenormalize(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -467,19 +422,17 @@ class FeatureRenormalize(FeatureModulationBase):
                 **super().INPUT_TYPES()["required"],
             }
         }
-    RETURN_TYPES = ("FEATURE", "IMAGE")
-    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
     FUNCTION = "renormalize"
 
     def renormalize(self, feature, lower_threshold, upper_threshold, invert_output):
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
         
-        # Calculate the range for normalization
         range_size = upper_threshold - lower_threshold
         
-        # Normalize values to fit between lower and upper threshold
         if max(values) == min(values):
-            normalized = [lower_threshold for _ in values]  # All values are the same
+            normalized = [lower_threshold for _ in values]
         else:
             normalized = [
                 lower_threshold + (range_size * (v - min(values)) / (max(values) - min(values)))
@@ -487,34 +440,9 @@ class FeatureRenormalize(FeatureModulationBase):
             ]
         
         processed_feature = self.create_processed_feature(feature, normalized, "Renormalized", invert_output)
-        return (processed_feature, self.visualize(processed_feature))
+        return (processed_feature,)
 
-class PreviewFeature(FeatureModulationBase):
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "feature": ("FEATURE",),
-                **super().INPUT_TYPES()["required"],
-            }
-        }
-
-    RETURN_TYPES = ("IMAGE",)
-    RETURN_NAMES = ("FEATURE_PREVIEW",)
-    FUNCTION = "preview"
-
-    def preview(self, feature, invert_output):
-        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
-        
-        if invert_output:
-            min_val, max_val = min(values), max(values)
-            inverted_values = [max_val - v + min_val for v in values]
-            processed_feature = self.create_processed_feature(feature, inverted_values, "Inverted", invert_output)
-        else:
-            processed_feature = feature
-        
-        return (self.visualize(processed_feature),)
-
+@apply_tooltips
 class FeatureTruncateOrExtend(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -527,8 +455,8 @@ class FeatureTruncateOrExtend(FeatureModulationBase):
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "IMAGE")
-    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
     FUNCTION = "truncate_or_extend"
 
     def truncate_or_extend(self, feature, target_feature_pipe, fill_method, invert_output):
@@ -560,9 +488,10 @@ class FeatureTruncateOrExtend(FeatureModulationBase):
             adjusted_values = source_values
 
         processed_feature = self.create_processed_feature(feature, adjusted_values, "TruncatedOrExtended", invert_output)
-        return (processed_feature, self.visualize(processed_feature))
+        return (processed_feature,)
     
 
+@apply_tooltips
 class FeatureAccumulate(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -579,8 +508,8 @@ class FeatureAccumulate(FeatureModulationBase):
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "IMAGE")
-    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
     FUNCTION = "accumulate"
 
     def accumulate(self, feature, start, end, threshold, skip_thresholded, frames_window, deccumulate, invert_output):
@@ -626,13 +555,13 @@ class FeatureAccumulate(FeatureModulationBase):
             normalized = [start + (v - min_val) * (end - start) / (max_val - min_val) for v in accumulated]
         
         processed_feature = self.create_processed_feature(feature, normalized, "Accumulated", invert_output)
-        return (processed_feature, self.visualize(processed_feature))
+        return (processed_feature,)
     
-
 
 import numpy as np
 from scipy.interpolate import interp1d
 
+@apply_tooltips
 class FeatureContiguousInterpolate(FeatureModulationBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -650,8 +579,8 @@ class FeatureContiguousInterpolate(FeatureModulationBase):
             }
         }
 
-    RETURN_TYPES = ("FEATURE", "IMAGE")
-    RETURN_NAMES = ("FEATURE", "FEATURE_VISUALIZATION")
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
     FUNCTION = "interpolate"
 
     def interpolate(self, feature, threshold, start, end, easing, fade_out, invert_output):
@@ -697,5 +626,156 @@ class FeatureContiguousInterpolate(FeatureModulationBase):
                         interpolated[idx] = fade_out_values[i]
 
         processed_feature = self.create_processed_feature(feature, interpolated, "Interpolated", invert_output)
-        return (processed_feature, self.visualize(processed_feature))
+        return (processed_feature,)
+
+@apply_tooltips
+class FeatureInterpolator(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "interpolation_method": (["zero", "hold", "linear", "cubic", "nearest", "previous", "next", "quadratic"],),
+                "threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "min_difference": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "min_distance": ("INT", {"default": 1, "min": 1, "max": 100, "step": 1}),
+                "extrapolate": ("BOOLEAN", {"default": False}),
+                **super().INPUT_TYPES()["required"],
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
+    FUNCTION = "modulate"
+
+    def modulate(self, feature, interpolation_method, threshold, min_difference, min_distance, extrapolate, invert_output):
+        # Get feature values
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        # Find significant points based on threshold and difference
+        significant_indices = []
+        last_value = None
+        last_index = None
+        
+        for i, v in enumerate(values):
+            # Check threshold directly
+            if v >= threshold:
+                # Check minimum difference from last point
+                if last_value is None or abs(v - last_value) >= min_difference:
+                    # Check minimum distance from last point
+                    if last_index is None or (i - last_index) >= min_distance:
+                        significant_indices.append(i)
+                        last_value = v
+                        last_index = i
+        
+        if not significant_indices:
+            # If no significant points found, return original feature
+            return (feature,)
+            
+        significant_values = [values[i] for i in significant_indices]
+        
+        # Create interpolation function
+        x = np.array(significant_indices)
+        y = np.array(significant_values)
+        
+        # Handle extrapolation
+        fill_value = "extrapolate" if extrapolate else (significant_values[0], significant_values[-1])
+        
+        # Generate output values
+        if interpolation_method == "zero":
+            # Only set values at exact points, everything else is zero
+            interpolated = np.zeros(feature.frame_count)
+            for idx, val in zip(significant_indices, significant_values):
+                interpolated[idx] = val
+        elif interpolation_method == "hold":
+            # Hold each value until the next point
+            interpolated = np.zeros(feature.frame_count)
+            for i in range(len(significant_indices)-1):
+                start_idx = significant_indices[i]
+                end_idx = significant_indices[i+1]
+                interpolated[start_idx:end_idx] = significant_values[i]
+            # Handle the last point
+            interpolated[significant_indices[-1]:] = significant_values[-1]
+            # Handle the beginning if needed
+            if significant_indices[0] > 0:
+                interpolated[:significant_indices[0]] = significant_values[0] if extrapolate else 0
+        else:
+            # Create interpolator based on method
+            if interpolation_method == "linear":
+                f = interp1d(x, y, kind='linear', bounds_error=False, fill_value=fill_value)
+            elif interpolation_method == "cubic":
+                # Need at least 4 points for cubic, fallback to quadratic if not enough points
+                if len(x) >= 4:
+                    f = interp1d(x, y, kind='cubic', bounds_error=False, fill_value=fill_value)
+                else:
+                    f = interp1d(x, y, kind='quadratic', bounds_error=False, fill_value=fill_value)
+            elif interpolation_method == "nearest":
+                f = interp1d(x, y, kind='nearest', bounds_error=False, fill_value=fill_value)
+            elif interpolation_method == "previous":
+                f = interp1d(x, y, kind='previous', bounds_error=False, fill_value=fill_value)
+            elif interpolation_method == "next":
+                f = interp1d(x, y, kind='next', bounds_error=False, fill_value=fill_value)
+            elif interpolation_method == "quadratic":
+                # Need at least 3 points for quadratic, fallback to linear if not enough points
+                if len(x) >= 3:
+                    f = interp1d(x, y, kind='quadratic', bounds_error=False, fill_value=fill_value)
+                else:
+                    f = interp1d(x, y, kind='linear', bounds_error=False, fill_value=fill_value)
+            
+            # Generate interpolated values for all frames
+            x_new = np.arange(feature.frame_count)
+            interpolated = f(x_new)
+        
+        # Create processed feature
+        processed_feature = self.create_processed_feature(feature, interpolated, "Interpolated", invert_output)
+        return (processed_feature,)
+
+@apply_tooltips
+class FeaturePeakDetector(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "prominence": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "distance": ("INT", {"default": 1, "min": 1, "max": 100, "step": 1}),
+                "width": ("INT", {"default": 1, "min": 1, "max": 100, "step": 1}),
+                "plateau_size": ("INT", {"default": 1, "min": 1, "max": 100, "step": 1}),
+                "detect_valleys": ("BOOLEAN", {"default": False}),
+                **super().INPUT_TYPES()["required"],
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE",)
+    RETURN_NAMES = ("FEATURE",)
+    FUNCTION = "modulate"
+
+    def modulate(self, feature, prominence, distance, width, plateau_size, detect_valleys, invert_output):
+        # Get feature values
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        # Convert to numpy array for processing
+        signal = np.array(values)
+        
+        # If detecting valleys, invert the signal temporarily
+        if detect_valleys:
+            signal = -signal
+            
+        # Find peaks with given parameters
+        peaks, properties = find_peaks(
+            signal,
+            prominence=prominence,  # Minimum prominence of peaks
+            distance=distance,      # Minimum distance between peaks
+            width=width,           # Minimum width of peaks
+            plateau_size=plateau_size  # Minimum size of flat peaks
+        )
+        
+        # Create output signal where peaks are 1.0 and everything else is 0.0
+        peak_signal = np.zeros_like(signal)
+        peak_signal[peaks] = 1.0
+        
+        # Create processed feature
+        name_prefix = "Valleys" if detect_valleys else "Peaks"
+        processed_feature = self.create_processed_feature(feature, peak_signal, name_prefix, invert_output)
+        return (processed_feature,)
 

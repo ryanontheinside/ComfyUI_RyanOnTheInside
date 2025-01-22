@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import torch
 
 def apply_blend_mode(base_image: np.ndarray, blend_image: np.ndarray, mode: str, opacity: float) -> np.ndarray:
     """
@@ -117,43 +118,58 @@ def apply_blur(image: np.ndarray, intensity: float, kernel_size: int, sigma: flo
     blurred = cv2.GaussianBlur(image, (kernel_size, kernel_size), sigma)
     return blurred
 
-def apply_sharpen(image: np.ndarray, intensity: float, kernel_size: int, sigma: float = 1.0) -> np.ndarray:
-    blurred = cv2.GaussianBlur(image, (kernel_size, kernel_size), sigma)
-    sharpened = cv2.addWeighted(image, 1 + intensity, blurred, -intensity, 0)
-    return np.clip(sharpened, 0, 1)
-
-def apply_edge_detect(image: np.ndarray, intensity: float, kernel_size: int) -> np.ndarray:
-    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    edges = cv2.Canny(np.uint8(gray * 255), 100, 200)
-    edges = edges.astype(float) / 255.0
-    return np.clip(image * (1 - intensity) + np.dstack([edges] * 3) * intensity, 0, 1)
-
-def apply_emboss(image: np.ndarray, intensity: float, kernel_size: int) -> np.ndarray:
-    kernel = np.array([[-1,-1,0], [-1,0,1], [0,1,1]])
-    if kernel_size > 3:
-        kernel = cv2.resize(kernel, (kernel_size, kernel_size), interpolation=cv2.INTER_LINEAR)
-    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    embossed = cv2.filter2D(gray, -1, kernel * intensity)
-    embossed = (embossed - np.min(embossed)) / (np.max(embossed) - np.min(embossed))
-    return np.clip(image * (1 - intensity) + np.dstack([embossed] * 3) * intensity, 0, 1)
-
-def apply_posterize(image: np.ndarray, intensity: float, levels: int, dither: bool = False) -> np.ndarray:
-    effective_levels = int(np.clip(levels * (1 - intensity) + 2 * intensity, 2, levels))
-    quantized = np.round(image * (effective_levels - 1)) / (effective_levels - 1)
-    if dither:
-        error = image - quantized
-        quantized += np.random.uniform(-0.5/effective_levels, 0.5/effective_levels, image.shape)
-    return np.clip(quantized, 0, 1)
-
-def apply_brightness(image: np.ndarray, intensity: float, midpoint: float = 0.5, preserve_luminosity: bool = False) -> np.ndarray:
-    adjusted = image + intensity
+def create_gaussian_kernel_gpu(kernel_size: int, sigma: float, device: torch.device) -> torch.Tensor:
+    """
+    Create a 2D Gaussian kernel for GPU-accelerated blur operations.
     
-    if preserve_luminosity:
-        original_luminosity = np.mean(image)
-        adjusted_luminosity = np.mean(adjusted)
-        adjusted *= original_luminosity / adjusted_luminosity
+    :param kernel_size: Size of the kernel (must be odd)
+    :param sigma: Standard deviation of the Gaussian
+    :param device: PyTorch device (GPU or CPU)
+    :return: Gaussian kernel tensor ready for convolution
+    """
+    # Create 1D Gaussian kernel
+    x = torch.linspace(-kernel_size // 2 + 1, kernel_size // 2, kernel_size, device=device)
+    gauss = torch.exp(-x.pow(2) / (2 * sigma ** 2))
+    kernel = gauss / gauss.sum()
     
-    return np.clip(adjusted, 0, 1)
+    # Create 2D kernel by outer product
+    kernel = kernel.unsqueeze(0) * kernel.unsqueeze(1)
+    
+    # Normalize and reshape for conv2d
+    kernel = kernel / kernel.sum()
+    kernel = kernel.view(1, 1, kernel_size, kernel_size)
+    return kernel.repeat(3, 1, 1, 1)  # Repeat for RGB channels
+
+def apply_gaussian_blur_gpu(x: torch.Tensor, kernel_size: int, sigma: float) -> torch.Tensor:
+    """
+    Apply Gaussian blur using GPU acceleration via PyTorch.
+    
+    :param x: Input tensor in format (C, H, W) or (N, C, H, W)
+    :param kernel_size: Size of the Gaussian kernel (must be odd)
+    :param sigma: Standard deviation of the Gaussian
+    :return: Blurred tensor in same format as input
+    """
+    if kernel_size < 3:
+        return x
+        
+    # Ensure input is in the right format (N, C, H, W)
+    if len(x.shape) == 3:
+        x = x.unsqueeze(0)
+    
+    # Create gaussian kernel
+    kernel = create_gaussian_kernel_gpu(kernel_size, sigma, x.device)
+    
+    # Apply padding to prevent border artifacts
+    pad_size = kernel_size // 2
+    x_padded = torch.nn.functional.pad(x, (pad_size, pad_size, pad_size, pad_size), mode='reflect')
+    
+    # Apply convolution for each channel
+    groups = x.shape[1]  # Number of channels
+    blurred = torch.nn.functional.conv2d(x_padded, kernel, groups=groups, padding=0)
+    
+    return blurred.squeeze(0) if len(x.shape) == 4 else blurred
+
+
 
 def apply_contrast(image: np.ndarray, intensity: float, midpoint: float = 0.5, preserve_luminosity: bool = False) -> np.ndarray:
     factor = 1 + intensity
@@ -250,3 +266,124 @@ def transform_image(image: np.ndarray, transform_type: str, x_value: float, y_va
         return scale_image(image, 1 + x_value, 1 + y_value)
     else:
         raise ValueError(f"Unknown transform type: {transform_type}")
+
+def create_wave_distortion_map(height: int, width: int, frequency: float, amplitude: float, device: torch.device) -> torch.Tensor:
+    """
+    Create a wave distortion displacement map for image warping.
+    
+    :param height: Image height
+    :param width: Image width
+    :param frequency: Wave frequency
+    :param amplitude: Wave amplitude
+    :param device: PyTorch device (GPU/CPU)
+    :return: Displacement map tensor
+    """
+    y, x = torch.meshgrid(
+        torch.arange(height, device=device),
+        torch.arange(width, device=device),
+        indexing='ij'
+    )
+    
+    displacement = amplitude * torch.sin(2 * np.pi * frequency * y.float())
+    return displacement
+
+def extract_and_move_blocks(image: torch.Tensor, block_size: int, shift_range: float, device: torch.device) -> torch.Tensor:
+    """
+    Extract and randomly move blocks in the image.
+    
+    :param image: Input tensor (H,W,C)
+    :param block_size: Size of blocks to move
+    :param shift_range: Maximum shift distance as fraction of image size
+    :param device: PyTorch device (GPU/CPU)
+    :return: Image with moved blocks
+    """
+    h, w = image.shape[:2]
+    result = image.clone()
+    
+    # Calculate maximum shift in pixels
+    max_shift = int(min(h, w) * shift_range)
+    
+    # Create block positions
+    y_blocks = torch.arange(0, h - block_size + 1, block_size, device=device)
+    x_blocks = torch.arange(0, w - block_size + 1, block_size, device=device)
+    
+    # Random shifts for each block
+    shifts_y = torch.randint(-max_shift, max_shift + 1, (len(y_blocks), len(x_blocks)), device=device)
+    shifts_x = torch.randint(-max_shift, max_shift + 1, (len(y_blocks), len(x_blocks)), device=device)
+    
+    # Apply shifts using tensor operations
+    for i, y in enumerate(y_blocks):
+        for j, x in enumerate(x_blocks):
+            # Source block coordinates
+            y1, y2 = y, y + block_size
+            x1, x2 = x, x + block_size
+            
+            # Target coordinates with shift
+            new_y = torch.clamp(y + shifts_y[i,j], 0, h - block_size)
+            new_x = torch.clamp(x + shifts_x[i,j], 0, w - block_size)
+            
+            # Move block
+            result[new_y:new_y+block_size, new_x:new_x+block_size] = image[y1:y2, x1:x2]
+    
+    return result
+
+def apply_compression_artifacts(image: torch.Tensor, block_size: int, quality: float, device: torch.device) -> torch.Tensor:
+    """
+    Simulate compression artifacts using block-wise operations.
+    
+    :param image: Input tensor (H,W,C)
+    :param block_size: Size of compression blocks
+    :param quality: Quality factor (0-1)
+    :param device: PyTorch device (GPU/CPU)
+    :return: Image with compression artifacts
+    """
+    h, w = image.shape[:2]
+    result = image.clone()
+    
+    # Quantization levels based on quality
+    levels = int(2 + (1 - quality) * 14)  # 2-16 levels
+    
+    # Process blocks
+    for y in range(0, h - block_size + 1, block_size):
+        for x in range(0, w - block_size + 1, block_size):
+            block = image[y:y+block_size, x:x+block_size]
+            
+            # Quantize block values
+            block_q = torch.round(block * (levels - 1)) / (levels - 1)
+            
+            # Add block edges
+            edge_strength = (1 - quality) * 0.1
+            block_q += edge_strength * (torch.rand_like(block_q) - 0.5)
+            
+            result[y:y+block_size, x:x+block_size] = block_q
+    
+    return torch.clamp(result, 0, 1)
+
+def apply_line_corruption(image: torch.Tensor, corruption_probability: float, device: torch.device) -> torch.Tensor:
+    """
+    Apply random line corruption effects.
+    
+    :param image: Input tensor (H,W,C)
+    :param corruption_probability: Probability of line corruption
+    :param device: PyTorch device (GPU/CPU)
+    :return: Image with corrupted lines
+    """
+    h, w = image.shape[:2]
+    result = image.clone()
+    
+    # Generate random line positions
+    line_mask = torch.rand(h, device=device) < corruption_probability
+    
+    # Different corruption types for selected lines
+    for y in torch.where(line_mask)[0]:
+        corruption_type = torch.randint(0, 3, (1,), device=device)
+        
+        if corruption_type == 0:  # Shift
+            shift = torch.randint(-w//4, w//4 + 1, (1,), device=device)
+            result[y] = torch.roll(image[y], shift.item(), dims=0)
+        elif corruption_type == 1:  # Noise
+            result[y] = torch.rand_like(image[y])
+        else:  # Repeat
+            result[y] = image[y].roll(1, dims=0)
+    
+    return result

@@ -1,46 +1,39 @@
 import torch
 import numpy as np
-from abc import ABC, abstractmethod
+from abc import  abstractmethod
 from tqdm import tqdm
 from comfy.utils import ProgressBar
 from ... import RyanOnTheInside
+from ..flex.flex_base import FlexBase
 from .audio_utils import pitch_shift, time_stretch
-import torch
-import numpy as np
-from abc import ABC, abstractmethod
+from ...tooltips import apply_tooltips
 
-class FlexAudioBase(RyanOnTheInside, ABC):
+@apply_tooltips
+class FlexAudioBase(FlexBase, RyanOnTheInside):
     @classmethod
     def INPUT_TYPES(cls):
+        base_input_types = super().INPUT_TYPES()
+        base_required = base_input_types.get("required", {})
+        base_optional = base_input_types.get("optional", {})
+        
+        # Update required inputs
+        base_required.update({
+            "audio": ("AUDIO",),
+            "target_fps": ("FLOAT", {"default": 3.0, "min": 1.0, "max": 60.0, "step": 1.0}),
+        })
+        
         return {
-            "required": {
-                "audio": ("AUDIO",),
-                "feature": ("FEATURE",),
-                "feature_pipe": ("FEATURE_PIPE",),
-                "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "feature_param": (cls.get_modifiable_params(), {"default": cls.get_modifiable_params()[0]}),
-                "feature_mode": (["relative", "absolute"], {"default": "relative"}),
-                "target_fps": ("FLOAT", {"default": 3.0, "min": 1.0, "max": 60.0, "step": 1.0}),
-            }
+            "required": base_required,
+            "optional": base_optional,
         }
 
-    CATEGORY = "RyanOnTheInside/FlexAudio"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Targets/Audio"
     RETURN_TYPES = ("AUDIO",)
     FUNCTION = "apply_effect"
 
     def __init__(self):
-        self.progress_bar = None
+        super().__init__()
 
-    def start_progress(self, total_steps, desc="Processing"):
-        self.progress_bar = ProgressBar(total_steps)
-
-    def update_progress(self):
-        if self.progress_bar:
-            self.progress_bar.update(1)
-
-    def end_progress(self):
-        self.progress_bar = None
 
     @classmethod
     @abstractmethod
@@ -48,24 +41,21 @@ class FlexAudioBase(RyanOnTheInside, ABC):
         """Return a list of parameter names that can be modulated."""
         return []
 
-    def modulate_param(self, param_value, feature_value, strength, mode):
-        if mode == "relative":
-            # Adjust to vary between -param_value and +param_value
-            return param_value * (2 * feature_value - 1) * strength
-        else:  # absolute
-            # Directly use feature_value to determine the shift
-            return param_value * (2 * feature_value - 1)
-
-    def apply_effect(self, audio, feature, feature_pipe, strength, feature_threshold, feature_param, feature_mode, target_fps, **kwargs):
+    def apply_effect(self, audio, opt_feature=None, strength=1.0, feature_threshold=0.0, feature_param=None, feature_mode="relative", target_fps=3.0, **kwargs):
         waveform = audio['waveform']  # Shape: [Batch, Channels, Samples]
         sample_rate = audio['sample_rate']
-        original_num_frames = feature_pipe.frame_count
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         waveform = waveform.to(device)
 
         audio_duration = waveform.shape[-1] / sample_rate
-        target_num_frames = int(audio_duration * target_fps)
-        num_frames = min(target_num_frames, original_num_frames)
+        num_frames = int(audio_duration * target_fps)
+
+        if opt_feature is not None:
+            original_num_frames = opt_feature.frame_count
+            num_frames = min(num_frames, original_num_frames)
+
+        # Initialize parameter scheduler
+        self.initialize_scheduler(num_frames, **kwargs)
 
         self.start_progress(num_frames, desc=f"Applying {self.__class__.__name__}")
 
@@ -78,11 +68,18 @@ class FlexAudioBase(RyanOnTheInside, ABC):
         # Initialize list to store processed frames
         processed_frames = []
 
-        # Pre-compute averaged feature values
-        feature_values = np.array([feature.get_value_at_frame(i) for i in range(original_num_frames)])
-        frames_per_segment = max(1, original_num_frames // num_frames)
-        averaged_features = [np.mean(feature_values[i:i+frames_per_segment]) 
-                             for i in range(0, original_num_frames, frames_per_segment)]
+        # Pre-compute averaged feature values if feature is provided
+        if opt_feature is not None:
+            feature_values = np.array([
+                0.5 if self.get_feature_value(i, opt_feature) is None 
+                else self.get_feature_value(i, opt_feature) 
+                for i in range(opt_feature.frame_count)
+            ])
+            frames_per_segment = max(1, opt_feature.frame_count // num_frames)
+            averaged_features = [np.mean(feature_values[i:i+frames_per_segment]) 
+                                 for i in range(0, opt_feature.frame_count, frames_per_segment)]
+        else:
+            averaged_features = [None] * num_frames  # No feature modulation
 
         # Define cross-fade length (e.g., 10% of frame length)
         crossfade_length = int(samples_per_frame * 0.1)
@@ -94,16 +91,24 @@ class FlexAudioBase(RyanOnTheInside, ABC):
 
             feature_value = averaged_features[i]
             
-            kwargs['frame_index'] = i
-            kwargs['sample_rate'] = sample_rate
+            # Process parameters using base class functionality
+            processed_kwargs = self.process_parameters(
+                frame_index=i,
+                feature_value=feature_value,
+                feature_threshold=feature_threshold,
+                strength=strength,
+                feature_param=feature_param,
+                feature_mode=feature_mode,
+                sample_rate=sample_rate,
+                **kwargs
+            )
 
-            if feature_value >= feature_threshold:
+            if feature_value is not None and feature_value >= feature_threshold:
                 try:
                     processed_frame = self.process_audio_frame(
-                        audio_frame, feature_value, strength,
-                        feature_param=feature_param,
+                        audio_frame,feature_param=feature_param,
                         feature_mode=feature_mode,
-                        **kwargs
+                        **processed_kwargs
                     )
                 except Exception as e:
                     import traceback
@@ -111,7 +116,8 @@ class FlexAudioBase(RyanOnTheInside, ABC):
                     traceback.print_exc()
                     processed_frame = audio_frame
             else:
-                processed_frame = audio_frame
+                # Process without feature modulation
+                processed_frame = self.apply_effect_internal(audio_frame, **processed_kwargs)
 
             if i > 0:
                 # Apply cross-fade with previous frame
@@ -134,13 +140,14 @@ class FlexAudioBase(RyanOnTheInside, ABC):
 
     def process_audio_frame(self, audio_frame: torch.Tensor, feature_value: float, strength: float,
                             feature_param: str, feature_mode: str, **kwargs) -> torch.Tensor:
-        # Modulate the selected parameter
-        if feature_param in self.get_modifiable_params() and feature_param in kwargs:
+        # Modulate the selected parameter if feature_value is provided
+        if feature_value is not None and feature_param in self.get_modifiable_params() and feature_param in kwargs:
+            param_value = kwargs[feature_param]
             modulated_value = self.modulate_param(
-                kwargs[feature_param], feature_value, strength, feature_mode
+                feature_param, param_value, feature_value, strength, feature_mode
             )
-            # Ensure n_steps is within the desired range
-            kwargs[feature_param] = max(-kwargs[feature_param], min(kwargs[feature_param], modulated_value))
+            # Ensure the modulated value is within the desired range
+            kwargs[feature_param] = modulated_value
 
         # Call the child class's implementation
         return self.apply_effect_internal(audio_frame, **kwargs)
@@ -150,18 +157,22 @@ class FlexAudioBase(RyanOnTheInside, ABC):
         """Apply the effect to the audio frame. To be implemented by child classes."""
         pass
 
-
-
-
-
+@apply_tooltips
 class FlexAudioPitchShift(FlexAudioBase):
     @classmethod
     def INPUT_TYPES(cls):
+        base_input_types = super().INPUT_TYPES()
+        base_required = base_input_types.get("required", {})
+        base_optional = base_input_types.get("optional", {})
+
+        # Update required inputs
+        base_required.update({
+            "n_steps": ("FLOAT", {"default": 6.0, "min": 0.0, "max": 12.0, "step": 0.1}),
+        })
+
         return {
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "n_steps": ("FLOAT", {"default": 6.0, "min": 0.0, "max": 12.0, "step": 0.1}),
-            }
+            "required": base_required,
+            "optional": base_optional,
         }
 
     @classmethod
@@ -170,18 +181,26 @@ class FlexAudioPitchShift(FlexAudioBase):
 
     def apply_effect_internal(self, audio_frame: torch.Tensor, n_steps: float, **kwargs) -> torch.Tensor:
         sample_rate = kwargs.get('sample_rate', 44100)  # Default to 44100 if not provided
-        
-        # Use the absolute value of n_steps for pitch shifting
+
+        # Use the value of n_steps for pitch shifting
         return pitch_shift(audio_frame, sample_rate, n_steps)
-    
+
+@apply_tooltips
 class FlexAudioTimeStretch(FlexAudioBase):
     @classmethod
     def INPUT_TYPES(cls):
+        base_input_types = super().INPUT_TYPES()
+        base_required = base_input_types.get("required", {})
+        base_optional = base_input_types.get("optional", {})
+
+        # Update required inputs
+        base_required.update({
+            "rate": ("FLOAT", {"default": 1.0, "min": 0.5, "max": 2.0, "step": 0.01}),
+        })
+
         return {
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "rate": ("FLOAT", {"default": 1.0, "min": 0.5, "max": 2.0, "step": 0.01}),
-            }
+            "required": base_required,
+            "optional": base_optional,
         }
 
     @classmethod

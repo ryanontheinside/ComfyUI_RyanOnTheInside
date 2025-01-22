@@ -4,8 +4,10 @@ import numpy as np
 import torch
 import cv2
 from scipy.ndimage import distance_transform_edt
+from ...tooltips import apply_tooltips
 
 
+@apply_tooltips
 class MaskMorph(TemporalMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -33,6 +35,7 @@ class MaskMorph(TemporalMaskBase):
     def apply_mask_morph(self, masks, strength, morph_type, max_kernel_size, max_iterations, **kwargs):
         return super().main_function(masks, strength, morph_type=morph_type, max_kernel_size=max_kernel_size, max_iterations=max_iterations, **kwargs)
 
+@apply_tooltips
 class MaskTransform(TemporalMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -57,6 +60,7 @@ class MaskTransform(TemporalMaskBase):
     def apply_mask_transform(self, masks, strength, transform_type, x_value, y_value, **kwargs):
         return super().main_function(masks, strength, transform_type=transform_type, x_value=x_value, y_value=y_value, **kwargs)
     
+@apply_tooltips
 class MaskMath(TemporalMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -82,6 +86,7 @@ class MaskMath(TemporalMaskBase):
         return super().main_function(masks, strength, mask_b=mask_b_np, combination_method=combination_method, **kwargs)
     
     #TODO CONFIRM THAT NOTHING HAPPENS WITH EMPTY MASK
+@apply_tooltips
 class MaskRings(TemporalMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -122,6 +127,7 @@ class MaskRings(TemporalMaskBase):
     def apply_mask_rings(self, masks, strength, num_rings, max_ring_width, **kwargs):
         return super().main_function(masks, strength, num_rings=num_rings, max_ring_width=max_ring_width, **kwargs)
 
+@apply_tooltips
 class MaskWarp(TemporalMaskBase):
     @classmethod
     def INPUT_TYPES(cls):

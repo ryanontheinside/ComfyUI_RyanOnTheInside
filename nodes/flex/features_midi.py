@@ -26,8 +26,8 @@ class MIDIFeature(BaseFeature):
         """Return a list of parameter names that can be modulated."""
         return list(cls.ATTRIBUTE_MAP.keys())
 
-    def __init__(self, name, midi_data, attribute, frame_rate, frame_count, notes=None, chord_only=False):
-        super().__init__(name, "midi", frame_rate, frame_count)
+    def __init__(self, name, midi_data, attribute, frame_rate, frame_count, width, height, notes=None, chord_only=False):
+        super().__init__(name, "midi", frame_rate, frame_count, width, height)
         self.midi_data = midi_data
         self.attribute = attribute
         self.notes = set(notes) if notes is not None else set()

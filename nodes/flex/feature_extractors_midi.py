@@ -1,20 +1,19 @@
 import mido
 import os
-from .feature_pipe import FeaturePipe
 import folder_paths
 from server import PromptServer
 from aiohttp import web
 import shutil
 from .features_midi import MIDIFeature
 from .feature_extractors import FeatureExtractorBase
+from ...tooltips import apply_tooltips
 
+@apply_tooltips
 class MIDILoadAndExtract(FeatureExtractorBase):
     @classmethod
     def feature_type(cls) -> type[MIDIFeature]:
         return MIDIFeature
-    
 
-    
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -22,18 +21,16 @@ class MIDILoadAndExtract(FeatureExtractorBase):
                 **super().INPUT_TYPES()["required"],
                 "midi_file": (folder_paths.get_filename_list("midi_files"),),
                 "track_selection": (["all"],),
-                "frame_rate": ("FLOAT", {"default": 30, "min": 0.1, "max": 120, "step": 0.1}),
-                "video_frames": ("IMAGE",),
                 "chord_only": ("BOOLEAN", {"default": False}),
                 "notes":  ("STRING", {"default": ""}),
             },
         }
 
-    RETURN_TYPES = ("MIDI", "FEATURE", "FEATURE_PIPE")
+    RETURN_TYPES = ("MIDI", "FEATURE")
     FUNCTION = "process_midi"
-    CATEGORY = "RyanOnTheInside/Audio"
+    
 
-    def process_midi(self, midi_file, track_selection, notes, extraction_method, frame_rate, video_frames, chord_only=False):
+    def process_midi(self, midi_file, track_selection, notes, extraction_method, frame_rate, frame_count, width, height, chord_only=False):
         try:
             midi_path = folder_paths.get_full_path("midi_files", midi_file)
             if not midi_path or not os.path.exists(midi_path):
@@ -42,23 +39,27 @@ class MIDILoadAndExtract(FeatureExtractorBase):
             midi_data = mido.MidiFile(midi_path)
             
             selected_notes = [int(n.strip()) for n in notes.split(',') if n.strip().isdigit()]
-            feature_pipe = FeaturePipe(frame_rate, video_frames)
             
             # Convert friendly attribute name to internal attribute name
             internal_attribute = MIDIFeature.get_attribute_value(extraction_method)
             
-            feature = MIDIFeature(f"midi_{internal_attribute}", midi_data, internal_attribute, 
-                                  feature_pipe.frame_rate, feature_pipe.frame_count, 
-                                  notes=selected_notes, chord_only=chord_only)
+            feature = MIDIFeature(
+                f"midi_{internal_attribute}",
+                midi_data,
+                internal_attribute,
+                frame_rate,
+                frame_count,
+                width,
+                height,
+                notes=selected_notes,
+                chord_only=chord_only
+            )
             
             feature.extract()
 
-            return (midi_data, feature, feature_pipe)
+            return (midi_data, feature)
 
         except Exception as e:
-            # error_msg = f"Error in MIDILoadAndExtract.process_midi: {type(e).__name__}: {str(e)}\n"
-            # error_msg += traceback.format_exc()
-            # print(error_msg)
             raise RuntimeError(f"Error processing MIDI file: {type(e).__name__}: {str(e)}")
 
     @classmethod

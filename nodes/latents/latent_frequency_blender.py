@@ -1,4 +1,4 @@
-from .latent_base import FlexLatentBase
+from .flex_latent_base import FlexLatentBase
 import torch
 import numpy as np
 from scipy.signal import butter, sosfilt
@@ -8,9 +8,11 @@ from ..audio.audio_utils import (
     calculate_spectral_flux,
     calculate_zero_crossing_rate
 )
+from ...tooltips import apply_tooltips
 
 #NOTE just an experiment, it sucks
 #TODO: get to this
+@apply_tooltips
 class LatentFrequencyBlender(FlexLatentBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -42,7 +44,7 @@ class LatentFrequencyBlender(FlexLatentBase):
 
     RETURN_TYPES = ("LATENT",)
     FUNCTION = "apply_effect"
-    CATEGORY = "RyanOnTheInside/FlexLatent"
+    CATEGORY = "RyanOnTheInside/ExperimentalWIP"
 
     @classmethod
     def get_modifiable_params(cls):

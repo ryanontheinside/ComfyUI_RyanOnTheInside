@@ -9,11 +9,12 @@ import librosa
 import torch
 import cv2
 import matplotlib.pyplot as plt
+from ... import ProgressMixin
 
 
 
 
-class BaseAudioProcessor:
+class BaseAudioProcessor(ProgressMixin):
     def __init__(self, audio, num_frames, height, width, frame_rate):
         self.audio = audio['waveform'].squeeze(0).mean(axis=0).cpu().numpy()  # Convert to mono and numpy array
         self.sample_rate = audio['sample_rate']
@@ -24,18 +25,7 @@ class BaseAudioProcessor:
         
         self.audio_duration = len(self.audio) / self.sample_rate
         self.frame_duration = 1 / self.frame_rate if self.frame_rate > 0 else self.audio_duration / self.num_frames
-        self.progress_bar = None
 
-    def start_progress(self, total_steps, desc="Processing"):
-        self.progress_bar = ProgressBar(total_steps)
-
-    def update_progress(self):
-        if self.progress_bar:
-            self.progress_bar.update(1)
-
-    def end_progress(self):
-        self.progress_bar = None
-    
     def _normalize(self, data):
         return (data - data.min()) / (data.max() - data.min())
 
