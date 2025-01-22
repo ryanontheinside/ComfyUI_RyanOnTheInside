@@ -1,8 +1,9 @@
 [project]
-name = "ComfyUI_RyanOnTheInside"
+name = "comfyui_ryanontheinside"
 description = "Custom nodes introducing everything-reactivity and timelines to ComfyUI"
-version = "2.0.1"
+version = "2.0.2"
 license = {file = "LICENSE"}
+
 dependencies = ["pygame","opencv-python==4.10.0","scipy","torchaudio", "pillow","librosa==0.10.2","pymunk==6.8.1","matplotlib","openunmix","mido","scikit-image"]
 
 [project.urls]
