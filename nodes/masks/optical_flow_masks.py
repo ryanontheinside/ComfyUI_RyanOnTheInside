@@ -3,10 +3,12 @@ import cv2
 import torch
 from .mask_base import OpticalFlowMaskBase
 from .mask_utils import calculate_optical_flow, apply_blur, normalize_array
+from ...tooltips import apply_tooltips
 
 
 #TODO make all this better.
 
+@apply_tooltips
 class OpticalFlowMaskModulation(OpticalFlowMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -71,6 +73,7 @@ class OpticalFlowMaskModulation(OpticalFlowMaskBase):
         self.trail_buffer = []  # Reset trail buffer
         return (super().main_function(masks, images, strength, flow_method, flow_threshold, magnitude_threshold, modulation_strength=modulation_strength, blur_radius=blur_radius, trail_length=trail_length, decay_factor=decay_factor, decay_style=decay_style, max_thickness=max_thickness, **kwargs),)
    
+@apply_tooltips
 class OpticalFlowDirectionMask(OpticalFlowMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -136,6 +139,7 @@ class OpticalFlowDirectionMask(OpticalFlowMaskBase):
     def apply_direction_mask(self, masks, images, strength, flow_method, flow_threshold, magnitude_threshold, direction, angle_threshold, blur_radius, invert, **kwargs):
         return super().main_function(masks, images, strength, flow_method, flow_threshold, magnitude_threshold, direction=direction, angle_threshold=angle_threshold, blur_radius=blur_radius, invert=invert, **kwargs)  
 
+@apply_tooltips
 class OpticalFlowParticleSystem(OpticalFlowMaskBase):
     @classmethod
     def INPUT_TYPES(cls):

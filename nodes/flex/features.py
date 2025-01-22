@@ -4,16 +4,54 @@ import torch
 import cv2
 from ..masks.mask_utils import calculate_optical_flow
 from scipy.interpolate import interp1d, make_interp_spline
-
+import json
 class BaseFeature(ABC):
-    def __init__(self, name, feature_type, frame_rate, frame_count):
+    def __init__(self, name, feature_type, frame_rate, frame_count, width, height):
         self.name = name
         self.type = feature_type
         self.frame_rate = frame_rate
         self.frame_count = frame_count
+        self.width = width
+        self.height = height
         self.data = None
         self.features = None
         self.inverted = False
+        self._min_value = None
+        self._max_value = None
+
+    @property
+    def min_value(self):
+        """Get minimum value - either set explicitly or calculated from data"""
+        if self._min_value is not None:
+            return self._min_value
+        
+        if self.data is not None:
+            return float(np.min(self.data))
+        elif self.features is not None and hasattr(self, 'feature_name'):
+            return float(min(self.features[self.feature_name]))
+        return 0.0  # Default fallback
+
+    @min_value.setter
+    def min_value(self, value):
+        """Set minimum value explicitly"""
+        self._min_value = float(value)
+
+    @property
+    def max_value(self):
+        """Get maximum value - either set explicitly or calculated from data"""
+        if self._max_value is not None:
+            return self._max_value
+        
+        if self.data is not None:
+            return float(np.max(self.data))
+        elif self.features is not None and hasattr(self, 'feature_name'):
+            return float(max(self.features[self.feature_name]))
+        return 1.0  # Default fallback
+
+    @max_value.setter
+    def max_value(self, value):
+        """Set maximum value explicitly"""
+        self._max_value = float(value)
 
     @abstractmethod
     def extract(self):
@@ -38,6 +76,13 @@ class BaseFeature(ABC):
         if self.data is not None:
             self.data = (self.data - np.min(self.data)) / (np.max(self.data) - np.min(self.data))
         return self
+    
+
+    def get_normalized_data(self):
+        if self.data is not None:
+            return (self.data - np.min(self.data)) / (np.max(self.data) - np.min(self.data))
+        return None
+    
 
     def invert(self):
         if self.data is not None:
@@ -53,9 +98,42 @@ class BaseFeature(ABC):
         self.inverted = not self.inverted
         return self
     
+class FloatFeature(BaseFeature):
+    def __init__(self, name, frame_rate, frame_count, width, height, float_values, feature_type='raw'):
+        super().__init__(name, "float", frame_rate, frame_count, width, height)
+        self.float_values = np.array(float_values)
+        self.feature_type = feature_type
+        self.available_features = self.get_extraction_methods()
+
+    @classmethod
+    def get_extraction_methods(cls):
+        return ["raw", "smooth", "cumulative"]
+
+    def extract(self):
+        if len(self.float_values) != self.frame_count:
+            # Interpolate to match frame count if necessary
+            x = np.linspace(0, 1, len(self.float_values))
+            x_new = np.linspace(0, 1, self.frame_count)
+            self.float_values = np.interp(x_new, x, self.float_values)
+
+        if self.feature_type == "raw":
+            self.data = self.float_values
+        elif self.feature_type == "smooth":
+            # Apply simple moving average smoothing
+            window_size = max(3, self.frame_count // 30)  # Dynamic window size
+            kernel = np.ones(window_size) / window_size
+            self.data = np.convolve(self.float_values, kernel, mode='same')
+        elif self.feature_type == "cumulative":
+            # Cumulative sum of values
+            self.data = np.cumsum(self.float_values)
+        else:
+            raise ValueError(f"Unsupported feature type: {self.feature_type}")
+
+        return self
+
 class ManualFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, start_frame, end_frame, start_value, end_value, method='linear'):
-        super().__init__(name, "manual", frame_rate, frame_count)
+    def __init__(self, name, frame_rate, frame_count, width, height, start_frame, end_frame, start_value, end_value, method='linear'):
+        super().__init__(name, "manual", frame_rate, frame_count, width, height)
         self.start_frame = start_frame
         self.end_frame = end_frame
         self.start_value = start_value
@@ -109,11 +187,12 @@ class ManualFeature(BaseFeature):
         return ease_out
 
 class TimeFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, effect_type='smooth', speed=1.0, offset=0.0):
+    def __init__(self, name, frame_rate, frame_count, width, height, effect_type='smooth', speed=1, offset=0.0):
+        super().__init__(name, "time", frame_rate, frame_count, width, height)
         self.effect_type = effect_type
-        self.speed = speed
+        # speed is now in frames (how many frames to complete one cycle)
+        self.speed = max(1, int(speed))  # Ensure at least 1 frame
         self.offset = offset
-        super().__init__(name, "time", frame_rate, frame_count)
 
     @classmethod
     def get_extraction_methods(self):
@@ -122,8 +201,10 @@ class TimeFeature(BaseFeature):
         ]
 
     def extract(self):
-        t = np.linspace(0, self.frame_count / self.frame_rate, self.frame_count)
-        t = (t * self.speed + self.offset) % 1
+        # Calculate time values based on frames directly
+        frames = np.arange(self.frame_count)
+        # Convert to cycle position (0 to 1) based on speed in frames
+        t = (frames / self.speed + self.offset) % 1
 
         if self.effect_type == 'smooth':
             self.data = t
@@ -138,15 +219,15 @@ class TimeFeature(BaseFeature):
         else:
             raise ValueError("Unsupported effect type")
         
-        return self.normalize()
+        return self
 
 class DepthFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, depth_maps, feature_name='mean_depth'):
+    def __init__(self, name, frame_rate, frame_count, width, height, depth_maps, feature_name='mean_depth'):
+        super().__init__(name, "depth", frame_rate, frame_count, width, height)
         self.depth_maps = depth_maps
         self.features = None
         self.feature_name = feature_name
         self.available_features = self.get_extraction_methods()
-        super().__init__(name, "depth", frame_rate, frame_count)
 
     @classmethod
     def get_extraction_methods(self):
@@ -214,13 +295,13 @@ class DepthFeature(BaseFeature):
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 
 class ColorFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, images, feature_name='dominant_color'):
+    def __init__(self, name, frame_rate, frame_count, width, height, images, feature_name='dominant_color'):
         if images.dim() != 4 or images.shape[-1] != 3:
             raise ValueError(f"Expected images in BHWC format, but got shape {images.shape}")
+        super().__init__(name, "color", frame_rate, frame_count, width, height)
         self.images = images
         self.feature_name = feature_name
         self.available_features = self.get_extraction_methods()
-        super().__init__(name, "color", frame_rate, frame_count)
 
     @classmethod
     def get_extraction_methods(self):
@@ -298,11 +379,11 @@ class ColorFeature(BaseFeature):
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 
 class BrightnessFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, images, feature_name='mean_brightness'):
+    def __init__(self, name, frame_rate, frame_count, width, height, images, feature_name='mean_brightness'):
+        super().__init__(name, "brightness", frame_rate, frame_count, width, height)
         self.images = images
         self.feature_name = feature_name
         self.available_features = self.get_extraction_methods()
-        super().__init__(name, "brightness", frame_rate, frame_count)
 
     @classmethod
     def get_extraction_methods(self):
@@ -366,7 +447,8 @@ class BrightnessFeature(BaseFeature):
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 
 class MotionFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, images, feature_name='mean_motion', flow_method='Farneback', flow_threshold=0.0, magnitude_threshold=0.0, progress_callback=None):
+    def __init__(self, name, frame_rate, frame_count, width, height, images, feature_name='mean_motion', flow_method='Farneback', flow_threshold=0.0, magnitude_threshold=0.0, progress_callback=None):
+        super().__init__(name, "motion", frame_rate, frame_count, width, height)
         self.images = images
         self.feature_name = feature_name
         self.flow_method = flow_method
@@ -374,7 +456,6 @@ class MotionFeature(BaseFeature):
         self.magnitude_threshold = magnitude_threshold
         self.available_features = self.get_extraction_methods()
         self.progress_callback = progress_callback
-        super().__init__(name, "motion", frame_rate, frame_count)
 
     @classmethod
     def get_extraction_methods(self):
@@ -465,12 +546,12 @@ class MotionFeature(BaseFeature):
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 
 class AreaFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, masks, feature_type='total_area', threshold=0.5):
+    def __init__(self, name, frame_rate, frame_count, width, height, masks, feature_type='total_area', threshold=0.5):
+        super().__init__(name, "area", frame_rate, frame_count, width, height)
         self.masks = masks
         self.feature_type = feature_type
         self.threshold = threshold
         self.available_features = self.get_extraction_methods()
-        super().__init__(name, "area", frame_rate, frame_count)
 
     @classmethod
     def get_extraction_methods(self):
@@ -504,7 +585,7 @@ class AreaFeature(BaseFeature):
             
             self.data.append(area)
         
-        return self.normalize()
+        return self
 
     def normalize(self):
         if self.data:
@@ -524,10 +605,295 @@ class AreaFeature(BaseFeature):
 
     def set_active_feature(self, feature_name):
         if feature_name in self.available_features:
-            self.feature_type = feature_name
+            self.feature_name = feature_name
             self.extract()  # Re-extract the data with the new feature type
         else:
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
+
+class DrawableFeature(BaseFeature):
+    """A feature that can be drawn on a graph interface"""
+    
+    @classmethod
+    def get_extraction_methods(cls):
+        return ["drawn"]
+    
+    def __init__(self, name, frame_rate, frame_count, width, height, points, method="linear", min_value=0.0, max_value=1.0, fill_value=0.0):
+        super().__init__(name, "drawn", frame_rate, frame_count, width, height)
+        self.points = points  # List of (frame, value) tuples
+        self.method = method
+        self._min_value = float(min_value)
+        self._max_value = float(max_value)
+        self.fill_value = fill_value
+        
+
+
+    def extract(self):
+        """Convert drawn points into a continuous feature curve"""
+        if not self.points:
+            self.data = np.full(self.frame_count, self.fill_value, dtype=np.float32)
+            return self
+            
+        # Sort points by frame number
+        sorted_points = sorted(self.points, key=lambda x: x[0])
+        frames, values = zip(*sorted_points)
+        frames = np.array(frames)
+        values = np.array(values)
+        x = np.arange(self.frame_count)
+        
+        # Initialize with fill value
+        self.data = np.full(self.frame_count, self.fill_value, dtype=np.float32)
+        
+        if len(frames) == 1:
+            # Single point - just set that point
+            self.data[int(frames[0])] = values[0]
+        else:
+            # Multiple points - interpolate based on method
+            if self.method == "linear":
+                f = interp1d(frames, values, kind='linear', bounds_error=False, fill_value=self.fill_value)
+                self.data = f(x).astype(np.float32)
+            
+            elif self.method == "cubic":
+                if len(frames) >= 4:
+                    from scipy.interpolate import CubicSpline
+                    f = CubicSpline(frames, values, bc_type='natural')
+                    mask = (x >= frames[0]) & (x <= frames[-1])
+                    self.data[mask] = f(x[mask]).astype(np.float32)
+                else:
+                    # Fall back to linear if not enough points
+                    f = interp1d(frames, values, kind='linear', bounds_error=False, fill_value=self.fill_value)
+                    self.data = f(x).astype(np.float32)
+            
+            elif self.method == "nearest":
+                f = interp1d(frames, values, kind='nearest', bounds_error=False, fill_value=self.fill_value)
+                self.data = f(x).astype(np.float32)
+            
+            elif self.method == "zero":
+                # Only set values at exact points
+                for frame, value in zip(frames, values):
+                    self.data[int(frame)] = value
+            
+            elif self.method == "hold":
+                # Hold each value until the next point
+                mask = (x >= frames[0]) & (x <= frames[-1])
+                for i in range(len(frames)-1):
+                    self.data[int(frames[i]):int(frames[i+1])] = values[i]
+                self.data[int(frames[-1])] = values[-1]
+            
+            elif self.method == "ease_in":
+                # Quadratic ease-in
+                mask = (x >= frames[0]) & (x <= frames[-1])
+                t = np.zeros_like(x, dtype=float)
+                t[mask] = (x[mask] - frames[0]) / (frames[-1] - frames[0])
+                f = interp1d(frames, values, kind='linear', bounds_error=False, fill_value=self.fill_value)
+                self.data[mask] = (t[mask] * t[mask] * f(x[mask])).astype(np.float32)
+            
+            elif self.method == "ease_out":
+                # Quadratic ease-out
+                mask = (x >= frames[0]) & (x <= frames[-1])
+                t = np.zeros_like(x, dtype=float)
+                t[mask] = (x[mask] - frames[0]) / (frames[-1] - frames[0])
+                f = interp1d(frames, values, kind='linear', bounds_error=False, fill_value=self.fill_value)
+                self.data[mask] = ((2 - t[mask]) * t[mask] * f(x[mask])).astype(np.float32)
+            
+            else:
+                raise ValueError(f"Unsupported interpolation method: {self.method}")
+        
+        # Normalize the data to 0-1 range
+        if self.max_value > self.min_value:
+            self.data = (self.data - self.min_value) / (self.max_value - self.min_value)
+        
+        return self
+
+class WhisperFeature(BaseFeature):
+    def __init__(self, name, frame_rate, frame_count, width, height, alignment_data, trigger_pairs=None, feature_name='word_timing'):
+        super().__init__(name, "whisper", frame_rate, frame_count, width, height)
+        # Handle both string and dict/list alignment data
+        if isinstance(alignment_data, str):
+            try:
+                self.alignment_data = json.loads(alignment_data)
+            except json.JSONDecodeError:
+                raise ValueError("Invalid alignment data format: must be valid JSON string or dict/list")
+        else:
+            self.alignment_data = alignment_data
+        self.trigger_pairs = trigger_pairs  # Now a TriggerSet instance
+        self.feature_name = feature_name
+        self.available_features = self.get_extraction_methods()
+
+    @classmethod
+    def get_extraction_methods(cls):
+        return [
+            "trigger_values",   # Uses trigger pairs to create value sequences
+            "word_timing",      # Creates peaks at word starts
+            "segment_timing",   # Creates plateaus during segments
+            "speech_density",   # Measures words per second over time
+            "silence_ratio"     # Ratio of silence vs speech
+        ]
+
+    def extract(self):
+        self.features = {self.feature_name: [0.0] * self.frame_count}
+        
+        if self.feature_name == "word_timing":
+            self._extract_word_timing()
+        elif self.feature_name == "segment_timing":
+            self._extract_segment_timing()
+        elif self.feature_name == "trigger_values":
+            self._extract_trigger_values()
+        elif self.feature_name == "speech_density":
+            self._extract_speech_density()
+        elif self.feature_name == "silence_ratio":
+            self._extract_silence_ratio()
+        
+        self._normalize_features()
+        return self
+
+    def _extract_word_timing(self):
+        feature_data = [0.0] * self.frame_count
+        for item in self.alignment_data:
+            start_frame = int(item["start"] * self.frame_rate)
+            if 0 <= start_frame < self.frame_count:
+                feature_data[start_frame] = 1.0
+        self.features[self.feature_name] = feature_data
+
+    def _extract_segment_timing(self):
+        feature_data = [0.0] * self.frame_count
+        for item in self.alignment_data:
+            start_frame = int(item["start"] * self.frame_rate)
+            end_frame = int(item["end"] * self.frame_rate)
+            for frame in range(max(0, start_frame), min(end_frame + 1, self.frame_count)):
+                feature_data[frame] = 1.0
+        self.features[self.feature_name] = feature_data
+
+    def _extract_trigger_values(self):
+        if not self.trigger_pairs:
+            raise ValueError("Trigger pairs required for trigger_values feature")
+            
+        feature_data = [0.0] * self.frame_count
+        accumulated_data = [0.0] * self.frame_count
+        
+        for item in self.alignment_data:
+            text = item["value"].lower()
+            start_frame = int(item["start"] * self.frame_rate)
+            end_frame = int(item["end"] * self.frame_rate)
+            
+            for trigger in self.trigger_pairs.triggers:  # Access triggers directly from TriggerSet
+                pattern = trigger["pattern"].lower()
+                if pattern in text:
+                    start_val, end_val = trigger["values"]
+                    blend_mode = trigger.get("blend_mode", "blend")
+                    
+                    # Create temporary array for this trigger's values
+                    trigger_data = [0.0] * self.frame_count
+                    if start_frame < self.frame_count:
+                        trigger_data[start_frame] = start_val
+                    if end_frame < self.frame_count:
+                        trigger_data[end_frame] = end_val
+                    
+                    # Blend with accumulated result based on blend mode
+                    for i in range(self.frame_count):
+                        if blend_mode == "blend":
+                            accumulated_data[i] = (accumulated_data[i] + trigger_data[i]) / 2
+                        elif blend_mode == "add":
+                            accumulated_data[i] = min(1.0, accumulated_data[i] + trigger_data[i])
+                        elif blend_mode == "multiply":
+                            accumulated_data[i] = accumulated_data[i] * trigger_data[i]
+                        elif blend_mode == "max":
+                            accumulated_data[i] = max(accumulated_data[i], trigger_data[i])
+        
+        self.features[self.feature_name] = accumulated_data
+
+    def _extract_speech_density(self):
+        feature_data = [0.0] * self.frame_count
+        window_size = int(self.frame_rate)  # 1-second window
+        
+        for item in self.alignment_data:
+            start_frame = int(item["start"] * self.frame_rate)
+            if 0 <= start_frame < self.frame_count:
+                # Add word density over a window
+                for i in range(max(0, start_frame - window_size), min(start_frame + window_size, self.frame_count)):
+                    feature_data[i] += 1.0 / (2 * window_size)
+        
+        self.features[self.feature_name] = feature_data
+
+    def _extract_silence_ratio(self):
+        feature_data = [1.0] * self.frame_count  # Initialize as silence
+        
+        for item in self.alignment_data:
+            start_frame = int(item["start"] * self.frame_rate)
+            end_frame = int(item["end"] * self.frame_rate)
+            for frame in range(max(0, start_frame), min(end_frame + 1, self.frame_count)):
+                feature_data[frame] = 0.0  # Mark as speech
+        
+        self.features[self.feature_name] = feature_data
+
+    def _normalize_features(self):
+        if self.feature_name != "trigger_values":  # Don't normalize trigger values
+            feature_array = np.array(self.features[self.feature_name])
+            feature_min = np.min(feature_array)
+            feature_max = np.max(feature_array)
+            if feature_max > feature_min:
+                self.features[self.feature_name] = ((feature_array - feature_min) / 
+                                                  (feature_max - feature_min)).tolist()
+
+    def get_feature_sequence(self, feature_name=None):
+        if self.features is None:
+            self.extract()
+        if feature_name is None:
+            feature_name = self.feature_name
+        return self.features.get(feature_name, None)
+
+    def set_active_feature(self, feature_name):
+        if feature_name in self.available_features:
+            self.feature_name = feature_name
+            self.extract()
+        else:
+            raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
+
+    def find_trigger_start_time(self, pattern):
+        """Find the start time of when a pattern appears in the alignment data"""
+        for segment in self.alignment_data:
+            if pattern.lower() in segment["value"].lower():
+                return segment["start"]
+        return None
+
+    def find_trigger_end_time(self, pattern):
+        """Find the end time of when a pattern appears in the alignment data"""
+        for segment in self.alignment_data:
+            if pattern.lower() in segment["value"].lower():
+                return segment["end"]
+        return None
+
+    def sort_triggers_by_occurrence(self, triggers):
+        """Sort triggers based on when their patterns appear in the text"""
+        def find_first_occurrence(pattern):
+            text = " ".join(segment["value"] for segment in self.alignment_data)
+            return text.lower().find(pattern.lower())
+        
+        return sorted(triggers, key=lambda t: find_first_occurrence(t["pattern"]))
+
+    def get_trigger_frames(self, pattern):
+        """Get the frame range where a trigger pattern occurs"""
+        start_time = self.find_trigger_start_time(pattern)
+        if start_time is None:
+            return None, None
+            
+        end_time = self.find_trigger_end_time(pattern)
+        start_frame = int(start_time * self.frame_rate)
+        end_frame = int(end_time * self.frame_rate)
+        
+        return start_frame, end_frame
+
+    def find_all_trigger_frames(self, pattern):
+        """Find all frame ranges where a trigger pattern occurs"""
+        frame_ranges = []
+        pattern = pattern.lower()
+        
+        for segment in self.alignment_data:
+            if pattern in segment["value"].lower():
+                start_frame = int(segment["start"] * self.frame_rate)
+                end_frame = int(segment["end"] * self.frame_rate)
+                frame_ranges.append((start_frame, end_frame))
+                
+        return frame_ranges
 
 #TODO volume feature
 

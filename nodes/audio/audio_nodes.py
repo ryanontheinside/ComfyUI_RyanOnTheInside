@@ -10,6 +10,7 @@ from ... import RyanOnTheInside
 from ..flex.feature_pipe import FeaturePipe
 import hashlib
 import torchaudio
+from ...tooltips import apply_tooltips
 
 
 class AudioNodeBase(RyanOnTheInside):
@@ -23,6 +24,7 @@ class AudioNodeBase(RyanOnTheInside):
         else:
             return torch.zeros((num_frames, height, width, channels), dtype=torch.float32)
 
+@apply_tooltips
 class DownloadOpenUnmixModel(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -59,68 +61,9 @@ class DownloadOpenUnmixModel(AudioNodeBase):
 
         return (separator,)
 
-class AudioSeparator(AudioNodeBase):
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "model": ("OPEN_UNMIX_MODEL",),
-                "audio": ("AUDIO",),
-                "video_frames": ("IMAGE",),
-                "frame_rate": ("FLOAT", {"default": 30, "min": 0.1, "max": 120, "step": 0.1}),
-            }
-        }
 
-    RETURN_TYPES = ("AUDIO", "AUDIO", "AUDIO", "AUDIO", "AUDIO", "FEATURE_PIPE")
-    RETURN_NAMES = ("audio", "drums_audio", "vocals_audio", "bass_audio", "other_audio", "feature_pipe")
-    FUNCTION = "process_audio"
-    CATEGORY = "RyanOnTheInside/Audio/AudioSeparation"
-    def process_audio(self, model, audio, video_frames, frame_rate):
-        waveform = audio['waveform']
-        sample_rate = audio['sample_rate']
 
-        num_frames, height, width, _ = video_frames.shape
-
-        if waveform.dim() == 3:
-            waveform = waveform.squeeze(0) 
-        if waveform.dim() == 1:
-            waveform = waveform.unsqueeze(0)  # Add channel dimension if mono
-        if waveform.shape[0] != 2:
-            waveform = waveform.repeat(2, 1)  # Duplicate mono to stereo if necessary
-            
-        waveform = waveform.unsqueeze(0)
-
-        # Determine the device
-        device = next(model.parameters()).device
-        waveform = waveform.to(device)
-
-        estimates = model(waveform)
-
-        # Create isolated audio objects for each target
-        isolated_audio = {}
-        target_indices = {'drums': 1, 'vocals': 0, 'bass': 2, 'other': 3}  # Corrected indices
-        for target, index in target_indices.items():
-            target_waveform = estimates[:, index, :, :]  # Shape: (1, 2, num_samples)
-            
-            isolated_audio[target] = {
-                'waveform': target_waveform.cpu(),  # Move back to CPU
-                'sample_rate': sample_rate,
-                'frame_rate': frame_rate
-            }
-
-        # Create FeaturePipe
-        feature_pipe = FeaturePipe(frame_rate, video_frames)
-
-        return (
-            audio,
-            isolated_audio['drums'],
-            isolated_audio['vocals'],
-            isolated_audio['bass'],
-            isolated_audio['other'],
-            feature_pipe,
-        )
-
-#to be primary in version2    
+@apply_tooltips
 class AudioSeparatorSimple(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -174,6 +117,7 @@ class AudioSeparatorSimple(AudioNodeBase):
             isolated_audio['other']
         )
 
+@apply_tooltips
 class AudioFilter(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -267,6 +211,7 @@ class AudioFilter(AudioNodeBase):
 
 #         return (model,)
 
+@apply_tooltips
 class FrequencyFilterPreset(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -342,6 +287,7 @@ class FrequencyFilterPreset(AudioNodeBase):
         else:
             raise ValueError(f"Unknown preset: {preset}")
         
+@apply_tooltips
 class FrequencyFilterCustom(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -376,6 +322,7 @@ class FrequencyFilterCustom(AudioNodeBase):
         else:
             return ([filter_params],)
 
+@apply_tooltips
 class FrequencyRange(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -411,6 +358,7 @@ class FrequencyRange(AudioNodeBase):
         else:
             return ([range_params],)
         
+@apply_tooltips
 class AudioFeatureVisualizer(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -495,6 +443,7 @@ class AudioFeatureVisualizer(AudioNodeBase):
 
         return (mask,)  
 
+@apply_tooltips
 class EmptyImageFromAudio(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -517,6 +466,7 @@ class EmptyImageFromAudio(AudioNodeBase):
         frame_count = empty_image.shape[0]
         return (empty_image, frame_count)
 
+@apply_tooltips
 class EmptyMaskFromAudio(AudioNodeBase):
 
     @classmethod
@@ -585,8 +535,8 @@ class EmptyMaskFromAudio(AudioNodeBase):
 #         if not folder_paths.exists_annotated_filepath(audio):
 #             return "Invalid audio file: {}".format(audio)
 #         return True
-        
-#TODO
+
+@apply_tooltips
 class EmptyImageAndMaskFromAudio(AudioNodeBase):
     @classmethod
     def INPUT_TYPES(cls):

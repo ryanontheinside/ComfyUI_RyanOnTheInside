@@ -12,19 +12,19 @@ from .mask_utils import (
     normalize_array
     )
 from abc import ABC, abstractmethod
-import pymunk 
-import math
-import random
 from typing import List, Tuple
 import pymunk
 import cv2
-from ..audio.audio_processor_legacy import AudioFeatureExtractor
-from ... import RyanOnTheInside
+from ...tooltips import apply_tooltips
+from ... import ProgressMixin
 
 
-class MaskBase(RyanOnTheInside, ABC):
+
+@apply_tooltips
+class MaskBase(ProgressMixin, ABC):
     @classmethod
     def INPUT_TYPES(cls):
+
         return {
             "required": {
                 "masks": ("MASK",),
@@ -41,10 +41,6 @@ class MaskBase(RyanOnTheInside, ABC):
     def __init__(self):
         self.pre_processors = []
         self.post_processors = []
-        self.progress_bar = None
-        self.tqdm_bar = None
-        self.current_progress = 0
-        self.total_steps = 0
 
     def add_pre_processor(self, func):
         self.pre_processors.append(func)
@@ -64,26 +60,6 @@ class MaskBase(RyanOnTheInside, ABC):
             mask = processor(mask)
         return mask
 
-    def start_progress(self, total_steps, desc="Processing"):
-        self.progress_bar = ProgressBar(total_steps)
-        self.tqdm_bar = tqdm(total=total_steps, desc=desc, leave=False)
-        self.current_progress = 0
-        self.total_steps = total_steps
-
-    def update_progress(self, step=1):
-        self.current_progress += step
-        if self.progress_bar:
-            self.progress_bar.update(step)
-        if self.tqdm_bar:
-            self.tqdm_bar.update(step)
-
-    def end_progress(self):
-        if self.tqdm_bar:
-            self.tqdm_bar.close()
-        self.progress_bar = None
-        self.tqdm_bar = None
-        self.current_progress = 0
-        self.total_steps = 0
 
     @abstractmethod
     def process_mask(self, mask: np.ndarray, strength: float, **kwargs) -> np.ndarray:
@@ -92,12 +68,14 @@ class MaskBase(RyanOnTheInside, ABC):
         """
         pass
 
-    def apply_mask_operation(self, processed_masks: torch.Tensor, original_masks: torch.Tensor, strength: float, invert: bool, subtract_original: float, grow_with_blur: float, **kwargs) -> Tuple[torch.Tensor]:
+    def apply_mask_operation(self, processed_masks: torch.Tensor, original_masks: torch.Tensor, strength: float, invert: bool, subtract_original: float, grow_with_blur: float, progress_callback=None, **kwargs) -> Tuple[torch.Tensor]:
         processed_masks_np = processed_masks.cpu().numpy() if isinstance(processed_masks, torch.Tensor) else processed_masks
         original_masks_np = original_masks.cpu().numpy() if isinstance(original_masks, torch.Tensor) else original_masks
         num_frames = processed_masks_np.shape[0]
 
-        self.start_progress(num_frames, desc="Applying mask operation")
+        # Only start progress if no callback is provided
+        if progress_callback is None:
+            self.start_progress(num_frames, desc="Applying mask operation")
 
         result = []
         for processed_mask, original_mask in zip(processed_masks_np, original_masks_np):
@@ -125,9 +103,16 @@ class MaskBase(RyanOnTheInside, ABC):
             processed_mask = np.clip(processed_mask, 0, 1)
 
             result.append(processed_mask)
-            self.update_progress()
+            
+            # Use callback if provided, otherwise use internal progress
+            if progress_callback:
+                progress_callback()
+            else:
+                self.update_progress()
 
-        self.end_progress()
+        # Only end progress if we started it
+        if progress_callback is None:
+            self.end_progress()
 
         return torch.from_numpy(np.stack(result)).float()
 
@@ -139,6 +124,7 @@ class MaskBase(RyanOnTheInside, ABC):
         """
         pass
 
+@apply_tooltips
 class TemporalMaskBase(MaskBase, ABC):
     @classmethod
     def INPUT_TYPES(cls):
@@ -154,7 +140,7 @@ class TemporalMaskBase(MaskBase, ABC):
             }
         }
     
-    CATEGORY="RyanOnTheInside/TemporalMasks"
+    CATEGORY="RyanOnTheInside/Masks/TemporalMasks"
 
     def __init__(self):
         super().__init__()
@@ -211,8 +197,8 @@ class TemporalMaskBase(MaskBase, ABC):
         processed_masks = self.apply_temporal_mask_operation(masks, strength, start_frame, end_frame, effect_duration, temporal_easing, palindrome, **kwargs)
         ret = (self.apply_mask_operation(processed_masks[0], original_masks, strength, invert, subtract_original, grow_with_blur, **kwargs),)
         return ret
-
-    
+ 
+@apply_tooltips
 class OpticalFlowMaskBase(MaskBase, ABC):
     @classmethod
     def INPUT_TYPES(cls):
@@ -227,7 +213,7 @@ class OpticalFlowMaskBase(MaskBase, ABC):
             }
         }
 
-    CATEGORY="RyanOnTheInside/OpticalFlowMasks"
+    CATEGORY="RyanOnTheInside/OpticalFlow"
 
     def __init__(self):
         super().__init__()
@@ -275,58 +261,5 @@ class OpticalFlowMaskBase(MaskBase, ABC):
         processed_masks = np.stack(result)
         return self.apply_mask_operation(processed_masks, masks, strength, **kwargs)
 
-#TODO  check if input mask is blank and just skip, then check children
-class FlexMaskBase(MaskBase):
-    feature_threshold_default=0.0
-    @classmethod
-    def INPUT_TYPES(cls):  
-        return {
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "feature": ("FEATURE",),
-                "feature_pipe": ("FEATURE_PIPE",),
-                "feature_threshold": ("FLOAT", {"default": cls.feature_threshold_default, "min": 0.0, "max": 1.0, "step": 0.01}),
-            }
-        }
 
-    CATEGORY = "RyanOnTheInside/FlexMasks"
-    RETURN_TYPES = ("MASK",)
-    FUNCTION = "main_function"
-
-    @abstractmethod
-    def process_mask(self, mask: np.ndarray, feature_value: float, strength: float, **kwargs) -> np.ndarray:
-        pass
-
-    def apply_mask_operation(self, masks, feature, feature_pipe, strength, feature_threshold, invert, subtract_original, grow_with_blur, **kwargs):
-        num_frames = feature_pipe.frame_count
-        original_masks = masks.clone()
-
-        self.start_progress(num_frames, desc="Applying flex mask operation")
-
-        result = []
-        for i in range(num_frames):
-            kwargs['frame_index'] = i
-            mask = masks[i].numpy()
-            feature_value = feature.get_value_at_frame(i)
-            
-            if feature_value >= feature_threshold:
-                processed_mask = self.process_mask(mask, feature_value, strength, **kwargs)
-            else:
-                if hasattr(self, 'process_mask_below_threshold'):
-                    processed_mask = self.process_mask_below_threshold(mask, feature_value, strength, **kwargs)
-                else:
-                    processed_mask = mask
-                
-
-            result.append(processed_mask)
-            self.update_progress()
-
-        self.end_progress()
-
-        processed_masks = torch.from_numpy(np.stack(result)).float()
-        return super().apply_mask_operation(processed_masks, original_masks, strength, invert, subtract_original, grow_with_blur, **kwargs)
-
-    @abstractmethod
-    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, invert, subtract_original, grow_with_blur, **kwargs):
-        pass
 

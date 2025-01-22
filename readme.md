@@ -1,5 +1,6 @@
 # ComfyUI RyanOnTheInside Node Pack
 
+## 🚨 Important: [Version 2.0 Update](#-important-version-20-update--1) 🚨
 ## Overview
 ### These nodes react to **everything**, including audio.
 
@@ -11,11 +12,49 @@
 - 🎵 **Audio & MIDI Processing**: Separate instruments and create audio-reactive visuals
 - 🎆 **Particle Systems**: Create mesmerizing, fluid-like effects
 - 🌊 **Optical Flow**: Generate masks based on motion in videos
-- ⏳ **Temporal Effects**: Apply time-based transformations to masks and images
 - 🌊 **DEPTH Flow** 🌊: Use flex features to control depthflow nodes, adding parallax animations to your workflows!
-- 🎭 **AdvancedLivePortrait** 🎭: Use flex features to control facial animation expressions! 
+- 👤 **AdvancedLivePortrait** 👤: Use flex features to control facial animation expressions! 
+- 🎨 **Advanced Controlnet** 🎨: Direct integration with ComfyUI-AdvancedControlnet!
+- 🎭 **AnimateDiff** 🎭: Direct integration with ComfyUI-AnimateDiff-Evolved!
 
-### **Developers**: if you're interested in extending the flex features into your own nodes, check out the [base-class-refactor](../../tree/base-class-refactor) branch and feel free to reach out. 
+
+
+
+
+### 🚨 Important: Version 2.0 Update 🚨
+
+This repository has been updated to Version 2.0! After careful consideration, I decided that a complete update was better than maintaining legacy support indefinitely. This new version brings significant improvements while maintaining all existing functionality. This update was done with user experience, extensibility, and functionality in mind.
+
+### 🎉 What's New in V2
+- **License**: This project is now licensed under the MIT License.
+- **EVERYTHING reacts to EVERYTHING:** Now you can modulate ALL parameters of ALL Flex nodes! Possibilities increased by multiple orders of magnitude.
+- **Optional Feature Inputs**: Feature inputs are now optional! This means these nodes double as a powerful suite for image, mask, and video manipulation even without reactivity! 
+- **More Intuitive**: Redesigned with user experience in mind. Less noodles, more intuitive connections.
+
+- **Help**: Takes full advantage of ComfyUI's tooltip system.
+- **Manual Feature Creation**: New interface for drawing/creating features manually - far more powerful than it might seem!
+- **Text as Features**: New integration with Open AI Whisper allows text to be used as a feature source, with a fully modular trigger system
+- **Enhanced External Integration**: Deeper compatibility with external node packs
+- **Image Improvements**: Major improvements to FlexImage nodes. One might say they are more than useful now.
+- **Mask Improvements**: Major improvements to FlexMask nodes.
+- **Performance Improvements**: Major performance improvements in many nodes. More to follow.
+- **Feature Modulation**: More robust and feature-rich modulation system.
+- **And much more!**
+
+
+### ⚠️ Breaking Changes Notice
+Due to ComfyUI's workflow loading mechanism, **existing workflows using these nodes ~~may~~ *will* break after updating**. I did consider this carefully, as I have yet to introduce breaking changes to this node system, but this extensive update  neccesitated a complete overhaul. There will not be a version 3. Rather, version 2 will be updated as needed. I have taken the time to update the most relevant example workflows to version 2.
+
+If you need to run an older workflow, you can revert to the previous version of these nodes by using the Manager, or by running this command in your ComfyUI_RyanOnTheInside directory:
+
+```bash
+git checkout dab96492ac7d906368ac9c7a17cb0dbd670923d9
+```
+
+To return to the latest version later, use:
+```bash
+git checkout main
+```
 
 <table style="border-collapse: collapse; border: none;">
   <tr>
@@ -48,49 +87,7 @@
 
 <details><summary><h3>🆕 Recent Updates:</h3></summary>
 
-- 12/14/24 - **FeatureToFloat**: Convert features to float data. 
-- 11/20/24 - **AdvancedLivePortrait Compatibility**: Exciting news! The AdvancedLivePortrait nodes are now compatible with our feature system, enabling dynamic control over facial animations!
-- 11/19/24 - **AudioInfo**: Added a node that returns audio information, including duration, sample rate, number of channels, number of samples, max amplitude, mean amplitude, and RMS amplitude.
-- 11/8/24 - **DOOM**: Will it run DOOM? Yes. Yes it will.
-- 11/6/24 - **Some cleanup in prep for v2**: Control CogVideo by converting features to spline data
-- 11/1/24 - **Feature to Spline Data**: Control CogVideo by convert features to spline data
-- 10/28/24 - **FlexImageHorizontalToVertical**: Converts horizontal images to vertical format with customizable background effects.
-- 10/23/24 - **Flex Images Now Feature Optional**: You no longer need to specify a feature to use Flex Image nodes.
-- 10/20/24 - **Audio Visualization Nodes**: Over 1 TRILLION ways to customize!
-  - **FlexAudioVisualizerCircular**: Creates circular audio visualizations based on frequency or waveform data.
-  - **FlexAudioVisualizerLine**: Generates linear audio visualizations with customizable styles and parameters.
-- 10/20/24 - **ImageScaleToTarget**: New node that upscales images to match a target image's size.
-- 10/20/24 - **FlexImageHueShift**: Applies a hue shift effect to images, with optional feature modulation.
-- 10/20/24 - **FlexImageDepthWarp**: Warps images based on depth maps, creating pseudo-3D effects.
-- 10/18/24 - **Manual Feature**: create features manually.
-- 10/18/24 - **Flex image transform and more**: Transform images with your features!
-- 10/13/24 - **Depthflow Nodes Compatibility**: Exciting news! The Depthflow Nodes pack by akatz-ai is now compatible with my feature system, opening up new possibilities for dynamic parallax animations!
-- 10/12/24 - **A LOT**: I added a lot of new nodes, fixed a lot of bugs, and cleaned up a lot of the code. I will be detailing the cool stuff on YouTube at some point in this timeline  of ours
-  - **FeatureContiguousInterpolate**: Interpolates contiguous segments of a feature that meet a threshold criteria.
-  - **FeatureRebase**: Rebases feature values within specified thresholds.
-  - **Latents as flex feature targets**: WORK IN PROGRESS Base class for latent nodes, providing a common interface and functionality for various latent operations.
-  - **Audio Utility and Effect Nodes**: Added an incomplete set of audio processing nodes.
-  - **And more**
-- 10/3/24 - **FeatureAccumulate**: Adds a new feature modifier that accumulates feature values over time, creating a cumulative effect.
-- 9/30/23 - **FlexVideoSeek Node**: Added a new video manipulation node that allows for dynamic frame seeking based on feature inputs. This node enables creation of time-warping effects, music-reactive video manipulations, and other temporal distortions.
-- 9/30/23 - **Audio Utility and Effect Nodes**: Added a comprehensive set of audio processing nodes:
-  - Utility Nodes: AudioPad, AudioVolumeNormalization, AudioResample, AudioChannelMerge, AudioChannelSplit, AudioConcatenate, AudioCombine
-  - Effect Nodes: AudioPitchShift, AudioTimeStretch, AudioFade, AudioGain, AudioDither
-  These nodes provide powerful tools for manipulating and processing audio within ComfyUI workflows.
-- 9/28/24 - **Video TARGET**: Adds video as a feature target! While all feature targets are inherently *tiiime* based, this additional allows for *video-level* modulation as opposed to modulating individual frames to varying degrees over time. Novel!
-- 9/27/24 - MIDI feature bug fix
-- 9/25/24 - **FlexImageContrast**: Adds contrast and brightness to images, with an option to preserve luminosity.
-- 9/15/24 - **alot** Depth From Shape, Audio Pitch Feature, Pitch Range  filters, new MIDI keybord for Pitch Range specification, Image from audio, mask from audio, Improved depth chamber, wave propagation, emanating rings,   and a lot more 
-- 9/8/24 - **Area Feature**: Adds area  as a  driving reactivity feature!
-- 9/7/24 - **Proximity Feature**: Adds proximity as a driving reactivity feature! Allows for the distince of objects from one another to control other nodes.
-- 9/5/24 - **FlexImageParallax**: Add illusory depth.
-- 9/3/24 - **FlexMaskDepthChamber**: Mask anything within a given depth range
-- 9/3/24 - **FeatureFade**: another feature modifier  to allow mixing of features, controled by features. Think mixing depth and motion features according to a kick drum or somthing. Ridiculous.
-- 9/1/24 - **Utility Nodes**: Added many utility nodes for batch manipulation and more
-- 8/31/24 - **FlexMaskRandomShapes**: Create dynamic shapes. Cooler than it sounds!
-- 8/30/24 - **FlexMaskEmanatingRings**: Create dynamic, expanding ring patterns emanating from mask edges.
-- 8/30/24 - **FlexMaskWavePropagation**: Simulate wave-like distortions propagating from mask boundaries.
-- 8/29/24 - **Added feature reactivity to paricle simulations**
+**VERSION 2.0**
 
 </details>
 
@@ -143,24 +140,12 @@ Dynamic control over various aspects of your workflow:
 - Multiple optical flow algorithms available
 - Create motion-reactive particle simulations
 
-### ⏳ Temporal Effects
-- Apply time-based transformations to masks and images
-- Create evolving animations with various effects (erosion, dilation, warping)
-- Customize with easing functions and palindrome support
+### ⏳ Temporal Effects [DEPRECATED]
+- You can do all of this 7000x with FlexMask nodes.
 
 ## 🤝 Compatible Node Packs
 
-I'm thrilled to announce that external node packs are now compatible with my feature system! Here are some notable examples:
-
-### 🎭 AdvancedLivePortrait
-
-The [AdvancedLivePortrait nodes](https://github.com/Fannovel16/ComfyUI-AdvancedLivePortrait) bring powerful facial animation capabilities to ComfyUI, and now they're fully compatible with our feature system! This means you can create dynamic, responsive facial animations that react to audio, MIDI, motion, and more.
-
-Key features when combined with our system:
-- Control facial expressions using audio features
-- Sync lip movements with speech or music
-- Create dynamic emotional responses based on various inputs
-- Modulate animation parameters in real-time
+I'm thrilled to announce that external node packs are now compatible with the feature system! Here are some notable examples:
 
 ### 🌊 Depthflow Nodes
 
@@ -176,8 +161,28 @@ By combining Depthflow Nodes with my feature system, you can create dynamic, res
 Check out the [Depthflow Nodes repository](https://github.com/akatz-ai/ComfyUI-Depthflow-Nodes) for more information and installation instructions.
 
 
+### 👤 AdvancedLivePortrait
 
-## 📚 Detailed Documentation
+The [AdvancedLivePortrait nodes](https://github.com/Fannovel16/ComfyUI-AdvancedLivePortrait) bring powerful facial animation capabilities to ComfyUI, and now they're fully compatible with our feature system! This means you can create dynamic, responsive facial animations that react to audio, MIDI, motion, and more.
+
+Key features when combined with our system:
+- Control facial expressions using audio features
+- Sync lip movements with speech or music
+- Create dynamic emotional responses based on various inputs
+- Modulate animation parameters in real-time
+
+### 🎭 AnimateDiff
+
+The [AnimateDiff Evolved nodes](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved) bring powerful animation capabilities to ComfyUI. There is now direct integration with this node pack, and this integration will grow over time! 
+
+### 🎨 Advanced Controlnet
+
+
+The [Advanced Controlnet](https://github.com/Kosinkadink/ComfyUI-Advanced-ControlNet) bring powerful granular control to ComfyUI. There is now direct integration with this node pack, and this integration will grow over time!
+
+
+## 📚 Overview Documentation
+
 
 <details>
 <summary><h3>Flex Features</h3></summary>
@@ -234,7 +239,16 @@ The Flex Features system allows for dynamic control over various aspects of your
 - **Sawtooth**: Rapid rise followed by sudden drop
 - **Bounce**: Emulates a bouncing motion
 
-These features can be used to control IPAdapters, Masks, and Images, creating dynamic and responsive effects that adapt to the input data.
+#### Text Features (Whisper)
+- **Speech-to-Text**: Convert spoken words from audio into text features
+- **Transcription Timing**: Sync features with specific words or phrases
+- **Confidence Scores**: Use speech recognition confidence as a feature
+- **Language Detection**: Create features based on detected languages
+- **Speaker Segments**: Generate features from different speaker segments
+- **Sentiment Analysis**: Extract emotional content from spoken words
+- **Temporal Alignment**: Map text features to specific timestamps
+
+These features can be used to control almost anything. IPAdapters, masks, images, video.... particle emitters (see below :D)... creating dynamic and responsive effects that adapt to the input data.
 
 </details>
 
@@ -299,21 +313,7 @@ Optical flow analysis allows for the creation of dynamic, motion-responsive effe
 
 </details>
 
-<details>
-<summary><h3>Temporal Effects</h3></summary>
 
-Add the dimension of time to your mask and image effects:
-
-- **Morphological Operations**: Apply time-varying erosion, dilation, opening, and closing
-- **Geometric Transformations**: Animate translation, rotation, and scaling over time
-- **Mask Combinations**: Blend multiple masks with time-based operations
-- **Warping Effects**: Create dynamic distortions using Perlin noise, radial, or swirl patterns
-- **Easing Functions**: Customize the rate of change for smooth animations
-- **Palindrome Mode**: Create seamless back-and-forth animations
-
-These temporal effects enable the creation of evolving, dynamic animations that transform masks and images over the course of your video or animation sequence.
-
-</details>
 
 ## Installation
 
@@ -351,13 +351,8 @@ Contributions are welcome! Both to the code and EXAMPLE WORKFLOWS!!! If you'd li
 5. Submit a pull request to the main repository
 
 ## License
-The choice of license is out of my hands for the time being, but this will change soon.
 
-This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).
-
-You are free to share and adapt the material for non-commercial purposes, as long as you give appropriate credit and indicate if changes were made.
-
-For more details, see the [full license text](https://creativecommons.org/licenses/by-nc/4.0/legalcode).
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 

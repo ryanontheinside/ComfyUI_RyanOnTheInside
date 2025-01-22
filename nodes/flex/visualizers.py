@@ -4,6 +4,12 @@ import numpy as np
 import  torch
 from scipy.spatial.distance import cdist
 import math
+import matplotlib.pyplot as plt
+from PIL import Image
+from io import BytesIO
+import os
+import random
+import folder_paths
 
 class EffectVisualizer(RyanOnTheInside):
     @classmethod
@@ -19,7 +25,7 @@ class EffectVisualizer(RyanOnTheInside):
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "visualize"
-    CATEGORY = "RyanOnTheInside/FlexFeatures/EffectVisualizers"
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Utilities/Previews"
 
     def visualize(self, video_frames, feature, text_color, font_scale):
         text_color = self.parse_color(text_color)
@@ -195,3 +201,90 @@ class PitchVisualizer(EffectVisualizer):
 
         output_tensor = torch.from_numpy(np.stack(output_frames)).float() / 255.0
         return (output_tensor,)
+
+
+class PreviewFeature(RyanOnTheInside):
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Utilities/Previews"
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+            },
+            "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
+        }
+
+    RETURN_TYPES = ()
+    FUNCTION = "preview"
+    OUTPUT_NODE = True
+
+    def preview(self, feature, prompt=None, extra_pnginfo=None):
+        width=960
+        height=540
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        plt.figure(figsize=(width/100, height/100), dpi=100)
+        plt.style.use('dark_background')
+        
+        plt.plot(values, color='dodgerblue', linewidth=2)
+        
+        plt.xlabel('Frame', color='white', fontsize=14)
+        plt.ylabel('Value', color='white', fontsize=14)
+        
+        plt.grid(True, linestyle='--', alpha=0.3, color='gray')
+        
+        plt.tick_params(axis='both', colors='white', labelsize=12)
+        
+        max_ticks = 10
+        step = max(1, len(values) // max_ticks)
+        x_ticks = range(0, len(values), step)
+        plt.xticks(x_ticks, [str(x) for x in x_ticks])
+        
+        # Use feature's min_value and max_value properties
+        y_min, y_max = feature.min_value, feature.max_value
+        y_range = y_max - y_min
+        plt.ylim(y_min - 0.05*y_range, y_max + 0.05*y_range)
+        
+        plt.gca().spines['top'].set_visible(False)
+        plt.gca().spines['right'].set_visible(False)
+        plt.gca().spines['bottom'].set_color('white')
+        plt.gca().spines['left'].set_color('white')
+        
+        plt.title(f'Feature: {feature.name}', color='white', fontsize=16)
+        
+        plt.tight_layout(pad=0.5)
+        
+        buf = BytesIO()
+        plt.savefig(buf, format='png', facecolor='black', edgecolor='none')
+        buf.seek(0)
+        
+        img = Image.open(buf)
+        img_array = np.array(img)
+        img_tensor = torch.from_numpy(img_array).float() / 255.0
+        if img_tensor.dim() == 3:
+            img_tensor = img_tensor.unsqueeze(0)
+        
+        plt.close()  
+        buf.close()  
+        
+        # Save the image to a temporary file like PreviewImage does
+        output_dir = folder_paths.get_temp_directory()
+        type = "temp"
+        prefix = "feature_preview_" + ''.join(random.choice("abcdefghijklmnopqrstupvxyz") for x in range(5))
+        
+        full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(prefix, output_dir, img_tensor.shape[2], img_tensor.shape[1])
+        
+        # Save the image
+        i = 255. * img_tensor.cpu().numpy()
+        img = Image.fromarray(np.clip(i[0], 0, 255).astype(np.uint8))
+        file = f"{filename}_{counter:05}_.png"
+        img.save(os.path.join(full_output_folder, file), compress_level=1)
+        
+        results = [{
+            "filename": file,
+            "subfolder": subfolder,
+            "type": type
+        }]
+        
+        return ({"ui": {"images": results}})

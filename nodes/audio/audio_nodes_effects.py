@@ -5,7 +5,8 @@ from .audio_utils import (
     apply_gain,
     time_stretch,
 )
-import torch
+from ...tooltips import apply_tooltips
+
 
 class AudioEffect(AudioNodeBase):
     def __init__(self):
@@ -13,6 +14,7 @@ class AudioEffect(AudioNodeBase):
 
     CATEGORY = "RyanOnTheInside/Audio/Effects"
 
+@apply_tooltips
 class AudioPitchShift(AudioEffect):
     @classmethod
     def INPUT_TYPES(cls):
@@ -31,6 +33,7 @@ class AudioPitchShift(AudioEffect):
         shifted_waveform = pitch_shift(waveform, sample_rate, n_steps)
         return ({"waveform": shifted_waveform, "sample_rate": sample_rate},)
 
+@apply_tooltips
 class AudioFade(AudioEffect):
     @classmethod
     def INPUT_TYPES(cls):
@@ -51,6 +54,7 @@ class AudioFade(AudioEffect):
         faded_waveform = fade_audio(waveform, sample_rate, fade_in_duration, fade_out_duration, shape)
         return ({"waveform": faded_waveform, "sample_rate": sample_rate},)
 
+@apply_tooltips
 class AudioGain(AudioEffect):
     @classmethod
     def INPUT_TYPES(cls):
@@ -69,8 +73,7 @@ class AudioGain(AudioEffect):
         amplified_waveform = apply_gain(waveform, gain_db)
         return ({"waveform": amplified_waveform, "sample_rate": sample_rate},)
 
-
-
+@apply_tooltips
 class AudioTimeStretch(AudioEffect):
     @classmethod
     def INPUT_TYPES(cls):

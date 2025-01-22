@@ -6,14 +6,15 @@ import numpy as np
 from .features import BaseFeature
 
 class ProximityFeature(BaseFeature):
-    def __init__(self, name, anchor_locations, query_locations, frame_rate, frame_count, frame_dimensions, normalization_method='frame'):
-        super().__init__(name, "proximity", frame_rate, frame_count)
+    def __init__(self, name, anchor_locations, query_locations, frame_rate, frame_count, frame_dimensions, width, height, normalization_method='frame'):
+        super().__init__(name, "proximity", frame_rate, frame_count, width, height)
         self.anchor_locations = anchor_locations
         self.query_locations = query_locations
         self.frame_diagonal = np.sqrt(frame_dimensions[0]**2 + frame_dimensions[1]**2)
         self.proximity_values = None
         self.normalization_method = normalization_method
 
+    @classmethod
     def get_extraction_methods(self):
         return ["normalization_method"]
     

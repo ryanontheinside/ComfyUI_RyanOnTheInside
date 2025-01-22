@@ -85,6 +85,8 @@ ENV/
 ehthumbs.db
 Thumbs.db
 
+*.log
+
 # ComfyUI specific (adjust as needed)
 # output/
 # input/

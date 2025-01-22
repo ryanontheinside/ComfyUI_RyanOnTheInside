@@ -1,16 +1,18 @@
 import numpy as np
 from ... import RyanOnTheInside
 from comfy.utils import ProgressBar
-
-class PoseInterpolator(RyanOnTheInside):
+from ...tooltips import apply_tooltips
+from ... import ProgressMixin
+@apply_tooltips
+class PoseInterpolator(ProgressMixin):
     @classmethod
+
     def INPUT_TYPES(cls):
         return {
             "required": {
                 "pose_1": ("POSE_KEYPOINT",),
                 "pose_2": ("POSE_KEYPOINT",),
                 "feature": ("FEATURE",),
-                "feature_pipe": ("FEATURE_PIPE",),
                 "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "interpolation_mode": (["Linear", "Spherical"], {"default": "Linear"}),
                 "omit_missing_points": ("BOOLEAN", {"default": False}),
@@ -19,12 +21,13 @@ class PoseInterpolator(RyanOnTheInside):
 
     RETURN_TYPES = ("POSE_KEYPOINT",)
     FUNCTION = "interpolate_poses"
-    CATEGORY = "RyanOnTheInside/Poses"
+    CATEGORY = "RyanOnTheInside/ExperimentalWIP"
 
-    def interpolate_poses(self, pose_1, pose_2, feature, feature_pipe, strength, interpolation_mode, omit_missing_points):
+    def interpolate_poses(self, pose_1, pose_2, feature, strength, interpolation_mode, omit_missing_points):
         print("Debug: Starting interpolate_poses method")
-        num_frames = feature_pipe.frame_count
-        self.progress_bar = ProgressBar(num_frames)
+        num_frames = feature.frame_count
+        self.start_progress(num_frames)
+
 
         result_poses = []
 
@@ -47,10 +50,12 @@ class PoseInterpolator(RyanOnTheInside):
                 interpolated_people.append(interpolated_person)
 
             result_poses.append({'people': interpolated_people, 'canvas_height': pose_data_1['canvas_height'], 'canvas_width': pose_data_1['canvas_width']})
-            self.progress_bar.update(1)
+            self.update_progress(1)
 
-        self.progress_bar = None
+
+        self.end_progress()
         return (result_poses,)
+
 
     def match_poses(self, start_poses, end_poses):
         pose_count = min(len(start_poses), len(end_poses))

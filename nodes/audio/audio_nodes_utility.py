@@ -10,6 +10,8 @@ from .audio_utils import (
     dither_audio,
 )
 import torch
+from ...tooltips import apply_tooltips
+import librosa
 
 class AudioUtility(AudioNodeBase):
     def __init__(self):
@@ -17,6 +19,7 @@ class AudioUtility(AudioNodeBase):
 
     CATEGORY = "RyanOnTheInside/Audio/Utility"
 
+@apply_tooltips
 class AudioPad(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -37,6 +40,7 @@ class AudioPad(AudioUtility):
         padded_waveform = pad_audio(waveform, pad_left, pad_right, pad_mode)
         return ({"waveform": padded_waveform, "sample_rate": sample_rate},)
 
+@apply_tooltips
 class AudioVolumeNormalization(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -55,6 +59,7 @@ class AudioVolumeNormalization(AudioUtility):
         normalized_waveform = normalize_volume(waveform, target_level)
         return ({"waveform": normalized_waveform, "sample_rate": sample_rate},)
 
+@apply_tooltips
 class AudioResample(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -73,6 +78,7 @@ class AudioResample(AudioUtility):
         resampled_waveform = resample_audio(waveform, sample_rate, new_sample_rate)
         return ({"waveform": resampled_waveform, "sample_rate": new_sample_rate},)
 
+@apply_tooltips
 class AudioChannelMerge(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -97,6 +103,7 @@ class AudioChannelMerge(AudioUtility):
         merged_waveform = merge_channels(waveform_list)
         return ({"waveform": merged_waveform, "sample_rate": sample_rate},)
 
+@apply_tooltips
 class AudioChannelSplit(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -115,6 +122,7 @@ class AudioChannelSplit(AudioUtility):
         audio_list = [{"waveform": w, "sample_rate": sample_rate} for w in channel_waveforms]
         return (audio_list,)
 
+@apply_tooltips
 class AudioConcatenate(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -136,6 +144,7 @@ class AudioConcatenate(AudioUtility):
         concatenated_waveform = concatenate_audio(audio1['waveform'], audio2['waveform'])
         return ({"waveform": concatenated_waveform, "sample_rate": sample_rate},)
 
+@apply_tooltips
 class Audio_Combine(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -159,6 +168,7 @@ class Audio_Combine(AudioUtility):
         combined_waveform = combine_audio(audio1['waveform'], audio2['waveform'], weight1, weight2)
         return ({"waveform": combined_waveform, "sample_rate": sample_rate},)
 
+@apply_tooltips
 class AudioSubtract(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
@@ -189,27 +199,50 @@ class AudioSubtract(AudioUtility):
         subtracted_waveform = waveform1 - waveform2
         return ({"waveform": subtracted_waveform, "sample_rate": sample_rate},)
 
+#TODO: TOO SLOW
+@apply_tooltips
 class AudioInfo(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
                 "audio": ("AUDIO",),
+                "frame_rate": ("FLOAT", {"default": 30, "min": 0.1, "max": 120, "step": 0.1}),
             }
         }
 
-    RETURN_TYPES = ("FLOAT", "INT", "INT", "INT", "FLOAT", "FLOAT", "FLOAT", "STRING")
-    RETURN_NAMES = ("duration_seconds", "sample_rate", "num_channels", "num_samples", 
-                   "max_amplitude", "mean_amplitude", "rms_amplitude", "bit_depth")
+    RETURN_TYPES = ("INT", "INT", "INT", "INT", "INT", "FLOAT", "FLOAT", "FLOAT", "INT", "INT", "INT", "FLOAT", "FLOAT", "FLOAT", "STRING")
+    RETURN_NAMES = (
+        "total_frames", "frames_per_beat", "frames_per_bar", "frames_per_quarter", "frames_per_eighth",
+        "audio_duration", "beats_per_second", "detected_bpm",
+        "sample_rate", "num_channels", "num_samples",
+        "max_amplitude", "mean_amplitude", "rms_amplitude", "bit_depth"
+    )
     FUNCTION = "get_audio_info"
 
-    def get_audio_info(self, audio):
-        waveform, sample_rate = audio['waveform'], audio['sample_rate']
+    def get_audio_info(self, audio, frame_rate):
+        # Get basic audio info
+        waveform = audio['waveform']
+        sample_rate = audio['sample_rate']
         
-        # Calculate basic properties
-        num_channels = waveform.shape[1]
-        num_samples = waveform.shape[2]
-        duration_seconds = num_samples / sample_rate
+        # Calculate original audio info first
+        num_channels = waveform.shape[1] if waveform.dim() > 2 else 1
+        num_samples = waveform.shape[-1]
+        audio_duration = num_samples / sample_rate
+        
+        # Calculate total frames
+        total_frames = int(audio_duration * frame_rate)
+        
+        # Detect BPM using librosa
+        audio_mono = waveform.squeeze(0).mean(axis=0).cpu().numpy()
+        tempo, _ = librosa.beat.beat_track(y=audio_mono, sr=sample_rate)
+        beats_per_second = tempo / 60.0
+        
+        # Calculate frames per beat and musical divisions
+        frames_per_beat = int(frame_rate / beats_per_second)
+        frames_per_bar = frames_per_beat * 4  # Assuming 4/4 time signature
+        frames_per_quarter = frames_per_beat
+        frames_per_eighth = frames_per_beat // 2
         
         # Calculate amplitude statistics
         max_amplitude = float(torch.max(torch.abs(waveform)))
@@ -220,7 +253,14 @@ class AudioInfo(AudioUtility):
         bit_depth = str(waveform.dtype)
         
         return (
-            duration_seconds,
+            total_frames,
+            frames_per_beat,
+            frames_per_bar,
+            frames_per_quarter,
+            frames_per_eighth,
+            audio_duration,
+            beats_per_second,
+            tempo,  # detected_bpm
             sample_rate,
             num_channels,
             num_samples,
@@ -230,6 +270,7 @@ class AudioInfo(AudioUtility):
             bit_depth
         )
 
+@apply_tooltips
 class AudioDither(AudioUtility):
     @classmethod
     def INPUT_TYPES(cls):

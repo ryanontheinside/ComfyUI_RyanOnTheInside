@@ -1,8 +1,12 @@
 import numpy as np
 import torch
 import cv2
-from .mask_base import FlexMaskBase
+from .flex_mask_base import FlexMaskBase
+from ...tooltips import apply_tooltips
 
+#NOTE: this is a work in progress, it sucks
+#TODO
+@apply_tooltips
 class FlexMaskNormalBase(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -14,6 +18,8 @@ class FlexMaskNormalBase(FlexMaskBase):
             }
         }
 
+    CATEGORY = "RyanOnTheInside/Targets/Normals"
+    
     def normalize_vector(self, vector):
         return vector / np.linalg.norm(vector)
 
@@ -22,10 +28,11 @@ class FlexMaskNormalBase(FlexMaskBase):
         normal_array = normal_map.cpu().numpy() * 2 - 1
         return normal_array
 
-    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, invert, subtract_original, grow_with_blur, normal_map, **kwargs):
+    def main_function(self, masks, opt_feature=None, strength=1.0, feature_threshold=0.0, invert=False, subtract_original=0.0, grow_with_blur=0.0, normal_map=None, **kwargs):
         # This method should be overridden by child classes
         raise NotImplementedError("Subclasses must implement main_function")
 
+@apply_tooltips
 class FlexMaskNormalLighting(FlexMaskNormalBase):
     @classmethod
     def INPUT_TYPES(cls):
@@ -48,8 +55,9 @@ class FlexMaskNormalLighting(FlexMaskNormalBase):
                      normal_map: torch.Tensor, light_direction_x: float, light_direction_y: float, 
                      light_direction_z: float, shadow_threshold: float, feature_param: str, 
                      feature_mode: str, **kwargs) -> np.ndarray:
-        
-        normal_array = self.normal_map_to_array(normal_map)
+        frame_index = kwargs.get('frame_index', 0)
+        normal_map_frame = normal_map[frame_index]
+        normal_array = self.normal_map_to_array(normal_map_frame)
         
         # Normalize light direction
         light_direction = self.normalize_vector(np.array([light_direction_x, light_direction_y, light_direction_z]))
@@ -71,7 +79,7 @@ class FlexMaskNormalLighting(FlexMaskNormalBase):
                 shadow_threshold = np.clip(shadow_threshold, 0.0, 1.0)
         
         # Calculate dot product between normal vectors and light direction
-        dot_product = np.einsum('bhwc,c->bhw', normal_array, light_direction)
+        dot_product = np.einsum('hwc,c->hw', normal_array, light_direction)
         
         # Create lighting mask
         lighting_mask = (dot_product > shadow_threshold).astype(np.float32)
@@ -80,23 +88,3 @@ class FlexMaskNormalLighting(FlexMaskNormalBase):
         combined_mask = mask * lighting_mask
         
         return combined_mask
-
-    def main_function(self, masks, feature, feature_pipe, strength, feature_threshold, invert, subtract_original, grow_with_blur, normal_map, light_direction_x, light_direction_y, light_direction_z, shadow_threshold, feature_param, feature_mode, **kwargs):
-        processed_masks = []
-        for i in range(masks.shape[0]):  # Iterate over all frames
-            mask = masks[i].cpu().numpy()
-            feature_value = feature.get_value_at_frame(i)
-            
-            if feature_value >= feature_threshold:
-                processed_mask = self.process_mask(
-                    mask, feature_value, strength, normal_map[i], 
-                    light_direction_x, light_direction_y, light_direction_z, 
-                    shadow_threshold, feature_param, feature_mode
-                )
-            else:
-                processed_mask = mask
-            
-            processed_masks.append(processed_mask)
-        
-        processed_masks = np.stack(processed_masks)
-        return self.apply_mask_operation(torch.from_numpy(processed_masks), masks, strength, invert, subtract_original, grow_with_blur)

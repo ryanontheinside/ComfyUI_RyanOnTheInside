@@ -3,27 +3,30 @@ import torch
 import torchvision
 from .. import RyanOnTheInside
 from abc import ABC
+from ..tooltips import apply_tooltips
  
 class UtilityNode(RyanOnTheInside, ABC):
+    #NOTE: for forward compatibility
     CATEGORY="RyanOnTheInside/Utility"
 
+class BatchUtilityNode(UtilityNode):
+    #NOTE: for forward compatibility
+    CATEGORY= f"{UtilityNode.CATEGORY}/Batches"
 
-class ImageIntervalSelect(UtilityNode):
+@apply_tooltips
+class ImageIntervalSelect(BatchUtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
                 "image": ("IMAGE",),
-                "interval": ("FLOAT", {"default": 1, "min": 1, "max": 100000, "step": 1}),
-                "start_at": ("FLOAT", {"default": 0, "min": 0, "max": 100000, "step": 1}),
-                "end_at": ("FLOAT", {"default": 0, "min": 0, "max": 100000, "step": 1}),
+                "interval": ("INT", {"default": 1, "min": 1, "max": 100000, "step": 1}),
+                "start_at": ("INT", {"default": 0, "min": 0, "max": 100000, "step": 1}),
+                "end_at": ("INT", {"default": 0, "min": 0, "max": 100000, "step": 1}),
             },
         }
     
     def select_interval(self, image, interval=1, start_at=0, end_at=0):
-        interval = int(interval)
-        start_at = int(start_at)
-        end_at = int(end_at)
         # Set default for end_at if it is None
         if end_at == 0:
             end_at = len(image)
@@ -39,8 +42,9 @@ class ImageIntervalSelect(UtilityNode):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "select_interval"
 
-#NOTE eh
-class ImageIntervalSelectPercentage(UtilityNode):
+#NOTE eh FIX MEH
+@apply_tooltips
+class ImageIntervalSelectPercentage(BatchUtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -69,7 +73,8 @@ class ImageIntervalSelectPercentage(UtilityNode):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "select_percentage_interval"
 
-class ImageChunks(UtilityNode):
+@apply_tooltips
+class ImageChunks(BatchUtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -98,7 +103,8 @@ class ImageChunks(UtilityNode):
     FUNCTION = "concatenate_images_into_grid"
 
 #TODO inherit from ImageChunk reuse
-class VideoChunks(UtilityNode):
+@apply_tooltips
+class VideoChunks(BatchUtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -141,7 +147,8 @@ class VideoChunks(UtilityNode):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "chunk_images_into_grids"
 
-class Image_Shuffle(UtilityNode):
+@apply_tooltips
+class Image_Shuffle(BatchUtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -171,36 +178,7 @@ class Image_Shuffle(UtilityNode):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "shuffle_images"
 
-class Image_Shuffle(UtilityNode):
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "image": ("IMAGE",),
-                "shuffle_size": ("INT", {"default": 4, "min": 1})
-            },
-        }
-
-    def shuffle_images(self, image, shuffle_size=4):
-        # Ensure shuffle_size is within the bounds of the image batch
-        shuffle_size = min(shuffle_size, image.shape[0])
-
-        # Shuffle the images in groups of shuffle_size
-        shuffled_images = []
-        for i in range(0, len(image), shuffle_size):
-            chunk = image[i:i+shuffle_size]
-            indices = torch.randperm(chunk.shape[0])
-            shuffled_chunk = chunk[indices]
-            shuffled_images.append(shuffled_chunk)
-
-        # Concatenate all shuffled chunks back into a single tensor
-        shuffled_images = torch.cat(shuffled_images, dim=0)
-
-        return (shuffled_images,)
-
-    RETURN_TYPES = ("IMAGE",)
-    FUNCTION = "shuffle_images"
-
+@apply_tooltips
 class ImageDifference(UtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
@@ -227,6 +205,7 @@ class ImageDifference(UtilityNode):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "compute_difference"
 
+@apply_tooltips
 class SwapDevice(UtilityNode):
     @classmethod
     def INPUT_TYPES(cls):
