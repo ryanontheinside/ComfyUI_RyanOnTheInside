@@ -169,72 +169,72 @@ def apply_tooltips(node_class):
     
     @classmethod
     def input_types_with_tooltips(cls):
+        """
+        Wrapper for INPUT_TYPES that adds tooltips to the configuration.
+        If a specific tooltip fails, skips just that one and continues with others.
+        """
         try:
+            # Try to get and call the original input types
             input_types = original_input_types.__get__(cls, cls)()
-            if not isinstance(input_types, dict):
-                return original_input_types.__get__(cls, cls)()
-        except Exception as e:
-            return original_input_types.__get__(cls, cls)()
             
-        tooltips = TooltipManager.get_tooltips(cls.__name__)
-        
-        def add_tooltip_to_config(param_name, config):
-            if param_name not in tooltips:
-                return config
+            # If not a dict or empty, return original untouched
+            if not isinstance(input_types, dict) or not input_types:
+                return input_types
+                
+            # Try to add tooltips
+            try:
+                tooltips = TooltipManager.get_tooltips(cls.__name__)
+            except Exception:
+                # If getting tooltips fails completely, return original untouched
+                return input_types
             
-            tooltip = tooltips[param_name]
-            
-            # Handle tuple format (type, config_dict)
-            if isinstance(config, tuple):
-                if len(config) == 2:
-                    param_type, param_config = config
-                    # If param_config is already a dict, just add the tooltip
-                    if isinstance(param_config, dict):
-                        param_config = param_config.copy()
-                        param_config["tooltip"] = tooltip
-                        return (param_type, param_config)
-                    # If param_type is a list, this is a dropdown without config
-                    elif isinstance(param_type, list):
-                        return (param_type, {"tooltip": tooltip})
-                    # If param_type is a tuple containing a method call result, preserve it
-                    elif isinstance(param_type, tuple) and len(param_type) > 0:
-                        return (param_type, {"tooltip": tooltip})
-                    # Otherwise treat second element as is
+            def add_tooltip_to_config(param_name, config):
+                try:
+                    if param_name not in tooltips:
+                        return config
+                    
+                    tooltip = tooltips[param_name]
+                    
+                    # Handle tuple format (type, config_dict)
+                    if isinstance(config, tuple):
+                        if len(config) == 2:
+                            param_type, param_config = config
+                            # If param_config is already a dict, just add the tooltip
+                            if isinstance(param_config, dict):
+                                param_config = param_config.copy()
+                                param_config["tooltip"] = tooltip
+                                return (param_type, param_config)
+                            # If param_type is a list, this is a dropdown without config
+                            elif isinstance(param_type, list):
+                                return (param_type, {"tooltip": tooltip})
+                            # If param_type is a tuple containing a method call result, preserve it
+                            elif isinstance(param_type, tuple) and len(param_type) > 0:
+                                return (param_type, {"tooltip": tooltip})
+                        return config
                     return config
-                elif len(config) == 1:
-                    # Handle single-element tuples that might be method call results
-                    if isinstance(config[0], tuple):
-                        return (config[0], {"tooltip": tooltip})
-                    return (config[0], {"tooltip": tooltip})
-                return config
+                except Exception:
+                    # If adding this specific tooltip fails, return original config untouched
+                    return config
             
-            # Handle list format (dropdown options)
-            if isinstance(config, list):
-                return (config, {"tooltip": tooltip})
-                
-            # Handle direct dict format
-            if isinstance(config, dict):
-                config = config.copy()
-                config["tooltip"] = tooltip
-                return config
-                
-            return config
-        
-        # Add tooltips to required parameters
-        if "required" in input_types:
-            input_types["required"] = {
-                param_name: add_tooltip_to_config(param_name, config)
-                for param_name, config in input_types["required"].items()
-            }
-        
-        # Add tooltips to optional parameters
-        if "optional" in input_types:
-            input_types["optional"] = {
-                param_name: add_tooltip_to_config(param_name, config)
-                for param_name, config in input_types["optional"].items()
-            }
+            # Process required parameters
+            if "required" in input_types:
+                input_types["required"] = {
+                    name: add_tooltip_to_config(name, config)
+                    for name, config in input_types["required"].items()
+                }
             
-        return input_types
+            # Process optional parameters
+            if "optional" in input_types:
+                input_types["optional"] = {
+                    name: add_tooltip_to_config(name, config)
+                    for name, config in input_types["optional"].items()
+                }
+            
+            return input_types
+            
+        except Exception:
+            # If getting input types fails completely, return original method
+            return original_input_types.__get__(cls, cls)
     
     # Replace the original INPUT_TYPES with our wrapped version
     node_class.INPUT_TYPES = input_types_with_tooltips
