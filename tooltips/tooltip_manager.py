@@ -173,11 +173,14 @@ def apply_tooltips(node_class):
         Wrapper for INPUT_TYPES that adds tooltips to the configuration.
         If a specific tooltip fails, skips just that one and continues with others.
         """
+        # Get the original method bound to the class
+        bound_method = original_input_types.__get__(cls, cls)
+        
         try:
-            # Try to get and call the original input types
-            input_types = original_input_types.__get__(cls, cls)()
+            # Try to get input types by calling the bound method
+            input_types = bound_method()
             
-            # If not a dict or empty, return original untouched
+            # If not a dict or empty, return original result
             if not isinstance(input_types, dict) or not input_types:
                 return input_types
                 
@@ -185,7 +188,7 @@ def apply_tooltips(node_class):
             try:
                 tooltips = TooltipManager.get_tooltips(cls.__name__)
             except Exception:
-                # If getting tooltips fails completely, return original untouched
+                # If getting tooltips fails completely, return original result
                 return input_types
             
             def add_tooltip_to_config(param_name, config):
@@ -233,8 +236,8 @@ def apply_tooltips(node_class):
             return input_types
             
         except Exception:
-            # If getting input types fails completely, return original method
-            return original_input_types.__get__(cls, cls)
+            # If anything fails, return result of calling original method
+            return bound_method()
     
     # Replace the original INPUT_TYPES with our wrapped version
     node_class.INPUT_TYPES = input_types_with_tooltips
