@@ -164,11 +164,13 @@ class FlexAudioPitchShift(FlexAudioBase):
         base_input_types = super().INPUT_TYPES()
         base_required = base_input_types.get("required", {})
         base_optional = base_input_types.get("optional", {})
-
+        base_required["feature_param"] = cls.get_modifiable_params()
         # Update required inputs
         base_required.update({
             "n_steps": ("FLOAT", {"default": 6.0, "min": 0.0, "max": 12.0, "step": 0.1}),
         })
+
+
 
         return {
             "required": base_required,
@@ -192,11 +194,12 @@ class FlexAudioTimeStretch(FlexAudioBase):
         base_input_types = super().INPUT_TYPES()
         base_required = base_input_types.get("required", {})
         base_optional = base_input_types.get("optional", {})
-
+        base_required["feature_param"] = cls.get_modifiable_params()
         # Update required inputs
         base_required.update({
             "rate": ("FLOAT", {"default": 1.0, "min": 0.5, "max": 2.0, "step": 0.01}),
         })
+
 
         return {
             "required": base_required,

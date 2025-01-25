@@ -7,6 +7,7 @@ class FlexLatentInterpolate(FlexLatentBase):
     @classmethod
     def INPUT_TYPES(cls):
         inputs = super().INPUT_TYPES()
+        inputs["required"]["feature_param"] = cls.get_modifiable_params()
         inputs["required"].update({
             "latent_2": ("LATENT",),
             "interpolation_mode": (["Linear", "Spherical"], {"default": "Linear"}),
@@ -60,6 +61,7 @@ class EmbeddingGuidedLatentInterpolate(FlexLatentBase):
     @classmethod
     def INPUT_TYPES(cls):
         inputs = super().INPUT_TYPES()
+        inputs["required"]["feature_param"] = cls.get_modifiable_params()
         inputs["required"].update({
             "latent_2": ("LATENT",),
             "embedding_1": ("EMBEDS",),
@@ -130,6 +132,7 @@ class FlexLatentBlend(FlexLatentBase):
     @classmethod
     def INPUT_TYPES(cls):
         inputs = super().INPUT_TYPES()
+        inputs["required"]["feature_param"] = cls.get_modifiable_params()
         inputs["required"].update({
             "latent_2": ("LATENT",),
             "blend_mode": (["Add", "Multiply", "Screen", "Overlay"], {"default": "Add"}),
@@ -192,6 +195,7 @@ class FlexLatentNoise(FlexLatentBase):
     @classmethod
     def INPUT_TYPES(cls):
         inputs = super().INPUT_TYPES()
+        inputs["required"]["feature_param"] = cls.get_modifiable_params()
         inputs["required"].update({
             "noise_level": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.01}),
             "noise_type": (["Gaussian", "Uniform"], {"default": "Gaussian"}),

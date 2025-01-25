@@ -16,15 +16,14 @@ from ...tooltips import apply_tooltips
 class FlexMaskMorph(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "morph_type": (["erode", "dilate", "open", "close"],),
-                "max_kernel_size": ("INT", {"default": 5, "min": 3, "max": 21, "step": 2}),
-                "max_iterations": ("INT", {"default": 10, "min": 1, "max": 50, "step": 1}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"]["feature_param"] = cls.get_modifiable_params()
+        base_inputs["required"].update({
+            "morph_type": (["erode", "dilate", "open", "close"],),
+            "max_kernel_size": ("INT", {"default": 5, "min": 3, "max": 21, "step": 2}),
+            "max_iterations": ("INT", {"default": 10, "min": 1, "max": 50, "step": 1}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -52,8 +51,11 @@ class FlexMaskWarp(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
         base_inputs = super().INPUT_TYPES()
+        base_inputs["required"]["feature_param"] = cls.get_modifiable_params()
         base_inputs["required"].update({
             "warp_type": (["perlin", "radial", "swirl"],),
+
+
             "frequency": ("FLOAT", {"default": 0.1, "min": 0.01, "max": 1.0, "step": 0.01}),
             "max_amplitude": ("FLOAT", {"default": 30.0, "min": 0.1, "max": 500.0, "step": 0.1}),
             "octaves": ("INT", {"default": 3, "min": 1, "max": 8, "step": 1}),
@@ -77,15 +79,14 @@ class FlexMaskWarp(FlexMaskBase):
 class FlexMaskTransform(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "transform_type": (["translate", "rotate", "scale"],),
-                "max_x_value": ("FLOAT", {"default": 10.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
-                "max_y_value": ("FLOAT", {"default": 10.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"]["feature_param"] = cls.get_modifiable_params()
+        base_inputs["required"].update({
+            "transform_type": (["translate", "rotate", "scale"],),
+            "max_x_value": ("FLOAT", {"default": 10.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
+            "max_y_value": ("FLOAT", {"default": 10.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -103,15 +104,14 @@ class FlexMaskTransform(FlexMaskBase):
 class FlexMaskMath(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "mask_b": ("MASK",),
-                "combination_method": (["add", "subtract", "multiply", "minimum", "maximum"],),
-                "max_blend": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"]["feature_param"] = cls.get_modifiable_params()
+        base_inputs["required"].update({
+            "mask_b": ("MASK",),
+            "combination_method": (["add", "subtract", "multiply", "minimum", "maximum"],),
+            "max_blend": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -132,13 +132,12 @@ class FlexMaskMath(FlexMaskBase):
 class FlexMaskOpacity(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "max_opacity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"]["feature_param"] = cls.get_modifiable_params()
+        base_inputs["required"].update({
+            "max_opacity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -163,28 +162,26 @@ class FlexMaskVoronoiScheduled(FlexMaskBase):
 
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "distance_metric": ([
-                    "euclidean", "manhattan", "chebyshev", "minkowski",
-                    "elliptical", "kaleidoscope_star", "kaleidoscope_wave",
-                    "kaleidoscope_radiation_α", "kaleidoscope_radiation_β",
-                    "kaleidoscope_radiation_γ"
-                ],),
-                "scale": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 10.0, "step": 0.1}),
-                "detail": ("INT", {"default": 100, "min": 10, "max": 1000, "step": 10}),
-                "randomness": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 5.0, "step": 0.1}),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
-                "x_offset": ("FLOAT", {"default": 0.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
-                "y_offset": ("FLOAT", {"default": 0.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
-                "feature_param": (["None", "scale", "detail", "randomness", "seed", "x_offset", "y_offset"],),
-                "formula": (list(cls.formulas.keys()),),
-                "a": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 10.0, "step": 0.1}),
-                "b": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 10.0, "step": 0.1}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"]["feature_param"] = cls.get_modifiable_params()
+        base_inputs["required"].update({
+            "distance_metric": ([
+                "euclidean", "manhattan", "chebyshev", "minkowski",
+                "elliptical", "kaleidoscope_star", "kaleidoscope_wave",
+                "kaleidoscope_radiation_α", "kaleidoscope_radiation_β",
+                "kaleidoscope_radiation_γ"
+            ],),
+            "scale": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 10.0, "step": 0.1}),
+            "detail": ("INT", {"default": 100, "min": 10, "max": 1000, "step": 10}),
+            "randomness": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 5.0, "step": 0.1}),
+            "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+            "x_offset": ("FLOAT", {"default": 0.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
+            "y_offset": ("FLOAT", {"default": 0.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
+            "formula": (list(cls.formulas.keys()),),
+            "a": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 10.0, "step": 0.1}),
+            "b": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 10.0, "step": 0.1}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -234,13 +231,12 @@ class FlexMaskVoronoiScheduled(FlexMaskBase):
 class FlexMaskBinary(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "threshold": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"]["feature_param"] = cls.get_modifiable_params()
+        base_inputs["required"].update({
+            "threshold": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -256,17 +252,16 @@ class FlexMaskBinary(FlexMaskBase):
 class FlexMaskWavePropagation(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "wave_speed": ("FLOAT", {"default": 50.0, "min": 0.1, "max": 100.0, "step": 0.5}),
-                "wave_amplitude": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.05}),
-                "wave_decay": ("FLOAT", {"default": 5.0, "min": 0.9, "max": 10.0, "step": 0.001}),
-                "wave_frequency": ("FLOAT", {"default": 0.1, "min": 0.01, "max": 10.0, "step": 0.01}),
-                "max_wave_field": ("FLOAT", {"default": 750.0, "min": 10.0, "max": 10000.0, "step": 10.0}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"]["feature_param"] = cls.get_modifiable_params()
+        base_inputs["required"].update({
+            "wave_speed": ("FLOAT", {"default": 50.0, "min": 0.1, "max": 100.0, "step": 0.5}),
+            "wave_amplitude": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.05}),
+            "wave_decay": ("FLOAT", {"default": 5.0, "min": 0.9, "max": 10.0, "step": 0.001}),
+            "wave_frequency": ("FLOAT", {"default": 0.1, "min": 0.01, "max": 10.0, "step": 0.01}),
+            "max_wave_field": ("FLOAT", {"default": 750.0, "min": 10.0, "max": 10000.0, "step": 10.0}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -335,16 +330,15 @@ class FlexMaskWavePropagation(FlexMaskBase):
 class FlexMaskEmanatingRings(FlexMaskBase):
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "ring_speed": ("FLOAT", {"default": 0.05, "min": 0.01, "max": 0.2, "step": 0.01}),
-                "ring_width": ("FLOAT", {"default": 0.2, "min": 0.01, "max": 0.5, "step": 0.01}),
-                "ring_falloff": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "binary_mode": ("BOOLEAN", {"default": False}),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"]["feature_param"] = cls.get_modifiable_params()
+        base_inputs["required"].update({
+            "ring_speed": ("FLOAT", {"default": 0.05, "min": 0.01, "max": 0.2, "step": 0.01}),
+            "ring_width": ("FLOAT", {"default": 0.2, "min": 0.01, "max": 0.5, "step": 0.01}),
+            "ring_falloff": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "binary_mode": ("BOOLEAN", {"default": False}),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -527,27 +521,17 @@ class FlexMaskRandomShapes(FlexMaskBase):
 
 @apply_tooltips
 class FlexMaskDepthChamber(FlexMaskBase):
-    """
-    This class is a special case that handles its own parameter modulation instead of using the base class's modulation system.
-    This is intentional because:
-    1. It uses paired parameters (z_front/z_back) that define a range and must be modulated together
-    2. The feature_modes (squeeze, expand, move_forward, move_back) operate on both values in coordinated ways
-    3. The relationship between parameters must be maintained (e.g., ensuring proper depth range)
-    4. Moving this logic to the base class would add complexity without clear benefits
-    """
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "depth_map": ("IMAGE",),
-                "z_front": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "z_back": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                # "feature_param": (["none", "z_front", "z_back", "both"],),
-                "feature_mode": (["squeeze", "expand", "move_forward", "move_back"],),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"]["feature_param"] = cls.get_modifiable_params()
+        base_inputs["required"].update({
+            "depth_map": ("IMAGE",),
+            "z_front": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "z_back": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "feature_mode": (["squeeze", "expand", "move_forward", "move_back"],),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):
@@ -608,28 +592,17 @@ class FlexMaskDepthChamber(FlexMaskBase):
 
 @apply_tooltips
 class FlexMaskDepthChamberRelative(FlexMaskBase):
-    """
-    This class is a special case that handles its own parameter modulation instead of using the base class's modulation system.
-    This is intentional because:
-    1. It uses paired parameters (z1/z2) that define boundaries and must be modulated together
-    2. The feature_modes (squeeze, expand) operate on both values in coordinated ways
-    3. Both values must be scaled relative to ROI size, adding another layer of complexity
-    4. The relationship between parameters must be maintained (e.g., proper ordering of z1/z2)
-    5. Moving this logic to the base class would add complexity without clear benefits
-    """
     @classmethod
     def INPUT_TYPES(cls):
-        return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "depth_map": ("IMAGE",),
-                "z1": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "z2": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "feature_param": (["None", "z1", "z2", "both"],),
-                "feature_mode": (["squeeze", "expand"],),
-            }
-        }
+        base_inputs = super().INPUT_TYPES()
+        base_inputs["required"]["feature_param"] = cls.get_modifiable_params()
+        base_inputs["required"].update({
+            "depth_map": ("IMAGE",),
+            "z1": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "z2": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "feature_mode": (["squeeze", "expand"],),
+        })
+        return base_inputs
 
     @classmethod
     def get_modifiable_params(cls):

@@ -48,7 +48,7 @@ class LatentFrequencyBlender(FlexLatentBase):
 
     @classmethod
     def get_modifiable_params(cls):
-        return []
+        return ["None"]
 
     def apply_effect(
         self,

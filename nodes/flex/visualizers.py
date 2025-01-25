@@ -224,6 +224,10 @@ class PreviewFeature(RyanOnTheInside):
         height=540
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
         
+        # Calculate actual min and max from the values
+        actual_min = min(values)
+        actual_max = max(values)
+        
         plt.figure(figsize=(width/100, height/100), dpi=100)
         plt.style.use('dark_background')
         
@@ -241,10 +245,14 @@ class PreviewFeature(RyanOnTheInside):
         x_ticks = range(0, len(values), step)
         plt.xticks(x_ticks, [str(x) for x in x_ticks])
         
-        # Use feature's min_value and max_value properties
-        y_min, y_max = feature.min_value, feature.max_value
-        y_range = y_max - y_min
-        plt.ylim(y_min - 0.05*y_range, y_max + 0.05*y_range)
+        # Use actual min/max values with padding
+        y_range = actual_max - actual_min
+        if y_range == 0:  # Handle constant value case
+            y_range = 1.0
+            padding = 0.1
+        else:
+            padding = 0.05
+        plt.ylim(actual_min - padding*y_range, actual_max + padding*y_range)
         
         plt.gca().spines['top'].set_visible(False)
         plt.gca().spines['right'].set_visible(False)

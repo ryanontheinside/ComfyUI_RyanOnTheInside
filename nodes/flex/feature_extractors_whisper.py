@@ -83,8 +83,8 @@ class WhisperFeatureNode(FeatureExtractorBase):
     @classmethod
     def INPUT_TYPES(cls):
         parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs["extraction_method"] = (WhisperFeature.get_extraction_methods(),)
         return {
-            **super().INPUT_TYPES(),
             "required": {
                 **parent_inputs,
                 "alignment_data": ("whisper_alignment",),

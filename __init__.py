@@ -223,11 +223,6 @@ from .nodes.masks.flex_masks import (
 
 )
 
-from .nodes.masks.flex_masks_normal import (
-    FlexMaskNormalLighting,
-
-)
-
 from .nodes.images.flex_images import (
     FlexImageEdgeDetect,
     FlexImagePosterize,

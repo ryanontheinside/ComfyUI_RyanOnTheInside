@@ -292,10 +292,11 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
         base_inputs = super().INPUT_TYPES()
         base_required = base_inputs.get("required", {})
         base_optional = base_inputs.get("optional", {})
-
+        base_required["feature_param"] = cls.get_modifiable_params()
         new_inputs = {
             "required": {
                 "visualization_method": (["bar", "line"], {"default": "bar"}),
+
                 "visualization_feature": (["frequency", "waveform"], {"default": "frequency"}),
                 # Parameters common to both methods/features
                 "smoothing": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
@@ -525,10 +526,11 @@ class FlexAudioVisualizerCircular(FlexAudioVisualizerBase):
         base_inputs = super().INPUT_TYPES()
         base_required = base_inputs.get("required", {})
         base_optional = base_inputs.get("optional", {})
-
+        base_required["feature_param"] = cls.get_modifiable_params()
         new_inputs = {
             "required": {
                 "visualization_method": (["bar", "line"], {"default": "bar"}),
+
                 "visualization_feature": (["frequency", "waveform"], {"default": "frequency"}),
                 # Parameters common to both methods/features
                 "smoothing": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
@@ -653,10 +655,11 @@ class FlexAudioVisualizerContour(FlexAudioVisualizerBase):
         base_inputs = super().INPUT_TYPES()
         base_required = base_inputs.get("required", {})
         base_optional = base_inputs.get("optional", {})
-
+        base_required["feature_param"] = cls.get_modifiable_params()
         # Remove screen_width, screen_height, position_x, and position_y
         for param in ["screen_width", "screen_height", "position_x", "position_y"]:
             if param in base_required:
+
                 del base_required[param]
 
         new_inputs = {

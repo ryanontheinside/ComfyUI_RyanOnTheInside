@@ -16,9 +16,11 @@ class MIDILoadAndExtract(FeatureExtractorBase):
 
     @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs["extraction_method"] = (MIDIFeature.get_extraction_methods(),)
         return {
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs,
                 "midi_file": (folder_paths.get_filename_list("midi_files"),),
                 "track_selection": (["all"],),
                 "chord_only": ("BOOLEAN", {"default": False}),
