@@ -1,24 +1,27 @@
 from .features_proximity import Location, ProximityFeature
 from .feature_extractors import FeatureExtractorBase
+from .features import BaseFeature
 from ... import RyanOnTheInside
 from ...tooltips import apply_tooltips
 import numpy as np
 import cv2
+
 
 _category = f"{FeatureExtractorBase.CATEGORY}/Proximity"
 
 @apply_tooltips
 class ProximityFeatureNode(FeatureExtractorBase):
     @classmethod
-    def feature_type(cls) -> type:
+    def feature_type(cls) -> type[BaseFeature]:
         return ProximityFeature
 
     @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs["extraction_method"] = (ProximityFeature.get_extraction_methods(),)
         return {
-            **super().INPUT_TYPES(),
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs,
                 "anchor_locations": ("LOCATION",),
                 "query_locations": ("LOCATION",),
                 "normalization_method": (["frame", "minmax"],),

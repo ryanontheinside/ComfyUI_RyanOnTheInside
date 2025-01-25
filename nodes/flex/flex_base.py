@@ -10,15 +10,11 @@ from ... import ProgressMixin
 class FlexBase(ProgressMixin, ABC):
     @classmethod
     def INPUT_TYPES(cls):
-
         base_inputs = {
             "required": {
                 "strength": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "feature_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "feature_param": (
-                    cls.get_modifiable_params(), 
-                    {"default": cls.get_modifiable_params()[0] if cls.get_modifiable_params() else "None"}
-                ),
+                "feature_param": (["error_not_implemented"],),
                 "feature_mode": (["relative", "absolute"], {"default": "relative"}),
             },
             "optional": {

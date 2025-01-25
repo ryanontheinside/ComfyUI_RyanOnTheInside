@@ -29,8 +29,15 @@ class AudioFeatureExtractorMixin:
 @apply_tooltips
 class AudioFeatureExtractor(AudioFeatureExtractorMixin, FeatureExtractorBase):
     @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        return AudioFeature
+    def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs["extraction_method"] = (AudioFeature.get_extraction_methods(),)
+        return {
+            "required": {
+                **parent_inputs,
+                "audio": ("AUDIO",),
+            }
+        }
 
     RETURN_TYPES = ("FEATURE", "INT",)
     RETURN_NAMES = ("feature", "frame_count",)
@@ -55,15 +62,13 @@ class AudioFeatureExtractor(AudioFeatureExtractorMixin, FeatureExtractorBase):
 @apply_tooltips
 class RhythmFeatureExtractor(AudioFeatureExtractorMixin, FeatureExtractorBase):
     @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        return RhythmFeature
-
-    @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs["extraction_method"] = (RhythmFeature.get_extraction_methods(),)
         return {
-            **super().INPUT_TYPES(),
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs,
+                "audio": ("AUDIO",),
                 "time_signature": ("INT", {"default": 4, "min": 1, "max": 12, "step": 1}),
             },
         }
@@ -91,15 +96,13 @@ class RhythmFeatureExtractor(AudioFeatureExtractorMixin, FeatureExtractorBase):
 @apply_tooltips
 class PitchFeatureExtractor(AudioFeatureExtractorMixin, FeatureExtractorBase):
     @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        return PitchFeature
-
-    @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs["extraction_method"] = (PitchFeature.get_extraction_methods(),)
         return {            
-            **super().INPUT_TYPES(),
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs,
+                "audio": ("AUDIO",),
                 "opt_crepe_model":(["none", "medium", "tiny", "small", "large", "full"], {"default": "medium"})
             },
             "optional": {

@@ -3,6 +3,7 @@ Core tooltip management functionality.
 """
 from typing import Dict, Optional, Union, List
 from collections import deque
+import sys
 
 class TooltipManager:
     """
@@ -156,6 +157,8 @@ def apply_tooltips(node_class):
     Returns:
         The decorated node class with tooltips and description applied
     """
+
+    
     # Set the DESCRIPTION attribute from registered descriptions
     description = TooltipManager.get_description(node_class.__name__)
     if description:

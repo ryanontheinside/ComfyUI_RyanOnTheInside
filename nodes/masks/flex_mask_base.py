@@ -141,6 +141,7 @@ class FlexMaskBase(FlexBase, MaskBase):
 
         self.end_progress()
         return (torch.cat(result, dim=0),)
+    
     def main_function(self, masks, opt_feature=None, strength=1.0, feature_threshold=0.0, 
                      mask_strength=1.0, invert=False, subtract_original=0.0, 
                      grow_with_blur=0.0, **kwargs):

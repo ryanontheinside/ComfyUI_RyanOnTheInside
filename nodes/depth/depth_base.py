@@ -140,16 +140,24 @@ class FlexDepthBase(FlexBase):
 class DepthInjection(FlexDepthBase):
     @classmethod
     def INPUT_TYPES(cls):
+        base_inputs = super().INPUT_TYPES()
+        base_required = base_inputs["required"]
+        
+        # Update feature_param first
+        base_required["feature_param"] = cls.get_modifiable_params()
+        
+
+        # Then add other inputs
+        base_required.update({
+            "mask": ("MASK",),
+            "gradient_steepness": ("FLOAT", {"default": 2.0, "min": 0.1, "max": 10.0, "step": 0.1}),
+            "depth_min": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+            "depth_max": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+        })
+        
         return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "mask": ("MASK",),
-                "gradient_steepness": ("FLOAT", {"default": 2.0, "min": 0.1, "max": 10.0, "step": 0.1}),
-                "depth_min": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                "depth_max": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                # "strength" is already included in the base class
-            }
+            "required": base_required,
+            "optional": base_inputs["optional"],
         }
 
     CATEGORY = "RyanOnTheInside/DepthModifiers"
@@ -215,14 +223,22 @@ class DepthInjection(FlexDepthBase):
 class DepthBlender(FlexDepthBase):
     @classmethod
     def INPUT_TYPES(cls):
+        base_inputs = super().INPUT_TYPES()
+        base_required = base_inputs["required"]
+        
+        # Update feature_param first
+        base_required["feature_param"] = cls.get_modifiable_params()
+        
+
+        # Then add other inputs
+        base_required.update({
+            "other_depth_maps": ("IMAGE",),
+            "blend_mode": (["add", "subtract", "multiply", "average"], {"default": "average"}),
+        })
+        
         return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "other_depth_maps": ("IMAGE",),
-                "blend_mode": (["add", "subtract", "multiply", "average"], {"default": "average"}),
-                # "strength" is already included in the base class
-            }
+            "required": base_required,
+            "optional": base_inputs["optional"],
         }
 
     CATEGORY = "RyanOnTheInside/DepthModifiers"
@@ -234,10 +250,8 @@ class DepthBlender(FlexDepthBase):
     def apply_effect_internal(self, depth_map: np.ndarray, other_depth_maps, blend_mode, **kwargs) -> np.ndarray:
         strength = kwargs.get('strength', 1.0)
         frame_index = kwargs.get('frame_index')
-        # Get the other depth map for the current frame
-
+        
         other_depth_map = other_depth_maps[frame_index].cpu().numpy()
-
 
         if blend_mode == "add":
             blended_depth = depth_map + other_depth_map
@@ -263,16 +277,24 @@ class DepthBlender(FlexDepthBase):
 class DepthRippleEffect(FlexDepthBase):
     @classmethod
     def INPUT_TYPES(cls):
+        base_inputs = super().INPUT_TYPES()
+        base_required = base_inputs["required"]
+        
+        # Update feature_param first
+        base_required["feature_param"] = cls.get_modifiable_params()
+        
+
+        # Then add other inputs
+        base_required.update({
+            "ripple_amplitude": ("FLOAT", {"default": 0.05, "min": 0.0, "max": 0.5, "step": 0.01}),
+            "ripple_frequency": ("FLOAT", {"default": 20.0, "min": 1.0, "max": 100.0, "step": 1.0}),
+            "ripple_phase": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 6.2832, "step": 0.1}),  # 2π
+            "curvature": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+        })
+        
         return {
-            **super().INPUT_TYPES(),
-            "required": {
-                **super().INPUT_TYPES()["required"],
-                "ripple_amplitude": ("FLOAT", {"default": 0.05, "min": 0.0, "max": 0.5, "step": 0.01}),
-                "ripple_frequency": ("FLOAT", {"default": 20.0, "min": 1.0, "max": 100.0, "step": 1.0}),
-                "ripple_phase": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 6.2832, "step": 0.1}),  # 2π
-                "curvature": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
-                # "strength" is already included in the base class
-            }
+            "required": base_required,
+            "optional": base_inputs["optional"],
         }
 
     CATEGORY = "RyanOnTheInside/DepthModifiers"

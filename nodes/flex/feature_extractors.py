@@ -11,18 +11,10 @@ from ... import ProgressMixin
 @apply_tooltips
 class FeatureExtractorBase(ProgressMixin, ABC):
     @classmethod
-    @abstractmethod
-
-    def feature_type(cls) -> type[BaseFeature]:
-        pass
-
-    @classmethod
     def INPUT_TYPES(cls):
-        feature_class = cls.feature_type()
-        extraction_methods = feature_class.get_extraction_methods()
         return {            
             "required": {
-                "extraction_method": (extraction_methods, {"default": extraction_methods[0]}),
+                "extraction_method": (["error_not_implemented"],),
                 "frame_rate": ("FLOAT", {"default": 30.0, "min": 1.0, "max": 120.0, "step": 0.1}),
                 "frame_count": ("INT", {"default": 30, "min": 1}),
                 "width": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 64}),
@@ -35,12 +27,9 @@ class FeatureExtractorBase(ProgressMixin, ABC):
 @apply_tooltips
 class FloatFeatureNode(FeatureExtractorBase):
     @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        return FloatFeature
-
-    @classmethod
     def INPUT_TYPES(cls):
         parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs["extraction_method"] = (FloatFeature.get_extraction_methods(),)
         return {
             "required": {
                 **parent_inputs,
@@ -48,12 +37,11 @@ class FloatFeatureNode(FeatureExtractorBase):
             }
         }
 
-
     RETURN_TYPES = ("FEATURE",)
     FUNCTION = "create_feature"
 
-    def create_feature(self, value, frame_rate, frame_count, width, height, extraction_method):
-        values = value if isinstance(value, list) else [value]
+    def create_feature(self, floats, frame_rate, frame_count, width, height, extraction_method):
+        values = floats if isinstance(floats, list) else [floats]
 
         float_feature = FloatFeature("float_feature", frame_rate, frame_count, width, height, values, extraction_method)
         float_feature.extract()
@@ -62,15 +50,12 @@ class FloatFeatureNode(FeatureExtractorBase):
 @apply_tooltips
 class ManualFeatureNode(FeatureExtractorBase):
     @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        return ManualFeature  
-
-    @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs["extraction_method"] = (ManualFeature.get_extraction_methods(),)
         return {
-            **super().INPUT_TYPES(),
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs,
                 "frame_numbers": ("STRING", {"default": "0,10,20"}),
                 "values": ("STRING", {"default": "0.0,0.5,1.0"}),
                 "last_value": ("FLOAT", {"default": 1.0}),
@@ -167,17 +152,13 @@ class ManualFeatureFromPipe(ManualFeatureNode):
 
 @apply_tooltips
 class DrawableFeatureNode(FeatureExtractorBase):
-
-    @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        return DrawableFeature
-
     @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs["extraction_method"] = (DrawableFeature.get_extraction_methods(),)
         return {
-            **super().INPUT_TYPES(),
             "required": {
-                **super().INPUT_TYPES()["required"],
+                **parent_inputs,
                 "points": ("STRING", {"default": "[]"}),  # JSON string of points
                 "min_value": ("FLOAT", {"default": 0.0, "min": -100.0, "max": 100.0, "step": 0.1}),
                 "max_value": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.1}),
@@ -226,16 +207,13 @@ class DrawableFeatureNode(FeatureExtractorBase):
 @apply_tooltips
 class TimeFeatureNode(FeatureExtractorBase):
     @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        return TimeFeature
-
-    @classmethod
     def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs["extraction_method"] = (TimeFeature.get_extraction_methods(),)
         return {
-            **super().INPUT_TYPES(),
             "required": {
-                **super().INPUT_TYPES()["required"],
-                "frames_per_cycle": ("INT", {"default": 30, "min": 1, "max": 1000, "step": 1}),  # Number of frames for one cycle
+                **parent_inputs,
+                "frames_per_cycle": ("INT", {"default": 30, "min": 1, "max": 1000, "step": 1}),
                 "offset": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
             }
         }
@@ -252,13 +230,10 @@ class TimeFeatureNode(FeatureExtractorBase):
 @apply_tooltips
 class DepthFeatureNode(FeatureExtractorBase):
     @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        return DepthFeature
-
-    @classmethod
     def INPUT_TYPES(cls):
         parent_inputs = super().INPUT_TYPES()["required"]
         parent_inputs.pop("frame_count", None)
+        parent_inputs["extraction_method"] = (DepthFeature.get_extraction_methods(),)
         return {
             "required": {
                 **parent_inputs,
@@ -278,13 +253,10 @@ class DepthFeatureNode(FeatureExtractorBase):
 @apply_tooltips
 class ColorFeatureNode(FeatureExtractorBase):
     @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        return ColorFeature
-
-    @classmethod
     def INPUT_TYPES(cls):
         parent_inputs = super().INPUT_TYPES()["required"]
         parent_inputs.pop("frame_count", None)
+        parent_inputs["extraction_method"] = (ColorFeature.get_extraction_methods(),)
         return {
             "required": {
                 **parent_inputs,
@@ -304,13 +276,10 @@ class ColorFeatureNode(FeatureExtractorBase):
 @apply_tooltips
 class BrightnessFeatureNode(FeatureExtractorBase):
     @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        return BrightnessFeature
-
-    @classmethod
     def INPUT_TYPES(cls):
         parent_inputs = super().INPUT_TYPES()["required"]
         parent_inputs.pop("frame_count", None)
+        parent_inputs["extraction_method"] = (BrightnessFeature.get_extraction_methods(),)
         return {
             "required": {
                 **parent_inputs,
@@ -330,15 +299,10 @@ class BrightnessFeatureNode(FeatureExtractorBase):
 @apply_tooltips
 class MotionFeatureNode(FeatureExtractorBase):
     @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        return MotionFeature
-
-    @classmethod
     def INPUT_TYPES(cls):
-        # Get parent input types but exclude frame_count
         parent_inputs = super().INPUT_TYPES()["required"]
         parent_inputs.pop("frame_count", None)
-        
+        parent_inputs["extraction_method"] = (MotionFeature.get_extraction_methods(),)
         return {
             "required": {
                 **parent_inputs,
@@ -383,13 +347,10 @@ class MotionFeatureNode(FeatureExtractorBase):
 @apply_tooltips
 class AreaFeatureNode(FeatureExtractorBase):
     @classmethod
-    def feature_type(cls) -> type[BaseFeature]:
-        return AreaFeature
-
-    @classmethod
     def INPUT_TYPES(cls):
         parent_inputs = super().INPUT_TYPES()["required"]
         parent_inputs.pop("frame_count", None)
+        parent_inputs["extraction_method"] = (AreaFeature.get_extraction_methods(),)
         return {
             "required": {
                 **parent_inputs,
