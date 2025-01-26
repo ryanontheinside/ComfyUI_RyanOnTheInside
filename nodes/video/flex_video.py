@@ -13,6 +13,16 @@ from .flex_video_speed import FlexVideoSpeed
 class FlexVideoDirection(FlexVideoBase):
 
     @classmethod
+    def INPUT_TYPES(cls):
+        inputs = super().INPUT_TYPES()
+
+        # Override the feature_mode input to remove the "absolute" option
+        inputs["required"]["feature_mode"] = (["relative"], {"default": "relative"})
+        inputs["required"]["feature_param"] = cls.get_modifiable_params()
+        
+        return inputs
+        
+    @classmethod
     def get_modifiable_params(cls):
         return ["direction"]
 
@@ -86,9 +96,12 @@ class FlexVideoSeek(FlexVideoBase):
 
         # Override the feature_mode input to remove the "absolute" option
         inputs["required"]["feature_mode"] = (["relative"], {"default": "relative"})
+        inputs["required"]["feature_param"] = cls.get_modifiable_params()
         # Add the new reverse parameter
         inputs["required"]["reverse"] = ("BOOLEAN", {"default": False})
         return inputs
+
+
 
     FUNCTION = "apply_effect"
 
