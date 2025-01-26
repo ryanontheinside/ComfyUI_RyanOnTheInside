@@ -147,7 +147,7 @@ class ImageScaleToTarget(ImageUtilityNode):
 
 import json
 
-class ColorPicker:
+class Color_Picker:
     """
     A node that provides a color picker interface and outputs hex color, RGB color, and hue values.
     """

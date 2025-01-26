@@ -207,7 +207,7 @@ from .nodes.utility_nodes import (
 
 from .nodes.images.image_utility_nodes import (
     DyeImage,
-    ColorPicker,
+    Color_Picker,
     ImageCASBatch,
     ImageScaleToTarget
 
@@ -552,7 +552,7 @@ NODE_CLASS_MAPPINGS = {
 
     #garb   
     "DyeImage":                     DyeImage,
-    "ColorPicker":                  ColorPicker,
+    "Color_Picker":                  Color_Picker,
     "ImageCASBatch":                ImageCASBatch,
     "ImageScaleToTarget":           ImageScaleToTarget,
     "MovingShape":                  MovingShape,
@@ -612,6 +612,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Image_Shuffle":                 "Image Shuffle ROTI",
     "Audio_Combine":                 "Audio Combine ROTI",
     "Audio_Concatenate":             "Audio Concatenate ROTI",
+    "Color_Picker":                  "Color_Picker ROTI",
     "Doom_":                        "DOOM",
 }
 
