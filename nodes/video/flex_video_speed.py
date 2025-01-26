@@ -30,9 +30,11 @@ class FlexVideoSpeed(FlexVideoBase):
     @classmethod
     def INPUT_TYPES(cls):
         parent_inputs = super().INPUT_TYPES()
+        parent_inputs["required"]["feature_param"] = cls.get_modifiable_params()
         return {
             **parent_inputs,  # Keep all parent inputs including optional
             "required": {
+
                 **parent_inputs["required"],
                 "speed_factor": ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.1}),
                 "interpolation_mode": (["none", "linear", "Farneback", "rife47", "rife49"],),
