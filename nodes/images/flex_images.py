@@ -14,7 +14,7 @@ class FlexImageEdgeDetect(FlexImageBase):
 
     def INPUT_TYPES(cls):
         base_inputs = super().INPUT_TYPES()
-        base_inputs["required"]["feature_param"] = cls.get_modifiable_params()
+        base_inputs["required"]["feature_param"] = cls.get_modifiable_params() #this is to preserve the position of the widget in the node to protect existing workflows
         base_inputs["required"].update({
             "low_threshold": ("FLOAT", {"default": 100, "min": 0, "max": 255, "step": 1}),
             "high_threshold": ("FLOAT", {"default": 200, "min": 0, "max": 255, "step": 1}),

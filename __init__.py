@@ -303,7 +303,10 @@ from .nodes.latents.flex_latents import (
     EmbeddingGuidedLatentInterpolate,
     FlexLatentBlend,
     FlexLatentNoise,
+    
 )
+from .nodes.latents.flex_latent_noise_warp import FlexWarpedNoise
+
 from .nodes.flex.parameter_scheduling import (
     FeatureToFlexIntParam,
     FeatureToFlexFloatParam,
@@ -316,6 +319,7 @@ from .nodes.flex.feature_pipe import ManualFeaturePipe
 from .nodes.preprocessors.pose import PoseInterpolator
 
 from .nodes.doom.doom import Doom_
+
 
 # from .nodes.models.flex_model_base import FlexFeatureAttentionControl
 
@@ -374,6 +378,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexLatentInterpolate":        FlexLatentInterpolate,
     "EmbeddingGuidedLatentInterpolate": EmbeddingGuidedLatentInterpolate,
     "FlexLatentBlend":              FlexLatentBlend,
+    "FlexWarpedNoise":                FlexWarpedNoise,
     "FlexLatentNoise":              FlexLatentNoise,
     "LatentFrequencyBlender":       LatentFrequencyBlender,
     #video
@@ -543,12 +548,13 @@ NODE_CLASS_MAPPINGS = {
     "FlexImageDepthWarp":           FlexImageDepthWarp,
     "FlexImageHorizontalToVertical":FlexImageHorizontalToVertical,
 
-
+    
 
     #visulizers
     "ProximityVisualizer":          ProximityVisualizer,
     "EffectVisualizer":             EffectVisualizer,
     "PitchVisualizer":              PitchVisualizer,
+
 
     #garb   
     "DyeImage":                     DyeImage,
