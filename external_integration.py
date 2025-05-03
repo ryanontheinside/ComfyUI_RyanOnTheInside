@@ -1,20 +1,28 @@
 import os
 
+def get_case_insensitive_path(base_dir, target_name):
+    """Find a directory path case-insensitively within base_dir."""
+    if not os.path.exists(base_dir):
+        return None
+    for name in os.listdir(base_dir):
+        if name.lower() == target_name.lower():
+            return os.path.join(base_dir, name)
+    return None
+
 # Variables to track the availability of external modules
-alp_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-AdvancedLivePortrait")
-HAS_ADVANCED_LIVE_PORTRAIT = os.path.exists(alp_path)
+parent_dir = os.path.dirname(os.path.dirname(__file__))
+
+alp_path = get_case_insensitive_path(parent_dir, "ComfyUI-AdvancedLivePortrait")
+HAS_ADVANCED_LIVE_PORTRAIT = alp_path is not None
 print(f"Checking for AdvancedLivePortrait at: {alp_path}")
 
-acn_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-Advanced-ControlNet")
-HAS_ADVANCED_CONTROLNET = os.path.exists(acn_path)
+acn_path = get_case_insensitive_path(parent_dir, "ComfyUI-Advanced-ControlNet")
+HAS_ADVANCED_CONTROLNET = acn_path is not None
 print(f"Checking for Advanced-ControlNet at: {acn_path}")
 
-#WIP
-ad_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ComfyUI-AnimateDiff-Evolved")
-HAS_ANIMATEDIFF = os.path.exists(ad_path)
+ad_path = get_case_insensitive_path(parent_dir, "ComfyUI-AnimateDiff-Evolved")
+HAS_ANIMATEDIFF = ad_path is not None
 print(f"Checking for AnimateDiff-Evolved at: {ad_path}")
-
-# HAS_ANIMATEDIFF=False
 
 # Conditional imports for AdvancedLivePortrait
 if HAS_ADVANCED_LIVE_PORTRAIT:
