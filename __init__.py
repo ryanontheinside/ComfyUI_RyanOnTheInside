@@ -1,7 +1,10 @@
-from .tooltips import TooltipManager, apply_tooltips
-from .tooltips.categories import register_all_tooltips
+# Set this to True to disable all tooltips
+DISABLE_TOOLTIPS = False
 
-# Register tooltips immediately after import
+if not DISABLE_TOOLTIPS:
+    from .tooltips import TooltipManager, apply_tooltips
+    from .tooltips.categories import register_all_tooltips
+
 from comfy.utils import ProgressBar
 from tqdm import tqdm
 from .node_configs.node_configs import CombinedMeta
@@ -654,4 +657,5 @@ if hasattr(PromptServer, "instance"):
         [web.static("/ryanontheinside_web_async", (Path(__file__).parent.absolute() / "ryanontheinside_web_async").as_posix())]
     )
 #register tooltips after all classes are initialized
-register_all_tooltips()
+if not DISABLE_TOOLTIPS:
+    register_all_tooltips()
