@@ -322,6 +322,7 @@ from .nodes.doom.doom import Doom_
 
 # from .nodes.models.flex_model_base import FlexFeatureAttentionControl
 
+from .audio_latent_blend import AudioLatentBlend, FlexAudioLatentBlend
 
 # Import external integrations
 from .external_integration import (
@@ -365,7 +366,8 @@ NODE_CLASS_MAPPINGS = {
     #NOTE: PoseInterpolator is not working yet
     #"PoseInterpolator": PoseInterpolator,
     # "FlexFeatureAttentionControl": FlexFeatureAttentionControl,
-    
+    "AudioLatentBlend":             AudioLatentBlend,
+    # "FlexAudioLatentBlend":         FlexAudioLatentBlend,
     "FeatureInterpolator":          FeatureInterpolator,
     "FeaturePeakDetector":          FeaturePeakDetector,
     
@@ -648,14 +650,14 @@ from aiohttp import web
 from server import PromptServer
 from pathlib import Path
 
-if hasattr(PromptServer, "instance"):
-    # NOTE: we add an extra static path to avoid comfy mechanism
-    # that loads every script in web. 
-    # 
-    # Again credit to KJNodes and MTB nodes
-    PromptServer.instance.app.add_routes(
-        [web.static("/ryanontheinside_web_async", (Path(__file__).parent.absolute() / "ryanontheinside_web_async").as_posix())]
-    )
-#register tooltips after all classes are initialized
+# if hasattr(PromptServer, "instance"):
+#     # NOTE: we add an extra static path to avoid comfy mechanism
+#     # that loads every script in web. 
+#     # 
+#     # Again credit to KJNodes and MTB nodes
+#     PromptServer.instance.app.add_routes(
+#         [web.static("/ryanontheinside_web_async", (Path(__file__).parent.absolute() / "ryanontheinside_web_async").as_posix())]
+#     )
+# #register tooltips after all classes are initialized
 if not DISABLE_TOOLTIPS:
     register_all_tooltips()
