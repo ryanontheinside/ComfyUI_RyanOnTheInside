@@ -289,3 +289,41 @@ class AudioDither(AudioUtility):
         waveform, sample_rate = audio['waveform'], audio['sample_rate']
         quantized_waveform = dither_audio(waveform, bit_depth, noise_shaping)
         return ({"waveform": quantized_waveform, "sample_rate": sample_rate},)
+
+@apply_tooltips
+class AudioTrim(AudioUtility):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "audio": ("AUDIO",),
+                "start_time": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10000.0, "step": 0.01}),
+                "end_time": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10000.0, "step": 0.01}),
+            }
+        }
+
+    RETURN_TYPES = ("AUDIO",)
+    FUNCTION = "trim_audio"
+
+    def trim_audio(self, audio, start_time, end_time):
+        waveform, sample_rate = audio['waveform'], audio['sample_rate']
+        
+        # Convert time to samples
+        start_sample = int(start_time * sample_rate)
+        
+        # If end_time is 0 or less, use the full audio duration
+        if end_time <= 0:
+            end_sample = waveform.shape[-1]
+        else:
+            end_sample = int(end_time * sample_rate)
+            
+        # Ensure end_sample is not out of bounds
+        end_sample = min(end_sample, waveform.shape[-1])
+        
+        # Ensure start_sample is not greater than end_sample
+        start_sample = min(start_sample, end_sample)
+        
+        # Trim the audio
+        trimmed_waveform = waveform[..., start_sample:end_sample]
+        
+        return ({"waveform": trimmed_waveform, "sample_rate": sample_rate},)
