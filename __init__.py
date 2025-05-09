@@ -109,6 +109,7 @@ from .nodes.audio.audio_nodes_utility import (
     AudioSubtract,
     Audio_Concatenate,
     AudioDither,
+    AudioTrim,
     AudioInfo,
 )
 
@@ -322,7 +323,7 @@ from .nodes.doom.doom import Doom_
 
 # from .nodes.models.flex_model_base import FlexFeatureAttentionControl
 
-from .audio_latent_blend import AudioLatentBlend, FlexAudioLatentBlend
+from .audio_latent_blend import AudioLatentBlend, FlexlatentAudioBlend
 
 # Import external integrations
 from .external_integration import (
@@ -367,7 +368,7 @@ NODE_CLASS_MAPPINGS = {
     #"PoseInterpolator": PoseInterpolator,
     # "FlexFeatureAttentionControl": FlexFeatureAttentionControl,
     "AudioLatentBlend":             AudioLatentBlend,
-    # "FlexAudioLatentBlend":         FlexAudioLatentBlend,
+    "FlexlatentAudioBlend": FlexlatentAudioBlend,
     "FeatureInterpolator":          FeatureInterpolator,
     "FeaturePeakDetector":          FeaturePeakDetector,
     
@@ -452,6 +453,7 @@ NODE_CLASS_MAPPINGS = {
     "AudioPitchShift":              AudioPitchShift,
     "AudioTimeStretch":             AudioTimeStretch,
     "AudioDither":                  AudioDither,
+    "AudioTrim":                    AudioTrim,
     "AudioInfo":                    AudioInfo,
     "AudioGain":                    AudioGain,
     "AudioFade":                    AudioFade,

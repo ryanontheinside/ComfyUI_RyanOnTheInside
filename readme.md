@@ -9,14 +9,13 @@
 **Everything Reactivity**: Almost all nodes in this pack can be made to react to audio, MIDI, motion, time, color, depth, brightness, and **more**, allowing for incredibly dynamic and responsive workflows. If a node prefixed with  FLEX, then this reactivity is central to its functionality.**
 
 - 💪 **Flex Features**: Dynamic control over IPAdapters, Masks, Images, Videos, Audio, and more
-- 🎵 **Audio & MIDI Processing**: Separate instruments and create audio-reactive visuals
+- 🎵 **Audio & MIDI Processing**: Separate instruments, manipulate audio, work with ACEStep and other audio models
 - 🎆 **Particle Systems**: Create mesmerizing, fluid-like effects
 - 🌊 **Optical Flow**: Generate masks based on motion in videos
 - 🌊 **DEPTH Flow** 🌊: Use flex features to control depthflow nodes, adding parallax animations to your workflows!
 - 👤 **AdvancedLivePortrait** 👤: Use flex features to control facial animation expressions! 
 - 🎨 **Advanced Controlnet** 🎨: Direct integration with ComfyUI-AdvancedControlnet!
 - 🎭 **AnimateDiff** 🎭: Direct integration with ComfyUI-AnimateDiff-Evolved!
-
 
 
 
