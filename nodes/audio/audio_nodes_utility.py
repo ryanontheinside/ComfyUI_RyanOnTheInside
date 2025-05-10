@@ -336,7 +336,7 @@ class Knob(AudioUtility):
         return {
             "required": {
                 "audio": ("AUDIO",),
-                "knob": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "knob": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01, "display": "knob"}),
                 "other_knob": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
             }
         }
