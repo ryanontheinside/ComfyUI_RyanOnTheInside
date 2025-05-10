@@ -111,6 +111,7 @@ from .nodes.audio.audio_nodes_utility import (
     AudioDither,
     AudioTrim,
     AudioInfo,
+    Knob,
 )
 
 from .nodes.flex.feature_extractors import(
@@ -462,6 +463,7 @@ NODE_CLASS_MAPPINGS = {
     "AudioChannelSplit":            AudioChannelSplit,
     "AudioResample":                AudioResample,
     "AudioVolumeNormalization":     AudioVolumeNormalization,
+    "Knob":                Knob,
 
     #features   
     "AudioFeatureExtractor":        AudioFeatureExtractor,
