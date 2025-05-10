@@ -4,7 +4,7 @@ description = "Custom nodes introducing everything-reactivity and timelines to C
 version = "2.0.10"
 license = {file = "LICENSE"}
 
-dependencies = ["pygame","opencv-python==4.10.0","scipy","torchaudio", "pillow","librosa==0.10.2","pymunk==6.8.1","matplotlib","openunmix","mido","scikit-image"]
+dependencies = ["pygame","opencv-python>=4.10.0","scipy","torchaudio", "pillow","librosa>=0.10.2","pymunk==6.8.1","matplotlib","openunmix","mido","scikit-image"]
 
 [project.urls]
 Repository = "https://github.com/ryanontheinside/ComfyUI_RyanOnTheInside"
