@@ -459,110 +459,169 @@ class FlexImageBloom(FlexImageBase):
     def get_modifiable_params(cls):
         return ["intensity", "threshold", "blur_amount", "num_passes", "color_bleeding", "falloff", "None"]
 
+    def __init__(self):
+        super().__init__()
+        self.kernel_cache = {}
+        self.weights_cache = {}
+        self.device = None
+
+    def _get_device(self):
+        """Get or initialize device (GPU if available, CPU if not)"""
+        if self.device is None:
+            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        return self.device
+
+    def _get_pass_weights(self, num_passes):
+        """Get cached pass weights or create new ones"""
+        key = num_passes
+        if key not in self.weights_cache:
+            device = self._get_device()
+            weights = torch.tensor([1.0 / (2 ** i) for i in range(num_passes)], device=device)
+            self.weights_cache[key] = weights / weights.sum()
+        return self.weights_cache[key]
+
+    def _prepare_mask(self, opt_mask, bright_mask_shape, frame_index):
+        """Prepare and transform mask for bloom effect"""
+        device = self._get_device()
+        
+        # Skip if no mask provided
+        if opt_mask is None:
+            return None
+            
+        # Convert mask to tensor if needed
+        if not torch.is_tensor(opt_mask):
+            mask_tensor = torch.from_numpy(opt_mask).to(device)
+        else:
+            mask_tensor = opt_mask.to(device)
+        
+        # Extract the correct frame from batched masks
+        if len(mask_tensor.shape) > 2:
+            mask_tensor = mask_tensor[frame_index]
+        
+        # Ensure mask is 2D
+        if len(mask_tensor.shape) > 2:
+            mask_tensor = mask_tensor.squeeze()
+        
+        # Only resize if necessary
+        if mask_tensor.shape != bright_mask_shape:
+            mask_tensor = torch.nn.functional.interpolate(
+                mask_tensor.unsqueeze(0).unsqueeze(0),
+                size=bright_mask_shape,
+                mode='bilinear'
+            ).squeeze()
+            
+        return mask_tensor
+
+    def _prepare_normal_map(self, opt_normal_map, frame_index):
+        """Prepare normal map for directional bloom"""
+        device = self._get_device()
+        
+        # Skip if no normal map provided
+        if opt_normal_map is None:
+            return None
+            
+        # Convert to tensor if needed
+        if not torch.is_tensor(opt_normal_map):
+            normal_tensor = torch.from_numpy(opt_normal_map).to(device)
+        else:
+            normal_tensor = opt_normal_map.to(device)
+        
+        # Extract the correct frame
+        if len(normal_tensor.shape) > 3:
+            normal_tensor = normal_tensor[frame_index]
+        
+        # Convert normal map to [-1,1] range
+        normals = normal_tensor * 2.0 - 1.0
+        
+        # Calculate surface alignment
+        view_vector = torch.tensor([0, 0, 1], device=device)
+        surface_alignment = torch.sum(normals * view_vector, dim=2)
+        surface_alignment = (surface_alignment + 1) * 0.5
+        
+        return surface_alignment
+
     def apply_effect_internal(self, image: np.ndarray, threshold: float, blur_amount: float, 
                               intensity: float, num_passes: int, color_bleeding: float,
                               falloff: float, opt_normal_map: np.ndarray = None, 
                               opt_mask: np.ndarray = None, **kwargs) -> np.ndarray:
-        # Set up device (GPU if available, CPU if not)
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # Skip processing if intensity is 0
+        if intensity <= 0.001:
+            return image
+            
+        # Skip processing if blur amount is 0
+        if blur_amount <= 0.001:
+            return image
         
-        # Convert input image to tensor
+        # Get device and convert input to tensor
+        device = self._get_device()
+        frame_index = kwargs.get('frame_index', 0)
+        
+        # Convert image to tensor efficiently
         image_tensor = torch.from_numpy(image).to(device)
         
-        # Extract bright areas with smooth threshold
+        # Extract bright areas with smooth threshold - vectorized operation
         brightness = torch.max(image_tensor, dim=2)[0]
-        bright_mask = torch.clip((brightness - threshold) / (1 - threshold), 0, 1)
+        # Only process if brightness exceeds threshold
+        if torch.max(brightness) <= threshold:
+            return image
+            
+        # Calculate bright mask with threshold
+        bright_mask = torch.clamp((brightness - threshold) / max(1e-6, 1 - threshold), 0, 1)
         bright_mask = torch.pow(bright_mask, falloff)
         
-        # Process optional mask if provided
-        if opt_mask is not None:
-            # Convert mask to tensor and ensure correct shape
-            if torch.is_tensor(opt_mask):
-                mask_tensor = opt_mask.to(device)
-            else:
-                mask_tensor = torch.from_numpy(opt_mask).to(device)
-            
-            # Handle batched masks
-            if len(mask_tensor.shape) > 2:
-                frame_index = kwargs.get('frame_index', 0)
-                mask_tensor = mask_tensor[frame_index]
-            
-            # Ensure mask is 2D
-            if len(mask_tensor.shape) > 2:
-                mask_tensor = mask_tensor.squeeze()
-            
-            # Resize mask if needed
-            if mask_tensor.shape != bright_mask.shape:
-                mask_tensor = torch.nn.functional.interpolate(
-                    mask_tensor.unsqueeze(0).unsqueeze(0),
-                    size=bright_mask.shape,
-                    mode='bilinear'
-                ).squeeze()
-            
-            # Combine mask with brightness mask
+        # Process mask if provided
+        mask_tensor = self._prepare_mask(opt_mask, bright_mask.shape, frame_index)
+        if mask_tensor is not None:
             bright_mask = bright_mask * mask_tensor
+            
+        # Skip if bright mask is empty after masking
+        if torch.max(bright_mask) <= 0.001:
+            return image
         
-        # Pre-calculate color bleeding contribution
+        # Calculate color bleeding contribution
         if color_bleeding > 0:
             mean_color = torch.mean(image_tensor, dim=2, keepdim=True)
             color_contribution = image_tensor * (1 - color_bleeding) + mean_color * color_bleeding
         else:
             color_contribution = image_tensor
         
-        # Initialize accumulator and calculate pass weights
+        # Initialize bloom accumulator
         bloom_accumulator = torch.zeros_like(image_tensor)
-        pass_weights = torch.tensor([1.0 / (2 ** i) for i in range(num_passes)], device=device)
-        pass_weights /= pass_weights.sum()
+        
+        # Get pass weights
+        pass_weights = self._get_pass_weights(num_passes)
         
         # Process normal map if provided
-        if opt_normal_map is not None:
-            if torch.is_tensor(opt_normal_map):
-                normal_tensor = opt_normal_map.to(device)
-            else:
-                normal_tensor = torch.from_numpy(opt_normal_map).to(device)
-            
-            if len(normal_tensor.shape) > 3:
-                normal_tensor = normal_tensor[kwargs.get('frame_index', 0)]
-            
-            # Convert normal map to [-1,1] range
-            normals = normal_tensor * 2.0 - 1.0
-            
-            # Calculate surface alignment
-            view_vector = torch.tensor([0, 0, 1], device=device)
-            surface_alignment = torch.sum(normals * view_vector, dim=2)
-            surface_alignment = (surface_alignment + 1) * 0.5
+        surface_alignment = self._prepare_normal_map(opt_normal_map, frame_index)
         
         # Multi-pass gaussian blur
         for i in range(num_passes):
-            # Calculate kernel size based on blur amount
+            # Calculate adaptive kernel size for this pass
             kernel_size = int(blur_amount * (1 + i)) | 1  # Ensure odd
             kernel_size = max(3, min(kernel_size, min(image.shape[:2])))
             sigma = kernel_size / 6.0
             
-            # Apply bright mask with color contribution
-            pass_contribution = color_contribution * bright_mask.unsqueeze(-1)
-            
-            # Apply gaussian blur
-            if opt_normal_map is not None:
-                # Apply directional blur based on normal map
-                pass_contribution = apply_gaussian_blur_gpu(
-                    pass_contribution.permute(2, 0, 1),
-                    kernel_size,
-                    sigma
-                ).permute(1, 2, 0)
+            # Skip if the weight contribution would be negligible
+            if pass_weights[i] < 0.01:
+                continue
                 
-                # Modulate by surface alignment
+            # Apply bright mask with color contribution
+            bright_mask_expanded = bright_mask.unsqueeze(-1)
+            pass_contribution = color_contribution * bright_mask_expanded
+            
+            # Apply gaussian blur efficiently
+            pass_contribution = apply_gaussian_blur_gpu(
+                pass_contribution.permute(2, 0, 1),
+                kernel_size,
+                sigma
+            ).permute(1, 2, 0)
+            
+            # Modulate by surface alignment if normal map is provided
+            if surface_alignment is not None:
                 pass_contribution = pass_contribution * (1 - surface_alignment.unsqueeze(-1))
-            else:
-                # Standard gaussian blur
-                pass_contribution = apply_gaussian_blur_gpu(
-                    pass_contribution.permute(2, 0, 1),
-                    kernel_size,
-                    sigma
-                ).permute(1, 2, 0)
             
             # Add weighted contribution to accumulator
-            bloom_accumulator += pass_contribution * pass_weights[i]
+            bloom_accumulator.add_(pass_contribution * pass_weights[i])
         
         # Combine with original image using intensity
         result = image_tensor + bloom_accumulator * intensity
@@ -696,56 +755,76 @@ class FlexImageParallax(FlexImageBase):
     def get_modifiable_params(cls):
         return ["shift_x", "shift_y", "shift_z"]
 
+    def __init__(self):
+        super().__init__()
+        self._cached_coords = {}  # Cache for coordinate grids
+
+    def _get_coordinate_grid(self, h, w):
+        """Get cached coordinate grid or create a new one"""
+        key = (h, w)
+        if key not in self._cached_coords:
+            y, x = np.mgrid[0:h, 0:w].astype(np.float32)
+            self._cached_coords[key] = (x, y)
+        return self._cached_coords[key]
+
     def apply_effect_internal(
         self,
         image: np.ndarray,
         shift_x: float,
         shift_y: float,
         shift_z: float,
-        depth_map: np.ndarray = None,  # Default depth_map to None
-        frame_index: int = 0,  # Default to frame 0 for consistency
+        depth_map: np.ndarray = None,
+        frame_index: int = 0,
         **kwargs
     ) -> np.ndarray:
         h, w, _ = image.shape
 
+        # Get cached coordinate grid
+        x, y = self._get_coordinate_grid(h, w)
+        
+        # Define center once
+        cx, cy = w / 2, h / 2
+
         if depth_map is not None:
-            # Depth-based parallax
-            depth_map_frame = depth_map[frame_index].cpu().numpy()
-            depth_map_gray = np.mean(depth_map_frame, axis=-1)
-            depth_map_gray /= np.max(depth_map_gray)
+            # Get the depth map for this frame
+            depth_frame = depth_map[frame_index].cpu().numpy()
+            
+            # Convert to grayscale by averaging channels
+            depth_gray = np.mean(depth_frame, axis=-1)
+            
+            # Normalize safely
+            max_depth = np.max(depth_gray)
+            if max_depth > 0:
+                depth_normalized = depth_gray / max_depth
+            else:
+                depth_normalized = depth_gray
 
-            # Calculate shifts based on the depth map
-            dx = (w * shift_x * depth_map_gray).astype(np.int32)
-            dy = (h * shift_y * depth_map_gray).astype(np.int32)
-
-            # Scale based on depth map
-            scale = 1 + shift_z * depth_map_gray
+            # Calculate displacements based on depth
+            dx = w * shift_x * depth_normalized
+            dy = h * shift_y * depth_normalized
+            scale_factor = 1 + shift_z * depth_normalized
         else:
-            # 2D fallback: no depth map, apply uniform parallax
-            dx = int(w * shift_x)
-            dy = int(h * shift_y)
-            scale = 1 + shift_z
-
-        # Generate the grid for x, y coordinates
-        x, y = np.meshgrid(np.arange(w), np.arange(h))
+            # Uniform displacement when no depth map
+            dx = np.full((h, w), shift_x * w, dtype=np.float32)
+            dy = np.full((h, w), shift_y * h, dtype=np.float32)
+            scale_factor = np.full((h, w), 1 + shift_z, dtype=np.float32)
 
         # Apply shifts
         x_shifted = x + dx
         y_shifted = y + dy
 
-        # Apply scaling around the center of the image
-        cx, cy = w / 2, h / 2
-        x_scaled = cx + (x_shifted - cx) * scale
-        y_scaled = cy + (y_shifted - cy) * scale
+        # Vectorized scaling around center
+        x_scaled = cx + (x_shifted - cx) * scale_factor
+        y_scaled = cy + (y_shifted - cy) * scale_factor
 
-        # Ensure coordinates are within image bounds
-        new_x = np.clip(x_scaled, 0, w - 1).astype(np.int32)
-        new_y = np.clip(y_scaled, 0, h - 1).astype(np.int32)
+        # Create maps for cv2.remap - more efficient than simple indexing
+        map_x = np.clip(x_scaled, 0, w - 1).astype(np.float32)
+        map_y = np.clip(y_scaled, 0, h - 1).astype(np.float32)
 
-        # Generate the resulting image with parallax effect
-        result = image[new_y, new_x]
+        # Use cv2.remap for better interpolation
+        result = cv2.remap(image, map_x, map_y, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
 
-        return np.clip(result, 0, 1)
+        return result
     
 @apply_tooltips
 class FlexImageContrast(FlexImageBase):
