@@ -206,6 +206,7 @@ from .nodes.utility_nodes import (
     Image_Shuffle,
     SwapDevice,
     ImageIntervalSelectPercentage,
+    ImageIndexSelect,
 )
 
 ###images
@@ -277,6 +278,7 @@ from .nodes.flex.flex_externals import (
     DepthShapeModifierPrecise,
     FeatureToFloat,
     FeatureToMask,
+    FeatureToFilteredList,
 )
 
 
@@ -508,6 +510,7 @@ NODE_CLASS_MAPPINGS = {
     "SplineFeatureModulator":       SplineFeatureModulator,
     "FeatureToFloat":               FeatureToFloat,
     "FeatureToMask":                 FeatureToMask,
+    "FeatureToFilteredList":        FeatureToFilteredList,
     "SplineRhythmModulator":        SplineRhythmModulator,
     "DepthInjection":               DepthInjection,
     "DepthRippleEffect":            DepthRippleEffect,
@@ -583,6 +586,7 @@ NODE_CLASS_MAPPINGS = {
     "Image_Shuffle":                Image_Shuffle,
     "SwapDevice":                   SwapDevice,
     "ImageIntervalSelectPercentage":ImageIntervalSelectPercentage,
+    "ImageIndexSelect":             ImageIndexSelect,
     
 }
 

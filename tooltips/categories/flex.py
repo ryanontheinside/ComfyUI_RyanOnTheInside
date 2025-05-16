@@ -505,8 +505,36 @@ When specified, interpolates feature to match the target frame count."""
 
     # FeatureToFloat tooltips (inherits from: FlexExternalModulator)
     TooltipManager.register_tooltips("FeatureToFloat", {
-        "feature": "Input feature to be converted to float values"
+        "feature": "Input feature to convert to float values"
     }, inherits_from='FlexExternalModulator')
+
+    # FeatureToFilteredList tooltips (inherits from: FlexExternalModulator)
+    TooltipManager.register_tooltips("FeatureToFilteredList", {
+        "feature": "Input feature to filter",
+        "filter_type": """Type of filtering to apply:
+- peaks: Find local maxima in the feature values
+- troughs: Find local minima in the feature values
+- above_threshold: Find values above the threshold
+- below_threshold: Find values below the threshold
+- significant_changes: Find points where the value changes significantly""",
+        "threshold_type": """How to determine the threshold:
+- absolute: Use threshold_value directly
+- relative: Use percentile of values (threshold_value * 100)
+- adaptive: Use mean + (threshold_value * std)""",
+        "threshold_value": "Value used for thresholding (interpretation depends on threshold_type)",
+        "smoothing": "Amount of Gaussian smoothing to apply (0-1) to reduce noise",
+        "min_distance": "Minimum distance between detected points (for peaks/troughs)",
+        "filtered_indices": "List of frame numbers that satisfy the filter",
+        "filtered_count": "Number of frames that satisfy the filter",
+        "filtered_binary": "Binary mask where 1 indicates filtered values and 0 indicates others",
+        "filtered_indices_str": "Comma-separated string of frame numbers that satisfy the filter"
+    }, inherits_from='FlexExternalModulator', description="""Filter feature values to find specific patterns like peaks, troughs, or significant changes.
+    
+Useful for:
+- Finding beats or rhythmic patterns
+- Detecting significant changes in audio or motion
+- Identifying key moments in a feature
+- Creating binary masks for specific feature values""")
 
     # DepthShapeModifier tooltips (inherits from: FlexExternalModulator)
     TooltipManager.register_tooltips("DepthShapeModifier", {
