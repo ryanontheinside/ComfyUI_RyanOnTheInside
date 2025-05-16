@@ -42,6 +42,48 @@ class ImageIntervalSelect(BatchUtilityNode):
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "select_interval"
 
+@apply_tooltips
+class ImageIndexSelect(BatchUtilityNode):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "indices": ("INT", {"default": 0, "min": 0, "max": 100000, "step": 1, "forceInput": True}),
+                "filter_behavior": (["ignore", "error", "wrap"], {"default": "wrap"}),
+            },
+        }
+    
+    def select_indices(self, image, indices, filter_behavior="ignore"):
+        # Convert single index to list if necessary
+        if not isinstance(indices, list):
+            indices = [indices]
+        
+        batch_size = len(image)
+        
+        if filter_behavior == "error":
+            # Check if any index is out of bounds
+            invalid_indices = [idx for idx in indices if idx < 0 or idx >= batch_size]
+            if invalid_indices:
+                raise ValueError(f"Indices {invalid_indices} are out of bounds for batch size {batch_size}")
+            valid_indices = indices
+        elif filter_behavior == "wrap":
+            # Use modulo to wrap indices around
+            valid_indices = [idx % batch_size for idx in indices]
+        else:  # "ignore"
+            # Filter out invalid indices
+            valid_indices = [idx for idx in indices if 0 <= idx < batch_size]
+        
+        if not valid_indices:
+            raise ValueError("No valid indices provided")
+        
+        # Select the images at the specified indices
+        selected_images = image[valid_indices]
+        return (selected_images,)
+
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "select_indices"
+
 #NOTE eh FIX MEH
 @apply_tooltips
 class ImageIntervalSelectPercentage(BatchUtilityNode):
