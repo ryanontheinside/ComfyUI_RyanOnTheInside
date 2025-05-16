@@ -500,8 +500,82 @@ class FeatureToFloat(FlexExternalModulator):
         for i in range(feature.frame_count):
             data.append(feature.get_value_at_frame(i))
         return (data,) 
-    
 
+@apply_tooltips
+class FeatureToFilteredList(FlexExternalModulator):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "filter_type": (["peaks", "troughs", "above_threshold", "below_threshold", "significant_changes"],),
+                "threshold_type": (["absolute", "relative", "adaptive"],),
+                "threshold_value": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "smoothing": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "min_distance": ("INT", {"default": 1, "min": 1, "max": 100, "step": 1}),
+            }
+        }
+
+    RETURN_TYPES = ("INT", "INT", "FLOAT", "STRING",)
+    RETURN_NAMES = ("filtered_indices", "filtered_count", "filtered_binary", "filtered_indices_str",)
+    FUNCTION = "filter_feature"
+
+    def filter_feature(self, feature, filter_type, threshold_type, threshold_value, smoothing, min_distance):
+        import numpy as np
+        from scipy.signal import find_peaks, find_peaks_cwt
+        from scipy.ndimage import gaussian_filter1d
+
+        # Get feature values
+        values = np.array([feature.get_value_at_frame(i) for i in range(feature.frame_count)])
+        
+        # Apply smoothing if needed
+        if smoothing > 0:
+            values = gaussian_filter1d(values, sigma=smoothing * 10)
+        
+        # Normalize values to [0, 1] range
+        if values.max() != values.min():
+            normalized_values = (values - values.min()) / (values.max() - values.min())
+        else:
+            normalized_values = values
+
+        # Determine threshold based on threshold_type
+        if threshold_type == "absolute":
+            threshold = threshold_value
+        elif threshold_type == "relative":
+            threshold = np.percentile(normalized_values, threshold_value * 100)
+        else:  # adaptive
+            # Use standard deviation for adaptive thresholding
+            threshold = np.mean(normalized_values) + threshold_value * np.std(normalized_values)
+
+        # Apply filtering based on filter_type
+        if filter_type == "peaks":
+            peaks, _ = find_peaks(normalized_values, height=threshold, distance=min_distance)
+            filtered_indices = peaks.tolist()
+        elif filter_type == "troughs":
+            # Invert the signal to find troughs
+            inverted_values = 1 - normalized_values
+            troughs, _ = find_peaks(inverted_values, height=1-threshold, distance=min_distance)
+            filtered_indices = troughs.tolist()
+        elif filter_type == "above_threshold":
+            filtered_indices = np.where(normalized_values > threshold)[0].tolist()
+        elif filter_type == "below_threshold":
+            filtered_indices = np.where(normalized_values < threshold)[0].tolist()
+        else:  # significant_changes
+            # Calculate differences between consecutive values
+            differences = np.abs(np.diff(normalized_values))
+            # Find points where the change is significant
+            significant_changes = np.where(differences > threshold)[0]
+            # Add 1 to indices since diff reduces array length by 1
+            filtered_indices = (significant_changes + 1).tolist()
+
+        # Create binary mask
+        binary_mask = np.zeros_like(normalized_values)
+        binary_mask[filtered_indices] = 1
+
+        # Create comma-separated string of indices
+        filtered_indices_str = ",".join(map(str, filtered_indices))
+
+        return (filtered_indices, len(filtered_indices), binary_mask.tolist(), filtered_indices_str)
 
 #TODO: sub somthing logical
 _depth_category = "RyanOnTheInside/DepthModifiers"
