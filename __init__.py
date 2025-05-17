@@ -150,7 +150,7 @@ from .nodes.flex.feature_extractors_audio import(
 )
 
 from .nodes.flex.feature_extractors_midi import(
-    MIDILoadAndExtract,
+    MIDIFeatureExtractor,
 )
 
 from .nodes.flex.feature_extractors_proximity import(
@@ -329,7 +329,7 @@ from .nodes.doom.doom import Doom_
 from .audio_latent_blend import AudioLatentBlend, FlexlatentAudioBlend
 
 
-from .nodes.audio.midi_nodes import MIDIToAudio
+from .nodes.audio.midi_nodes import MIDIToAudio, MIDILoader
 
 # Import external integrations
 from .external_integration import (
@@ -483,7 +483,7 @@ NODE_CLASS_MAPPINGS = {
     "PitchRange":                   PitchRangeNode,
     "PitchRangePreset":             PitchRangePresetNode,
     "PitchRangeByNoteNode":         PitchRangeByNoteNode,
-    "MIDILoadAndExtract":           MIDILoadAndExtract,
+    "MIDIFeatureExtractor":           MIDIFeatureExtractor,
     "TimeFeatureNode":              TimeFeatureNode,
     "FloatFeatureNode":             FloatFeatureNode,
     "ManualFeatureNode":            ManualFeatureNode,
@@ -592,6 +592,7 @@ NODE_CLASS_MAPPINGS = {
     "ImageIndexSelect":             ImageIndexSelect,
     
     "MIDIPlayback": MIDIToAudio,
+    "MIDILoader": MIDILoader,
 }
 
 

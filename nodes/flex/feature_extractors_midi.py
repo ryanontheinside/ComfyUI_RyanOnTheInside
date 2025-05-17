@@ -1,15 +1,18 @@
 import mido
 import os
 import folder_paths
-from server import PromptServer
-from aiohttp import web
-import shutil
 from .features_midi import MIDIFeature
 from .feature_extractors import FeatureExtractorBase
 from ...tooltips import apply_tooltips
 
 @apply_tooltips
-class MIDILoadAndExtract(FeatureExtractorBase):
+class MIDIFeatureExtractor(FeatureExtractorBase):
+    """Extract musical features from MIDI data based on selected notes from a piano interface.
+    
+    This node connects to a MIDILoader node to receive MIDI data and extract features 
+    based on selected notes. Features can be used to modulate other parameters in the workflow.
+    """
+    
     @classmethod
     def feature_type(cls) -> type[MIDIFeature]:
         return MIDIFeature
@@ -18,27 +21,57 @@ class MIDILoadAndExtract(FeatureExtractorBase):
     def INPUT_TYPES(cls):
         parent_inputs = super().INPUT_TYPES()["required"]
         parent_inputs["extraction_method"] = (MIDIFeature.get_extraction_methods(),)
+        parent_inputs["frame_count"] = ("INT", {"default": 0, "min": 0})  # Changed default to 0 for auto-calculation
         return {
             "required": {
                 **parent_inputs,
-                "midi_file": (folder_paths.get_filename_list("midi_files"),),
-                "track_selection": (["all"],),
+                "midi": ("MIDI",),
                 "chord_only": ("BOOLEAN", {"default": False}),
                 "notes":  ("STRING", {"default": ""}),
             },
         }
 
-    RETURN_TYPES = ("MIDI", "FEATURE")
+    RETURN_TYPES = ("MIDI", "FEATURE", "INT")
+    RETURN_NAMES = ("midi", "feature", "frame_count")
     FUNCTION = "process_midi"
-    
+    CATEGORY = "RyanOnTheInside/Audio/Features"
 
-    def process_midi(self, midi_file, track_selection, notes, extraction_method, frame_rate, frame_count, width, height, chord_only=False):
+    def calculate_target_frame_count(self, midi, frame_rate, frame_count):
+        """Calculate the target frame count based on MIDI duration and specified frame count"""
+        if frame_count > 0:
+            return frame_count
+        
+        # Calculate total duration in seconds
+        total_time = 0
+        for track in midi.tracks:
+            track_time = 0
+            for msg in track:
+                if hasattr(msg, 'time'):
+                    track_time += msg.time
+            total_time = max(total_time, track_time)
+        
+        # Get tempo (default to 120 BPM if not specified)
+        tempo = 500000  # Default tempo in microseconds per quarter note
+        for track in midi.tracks:
+            for msg in track:
+                if msg.type == 'set_tempo':
+                    tempo = msg.tempo
+                    break
+        
+        # Convert ticks to seconds
+        seconds_per_tick = tempo / (midi.ticks_per_beat * 1000000.0)
+        duration_seconds = total_time * seconds_per_tick
+        
+        # Ensure we have some duration
+        duration_seconds = max(duration_seconds, 1.0)  # At least 1 second
+        
+        # Calculate frame count
+        return max(1, int(duration_seconds * frame_rate))
+
+    def process_midi(self, midi, notes, extraction_method, frame_rate, frame_count, width, height, chord_only=False):
         try:
-            midi_path = folder_paths.get_full_path("midi_files", midi_file)
-            if not midi_path or not os.path.exists(midi_path):
-                raise FileNotFoundError(f"MIDI file not found: {midi_file}")
-
-            midi_data = mido.MidiFile(midi_path)
+            # Calculate appropriate frame count
+            target_frame_count = self.calculate_target_frame_count(midi, frame_rate, frame_count)
             
             selected_notes = [int(n.strip()) for n in notes.split(',') if n.strip().isdigit()]
             
@@ -47,10 +80,10 @@ class MIDILoadAndExtract(FeatureExtractorBase):
             
             feature = MIDIFeature(
                 f"midi_{internal_attribute}",
-                midi_data,
+                midi,
                 internal_attribute,
                 frame_rate,
-                frame_count,
+                target_frame_count,  # Use calculated frame count
                 width,
                 height,
                 notes=selected_notes,
@@ -59,119 +92,28 @@ class MIDILoadAndExtract(FeatureExtractorBase):
             
             feature.extract()
 
-            return (midi_data, feature)
+            return (midi, feature, target_frame_count)
 
         except Exception as e:
-            raise RuntimeError(f"Error processing MIDI file: {type(e).__name__}: {str(e)}")
-
-    @classmethod
-    def analyze_midi(cls, midi_path):
-        midi_data = mido.MidiFile(midi_path)
-        tracks = ["all"]
-        all_notes = set()
-        track_notes = {}
-        for i, track in enumerate(midi_data.tracks):
-            track_notes[str(i)] = set()
-            for msg in track:
-                if msg.type == 'note_on':
-                    track_notes[str(i)].add(msg.note)
-                    all_notes.add(msg.note)
-            if len(track_notes[str(i)]) == 0:
-                tracks.append(f"{i}: (Empty)")
-            else:
-                tracks.append(f"{i}: {track.name or f'Track {i}'}")
-        
-        return {
-            "tracks": tracks,
-            "all_notes": ",".join(map(str, sorted(set(all_notes)))),
-            "track_notes": {k: ",".join(map(str, sorted(v))) for k, v in track_notes.items()}
-        }
+            raise RuntimeError(f"Error processing MIDI: {type(e).__name__}: {str(e)}")
     
     @classmethod
-    def VALIDATE_INPUTS(cls, midi_file, track_selection, notes, extraction_method, frame_rate):
-        midi_path = folder_paths.get_full_path("midi_files", midi_file)
-        if not midi_path or not os.path.isfile(midi_path):
-            return f"MIDI file not found: {midi_file}"
-        
-        # Check if the file has a .mid or .midi extension
-        if not midi_file.lower().endswith(('.mid', '.midi')):
-            return f"Invalid file type. Expected .mid or .midi file, got: {midi_file}"
-        
-        if notes != "all":
+    def VALIDATE_INPUTS(cls, midi, notes, extraction_method, frame_rate, frame_count, width, height, chord_only=False):
+        if notes:
             try:
                 note_list = [int(n.strip()) for n in notes.split(',') if n.strip()]
                 if not all(0 <= n <= 127 for n in note_list):
                     return "Invalid note value. All notes must be between 0 and 127."
             except ValueError:
-                return "Invalid notes format. Please provide comma-separated integers or 'all'."
+                return "Invalid notes format. Please provide comma-separated integers."
         
         return True
+            
 
+NODE_CLASS_MAPPINGS = {
+    "MIDIFeatureExtractor": MIDIFeatureExtractor,
+}
 
-routes = PromptServer.instance.routes
-@PromptServer.instance.routes.post('/get_track_notes')
-async def get_track_notes(request):
-    data = await request.json()
-    midi_file = data.get('midi_file')
-
-    if not midi_file:
-        return web.json_response({"error": "Missing required parameters"}, status=400)
-
-    midi_path = folder_paths.get_full_path("midi_files", midi_file)
-    if not midi_path or not os.path.exists(midi_path):
-        return web.json_response({"error": "MIDI file not found"}, status=404)
-
-    analysis = MIDILoadAndExtract.analyze_midi(midi_path)
-    return web.json_response(analysis)
-
-@routes.post('/upload_midi')
-async def upload_midi(request):
-    data = await request.post()
-    midi_file = data['file']
-    
-    if midi_file and midi_file.filename:
-        safe_filename = os.path.basename(midi_file.filename)
-        
-        midi_dir = folder_paths.get_folder_paths("midi_files")[0]
-        
-        if not os.path.exists(midi_dir):
-            os.makedirs(midi_dir, exist_ok=True)
-        
-        midi_path = os.path.join(midi_dir, safe_filename)
-
-        with open(midi_path, 'wb') as f:
-            shutil.copyfileobj(midi_file.file, f)
-
-        midi_files = folder_paths.get_filename_list("midi_files")
-        analysis = MIDILoadAndExtract.analyze_midi(midi_path)
-
-        return web.json_response({
-            "status": "success",
-            "uploaded_file": safe_filename,
-            "midi_files": midi_files,
-            "analysis": analysis
-        })
-    else:
-        return web.json_response({"status": "error", "message": "No file uploaded"}, status=400)
-    
-@PromptServer.instance.routes.post('/refresh_midi_data')
-async def refresh_midi_data(request):
-    data = await request.json()
-    midi_file = data.get('midi_file')
-    track_selection = data.get('track_selection')
-
-    if not midi_file:
-        return web.json_response({"error": "Missing required parameters"}, status=400)
-
-    midi_path = folder_paths.get_full_path("midi_files", midi_file)
-    if not midi_path or not os.path.exists(midi_path):
-        return web.json_response({"error": "MIDI file not found"}, status=404)
-
-    analysis = MIDILoadAndExtract.analyze_midi(midi_path)
-    
-    # Filter notes based on track selection
-    if track_selection != "all":
-        track_index = track_selection.split(':')[0]
-        analysis['all_notes'] = analysis['track_notes'].get(track_index, "")
-
-    return web.json_response(analysis)
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "MIDIFeatureExtractor": "MIDI Feature Extractor",
+}

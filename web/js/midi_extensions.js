@@ -2,14 +2,11 @@ import { app } from "../../scripts/app.js";
 import { drawPiano, handlePianoMouseDown } from "./piano.js";
 
 app.registerExtension({
-    name: "org.ryanontheinside.midi_load_and_extract",
+    name: "org.ryanontheinside.midi_feature_extractor",
     
-    // async setup() {
-    //     console.log("MIDI Extension: Setup called");
-    // },
-
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
-        if (nodeData.name === "MIDILoadAndExtract") {
+        //claude: do not change the node name
+        if (nodeData.name === "MIDIFeatureExtractor") {
 
             // Add the disableWidget method to the nodeType prototype
             nodeType.prototype.disableWidget = function(widget) {
@@ -21,47 +18,6 @@ app.registerExtension({
                     widget.onMouseUp = () => {};
                 }
             };
-
-            nodeType.prototype.uploadMIDI = function() {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = ".mid,.midi";
-                input.onchange = (event) => {
-                    const file = event.target.files[0];
-                    if (file) {
-                        const formData = new FormData();
-                        formData.append("file", file);
-            
-                        fetch("/upload_midi", {
-                            method: "POST",
-                            body: formData
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                // Update the midi_file widget with the new file path
-                                const midiFileWidget = this.widgets.find(w => w.name === "midi_file");
-                                if (midiFileWidget) {
-                                    midiFileWidget.value = data.file_path;
-                                    // Trigger any necessary updates
-                                    if (midiFileWidget.callback) {
-                                        midiFileWidget.callback(data.file_path);
-                                    }
-                                }
-                                // You might want to call updateTrackSelection here if it's needed
-                                this.updateTrackSelection();
-                                this.saveState(); // Save state after successful upload
-                            } else {
-                                console.error("Failed to upload MIDI file:", data.error);
-                            }
-                        })
-                        .catch(error => {
-                            console.error("Error uploading MIDI file:", error);
-                        });
-                    }
-                };
-                input.click();
-            };
             
             nodeType.prototype.onNodeCreated = function() {
                 this.properties = this.properties || {};
@@ -71,34 +27,12 @@ app.registerExtension({
                 this.scrollRightIndicator = null;
                 this.availableNotes = new Set();
 
-                this.addWidget("button", "Upload MIDI", "upload", () => {
-                    this.uploadMIDI();
-                });
-
-                this.addWidget("button", "Refresh", "refresh", () => {
-                    this.refreshMIDIData();
-                });
-
                 const notesWidget = this.widgets.find(widget => widget.name === "notes");
                 if (notesWidget) {
                     // Disable the widget
                     this.disableWidget(notesWidget);
                     // Hide the widget
                     notesWidget.hidden = true;
-                }
-
-                // Add event listeners for midi_file and track_selection widgets
-                const midiFileWidget = this.widgets.find(w => w.name === "midi_file");
-                if (midiFileWidget) {
-                    midiFileWidget.callback = (value) => {
-                        this.updateTrackSelection();
-                        this.saveState(); // Save state when MIDI file changes
-                    };
-                }
-
-                const trackSelectionWidget = this.widgets.find(w => w.name === "track_selection");
-                if (trackSelectionWidget) {
-                    trackSelectionWidget.callback = () => this.onTrackSelectionChange(trackSelectionWidget.value);
                 }
 
                 // Increase the node's height and width
@@ -116,156 +50,197 @@ app.registerExtension({
                 // Load saved state
                 this.loadSavedState();
 
-                // Set up a flag to indicate initial load
-                this.isInitialLoad = true;
-
-                // Instead of calling updateTrackSelection here, we'll set up a callback
-                // that will be called when the graph is available
-                this.onGraphAvailable = () => {
-                    this.updateTrackSelection();
-                };
+                // Check for existing connections after a short delay
+                setTimeout(() => {
+                    const connectedNodes = this.graph._nodes.filter(
+                        n => n.type === 'MIDILoader' && this.isNodeConnected(n)
+                    );
+                    
+                    if (connectedNodes.length > 0) {
+                        const loaderNode = connectedNodes[0];
+                        this.queryMIDILoaderNotes(loaderNode);
+                        this.listenToMIDILoaderChanges(loaderNode);
+                    }
+                }, 100); // Small delay to ensure links are established
             };
 
-            nodeType.prototype.loadSavedState = function() {
-                const savedState = localStorage.getItem(`MIDILoadAndExtract_${this.id}`);
-                if (savedState) {
-                    this.loadedState = JSON.parse(savedState);
-                    
-                    const midiFileWidget = this.widgets.find(w => w.name === "midi_file");
-                    if (midiFileWidget && this.loadedState.midiFile) {
-                        midiFileWidget.value = this.loadedState.midiFile;
+            // Handle connections changing
+            nodeType.prototype.onConnectionsChange = function(type, index, connected, link_info) {
+                if (type === 1) { // Input connection (1 is for inputs, 0 is for outputs)
+                    if (connected && link_info) {
+                        // New connection established
+                        const inputNode = this.graph.getNodeById(link_info.origin_id);
+                        if (inputNode && inputNode.type === 'MIDILoader') {
+                            this.queryMIDILoaderNotes(inputNode);
+                            this.listenToMIDILoaderChanges(inputNode);
+                        }
+                    } else {
+                        // Check if we still have any connected MIDILoader nodes
+                        const connectedMidiNodes = this.graph._nodes.filter(
+                            n => n.type === 'MIDILoader' && this.isNodeConnected(n)
+                        );
+                        
+                        if (connectedMidiNodes.length === 0) {
+                            // All MIDILoader connections removed
+                            this.availableNotes = new Set();
+                            this.properties.selectedNotes = [];
+                            this.syncNotesWidget();
+                            this.setDirtyCanvas(true, true);
+                        }
                     }
                 }
             };
 
-            nodeType.prototype.updateTrackSelection = async function() {
-                if (this.isUpdatingTrackSelection) {
-                    console.log('Track selection update already in progress, skipping');
-                    return;
+            // Check if a node is connected to this node
+            nodeType.prototype.isNodeConnected = function(node) {
+                for (const link_id in this.graph.links) {
+                    const link = this.graph.links[link_id];
+                    if (link.target_id === this.id && link.origin_id === node.id) {
+                        return true;
+                    }
                 }
-                this.isUpdatingTrackSelection = true;
+                return false;
+            };
 
+            // Query the MIDILoader for available notes
+            nodeType.prototype.queryMIDILoaderNotes = async function(loaderNode) {
+                if (!loaderNode) return;
+                
+                const midiFile = loaderNode.getCurrentMidiFile();
+                const trackSelection = loaderNode.widgets.find(w => w.name === "track_selection").value;
+                
+                // Get time selection parameters from the MIDILoader
+                const startTimeWidget = loaderNode.widgets.find(w => w.name === "start_time");
+                const durationWidget = loaderNode.widgets.find(w => w.name === "duration");
+                
+                const startTime = startTimeWidget ? startTimeWidget.value : 0;
+                const duration = durationWidget ? durationWidget.value : 0;
+                
+                if (!midiFile) return;
+                
                 try {
-                    const midiFile = this.getCurrentMidiFile();
-
-                    if (!midiFile) {
-                        console.warn('No MIDI file selected');
-                        return;
-                    }
-
-                    const response = await fetch('/get_track_notes', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ midi_file: midiFile })
-                    });
-                    const data = await response.json();
+                    console.log(`Querying MIDI notes with start_time=${startTime}, duration=${duration}`);
                     
-                    if (data.error) {
-                        console.error('Error fetching track notes:', data.error);
-                        return;
-                    }
-                    
-
-                    const trackSelectionWidget = this.widgets.find(w => w.name === "track_selection");
-                    if (trackSelectionWidget) {
-                        // Update the options
-                        trackSelectionWidget.options.values = data.tracks;
-                    }
-
-                    // Update available notes
-                    this.availableNotes = new Set(data.all_notes.split(',').map(Number));
-                    
-                    // Apply loaded state if this is the initial load
-                    if (this.isInitialLoad && this.loadedState) {
-                        this.applyLoadedState();
-                        this.isInitialLoad = false;
-                    }
-
-                    this.setDirtyCanvas(true, true);
-                } catch (error) {
-                    console.error('Error updating track selection:', error);
-                    this.availableNotes = new Set(); // Reset to empty Set in case of error
-                } finally {
-                    this.isUpdatingTrackSelection = false;
-                }
-            };
-
-            nodeType.prototype.refreshMIDIData = async function() {
-                const midiFile = this.getCurrentMidiFile();
-                const trackSelection = this.widgets.find(w => w.name === "track_selection").value;
-
-                if (!midiFile) {
-                    console.warn('No MIDI file selected');
-                    return;
-                }
-
-                try {
                     const response = await fetch('/refresh_midi_data', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ midi_file: midiFile, track_selection: trackSelection })
+                        body: JSON.stringify({ 
+                            midi_file: midiFile, 
+                            track_selection: trackSelection,
+                            start_time: startTime,
+                            duration: duration
+                        })
                     });
                     const data = await response.json();
                     
                     if (data.error) {
-                        console.error('Error refreshing MIDI data:', data.error);
+                        console.error('Error fetching MIDI notes:', data.error);
                         return;
                     }
                     
-
-                    // Update available tracks
-                    const trackSelectionWidget = this.widgets.find(w => w.name === "track_selection");
-                    if (trackSelectionWidget) {
-                        trackSelectionWidget.options.values = data.tracks;
-                    }
-
                     // Update available notes
-                    this.availableNotes = new Set(data.all_notes.split(',').map(Number));
+                    const noteArray = data.all_notes.split(',').map(Number).filter(n => !isNaN(n));
+                    console.log(`Received ${noteArray.length} available notes in time range ${startTime}s - ${startTime + duration}s`);
+                    
+                    this.availableNotes = new Set(noteArray);
                     
                     // Filter out selected notes that are no longer available
                     if (this.properties.selectedNotes) {
-                        this.properties.selectedNotes = this.properties.selectedNotes.filter(note => this.availableNotes.has(note));
-                    } else {
-                        this.properties.selectedNotes = [];
-                    }
-                    this.syncNotesWidget();
-
-                    // Trigger redraw
-                    this.setDirtyCanvas(true, true);
-                } catch (error) {
-                    console.error('Error refreshing MIDI data:', error);
-                }
-            };
-
-            nodeType.prototype.applyLoadedState = function() {
-                if (this.loadedState) {
-                    
-                    const trackSelectionWidget = this.widgets.find(w => w.name === "track_selection");
-                    if (trackSelectionWidget && this.loadedState.trackSelection) {
-                        if (trackSelectionWidget.options.values.includes(this.loadedState.trackSelection)) {
-                            trackSelectionWidget.value = this.loadedState.trackSelection;
-                        } else {
-                            console.log(`Loaded track selection ${this.loadedState.trackSelection} is no longer valid`);
+                        const originalCount = this.properties.selectedNotes.length;
+                        this.properties.selectedNotes = this.properties.selectedNotes.filter(
+                            note => this.availableNotes.has(note)
+                        );
+                        
+                        if (originalCount !== this.properties.selectedNotes.length) {
+                            console.log(`Filtered out ${originalCount - this.properties.selectedNotes.length} selected notes that aren't in the time range`);
                         }
                     }
                     
-                    if (this.loadedState.selectedNotes) {
-                        this.properties.selectedNotes = this.loadedState.selectedNotes.filter(note => this.availableNotes.has(note));
-                    }
-                    
                     this.syncNotesWidget();
-                    delete this.loadedState;
-                    this.saveState(); // Save the applied state
+                    this.setDirtyCanvas(true, true);
+                } catch (error) {
+                    console.error('Error querying MIDI loader:', error);
+                }
+            };
+
+            // Listen for changes in the MIDILoader node
+            nodeType.prototype.listenToMIDILoaderChanges = function(loaderNode) {
+                // Store reference to loader node
+                this.connectedLoaderNode = loaderNode;
+                
+                // Check if we already added a listener to this node
+                if (loaderNode._feature_extractor_listeners && 
+                    loaderNode._feature_extractor_listeners.includes(this.id)) {
+                    return;
+                }
+                
+                // Initialize listener array if needed
+                if (!loaderNode._feature_extractor_listeners) {
+                    loaderNode._feature_extractor_listeners = [];
+                }
+                loaderNode._feature_extractor_listeners.push(this.id);
+                
+                // Find widgets in loader node
+                const trackWidget = loaderNode.widgets.find(w => w.name === "track_selection");
+                const startTimeWidget = loaderNode.widgets.find(w => w.name === "start_time");
+                const durationWidget = loaderNode.widgets.find(w => w.name === "duration");
+                
+                // Set up callback for track selection changes
+                if (trackWidget) {
+                    const origTrackCallback = trackWidget.callback;
+                    trackWidget.callback = (value) => {
+                        // Call original callback
+                        if (origTrackCallback) origTrackCallback.call(loaderNode, value);
+                        
+                        // Notify this feature extractor to update notes
+                        this.queryMIDILoaderNotes(loaderNode);
+                    };
+                }
+                
+                // Set up callback for start time changes
+                if (startTimeWidget) {
+                    const origCallback = startTimeWidget.callback;
+                    startTimeWidget.callback = (value) => {
+                        // Call original callback
+                        if (origCallback) origCallback.call(loaderNode, value);
+                        
+                        // Notify this feature extractor to update notes
+                        this.queryMIDILoaderNotes(loaderNode);
+                    };
+                }
+                
+                // Set up callback for duration changes
+                if (durationWidget) {
+                    const origCallback = durationWidget.callback;
+                    durationWidget.callback = (value) => {
+                        // Call original callback
+                        if (origCallback) origCallback.call(loaderNode, value);
+                        
+                        // Notify this feature extractor to update notes
+                        this.queryMIDILoaderNotes(loaderNode);
+                    };
+                }
+            };
+
+            nodeType.prototype.loadSavedState = function() {
+                const savedState = localStorage.getItem(`MIDIFeatureExtractor_${this.id}`);
+                if (savedState) {
+                    try {
+                        const state = JSON.parse(savedState);
+                        if (state.selectedNotes) {
+                            this.properties.selectedNotes = state.selectedNotes;
+                        }
+                    } catch (e) {
+                        console.error("Error loading saved state:", e);
+                    }
                 }
             };
 
             nodeType.prototype.saveState = function() {
                 const state = {
-                    midiFile: this.getCurrentMidiFile(),
-                    trackSelection: this.widgets.find(w => w.name === "track_selection")?.value,
                     selectedNotes: this.properties.selectedNotes
                 };
-                localStorage.setItem(`MIDILoadAndExtract_${this.id}`, JSON.stringify(state));
+                localStorage.setItem(`MIDIFeatureExtractor_${this.id}`, JSON.stringify(state));
             };
 
             nodeType.prototype.syncNotesWidget = function() {
@@ -283,10 +258,8 @@ app.registerExtension({
                 // Ensure the node updates its internal state
                 this.onPropertyChanged('selectedNotes');
                 
-                // Only call saveState if it's available
-                if (typeof this.saveState === 'function') {
-                    this.saveState();
-                }
+                // Save state
+                this.saveState();
             };
 
             nodeType.prototype.onPropertyChanged = function(property) {
@@ -309,7 +282,6 @@ app.registerExtension({
 
                 // Ensure availableNotes exists before drawing
                 if (!this.availableNotes) {
-                    console.warn('availableNotes is undefined, initializing as empty Set');
                     this.availableNotes = new Set();
                 }
 
@@ -337,58 +309,6 @@ app.registerExtension({
 
                 const [x, y] = pos;
                 return handlePianoMouseDown(this, x, y);
-            };
-
-            nodeType.prototype.getCurrentMidiFile = function() {
-                const midiFileWidget = this.widgets.find(w => w.name === "midi_file");
-                return midiFileWidget ? midiFileWidget.value : null;
-            };
-
-            nodeType.prototype.onTrackSelectionChange = async function(selectedTrack) {
-                try {
-                    const midiFile = this.getCurrentMidiFile();
-                    const response = await fetch('/get_track_notes', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ midi_file: midiFile })
-                    });
-                    const data = await response.json();
-                    
-                    if (data.error) {
-                        console.error('Error fetching track notes:', data.error);
-                        return;
-                    }
-                    
-                    const notesInTrack = selectedTrack === "all" 
-                        ? data.all_notes 
-                        : data.track_notes[selectedTrack.split(':')[0]];
-                    
-                    this.availableNotes = new Set(notesInTrack.split(',').map(Number));
-                    
-                    // Filter out selected notes that are no longer available
-                    if (this.properties.selectedNotes) {
-                        this.properties.selectedNotes = this.properties.selectedNotes.filter(note => this.availableNotes.has(note));
-                    } else {
-                        this.properties.selectedNotes = [];
-                    }
-                    this.syncNotesWidget();
-
-                    // Trigger redraw
-                    this.setDirtyCanvas(true, true);
-                } catch (error) {
-                    console.error('Error updating piano notes:', error);
-                }
-            };
-
-            // Add this at the end of the function
-            const onAdded = app.graph.onNodeAdded;
-            app.graph.onNodeAdded = function(node) {
-                if (onAdded) {
-                    onAdded.call(this, node);
-                }
-                if (node.type === "MIDILoadAndExtract" && node.onGraphLoaded) {
-                    node.onGraphLoaded();
-                }
             };
         }
     },
