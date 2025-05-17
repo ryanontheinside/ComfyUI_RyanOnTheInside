@@ -181,9 +181,14 @@ app.registerExtension({
                         if (widget) widget.value = this.loadedState.startBeat;
                     }
                     
-                    if (this.loadedState.numMeasures !== undefined) {
-                        const widget = this.widgets.find(w => w.name === "num_measures");
-                        if (widget) widget.value = this.loadedState.numMeasures;
+                    if (this.loadedState.endMeasure !== undefined) {
+                        const widget = this.widgets.find(w => w.name === "end_measure");
+                        if (widget) widget.value = this.loadedState.endMeasure;
+                    }
+                    
+                    if (this.loadedState.endBeat !== undefined) {
+                        const widget = this.widgets.find(w => w.name === "end_beat");
+                        if (widget) widget.value = this.loadedState.endBeat;
                     }
                 }
             };
@@ -203,19 +208,26 @@ app.registerExtension({
                         return;
                     }
                     
-                    // Get start time and duration values
-                    const startTimeWidget = this.widgets.find(w => w.name === "start_time_seconds");
-                    const durationWidget = this.widgets.find(w => w.name === "duration_seconds");
-                    const startTime = startTimeWidget ? startTimeWidget.value : 0;
-                    const duration = durationWidget ? durationWidget.value : 0;
+                    // Get measure selection parameters
+                    const startMeasureWidget = this.widgets.find(w => w.name === "start_measure");
+                    const startBeatWidget = this.widgets.find(w => w.name === "start_beat");
+                    const endMeasureWidget = this.widgets.find(w => w.name === "end_measure");
+                    const endBeatWidget = this.widgets.find(w => w.name === "end_beat");
+                    
+                    const startMeasure = startMeasureWidget ? startMeasureWidget.value : 1;
+                    const startBeat = startBeatWidget ? startBeatWidget.value : 1;
+                    const endMeasure = endMeasureWidget ? endMeasureWidget.value : 0;
+                    const endBeat = endBeatWidget ? endBeatWidget.value : 1;
 
                     const response = await fetch('/get_track_notes', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             midi_file: midiFile,
-                            start_time_seconds: startTime,
-                            duration_seconds: duration
+                            start_measure: startMeasure,
+                            start_beat: startBeat,
+                            end_measure: endMeasure,
+                            end_beat: endBeat
                         })
                     });
                     const data = await response.json();
@@ -240,15 +252,6 @@ app.registerExtension({
                             }
                         }
                         
-                        // Apply saved start time and duration
-                        if (this.loadedState.startTimeSeconds !== undefined && startTimeWidget) {
-                            startTimeWidget.value = this.loadedState.startTimeSeconds;
-                        }
-                        
-                        if (this.loadedState.durationSeconds !== undefined && durationWidget) {
-                            durationWidget.value = this.loadedState.durationSeconds;
-                        }
-                        
                         this.isInitialLoad = false;
                     }
 
@@ -268,11 +271,16 @@ app.registerExtension({
                 const trackWidget = this.widgets.find(w => w.name === "track_selection");
                 const trackSelection = trackWidget ? trackWidget.value : "all";
                 
-                // Get start time and duration values
-                const startTimeWidget = this.widgets.find(w => w.name === "start_time_seconds");
-                const durationWidget = this.widgets.find(w => w.name === "duration_seconds");
-                const startTime = startTimeWidget ? startTimeWidget.value : 0;
-                const duration = durationWidget ? durationWidget.value : 0;
+                // Get measure selection parameters
+                const startMeasureWidget = this.widgets.find(w => w.name === "start_measure");
+                const startBeatWidget = this.widgets.find(w => w.name === "start_beat");
+                const endMeasureWidget = this.widgets.find(w => w.name === "end_measure");
+                const endBeatWidget = this.widgets.find(w => w.name === "end_beat");
+                
+                const startMeasure = startMeasureWidget ? startMeasureWidget.value : 1;
+                const startBeat = startBeatWidget ? startBeatWidget.value : 1;
+                const endMeasure = endMeasureWidget ? endMeasureWidget.value : 0;
+                const endBeat = endBeatWidget ? endBeatWidget.value : 1;
 
                 if (!midiFile) {
                     console.warn('No MIDI file selected');
@@ -286,8 +294,10 @@ app.registerExtension({
                         body: JSON.stringify({ 
                             midi_file: midiFile, 
                             track_selection: trackSelection,
-                            start_time_seconds: startTime,
-                            duration_seconds: duration
+                            start_measure: startMeasure,
+                            start_beat: startBeat,
+                            end_measure: endMeasure,
+                            end_beat: endBeat
                         })
                     });
                     const data = await response.json();
@@ -314,14 +324,16 @@ app.registerExtension({
                 // Get current widgets' values
                 const startMeasureWidget = this.widgets.find(w => w.name === "start_measure");
                 const startBeatWidget = this.widgets.find(w => w.name === "start_beat");
-                const numMeasuresWidget = this.widgets.find(w => w.name === "num_measures");
+                const endMeasureWidget = this.widgets.find(w => w.name === "end_measure");
+                const endBeatWidget = this.widgets.find(w => w.name === "end_beat");
                 
                 const state = {
                     midiFile: this.getCurrentMidiFile(),
                     trackSelection: this.widgets.find(w => w.name === "track_selection")?.value,
                     startMeasure: startMeasureWidget ? startMeasureWidget.value : 1,
                     startBeat: startBeatWidget ? startBeatWidget.value : 1,
-                    numMeasures: numMeasuresWidget ? numMeasuresWidget.value : 0
+                    endMeasure: endMeasureWidget ? endMeasureWidget.value : 0,
+                    endBeat: endBeatWidget ? endBeatWidget.value : 1
                 };
                 localStorage.setItem(`MIDILoader_${this.id}`, JSON.stringify(state));
             };

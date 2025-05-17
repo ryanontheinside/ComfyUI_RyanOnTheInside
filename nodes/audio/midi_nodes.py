@@ -175,8 +175,8 @@ def calculate_midi_total_measures(midi_data):
     total_measures = math.ceil(total_ticks / ticks_per_measure)
     return total_measures, time_sig_numerator, time_sig_denominator
 
-def convert_measures_to_ticks(midi_data, start_measure, start_beat=1, num_measures=0):
-    """Convert musical measures to MIDI ticks"""
+def convert_measures_to_ticks_range(midi_data, start_measure, start_beat, end_measure, end_beat):
+    """Convert musical measure range to MIDI tick range"""
     # Get time signature (defaults to 4/4)
     time_sig_numerator = 4
     time_sig_denominator = 4
@@ -199,13 +199,15 @@ def convert_measures_to_ticks(midi_data, start_measure, start_beat=1, num_measur
     # Calculate start tick
     start_tick = (start_measure_index * beats_per_measure + start_beat_index) * ticks_per_beat
     
-    # Calculate end tick if duration is specified
-    if num_measures > 0:
-        end_tick = start_tick + (num_measures * beats_per_measure * ticks_per_beat)
+    # Calculate end tick
+    if end_measure > 0:
+        end_measure_index = end_measure - 1
+        end_beat_index = end_beat - 1
+        end_tick = (end_measure_index * beats_per_measure + end_beat_index) * ticks_per_beat
     else:
         end_tick = float('inf')
     
-    return start_tick, end_tick, time_sig_numerator, time_sig_denominator
+    return start_tick, end_tick
 
 @apply_tooltips
 class MIDILoader:
@@ -219,7 +221,8 @@ class MIDILoader:
                 "track_selection": (["all"],),
                 "start_measure": ("INT", {"default": 1, "min": 1, "step": 1}),
                 "start_beat": ("INT", {"default": 1, "min": 1, "step": 1}),
-                "num_measures": ("INT", {"default": 0, "min": 0, "step": 1, "description": "Number of measures (0 = all remaining measures)"})
+                "end_measure": ("INT", {"default": 0, "min": 0, "step": 1, "description": "End measure (0 = all remaining measures)"}),
+                "end_beat": ("INT", {"default": 1, "min": 1, "step": 1, "description": "End beat"})
             }
         }
 
@@ -227,7 +230,7 @@ class MIDILoader:
     FUNCTION = "load_midi"
     CATEGORY = "RyanOnTheInside/Audio/MIDI"
     
-    def load_midi(self, midi_file, track_selection, start_measure=1, start_beat=1, num_measures=0):
+    def load_midi(self, midi_file, track_selection, start_measure=1, start_beat=1, end_measure=0, end_beat=1):
         try:
             midi_path = folder_paths.get_full_path("midi_files", midi_file)
             if not midi_path or not os.path.exists(midi_path):
@@ -255,9 +258,16 @@ class MIDILoader:
                     midi_data = selected_midi
             
             # Apply measure slicing if needed
-            if (start_measure > 1 or start_beat > 1 or num_measures > 0) and midi_data.tracks:
+            if (start_measure > 1 or start_beat > 1 or end_measure > 0) and midi_data.tracks:
+                # Get total measures in the file for validation
+                total_measures, _, _ = calculate_midi_total_measures(midi_data)
+                
+                # If end measure is 0, use the total measures
+                if end_measure == 0:
+                    end_measure = total_measures
+                
                 # Convert musical measures to ticks
-                start_tick, end_tick, _, _ = convert_measures_to_ticks(midi_data, start_measure, start_beat, num_measures)
+                start_tick, end_tick = convert_measures_to_ticks_range(midi_data, start_measure, start_beat, end_measure, end_beat)
                 
                 # Create a new MIDI file with the selected measures
                 trimmed_midi = mido.MidiFile(ticks_per_beat=midi_data.ticks_per_beat)
@@ -320,15 +330,19 @@ class MIDILoader:
             raise RuntimeError(f"Error loading MIDI file: {type(e).__name__}: {str(e)}")
     
     @classmethod
-    def analyze_midi(cls, midi_path, start_measure=1, start_beat=1, num_measures=0):
+    def analyze_midi(cls, midi_path, start_measure=1, start_beat=1, end_measure=0, end_beat=1):
         midi_data = mido.MidiFile(midi_path)
         
         # Get the total measures
         total_measures, time_sig_num, time_sig_denom = calculate_midi_total_measures(midi_data)
         
+        # If end measure is 0, use the total measures
+        if end_measure == 0:
+            end_measure = total_measures
+        
         # Convert measures to ticks if measure filtering is applied
-        if start_measure > 1 or start_beat > 1 or num_measures > 0:
-            start_tick, end_tick, _, _ = convert_measures_to_ticks(midi_data, start_measure, start_beat, num_measures)
+        if start_measure > 1 or start_beat > 1 or end_measure < total_measures:
+            start_tick, end_tick = convert_measures_to_ticks_range(midi_data, start_measure, start_beat, end_measure, end_beat)
         else:
             start_tick = 0
             end_tick = float('inf')
@@ -364,7 +378,7 @@ class MIDILoader:
         }
     
     @classmethod
-    def VALIDATE_INPUTS(cls, midi_file, track_selection, start_measure=1, start_beat=1, num_measures=0):
+    def VALIDATE_INPUTS(cls, midi_file, track_selection, start_measure=1, start_beat=1, end_measure=0, end_beat=1):
         midi_path = folder_paths.get_full_path("midi_files", midi_file)
         if not midi_path or not os.path.isfile(midi_path):
             return f"MIDI file not found: {midi_file}"
@@ -379,15 +393,28 @@ class MIDILoader:
         if start_beat < 1:
             return f"Start beat must be at least 1, got: {start_beat}"
         
-        if num_measures < 0:
-            return f"Number of measures cannot be negative, got: {num_measures}"
+        if end_measure < 0:
+            return f"End measure cannot be negative, got: {end_measure}"
+        
+        if end_beat < 1:
+            return f"End beat must be at least 1, got: {end_beat}"
         
         # Check if the start measure is valid for this MIDI file
         try:
             midi_data = mido.MidiFile(midi_path)
             total_measures, _, _ = calculate_midi_total_measures(midi_data)
+            
             if start_measure > total_measures:
                 return f"Start measure {start_measure} exceeds the total measures in the file ({total_measures})"
+            
+            if end_measure > 0 and end_measure > total_measures:
+                return f"End measure {end_measure} exceeds the total measures in the file ({total_measures})"
+            
+            if end_measure > 0 and end_measure < start_measure:
+                return f"End measure {end_measure} cannot be less than start measure {start_measure}"
+                
+            if end_measure == start_measure and end_beat < start_beat:
+                return f"When start and end measures are the same, end beat {end_beat} cannot be less than start beat {start_beat}"
         except Exception as e:
             return f"Error validating MIDI file: {str(e)}"
         
@@ -402,7 +429,8 @@ async def get_track_notes(request):
     midi_file = data.get('midi_file')
     start_measure = data.get('start_measure', 1)
     start_beat = data.get('start_beat', 1)
-    num_measures = data.get('num_measures', 0)
+    end_measure = data.get('end_measure', 0)
+    end_beat = data.get('end_beat', 1)
 
     if not midi_file:
         return web.json_response({"error": "Missing required parameters"}, status=400)
@@ -412,7 +440,7 @@ async def get_track_notes(request):
         return web.json_response({"error": "MIDI file not found"}, status=404)
 
     # Analyze MIDI file
-    analysis = MIDILoader.analyze_midi(midi_path, start_measure, start_beat, num_measures)
+    analysis = MIDILoader.analyze_midi(midi_path, start_measure, start_beat, end_measure, end_beat)
     return web.json_response(analysis)
 
 @routes.post('/upload_midi')
@@ -452,7 +480,8 @@ async def refresh_midi_data(request):
     track_selection = data.get('track_selection')
     start_measure = data.get('start_measure', 1)
     start_beat = data.get('start_beat', 1)
-    num_measures = data.get('num_measures', 0)
+    end_measure = data.get('end_measure', 0)
+    end_beat = data.get('end_beat', 1)
 
     if not midi_file:
         return web.json_response({"error": "Missing required parameters"}, status=400)
@@ -467,12 +496,16 @@ async def refresh_midi_data(request):
     # Get total measures information
     total_measures, time_sig_num, time_sig_denom = calculate_midi_total_measures(midi_data)
     
+    # If end measure is 0, use the total measures
+    if end_measure == 0:
+        end_measure = total_measures
+    
     # Apply track selection and measure filtering
     all_notes = set()
     
-    # Convert measures to ticks if measure filtering is applied
-    if start_measure > 1 or start_beat > 1 or num_measures > 0:
-        start_tick, end_tick, _, _ = convert_measures_to_ticks(midi_data, start_measure, start_beat, num_measures)
+    # Convert measures to ticks
+    if start_measure > 1 or start_beat > 1 or end_measure < total_measures:
+        start_tick, end_tick = convert_measures_to_ticks_range(midi_data, start_measure, start_beat, end_measure, end_beat)
     else:
         start_tick = 0
         end_tick = float('inf')
