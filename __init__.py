@@ -328,6 +328,9 @@ from .nodes.doom.doom import Doom_
 
 from .audio_latent_blend import AudioLatentBlend, FlexlatentAudioBlend
 
+
+from .nodes.audio.midi_nodes import MIDIToAudio
+
 # Import external integrations
 from .external_integration import (
     HAS_ADVANCED_LIVE_PORTRAIT,
@@ -588,6 +591,7 @@ NODE_CLASS_MAPPINGS = {
     "ImageIntervalSelectPercentage":ImageIntervalSelectPercentage,
     "ImageIndexSelect":             ImageIndexSelect,
     
+    "MIDIPlayback": MIDIToAudio,
 }
 
 
@@ -627,6 +631,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Audio_Concatenate":             "Audio Concatenate ROTI",
     "Color_Picker":                  "Color_Picker ROTI",
     "Doom_":                        "DOOM",
+    "MIDIPlayback":                  "MIDI Player",
 }
 
 

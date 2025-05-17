@@ -88,7 +88,7 @@ class MIDILoadAndExtract(FeatureExtractorBase):
         }
     
     @classmethod
-    def VALIDATE_INPUTS(cls, midi_file, track_selection, notes, extraction_method, frame_rate, video_frames):
+    def VALIDATE_INPUTS(cls, midi_file, track_selection, notes, extraction_method, frame_rate):
         midi_path = folder_paths.get_full_path("midi_files", midi_file)
         if not midi_path or not os.path.isfile(midi_path):
             return f"MIDI file not found: {midi_file}"
