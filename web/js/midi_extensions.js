@@ -109,17 +109,19 @@ app.registerExtension({
                 const midiFile = loaderNode.getCurrentMidiFile();
                 const trackSelection = loaderNode.widgets.find(w => w.name === "track_selection").value;
                 
-                // Get time selection parameters from the MIDILoader
-                const startTimeWidget = loaderNode.widgets.find(w => w.name === "start_time");
-                const durationWidget = loaderNode.widgets.find(w => w.name === "duration");
+                // Get measure selection parameters from the MIDILoader
+                const startMeasureWidget = loaderNode.widgets.find(w => w.name === "start_measure");
+                const startBeatWidget = loaderNode.widgets.find(w => w.name === "start_beat");
+                const numMeasuresWidget = loaderNode.widgets.find(w => w.name === "num_measures");
                 
-                const startTime = startTimeWidget ? startTimeWidget.value : 0;
-                const duration = durationWidget ? durationWidget.value : 0;
+                const startMeasure = startMeasureWidget ? startMeasureWidget.value : 1;
+                const startBeat = startBeatWidget ? startBeatWidget.value : 1;
+                const numMeasures = numMeasuresWidget ? numMeasuresWidget.value : 0;
                 
                 if (!midiFile) return;
                 
                 try {
-                    console.log(`Querying MIDI notes with start_time=${startTime}, duration=${duration}`);
+                    console.log(`Querying MIDI notes with startMeasure=${startMeasure}, startBeat=${startBeat}, numMeasures=${numMeasures}`);
                     
                     const response = await fetch('/refresh_midi_data', {
                         method: 'POST',
@@ -127,8 +129,9 @@ app.registerExtension({
                         body: JSON.stringify({ 
                             midi_file: midiFile, 
                             track_selection: trackSelection,
-                            start_time: startTime,
-                            duration: duration
+                            start_measure: startMeasure,
+                            start_beat: startBeat,
+                            num_measures: numMeasures
                         })
                     });
                     const data = await response.json();
@@ -140,7 +143,7 @@ app.registerExtension({
                     
                     // Update available notes
                     const noteArray = data.all_notes.split(',').map(Number).filter(n => !isNaN(n));
-                    console.log(`Received ${noteArray.length} available notes in time range ${startTime}s - ${startTime + duration}s`);
+                    console.log(`Received ${noteArray.length} available notes in measures ${startMeasure}-${startMeasure + numMeasures}, time signature: ${data.time_signature}`);
                     
                     this.availableNotes = new Set(noteArray);
                     
@@ -152,7 +155,7 @@ app.registerExtension({
                         );
                         
                         if (originalCount !== this.properties.selectedNotes.length) {
-                            console.log(`Filtered out ${originalCount - this.properties.selectedNotes.length} selected notes that aren't in the time range`);
+                            console.log(`Filtered out ${originalCount - this.properties.selectedNotes.length} selected notes`);
                         }
                     }
                     
@@ -180,43 +183,53 @@ app.registerExtension({
                 }
                 loaderNode._feature_extractor_listeners.push(this.id);
                 
-                // Find widgets in loader node
+                // Find all relevant widgets in loader node
                 const trackWidget = loaderNode.widgets.find(w => w.name === "track_selection");
-                const startTimeWidget = loaderNode.widgets.find(w => w.name === "start_time");
-                const durationWidget = loaderNode.widgets.find(w => w.name === "duration");
+                const startMeasureWidget = loaderNode.widgets.find(w => w.name === "start_measure");
+                const startBeatWidget = loaderNode.widgets.find(w => w.name === "start_beat");
+                const numMeasuresWidget = loaderNode.widgets.find(w => w.name === "num_measures");
                 
-                // Set up callback for track selection changes
+                // Set up callbacks for all relevant widgets
                 if (trackWidget) {
                     const origTrackCallback = trackWidget.callback;
                     trackWidget.callback = (value) => {
                         // Call original callback
                         if (origTrackCallback) origTrackCallback.call(loaderNode, value);
                         
-                        // Notify this feature extractor to update notes
+                        // Notify this feature extractor
                         this.queryMIDILoaderNotes(loaderNode);
                     };
                 }
                 
-                // Set up callback for start time changes
-                if (startTimeWidget) {
-                    const origCallback = startTimeWidget.callback;
-                    startTimeWidget.callback = (value) => {
+                if (startMeasureWidget) {
+                    const origCallback = startMeasureWidget.callback;
+                    startMeasureWidget.callback = (value) => {
                         // Call original callback
                         if (origCallback) origCallback.call(loaderNode, value);
                         
-                        // Notify this feature extractor to update notes
+                        // Notify this feature extractor
                         this.queryMIDILoaderNotes(loaderNode);
                     };
                 }
                 
-                // Set up callback for duration changes
-                if (durationWidget) {
-                    const origCallback = durationWidget.callback;
-                    durationWidget.callback = (value) => {
+                if (startBeatWidget) {
+                    const origCallback = startBeatWidget.callback;
+                    startBeatWidget.callback = (value) => {
                         // Call original callback
                         if (origCallback) origCallback.call(loaderNode, value);
                         
-                        // Notify this feature extractor to update notes
+                        // Notify this feature extractor
+                        this.queryMIDILoaderNotes(loaderNode);
+                    };
+                }
+                
+                if (numMeasuresWidget) {
+                    const origCallback = numMeasuresWidget.callback;
+                    numMeasuresWidget.callback = (value) => {
+                        // Call original callback
+                        if (origCallback) origCallback.call(loaderNode, value);
+                        
+                        // Notify this feature extractor
                         this.queryMIDILoaderNotes(loaderNode);
                     };
                 }

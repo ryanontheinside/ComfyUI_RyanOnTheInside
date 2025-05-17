@@ -3,6 +3,7 @@ import numpy as np
 import mido
 import os
 import folder_paths
+import math
 from .audio_nodes import AudioNodeBase
 from ...tooltips import apply_tooltips
 from server import PromptServer
@@ -144,9 +145,71 @@ class MIDIToAudio(AudioNodeBase):
                 "sample_rate": sample_rate
             },)
 
+def calculate_midi_total_measures(midi_data):
+    """Calculate the total number of measures in the MIDI file"""
+    # Get time signature (defaults to 4/4)
+    time_sig_numerator = 4
+    time_sig_denominator = 4
+    
+    for track in midi_data.tracks:
+        for msg in track:
+            if msg.type == 'time_signature':
+                time_sig_numerator = msg.numerator
+                time_sig_denominator = msg.denominator
+                break
+    
+    # Calculate total ticks
+    total_ticks = 0
+    for track in midi_data.tracks:
+        track_ticks = 0
+        for msg in track:
+            if hasattr(msg, 'time'):
+                track_ticks += msg.time
+        total_ticks = max(total_ticks, track_ticks)
+    
+    # Calculate ticks per measure
+    ticks_per_beat = midi_data.ticks_per_beat
+    ticks_per_measure = ticks_per_beat * 4 * (time_sig_numerator / time_sig_denominator)
+    
+    # Calculate total measures
+    total_measures = math.ceil(total_ticks / ticks_per_measure)
+    return total_measures, time_sig_numerator, time_sig_denominator
+
+def convert_measures_to_ticks(midi_data, start_measure, start_beat=1, num_measures=0):
+    """Convert musical measures to MIDI ticks"""
+    # Get time signature (defaults to 4/4)
+    time_sig_numerator = 4
+    time_sig_denominator = 4
+    
+    for track in midi_data.tracks:
+        for msg in track:
+            if msg.type == 'time_signature':
+                time_sig_numerator = msg.numerator
+                time_sig_denominator = msg.denominator
+                break
+    
+    # Calculate ticks per beat and measure
+    ticks_per_beat = midi_data.ticks_per_beat
+    beats_per_measure = time_sig_numerator
+    
+    # Adjust start measure/beat to 0-indexed for calculation
+    start_measure_index = start_measure - 1
+    start_beat_index = start_beat - 1
+    
+    # Calculate start tick
+    start_tick = (start_measure_index * beats_per_measure + start_beat_index) * ticks_per_beat
+    
+    # Calculate end tick if duration is specified
+    if num_measures > 0:
+        end_tick = start_tick + (num_measures * beats_per_measure * ticks_per_beat)
+    else:
+        end_tick = float('inf')
+    
+    return start_tick, end_tick, time_sig_numerator, time_sig_denominator
+
 @apply_tooltips
 class MIDILoader:
-    """Loads MIDI files for processing in ComfyUI"""
+    """Loads MIDI files for processing in ComfyUI with options for selecting specific measures."""
     
     @classmethod
     def INPUT_TYPES(cls):
@@ -154,8 +217,9 @@ class MIDILoader:
             "required": {
                 "midi_file": (folder_paths.get_filename_list("midi_files"),),
                 "track_selection": (["all"],),
-                "start_time": ("FLOAT", {"default": 0.0, "min": 0.0, "step": 0.1}),
-                "duration": ("FLOAT", {"default": 0.0, "min": 0.0, "step": 0.1, "description": "Duration in seconds (0 = full duration)"}),
+                "start_measure": ("INT", {"default": 1, "min": 1, "step": 1}),
+                "start_beat": ("INT", {"default": 1, "min": 1, "step": 1}),
+                "num_measures": ("INT", {"default": 0, "min": 0, "step": 1, "description": "Number of measures (0 = all remaining measures)"})
             }
         }
 
@@ -163,7 +227,7 @@ class MIDILoader:
     FUNCTION = "load_midi"
     CATEGORY = "RyanOnTheInside/Audio/MIDI"
     
-    def load_midi(self, midi_file, track_selection, start_time=0.0, duration=0.0):
+    def load_midi(self, midi_file, track_selection, start_measure=1, start_beat=1, num_measures=0):
         try:
             midi_path = folder_paths.get_full_path("midi_files", midi_file)
             if not midi_path or not os.path.exists(midi_path):
@@ -171,34 +235,6 @@ class MIDILoader:
 
             # Load the MIDI file
             midi_data = mido.MidiFile(midi_path)
-            
-            # Get tempo for time calculations
-            tempo = 500000  # Default tempo (microseconds per quarter note)
-            for track in midi_data.tracks:
-                for msg in track:
-                    if msg.type == 'set_tempo':
-                        tempo = msg.tempo
-                        break
-            
-            # Calculate seconds per tick for time conversion
-            seconds_per_tick = tempo / (midi_data.ticks_per_beat * 1000000.0)
-            
-            # Convert seconds to ticks
-            start_tick = int(start_time / seconds_per_tick) if start_time > 0 else 0
-            end_tick = float('inf')
-            if duration > 0:
-                end_tick = start_tick + int(duration / seconds_per_tick)
-            
-            # Calculate total duration
-            total_ticks = 0
-            for track in midi_data.tracks:
-                track_ticks = 0
-                for msg in track:
-                    if hasattr(msg, 'time'):
-                        track_ticks += msg.time
-                total_ticks = max(total_ticks, track_ticks)
-            
-            total_duration = total_ticks * seconds_per_tick
             
             # Apply track selection if not "all"
             if track_selection != "all":
@@ -218,75 +254,65 @@ class MIDILoader:
                     
                     midi_data = selected_midi
             
-            # Apply time slicing if needed
-            if (start_time > 0 or duration > 0) and midi_data.tracks:
-                # Create a new MIDI file with the selected time range
+            # Apply measure slicing if needed
+            if (start_measure > 1 or start_beat > 1 or num_measures > 0) and midi_data.tracks:
+                # Convert musical measures to ticks
+                start_tick, end_tick, _, _ = convert_measures_to_ticks(midi_data, start_measure, start_beat, num_measures)
+                
+                # Create a new MIDI file with the selected measures
                 trimmed_midi = mido.MidiFile(ticks_per_beat=midi_data.ticks_per_beat)
                 
-                # Copy data for the trimmed section
-                # NOTE: This is a simplified approach and may not handle all MIDI events perfectly
                 for track in midi_data.tracks:
                     new_track = mido.MidiTrack()
                     trimmed_midi.tracks.append(new_track)
                     
-                    # Copy all metadata and control messages
-                    for msg in track:
-                        if not hasattr(msg, 'time') or msg.type in ['time_signature', 'key_signature', 'set_tempo']:
-                            new_track.append(msg.copy())
-                    
-                    # Extract all note events within our time range
-                    current_tick = 0
-                    last_tick = 0
-                    
-                    # First pass: collect all note_on events within our range
-                    active_notes = set()
+                    # Copy all metadata and non-time-based messages
                     for msg in track:
                         if not hasattr(msg, 'time'):
-                            continue
-                            
-                        current_tick += msg.time
-                        
-                        # Track note_on events within our range
-                        if msg.type == 'note_on' and msg.velocity > 0:
-                            if current_tick >= start_tick and current_tick < end_tick:
-                                active_notes.add(msg.note)
+                            new_track.append(msg)
                     
-                    # Second pass: include all relevant events
+                    # Add all messages that fall within our measure range
                     current_tick = 0
+                    first_msg_added = False
+                    prev_tick = 0
+                    
                     for msg in track:
                         if not hasattr(msg, 'time'):
-                            continue
-                            
-                        prev_tick = current_tick
+                            continue  # Skip metadata (already copied)
+                        
                         current_tick += msg.time
                         
-                        # Include message if:
-                        # 1. It's within our time range
-                        # 2. OR it's a note_off for an active note
-                        # 3. OR it's a control message
-                        in_range = current_tick >= start_tick and current_tick < end_tick
-                        is_note_release = msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0)
-                        is_active_note = hasattr(msg, 'note') and msg.note in active_notes
-                        is_control = msg.type in ['control_change', 'program_change', 'pitchwheel']
-                        
-                        if in_range or (is_note_release and is_active_note) or is_control:
-                            new_msg = msg.copy()
+                        # Include messages that are within our measure range
+                        if current_tick >= start_tick and current_tick <= end_tick:
+                            # Create an adjusted message with corrected timing
+                            adjusted_msg = msg.copy()
                             
-                            # Adjust timing for the first event
-                            if not new_track or current_tick == start_tick:
-                                new_msg.time = 0
+                            # If this is the first message in the trimmed section,
+                            # adjust its time relative to the start point
+                            if not first_msg_added:
+                                adjusted_msg.time = 0  # First event starts immediately
+                                first_msg_added = True
+                                prev_tick = current_tick
                             else:
-                                new_msg.time = current_tick - prev_tick
-                                
-                            new_track.append(new_msg)
+                                # Preserve the relative timing between events
+                                adjusted_msg.time = current_tick - prev_tick
+                                prev_tick = current_tick
                             
-                            # Remove from active notes if it's a note off
-                            if is_note_release and is_active_note:
-                                active_notes.remove(msg.note)
+                            new_track.append(adjusted_msg)
+                            
+                        # For note_off events or note_on with velocity 0 (note release),
+                        # we need to include them if the corresponding note_on was included
+                        elif current_tick > end_tick and first_msg_added:
+                            if (msg.type == 'note_off' or 
+                                (msg.type == 'note_on' and hasattr(msg, 'velocity') and msg.velocity == 0)):
+                                
+                                # Add with adjusted timing
+                                adjusted_msg = msg.copy()
+                                adjusted_msg.time = current_tick - prev_tick
+                                prev_tick = current_tick
+                                new_track.append(adjusted_msg)
                 
-                # If we actually need to trim the audio
-                if start_time > 0 or duration > 0:
-                    midi_data = trimmed_midi
+                midi_data = trimmed_midi
             
             return (midi_data,)
 
@@ -294,32 +320,22 @@ class MIDILoader:
             raise RuntimeError(f"Error loading MIDI file: {type(e).__name__}: {str(e)}")
     
     @classmethod
-    def analyze_midi(cls, midi_path, start_time=0.0, duration=0.0):
-        """Analyze the MIDI file and return available notes within the time range"""
+    def analyze_midi(cls, midi_path, start_measure=1, start_beat=1, num_measures=0):
         midi_data = mido.MidiFile(midi_path)
         
-        # Get tempo for time calculations
-        tempo = 500000  # Default tempo (microseconds per quarter note)
-        for track in midi_data.tracks:
-            for msg in track:
-                if msg.type == 'set_tempo':
-                    tempo = msg.tempo
-                    break
+        # Get the total measures
+        total_measures, time_sig_num, time_sig_denom = calculate_midi_total_measures(midi_data)
         
-        # Calculate seconds per tick for time conversion
-        seconds_per_tick = tempo / (midi_data.ticks_per_beat * 1000000.0)
+        # Convert measures to ticks if measure filtering is applied
+        if start_measure > 1 or start_beat > 1 or num_measures > 0:
+            start_tick, end_tick, _, _ = convert_measures_to_ticks(midi_data, start_measure, start_beat, num_measures)
+        else:
+            start_tick = 0
+            end_tick = float('inf')
         
-        # Convert seconds to ticks
-        start_tick = int(start_time / seconds_per_tick) if start_time > 0 else 0
-        end_tick = float('inf')
-        if duration > 0:
-            end_tick = start_tick + int(duration / seconds_per_tick)
-        
-        # Collect track data and note data within time range
         tracks = ["all"]
         all_notes = set()
         track_notes = {}
-        
         for i, track in enumerate(midi_data.tracks):
             track_notes[str(i)] = set()
             current_tick = 0
@@ -328,41 +344,27 @@ class MIDILoader:
                 if hasattr(msg, 'time'):
                     current_tick += msg.time
                 
-                # Only collect notes in our time range
-                if current_tick >= start_tick and current_tick < end_tick:
-                    if msg.type == 'note_on' and hasattr(msg, 'velocity') and msg.velocity > 0:
+                # Only consider notes within our measure range
+                if current_tick >= start_tick and current_tick <= end_tick:
+                    if msg.type == 'note_on' and msg.velocity > 0:
                         track_notes[str(i)].add(msg.note)
                         all_notes.add(msg.note)
             
-            # Add track name info
-            track_name = getattr(track, 'name', None) or f'Track {i}'
             if len(track_notes[str(i)]) == 0:
                 tracks.append(f"{i}: (Empty)")
             else:
-                tracks.append(f"{i}: {track_name}")
-        
-        # Calculate total duration
-        total_ticks = 0
-        for track in midi_data.tracks:
-            track_ticks = 0
-            for msg in track:
-                if hasattr(msg, 'time'):
-                    track_ticks += msg.time
-            total_ticks = max(total_ticks, track_ticks)
-        
-        total_duration = total_ticks * seconds_per_tick
+                tracks.append(f"{i}: {getattr(track, 'name', '') or f'Track {i}'}")
         
         return {
             "tracks": tracks,
-            "all_notes": ",".join(map(str, sorted(all_notes))),
+            "all_notes": ",".join(map(str, sorted(set(all_notes)))),
             "track_notes": {k: ",".join(map(str, sorted(v))) for k, v in track_notes.items()},
-            "total_duration": total_duration,
-            "selected_start": start_time,
-            "selected_duration": duration if duration > 0 else (total_duration - start_time)
+            "total_measures": total_measures,
+            "time_signature": f"{time_sig_num}/{time_sig_denom}"
         }
     
     @classmethod
-    def VALIDATE_INPUTS(cls, midi_file, track_selection, start_time=0.0, duration=0.0):
+    def VALIDATE_INPUTS(cls, midi_file, track_selection, start_measure=1, start_beat=1, num_measures=0):
         midi_path = folder_paths.get_full_path("midi_files", midi_file)
         if not midi_path or not os.path.isfile(midi_path):
             return f"MIDI file not found: {midi_file}"
@@ -371,11 +373,23 @@ class MIDILoader:
         if not midi_file.lower().endswith(('.mid', '.midi')):
             return f"Invalid file type. Expected .mid or .midi file, got: {midi_file}"
         
-        if start_time < 0:
-            return f"Start time must be non-negative, got: {start_time}"
+        if start_measure < 1:
+            return f"Start measure must be at least 1, got: {start_measure}"
         
-        if duration < 0:
-            return f"Duration must be non-negative, got: {duration}"
+        if start_beat < 1:
+            return f"Start beat must be at least 1, got: {start_beat}"
+        
+        if num_measures < 0:
+            return f"Number of measures cannot be negative, got: {num_measures}"
+        
+        # Check if the start measure is valid for this MIDI file
+        try:
+            midi_data = mido.MidiFile(midi_path)
+            total_measures, _, _ = calculate_midi_total_measures(midi_data)
+            if start_measure > total_measures:
+                return f"Start measure {start_measure} exceeds the total measures in the file ({total_measures})"
+        except Exception as e:
+            return f"Error validating MIDI file: {str(e)}"
         
         return True
 
@@ -386,8 +400,9 @@ routes = PromptServer.instance.routes
 async def get_track_notes(request):
     data = await request.json()
     midi_file = data.get('midi_file')
-    start_time = data.get('start_time', 0)
-    duration = data.get('duration', 0)
+    start_measure = data.get('start_measure', 1)
+    start_beat = data.get('start_beat', 1)
+    num_measures = data.get('num_measures', 0)
 
     if not midi_file:
         return web.json_response({"error": "Missing required parameters"}, status=400)
@@ -396,8 +411,8 @@ async def get_track_notes(request):
     if not midi_path or not os.path.exists(midi_path):
         return web.json_response({"error": "MIDI file not found"}, status=404)
 
-    # Analyze MIDI file with time filtering
-    analysis = MIDILoader.analyze_midi(midi_path, start_time, duration)
+    # Analyze MIDI file
+    analysis = MIDILoader.analyze_midi(midi_path, start_measure, start_beat, num_measures)
     return web.json_response(analysis)
 
 @routes.post('/upload_midi')
@@ -435,8 +450,9 @@ async def refresh_midi_data(request):
     data = await request.json()
     midi_file = data.get('midi_file')
     track_selection = data.get('track_selection')
-    start_time = data.get('start_time', 0)
-    duration = data.get('duration', 0)
+    start_measure = data.get('start_measure', 1)
+    start_beat = data.get('start_beat', 1)
+    num_measures = data.get('num_measures', 0)
 
     if not midi_file:
         return web.json_response({"error": "Missing required parameters"}, status=400)
@@ -445,18 +461,57 @@ async def refresh_midi_data(request):
     if not midi_path or not os.path.exists(midi_path):
         return web.json_response({"error": "MIDI file not found"}, status=404)
 
-    # Get basic MIDI analysis with time filtering
-    analysis = MIDILoader.analyze_midi(midi_path, start_time, duration)
+    # Load the full MIDI data
+    midi_data = mido.MidiFile(midi_path)
     
-    # Filter notes by track if needed
-    if track_selection != "all":
+    # Get total measures information
+    total_measures, time_sig_num, time_sig_denom = calculate_midi_total_measures(midi_data)
+    
+    # Apply track selection and measure filtering
+    all_notes = set()
+    
+    # Convert measures to ticks if measure filtering is applied
+    if start_measure > 1 or start_beat > 1 or num_measures > 0:
+        start_tick, end_tick, _, _ = convert_measures_to_ticks(midi_data, start_measure, start_beat, num_measures)
+    else:
+        start_tick = 0
+        end_tick = float('inf')
+    
+    # Process tracks to collect notes within the time range
+    track_notes = {}
+    for i, track in enumerate(midi_data.tracks):
+        track_notes[str(i)] = set()
+        current_tick = 0
+        
+        for msg in track:
+            if hasattr(msg, 'time'):
+                current_tick += msg.time
+                
+            # Only consider note_on messages with velocity > 0 (actual notes being played)
+            if msg.type == 'note_on' and hasattr(msg, 'velocity') and msg.velocity > 0:
+                # Check if this note is within our measure range
+                if current_tick >= start_tick and current_tick < end_tick:
+                    note = msg.note
+                    track_notes[str(i)].add(note)
+                    # If all tracks are selected or the current track matches selection, add to all_notes
+                    if track_selection == "all" or track_selection.startswith(f"{i}:"):
+                        all_notes.add(note)
+    
+    # If a specific track is selected but we didn't find any notes, it might be because
+    # our filtering logic is different from above
+    if track_selection != "all" and not all_notes:
         track_index = track_selection.split(':')[0]
-        if track_index.isdigit() and track_index in analysis['track_notes']:
-            analysis['all_notes'] = analysis['track_notes'][track_index]
-        else:
-            analysis['all_notes'] = ""
+        if track_index.isdigit() and track_index in track_notes:
+            all_notes = track_notes[track_index]
     
-    return web.json_response(analysis)
+    # Format and return the response
+    return web.json_response({
+        "tracks": ["all"] + [f"{i}: {getattr(track, 'name', '') or f'Track {i}'}" for i, track in enumerate(midi_data.tracks)],
+        "all_notes": ",".join(map(str, sorted(all_notes))),
+        "track_notes": {k: ",".join(map(str, sorted(v))) for k, v in track_notes.items()},
+        "total_measures": total_measures,
+        "time_signature": f"{time_sig_num}/{time_sig_denom}"
+    })
 
 NODE_CLASS_MAPPINGS = {
     "MIDIToAudio": MIDIToAudio,
