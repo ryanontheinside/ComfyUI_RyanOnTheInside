@@ -298,6 +298,7 @@ from .nodes.flex.feature_modulation import (
     FeatureRenormalize,
     FeatureInterpolator,
     FeaturePeakDetector,
+    FeatureInterpolateMulti,
 )
 
 from .nodes.audio.flex_audio import (
@@ -377,6 +378,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexlatentAudioBlend": FlexlatentAudioBlend,
     "FeatureInterpolator":          FeatureInterpolator,
     "FeaturePeakDetector":          FeaturePeakDetector,
+    "FeatureInterpolateMulti":      FeatureInterpolateMulti,
     
     "Doom_": Doom_,
     "WhisperToPromptTravel":        WhisperToPromptTravel,
@@ -591,7 +593,7 @@ NODE_CLASS_MAPPINGS = {
     "ImageIntervalSelectPercentage":ImageIntervalSelectPercentage,
     "ImageIndexSelect":             ImageIndexSelect,
     
-    "MIDIPlayback": MIDIToAudio,
+    "MIDIToAudio": MIDIToAudio,
     "MIDILoader": MIDILoader,
 }
 
@@ -602,11 +604,11 @@ EXTENSION_WEB_DIRS = ["./web/extensions"]
 NODE_DISPLAY_NAME_MAPPINGS = {
     "AudioSeparatorSimple":         "Audio Separator",
     "ProximityVisualizer":          "Preview Proximity",
-    "EffectVisualizer":             "Preview Effect",
+    "EffectVisualizer":             "Preview FeatureEffect",
     "PitchVisualizer":              "Preview Pitch",
     "FlexVideoSpeed":               "**BETA** Flex Video Speed",
     "FlexVideoFrameBlend":          "**BETA**Flex Video Frame Blend",
-    "AudioFeatureVisualizer":       "Audio Feature Visualizer ***BETA***" ,
+    "AudioFeatureVisualizer":       "Audio Feature Visualizer ***BETA***",
 
     "MIDILoadAndExtract":           "MIDI Load & Feature Extract",
     "PitchRangeByNoteNode":         "Pitch Range By Note",
@@ -632,7 +634,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Audio_Concatenate":             "Audio Concatenate ROTI",
     "Color_Picker":                  "Color_Picker ROTI",
     "Doom_":                        "DOOM",
-    "MIDIPlayback":                  "MIDI Player",
 }
 
 
