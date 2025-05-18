@@ -19,16 +19,11 @@ class MIDIToAudio(AudioNodeBase):
         return {
             "required": {
                 "midi": ("MIDI",),
+                "instrument_type": (["Piano", "Synth", "Bass", "Drums"],),
                 "sample_rate": ("INT", {
                     "default": 44100,
                     "min": 8000,
                     "max": 192000,
-                    "step": 1
-                }),
-                "instrument": ("INT", {
-                    "default": 0,  # Piano (not used for simple synthesis)
-                    "min": 0,
-                    "max": 127,
                     "step": 1
                 }),
                 "volume": ("FLOAT", {
@@ -43,8 +38,112 @@ class MIDIToAudio(AudioNodeBase):
     RETURN_TYPES = ("AUDIO",)
     FUNCTION = "convert_midi_to_audio"
     CATEGORY = "RyanOnTheInside/Audio/MIDI"
+    DESCRIPTION = "This will produce rudimentary approximations of MIDI notes for quick reference and nothing more. May or may not get the notes right, especially for drums."
     
-    def convert_midi_to_audio(self, midi, sample_rate, instrument, volume):
+    def generate_instrument_waveform(self, frequency, t, instrument_type, envelope, note_number=60):
+        """Generate waveform based on the selected instrument type"""
+        if instrument_type == "Piano":
+            # Piano-like sound with some harmonics
+            waveform = 0.5 * np.sin(2 * np.pi * frequency * t)  # Fundamental
+            waveform += 0.2 * np.sin(2 * np.pi * frequency * 2 * t)  # 1st harmonic (octave)
+            waveform += 0.1 * np.sin(2 * np.pi * frequency * 3 * t)  # 2nd harmonic
+            waveform += 0.05 * np.sin(2 * np.pi * frequency * 4 * t)  # 3rd harmonic
+            # Add faster decay for piano-like sound
+            decay = np.exp(-t * 3)
+            return waveform * envelope * decay
+        
+        elif instrument_type == "Bass":
+            # Bass with more low frequencies
+            waveform = 0.6 * np.sin(2 * np.pi * frequency * t)  # Fundamental
+            waveform += 0.3 * np.sin(2 * np.pi * frequency * 2 * t)  # 1st harmonic
+            # Add some distortion for bass character
+            waveform = np.tanh(waveform * 1.5) * 0.7
+            # Slower decay for bass
+            decay = np.exp(-t * 2)
+            return waveform * envelope * decay
+        
+        elif instrument_type == "Drums":
+            # Use standard MIDI drum mappings (channel 10)
+            # Define custom synthesis for each drum sound based on note number
+            
+            # Bass/Kick Drums
+            if note_number in [35, 36]:  # Bass Drum 2, Bass Drum 1
+                # Low frequency sine with very fast decay
+                waveform = np.sin(2 * np.pi * 60 * t)  # Fixed low frequency for kick
+                waveform += 0.2 * np.sin(2 * np.pi * 90 * t)  # Add some mid tone
+                decay = np.exp(-t * 20)  # Very quick decay
+                return waveform * envelope * decay
+            
+            # Snare Drums
+            elif note_number in [38, 40]:  # Acoustic Snare, Electric Snare
+                # Mix of sine wave and noise
+                waveform = 0.3 * np.sin(2 * np.pi * 150 * t)  # Mid frequency tone
+                noise = np.random.rand(len(t)) * 2 - 1  # White noise
+                decay = np.exp(-t * 15)  # Fast decay
+                return (waveform + 0.7 * noise) * envelope * decay
+            
+            # Hi-Hats
+            elif note_number in [42, 44, 46]:  # Closed, Pedal, Open Hi-Hats
+                # Mostly noise with different decay times
+                noise = np.random.rand(len(t)) * 2 - 1
+                # Different decay times based on hi-hat type
+                if note_number == 42:  # Closed Hi-Hat
+                    decay = np.exp(-t * 30)  # Very short
+                elif note_number == 44:  # Pedal Hi-Hat
+                    decay = np.exp(-t * 25)  # Short
+                else:  # Open Hi-Hat
+                    decay = np.exp(-t * 10)  # Longer
+                
+                # Add some high frequency sine for metallic character
+                waveform = noise + 0.1 * np.sin(2 * np.pi * 800 * t)
+                
+                return waveform * envelope * decay
+            
+            # Toms
+            elif note_number in [41, 43, 45, 47, 48, 50]:  # Various Toms
+                # Pitched sine waves with medium decay
+                if note_number in [41, 43]:  # Floor Toms
+                    tom_freq = 80  # Low frequency
+                elif note_number in [45, 47]:  # Mid Toms
+                    tom_freq = 120  # Mid frequency
+                else:  # High Toms
+                    tom_freq = 180  # Higher frequency
+                
+                waveform = np.sin(2 * np.pi * tom_freq * t)
+                decay = np.exp(-t * 12)
+                return waveform * envelope * decay
+            
+            # Cymbals
+            elif note_number in [49, 51, 52, 53, 55, 57]:  # Crash and Ride Cymbals
+                # Complex noise with slow decay
+                noise = np.random.rand(len(t)) * 2 - 1
+                # Add some high frequencies for metallic sound
+                for i in range(3, 10):
+                    noise += 0.1 / i * np.sin(2 * np.pi * 500 * i * t)
+                
+                # Longer decay for cymbals
+                decay = np.exp(-t * 4)
+                return noise * envelope * decay
+            
+            # Other percussion (default case)
+            else:
+                # Generic percussion sound based on frequency
+                noise = np.random.rand(len(t)) * 2 - 1
+                waveform = 0.5 * np.sin(2 * np.pi * frequency * t) + 0.5 * noise
+                decay = np.exp(-t * 10)
+                return waveform * envelope * decay
+        
+        else:  # "Synth" (default)
+            # Simple synth with multiple waveforms
+            waveform = 0.4 * np.sin(2 * np.pi * frequency * t)  # Sine
+            # Add square wave component
+            square = 0.3 * np.sign(np.sin(2 * np.pi * frequency * t))
+            # Add sawtooth component
+            sawtooth = 0.3 * ((2 * (frequency * t - np.floor(0.5 + frequency * t))) % 2)
+            
+            return (waveform + square + sawtooth) * envelope
+    
+    def convert_midi_to_audio(self, midi, instrument_type, sample_rate, volume):
         try:
             # Get tempo from MIDI file (default to 120 BPM if not specified)
             tempo = 500000  # Default tempo (microseconds per quarter note)
@@ -56,19 +155,35 @@ class MIDIToAudio(AudioNodeBase):
             
             # Calculate total duration in seconds
             total_time = 0
+            last_event_time = 0
+            has_notes = False
+            
             for track in midi.tracks:
                 track_time = 0
+                notes_in_track = False
+                
                 for msg in track:
                     if hasattr(msg, 'time'):
                         track_time += msg.time
+                        if msg.type == 'note_on' and hasattr(msg, 'velocity') and msg.velocity > 0:
+                            notes_in_track = True
+                            has_notes = True
+                            last_event_time = track_time
+                        elif (msg.type == 'note_off' or (msg.type == 'note_on' and hasattr(msg, 'velocity') and msg.velocity == 0)):
+                            last_event_time = track_time
+                
                 total_time = max(total_time, track_time)
+            
+            # If we found notes, use the last note event time plus some padding
+            if has_notes:
+                total_time = last_event_time + 240  # Add a small buffer (240 ticks) for note releases
             
             # Convert ticks to seconds using tempo
             seconds_per_tick = tempo / (midi.ticks_per_beat * 1000000.0)
             total_time = total_time * seconds_per_tick
             
             # Ensure we have some duration
-            total_time = max(total_time, 1.0)  # At least 1 second
+            total_time = max(total_time, 0.5)  # At least 0.5 second
             
             print(f"MIDI duration: {total_time:.2f} seconds")
             
@@ -95,7 +210,7 @@ class MIDIToAudio(AudioNodeBase):
                             start_time, velocity = active_notes[msg.note]
                             duration = current_time - start_time
                             
-                            # Generate note audio using simple sine wave
+                            # Generate note audio using instrument-specific synthesis
                             frequency = 440.0 * (2.0 ** ((msg.note - 69) / 12.0))  # Convert MIDI note to frequency
                             note_samples = int(duration * sample_rate)
                             if note_samples > 0:
@@ -108,7 +223,11 @@ class MIDIToAudio(AudioNodeBase):
                                     envelope[:attack] = np.linspace(0, 1, attack)
                                 if len(envelope) > release:
                                     envelope[-release:] = np.linspace(1, 0, release)
-                                note_audio = np.sin(2 * np.pi * frequency * t) * envelope * (velocity / 127.0) * volume
+                                
+                                # Generate waveform based on instrument type
+                                note_audio = self.generate_instrument_waveform(
+                                    frequency, t, instrument_type, envelope, msg.note
+                                ) * (velocity / 127.0) * volume
                                 
                                 # Add to buffer with proper timing
                                 start_idx = int(start_time * sample_rate)
@@ -221,8 +340,8 @@ class MIDILoader:
                 "track_selection": (["all"],),
                 "start_measure": ("INT", {"default": 1, "min": 1, "step": 1}),
                 "start_beat": ("INT", {"default": 1, "min": 1, "step": 1}),
-                "end_measure": ("INT", {"default": 0, "min": 0, "step": 1, "description": "End measure (0 = all remaining measures)"}),
-                "end_beat": ("INT", {"default": 1, "min": 1, "step": 1, "description": "End beat"})
+                "end_measure": ("INT", {"default": 0, "min": 0, "step": 1, "tooltip": "End measure (0 = all remaining measures)"}),
+                "end_beat": ("INT", {"default": 1, "min": 1, "step": 1, "tootip": "End beat"})
             }
         }
 
@@ -276,51 +395,73 @@ class MIDILoader:
                     new_track = mido.MidiTrack()
                     trimmed_midi.tracks.append(new_track)
                     
-                    # Copy all metadata and non-time-based messages
+                    # Copy important metadata messages
                     for msg in track:
                         if not hasattr(msg, 'time'):
-                            new_track.append(msg)
+                            if msg.type in ['track_name', 'time_signature', 'key_signature', 'set_tempo']:
+                                new_track.append(msg.copy())
                     
-                    # Add all messages that fall within our measure range
+                    # First pass: collect all note_on events within range and their corresponding note_off events
+                    note_events = []
+                    active_notes = {}  # {note_num: tick_time_started}
                     current_tick = 0
-                    first_msg_added = False
-                    prev_tick = 0
+                    last_event_tick = 0  # To track the last event we need to include
                     
                     for msg in track:
                         if not hasattr(msg, 'time'):
-                            continue  # Skip metadata (already copied)
+                            continue
                         
                         current_tick += msg.time
                         
-                        # Include messages that are within our measure range
-                        if current_tick >= start_tick and current_tick <= end_tick:
-                            # Create an adjusted message with corrected timing
+                        if msg.type == 'note_on' and msg.velocity > 0:
+                            # Note being turned on
+                            if current_tick >= start_tick and current_tick <= end_tick:
+                                active_notes[msg.note] = current_tick
+                                note_events.append((current_tick, msg.copy()))
+                                last_event_tick = max(last_event_tick, current_tick)
+                        
+                        elif (msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0)):
+                            # Note being turned off
+                            if msg.note in active_notes:
+                                # This is a note that started within our range
+                                note_events.append((current_tick, msg.copy()))
+                                del active_notes[msg.note]
+                                last_event_tick = max(last_event_tick, current_tick)
+                        
+                        # Also include other MIDI events within the time range
+                        elif current_tick >= start_tick and current_tick <= end_tick:
+                            if msg.type in ['set_tempo', 'control_change', 'program_change', 'pitchwheel']:
+                                note_events.append((current_tick, msg.copy()))
+                                last_event_tick = max(last_event_tick, current_tick)
+                    
+                    # Sort events by tick time
+                    note_events.sort(key=lambda x: x[0])
+                    
+                    # Second pass: add events to the new track with adjusted timing
+                    if note_events:
+                        prev_tick = start_tick
+                        total_ticks = last_event_tick - start_tick
+                        
+                        for tick, msg in note_events:
+                            # Adjust timing relative to previous event
                             adjusted_msg = msg.copy()
-                            
-                            # If this is the first message in the trimmed section,
-                            # adjust its time relative to the start point
-                            if not first_msg_added:
-                                adjusted_msg.time = 0  # First event starts immediately
-                                first_msg_added = True
-                                prev_tick = current_tick
-                            else:
-                                # Preserve the relative timing between events
-                                adjusted_msg.time = current_tick - prev_tick
-                                prev_tick = current_tick
+                            adjusted_msg.time = tick - prev_tick
+                            prev_tick = tick
                             
                             new_track.append(adjusted_msg)
+                        
+                        # Add end of track marker with correct timing
+                        end_track = mido.MetaMessage('end_of_track')
+                        
+                        # If there are any active notes at the end boundary, make sure we have enough time
+                        if active_notes:
+                            remaining_ticks = end_tick - last_event_tick
+                            if remaining_ticks > 0:
+                                end_track.time = remaining_ticks
+                        else:
+                            end_track.time = 0
                             
-                        # For note_off events or note_on with velocity 0 (note release),
-                        # we need to include them if the corresponding note_on was included
-                        elif current_tick > end_tick and first_msg_added:
-                            if (msg.type == 'note_off' or 
-                                (msg.type == 'note_on' and hasattr(msg, 'velocity') and msg.velocity == 0)):
-                                
-                                # Add with adjusted timing
-                                adjusted_msg = msg.copy()
-                                adjusted_msg.time = current_tick - prev_tick
-                                prev_tick = current_tick
-                                new_track.append(adjusted_msg)
+                        new_track.append(end_track)
                 
                 midi_data = trimmed_midi
             
@@ -354,6 +495,9 @@ class MIDILoader:
             track_notes[str(i)] = set()
             current_tick = 0
             
+            # Keep track of notes that start within range
+            active_notes = set()
+            
             for msg in track:
                 if hasattr(msg, 'time'):
                     current_tick += msg.time
@@ -363,6 +507,10 @@ class MIDILoader:
                     if msg.type == 'note_on' and msg.velocity > 0:
                         track_notes[str(i)].add(msg.note)
                         all_notes.add(msg.note)
+                        active_notes.add(msg.note)
+                    elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0):
+                        if msg.note in active_notes:
+                            active_notes.remove(msg.note)
             
             if len(track_notes[str(i)]) == 0:
                 tracks.append(f"{i}: (Empty)")
@@ -516,6 +664,9 @@ async def refresh_midi_data(request):
         track_notes[str(i)] = set()
         current_tick = 0
         
+        # Keep track of notes that start within range
+        active_notes = set()
+        
         for msg in track:
             if hasattr(msg, 'time'):
                 current_tick += msg.time
@@ -526,12 +677,18 @@ async def refresh_midi_data(request):
                 if current_tick >= start_tick and current_tick < end_tick:
                     note = msg.note
                     track_notes[str(i)].add(note)
+                    active_notes.add(note)
                     # If all tracks are selected or the current track matches selection, add to all_notes
                     if track_selection == "all" or track_selection.startswith(f"{i}:"):
                         all_notes.add(note)
+            
+            # Remove notes from active set when they're turned off, but don't remove from track_notes
+            elif msg.type == 'note_off' or (msg.type == 'note_on' and hasattr(msg, 'velocity') and msg.velocity == 0):
+                if msg.note in active_notes:
+                    active_notes.remove(msg.note)
     
     # If a specific track is selected but we didn't find any notes, it might be because
-    # our filtering logic is different from above
+    # track selection was changed after note filtering
     if track_selection != "all" and not all_notes:
         track_index = track_selection.split(':')[0]
         if track_index.isdigit() and track_index in track_notes:
