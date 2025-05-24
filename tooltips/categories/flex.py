@@ -225,7 +225,7 @@ Great for creating music videos, reactive animations, or automated effects.""")
     }, inherits_from='ProximityFeatureInput')
 
     # MIDILoadAndExtract tooltips (inherits from: FeatureExtractorBase)
-    TooltipManager.register_tooltips("MIDILoadAndExtract", {
+    TooltipManager.register_tooltips("MIDIFeatureExtractor", {
         "midi_file": "MIDI file to load from the midi_files directory",
         "extraction_method": """Choose what MIDI information to analyze:
 
@@ -248,7 +248,7 @@ Great for creating music videos, reactive animations, or automated effects.""")
         "track_selection": "Track to analyze ('all' or specific track number)",
         "chord_only": "When true, only considers full chords (default: false)",
         "notes": "Comma-separated list of MIDI note numbers (default: empty)"
-    }, inherits_from='FeatureExtractorBase')
+    }, inherits_from='FeatureExtractorBase', description="Extract features from MIDI files. Analyze note on/off events, velocity, pitch, and more to create dynamic animations and effects. Use the piano to filter the notes that are considered for extraction, or leave none selected to use them all. Notes that do not exist in the MIDI file will be disabled.")
 
     # AudioFeatureExtractor tooltips (inherits from: FeatureExtractorBase)
     TooltipManager.register_tooltips("AudioFeatureExtractor", {

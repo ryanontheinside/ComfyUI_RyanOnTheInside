@@ -150,7 +150,7 @@ from .nodes.flex.feature_extractors_audio import(
 )
 
 from .nodes.flex.feature_extractors_midi import(
-    MIDILoadAndExtract,
+    MIDIFeatureExtractor,
 )
 
 from .nodes.flex.feature_extractors_proximity import(
@@ -298,6 +298,7 @@ from .nodes.flex.feature_modulation import (
     FeatureRenormalize,
     FeatureInterpolator,
     FeaturePeakDetector,
+    FeatureInterpolateMulti,
 )
 
 from .nodes.audio.flex_audio import (
@@ -327,6 +328,9 @@ from .nodes.doom.doom import Doom_
 # from .nodes.models.flex_model_base import FlexFeatureAttentionControl
 
 from .audio_latent_blend import AudioLatentBlend, FlexlatentAudioBlend
+
+
+from .nodes.audio.midi_nodes import MIDIToAudio, MIDILoader
 
 # Import external integrations
 from .external_integration import (
@@ -374,6 +378,7 @@ NODE_CLASS_MAPPINGS = {
     "FlexlatentAudioBlend": FlexlatentAudioBlend,
     "FeatureInterpolator":          FeatureInterpolator,
     "FeaturePeakDetector":          FeaturePeakDetector,
+    "FeatureInterpolateMulti":      FeatureInterpolateMulti,
     
     "Doom_": Doom_,
     "WhisperToPromptTravel":        WhisperToPromptTravel,
@@ -480,7 +485,7 @@ NODE_CLASS_MAPPINGS = {
     "PitchRange":                   PitchRangeNode,
     "PitchRangePreset":             PitchRangePresetNode,
     "PitchRangeByNoteNode":         PitchRangeByNoteNode,
-    "MIDILoadAndExtract":           MIDILoadAndExtract,
+    "MIDIFeatureExtractor":           MIDIFeatureExtractor,
     "TimeFeatureNode":              TimeFeatureNode,
     "FloatFeatureNode":             FloatFeatureNode,
     "ManualFeatureNode":            ManualFeatureNode,
@@ -588,6 +593,8 @@ NODE_CLASS_MAPPINGS = {
     "ImageIntervalSelectPercentage":ImageIntervalSelectPercentage,
     "ImageIndexSelect":             ImageIndexSelect,
     
+    "MIDIToAudio": MIDIToAudio,
+    "MIDILoader": MIDILoader,
 }
 
 
@@ -597,11 +604,11 @@ EXTENSION_WEB_DIRS = ["./web/extensions"]
 NODE_DISPLAY_NAME_MAPPINGS = {
     "AudioSeparatorSimple":         "Audio Separator",
     "ProximityVisualizer":          "Preview Proximity",
-    "EffectVisualizer":             "Preview Effect",
+    "EffectVisualizer":             "Preview FeatureEffect",
     "PitchVisualizer":              "Preview Pitch",
     "FlexVideoSpeed":               "**BETA** Flex Video Speed",
     "FlexVideoFrameBlend":          "**BETA**Flex Video Frame Blend",
-    "AudioFeatureVisualizer":       "Audio Feature Visualizer ***BETA***" ,
+    "AudioFeatureVisualizer":       "Audio Feature Visualizer ***BETA***",
 
     "MIDILoadAndExtract":           "MIDI Load & Feature Extract",
     "PitchRangeByNoteNode":         "Pitch Range By Note",

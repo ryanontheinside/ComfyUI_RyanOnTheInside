@@ -779,3 +779,115 @@ class FeaturePeakDetector(FeatureModulationBase):
         processed_feature = self.create_processed_feature(feature, peak_signal, name_prefix, invert_output)
         return (processed_feature,)
 
+@apply_tooltips
+class FeatureInterpolateMulti(FeatureModulationBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature1": ("FEATURE",),
+                "feature2": ("FEATURE",),
+                "feature3": ("FEATURE",),
+                "min_aggregate_value": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.01}),
+                "transition_frames": ("INT", {"default": 5, "min": 1, "max": 100, "step": 1}),
+                **super().INPUT_TYPES()["required"],
+            }
+        }
+
+    RETURN_TYPES = ("FEATURE", "FEATURE", "FEATURE")
+    RETURN_NAMES = ("FEATURE1", "FEATURE2", "FEATURE3")
+    FUNCTION = "multi_interpolate"
+
+    def multi_interpolate(self, feature1, feature2, feature3, min_aggregate_value, transition_frames, invert_output):
+        # Ensure all features have same length
+        frame_count = min(feature1.frame_count, feature2.frame_count, feature3.frame_count)
+
+        # Extract values
+        values1 = np.array([feature1.get_value_at_frame(i) for i in range(frame_count)])
+        values2 = np.array([feature2.get_value_at_frame(i) for i in range(frame_count)])
+        values3 = np.array([feature3.get_value_at_frame(i) for i in range(frame_count)])
+
+        # Stack features
+        stacked = np.stack([values1, values2, values3], axis=1)  # [frame, 3]
+        
+        # Create output array
+        output = np.zeros_like(stacked)
+        
+        # Find transition points (where signals change significantly)
+        threshold = 0.05  # Threshold to detect changes
+        transitions = []
+        
+        for i in range(1, frame_count):
+            # Check for significant changes in any feature
+            changes = np.abs(stacked[i] - stacked[i-1])
+            if np.any(changes > threshold):
+                transitions.append(i)
+        
+        # Process each segment between transitions
+        segment_start = 0
+        for transition in transitions + [frame_count]:
+            segment_end = transition
+            
+            # Look ahead and behind to determine transition window
+            transition_start = max(segment_start - transition_frames // 2, 0)
+            transition_end = min(segment_end + transition_frames // 2, frame_count)
+            
+            # For the main part of the segment (no transition), use normalized values
+            if segment_end > segment_start:
+                # Get the average feature values in this segment
+                segment_values = np.mean(stacked[segment_start:segment_end], axis=0)
+                
+                # Normalize to ensure sum equals min_aggregate_value
+                sum_segment = np.sum(segment_values)
+                if sum_segment > 0:
+                    normalized_segment = (segment_values / sum_segment) * min_aggregate_value
+                else:
+                    # If all zero, distribute evenly
+                    normalized_segment = np.ones(3) * (min_aggregate_value / 3)
+                
+                # Apply to the non-transition part of the segment
+                for i in range(segment_start, segment_end):
+                    output[i] = normalized_segment
+            
+            segment_start = segment_end
+            
+        # Create linear transitions between segments
+        for i in range(len(transitions)):
+            trans_idx = transitions[i]
+            
+            # Create transition window
+            window_start = max(trans_idx - transition_frames, 0)
+            window_end = min(trans_idx + transition_frames, frame_count)
+            
+            if window_end > window_start:
+                # Get stable values before and after transition
+                before_value = output[max(window_start - 1, 0)]
+                after_value = output[min(window_end, frame_count - 1)]
+                
+                # Linear interpolation across the window
+                for j in range(window_start, window_end):
+                    alpha = (j - window_start) / (window_end - window_start)
+                    interpolated = (1 - alpha) * before_value + alpha * after_value
+                    
+                    # Ensure sum is maintained at min_aggregate_value
+                    sum_interp = np.sum(interpolated)
+                    if sum_interp > 0:
+                        output[j] = (interpolated / sum_interp) * min_aggregate_value
+                    else:
+                        output[j] = np.ones(3) * (min_aggregate_value / 3)
+        
+        # Final check: ensure all frames sum exactly to min_aggregate_value
+        for i in range(frame_count):
+            total = np.sum(output[i])
+            if abs(total - min_aggregate_value) > 1e-6 and total > 0:
+                output[i] = (output[i] / total) * min_aggregate_value
+            elif total == 0:
+                output[i] = np.ones(3) * (min_aggregate_value / 3)
+        
+        # Split back out
+        out1 = self.create_processed_feature(feature1, output[:, 0], "InterpolatedMulti", invert_output)
+        out2 = self.create_processed_feature(feature2, output[:, 1], "InterpolatedMulti", invert_output)
+        out3 = self.create_processed_feature(feature3, output[:, 2], "InterpolatedMulti", invert_output)
+
+        return (out1, out2, out3)
+

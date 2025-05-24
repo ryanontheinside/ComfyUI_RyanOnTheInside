@@ -20,6 +20,9 @@ class EffectVisualizer(RyanOnTheInside):
                 "feature": ("FEATURE",),
                 "text_color": ("STRING", {"default": "(255,255,255)"}),
                 "font_scale": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.1}),
+                "label_prefix": ("STRING", {"default": ""}),
+                "label_x_offset": ("INT", {"default": 10, "min": 0, "max": 1000, "step": 1}),
+                "label_y_offset": ("INT", {"default": 10, "min": 0, "max": 1000, "step": 1}),
             }
         }
 
@@ -27,7 +30,7 @@ class EffectVisualizer(RyanOnTheInside):
     FUNCTION = "visualize"
     CATEGORY = "RyanOnTheInside/FlexFeatures/Utilities/Previews"
 
-    def visualize(self, video_frames, feature, text_color, font_scale):
+    def visualize(self, video_frames, feature, text_color, font_scale, label_prefix, label_x_offset, label_y_offset):
         text_color = self.parse_color(text_color)
         output_frames = []
         padding = 10  # Padding from the edges
@@ -39,10 +42,11 @@ class EffectVisualizer(RyanOnTheInside):
 
             # Display feature name and value on the frame
             feature_value = feature.get_value_at_frame(frame_index)
-            text = f"{feature.name}: {feature_value:.2f}"
+            prefix = f"{label_prefix} " if label_prefix else ""
+            text = f"{prefix}{feature.name}: {feature_value:.2f}"
             text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, 2)[0]
-            text_x = padding
-            text_y = padding + text_size[1]
+            text_x = label_x_offset
+            text_y = label_y_offset + text_size[1]
 
             cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, text_color, 2)
 
@@ -74,7 +78,8 @@ class ProximityVisualizer(EffectVisualizer):
     FUNCTION = "visualize_proximity"
 
     def visualize_proximity(self, video_frames, anchor_locations, query_locations, feature, 
-                            anchor_color, query_color, line_color, text_color, font_scale):
+                            anchor_color, query_color, line_color, text_color, font_scale,
+                            label_prefix, label_x_offset, label_y_offset):
         anchor_color = self.parse_color(anchor_color)
         query_color = self.parse_color(query_color)
         line_color = self.parse_color(line_color)
@@ -152,13 +157,16 @@ class PitchVisualizer(EffectVisualizer):
                 "feature": ("FEATURE",),
                 "text_color": ("STRING", {"default": "(255,255,255)"}),
                 "font_scale": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.1}),
+                "label_prefix": ("STRING", {"default": ""}),
+                "label_x_offset": ("INT", {"default": 10, "min": 0, "max": 1000, "step": 1}),
+                "label_y_offset": ("INT", {"default": 10, "min": 0, "max": 1000, "step": 1}),
             }
         }
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "visualize_pitch"
 
-    def visualize_pitch(self, video_frames, feature, text_color, font_scale):
+    def visualize_pitch(self, video_frames, feature, text_color, font_scale, label_prefix, label_x_offset, label_y_offset):
         text_color = self.parse_color(text_color)
         output_frames = []
         padding = 10  # Padding from the edges
@@ -191,8 +199,8 @@ class PitchVisualizer(EffectVisualizer):
 
             for i, text in enumerate(texts):
                 text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, 2)[0]
-                text_x = padding
-                text_y = padding + (i + 1) * (text_size[1] + 10)  # Add some vertical spacing
+                text_x = label_x_offset
+                text_y = label_y_offset + (i + 1) * (text_size[1] + 10)  # Add some vertical spacing
 
                 cv2.putText(frame, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, text_color, 2)
 
