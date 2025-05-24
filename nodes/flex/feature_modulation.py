@@ -789,7 +789,7 @@ class FeatureInterpolateMulti(FeatureModulationBase):
                 "feature2": ("FEATURE",),
                 "feature3": ("FEATURE",),
                 "min_aggregate_value": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.01}),
-                "transition_frames": ("INT", {"default": 30, "min": 1, "max": 100, "step": 1}),
+                "transition_frames": ("INT", {"default": 5, "min": 1, "max": 100, "step": 1}),
                 **super().INPUT_TYPES()["required"],
             }
         }

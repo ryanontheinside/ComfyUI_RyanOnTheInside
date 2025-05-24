@@ -388,6 +388,9 @@ class MIDILoader:
                 # Convert musical measures to ticks
                 start_tick, end_tick = convert_measures_to_ticks_range(midi_data, start_measure, start_beat, end_measure, end_beat)
                 
+                # The total duration in ticks is EXACTLY end_tick - start_tick
+                total_tick_duration = end_tick - start_tick
+                
                 # Create a new MIDI file with the selected measures
                 trimmed_midi = mido.MidiFile(ticks_per_beat=midi_data.ticks_per_beat)
                 
@@ -395,73 +398,89 @@ class MIDILoader:
                     new_track = mido.MidiTrack()
                     trimmed_midi.tracks.append(new_track)
                     
-                    # Copy important metadata messages
+                    # Copy important metadata messages first
                     for msg in track:
                         if not hasattr(msg, 'time'):
                             if msg.type in ['track_name', 'time_signature', 'key_signature', 'set_tempo']:
                                 new_track.append(msg.copy())
                     
-                    # First pass: collect all note_on events within range and their corresponding note_off events
+                    # Collect events within the time range
                     note_events = []
                     active_notes = {}  # {note_num: tick_time_started}
+                    notes_active_before_range = {}  # Track notes that started before our range
                     current_tick = 0
-                    last_event_tick = 0  # To track the last event we need to include
                     
+                    # First pass: collect all note on/off events, tracking notes that cross boundaries
                     for msg in track:
                         if not hasattr(msg, 'time'):
                             continue
                         
                         current_tick += msg.time
                         
+                        # Handle note_on events
                         if msg.type == 'note_on' and msg.velocity > 0:
-                            # Note being turned on
-                            if current_tick >= start_tick and current_tick <= end_tick:
+                            # Note starting before our range
+                            if current_tick < start_tick:
+                                notes_active_before_range[msg.note] = current_tick
+                            # Note starting within our range
+                            elif current_tick <= end_tick:
                                 active_notes[msg.note] = current_tick
                                 note_events.append((current_tick, msg.copy()))
-                                last_event_tick = max(last_event_tick, current_tick)
                         
-                        elif (msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0)):
-                            # Note being turned off
-                            if msg.note in active_notes:
-                                # This is a note that started within our range
-                                note_events.append((current_tick, msg.copy()))
+                        # Handle note_off events
+                        elif msg.type == 'note_off' or (msg.type == 'note_on' and msg.velocity == 0):
+                            # Handle notes that started before our range but end within it
+                            if msg.note in notes_active_before_range:
+                                if current_tick >= start_tick and current_tick <= end_tick:
+                                    # Create a new note_on at the start boundary
+                                    new_note_on = mido.Message('note_on', note=msg.note, velocity=64, time=0)
+                                    note_events.append((start_tick, new_note_on))
+                                    # Add the note_off event
+                                    note_events.append((current_tick, msg.copy()))
+                                del notes_active_before_range[msg.note]
+                            
+                            # Handle notes that started within our range
+                            elif msg.note in active_notes:
+                                # If note ends within our range, add the note_off event
+                                if current_tick <= end_tick:
+                                    note_events.append((current_tick, msg.copy()))
+                                # If note would end outside our range, add a note_off at the end boundary
+                                else:
+                                    new_note_off = mido.Message('note_off', note=msg.note, velocity=0, time=0)
+                                    note_events.append((end_tick, new_note_off))
                                 del active_notes[msg.note]
-                                last_event_tick = max(last_event_tick, current_tick)
                         
-                        # Also include other MIDI events within the time range
+                        # Include other MIDI events within the time range
                         elif current_tick >= start_tick and current_tick <= end_tick:
                             if msg.type in ['set_tempo', 'control_change', 'program_change', 'pitchwheel']:
                                 note_events.append((current_tick, msg.copy()))
-                                last_event_tick = max(last_event_tick, current_tick)
+                    
+                    # Add note_off events at end boundary for any notes still active at the end
+                    for note in active_notes:
+                        new_note_off = mido.Message('note_off', note=note, velocity=0, time=0)
+                        note_events.append((end_tick, new_note_off))
                     
                     # Sort events by tick time
                     note_events.sort(key=lambda x: x[0])
                     
-                    # Second pass: add events to the new track with adjusted timing
-                    if note_events:
-                        prev_tick = start_tick
-                        total_ticks = last_event_tick - start_tick
+                    # Add events to the new track with adjusted timing
+                    prev_tick = start_tick
+                    
+                    for tick, msg in note_events:
+                        # Adjust timing relative to previous event
+                        adjusted_msg = msg.copy()
+                        adjusted_msg.time = tick - prev_tick
+                        prev_tick = tick
                         
-                        for tick, msg in note_events:
-                            # Adjust timing relative to previous event
-                            adjusted_msg = msg.copy()
-                            adjusted_msg.time = tick - prev_tick
-                            prev_tick = tick
-                            
-                            new_track.append(adjusted_msg)
-                        
-                        # Add end of track marker with correct timing
-                        end_track = mido.MetaMessage('end_of_track')
-                        
-                        # If there are any active notes at the end boundary, make sure we have enough time
-                        if active_notes:
-                            remaining_ticks = end_tick - last_event_tick
-                            if remaining_ticks > 0:
-                                end_track.time = remaining_ticks
-                        else:
-                            end_track.time = 0
-                            
-                        new_track.append(end_track)
+                        new_track.append(adjusted_msg)
+                    
+                    # Calculate how many ticks remain until the exact end_tick
+                    remaining_ticks = start_tick + total_tick_duration - prev_tick
+                    
+                    # Add end of track marker at exactly the right position
+                    end_track = mido.MetaMessage('end_of_track')
+                    end_track.time = max(0, remaining_ticks)
+                    new_track.append(end_track)
                 
                 midi_data = trimmed_midi
             
