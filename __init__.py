@@ -340,6 +340,7 @@ from .external_integration import (
     EXTERNAL_NODE_CLASS_MAPPINGS,
 )
 
+
 # Get the directory of the current file
 current_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -638,9 +639,13 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
 
 
+from .nodes.acestep.nodes import NODE_CLASS_MAPPINGS as ACEStepNODE_CLASS_MAPPINGS
+from .nodes.acestep.nodes import NODE_DISPLAY_NAME_MAPPINGS as ACEStepNODE_DISPLAY_NAME_MAPPINGS
+
 # Update NODE_CLASS_MAPPINGS with external nodes
 NODE_CLASS_MAPPINGS.update(EXTERNAL_NODE_CLASS_MAPPINGS)
-
+NODE_CLASS_MAPPINGS.update(ACEStepNODE_CLASS_MAPPINGS)  
+NODE_DISPLAY_NAME_MAPPINGS.update(ACEStepNODE_DISPLAY_NAME_MAPPINGS)
 
 
 import re

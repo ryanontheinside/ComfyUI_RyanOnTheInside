@@ -12,6 +12,7 @@
 - 🎵 **Audio & MIDI Processing**: Separate instruments, manipulate audio, work with ACEStep and other audio models
 - 🎆 **Particle Systems**: Create mesmerizing, fluid-like effects
 - 🌊 **Optical Flow**: Generate masks based on motion in videos
+- 🎨 **ACEStep Native**: Native ComfyUI implementation for audio repaint and extend functionality
 - 🌊 **DEPTH Flow** 🌊: Use flex features to control depthflow nodes, adding parallax animations to your workflows!
 - 👤 **AdvancedLivePortrait** 👤: Use flex features to control facial animation expressions! 
 - 🎨 **Advanced Controlnet** 🎨: Direct integration with ComfyUI-AdvancedControlnet!
@@ -22,7 +23,7 @@
 
 ### 🚨 Important: Version 2.0 Update 🚨
 
-This repository has been updated to Version 2.0! After careful consideration, I decided that a complete update was better than maintaining legacy support indefinitely. This new version brings significant improvements while maintaining all existing functionality. This update was done with user experience, extensibility, and functionality in mind.
+If you are not getting updates, or are having trouble updating from ComfyUI-Manager, please totally uninstall the nodepack and reinstall it to restore normal update behavior.
 
 ### 🎉 What's New in V2
 - **License**: This project is now licensed under the MIT License.
@@ -42,7 +43,7 @@ This repository has been updated to Version 2.0! After careful consideration, I 
 
 
 ### ⚠️ Breaking Changes Notice
-Due to ComfyUI's workflow loading mechanism, **existing workflows using these nodes ~~may~~ *will* break after updating**. I did consider this carefully, as I have yet to introduce breaking changes to this node system, but this extensive update  neccesitated a complete overhaul. There will not be a version 3. Rather, version 2 will be updated as needed. I have taken the time to update the most relevant example workflows to version 2.
+Due to ComfyUI's workflow loading mechanism, **existing workflows using these nodes ~~may~~ *will* break after updating**. I did consider this carefully, as I have yet to introduce breaking changes to this node system, but this extensive update  neccesitated a complete overhaul.
 
 If you need to run an older workflow, you can revert to the previous version of these nodes by using the Manager, or by running this command in your ComfyUI_RyanOnTheInside directory:
 
@@ -133,6 +134,11 @@ Dynamic control over various aspects of your workflow:
 - Separate audio into individual instrument tracks
 - Extract features from audio and MIDI for visual effects
 - Create audio-reactive animations and transformations
+
+### 🎨 ACEStep Native
+- **Repaint**: Selectively regenerate specific time ranges in existing audio
+- **Extend**: Add new content before or after existing audio  
+- **Hybrid**: Combine repaint and extend operations simultaneously
 
 ### 🌊 Optical Flow
 - Generate masks based on movement in video sequences
@@ -291,6 +297,46 @@ Transform your visuals with the power of sound and musical data:
 - **Control Mapping**: Use MIDI controllers to adjust visual parameters
 
 These audio and MIDI processing capabilities enable the creation of music-driven animations, visualizations, and effects that respond dynamically to sound input.
+
+</details>
+
+<details>
+<summary><h3>ACEStep Native</h3></summary>
+
+Native ComfyUI implementation of ACEStep audio repaint and extend functionality. This provides seamless integration with ComfyUI's existing sampling infrastructure to enable selective audio regeneration and extension without requiring custom types.
+
+#### Core Functionality Nodes
+
+**ACEStep Repaint Guider**
+Creates a guider for repainting specific audio regions.
+- **Inputs**: Model, conditioning, source latents, time range, strength settings
+- **Output**: GUIDER (for use with SamplerCustomAdvanced)
+
+**ACEStep Extend Guider**  
+Creates a guider for extending audio before/after existing content.
+- **Inputs**: Model, conditioning, source latents, extend times
+- **Output**: GUIDER (for use with SamplerCustomAdvanced)
+
+**ACEStep Hybrid Guider**
+Combines repaint and extend functionality in a single node.
+- **Inputs**: All repaint/extend parameters with optional controls
+- **Output**: GUIDER (for use with SamplerCustomAdvanced)
+
+#### Utility Nodes
+
+- **ACEStep Analyze Latent**: Analyzes ACE latent properties for debugging
+- **ACEStep Time Range**: Converts time ranges to frame indices
+- **ACEStep Mask Visualizer**: Visualizes repaint masks for debugging
+- **ACEStep Audio Post Processor**: Preserves original audio fidelity in unchanged regions
+
+#### Basic Workflows
+
+**Repaint Workflow**: Replace audio content from 10-20 seconds with new generation.
+See: [examples/acestep_repaint.json](examples/acestep_repaint.json)
+
+**Extend Workflow**: Add 10 seconds of new content after existing audio.
+See: [examples/acestep_extend.json](examples/acestep_extend.json)
+
 
 </details>
 
