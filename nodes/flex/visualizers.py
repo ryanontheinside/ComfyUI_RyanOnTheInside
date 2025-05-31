@@ -304,3 +304,234 @@ class PreviewFeature(RyanOnTheInside):
         }]
         
         return ({"ui": {"images": results}})
+
+class AnimatedFeaturePreview(RyanOnTheInside):
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Utilities/Previews"
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "feature": ("FEATURE",),
+                "window_size": ("INT", {"default": 60, "min": 10, "max": 3000, "step": 1}),
+                "top_label": ("STRING", {"default": "Max"}),
+                "bottom_label": ("STRING", {"default": "Min"}),
+                "width": ("INT", {"default": 960, "min": 480, "max": 1920, "step": 1}),
+                "height": ("INT", {"default": 540, "min": 270, "max": 1080, "step": 1}),
+                "low_color": ("STRING", {"default": "(255,100,100)"}),  # Red for low values
+                "high_color": ("STRING", {"default": "(100,255,100)"}),  # Green for high values
+                "title_override": ("STRING", {"default": ""}),  # Override for feature name in title
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "animate_feature"
+
+    def parse_color(self, color_string):
+        """Parse color string to tuple"""
+        return tuple(map(int, color_string.strip("()").split(",")))
+
+    def interpolate_color(self, color1, color2, factor):
+        """Interpolate between two colors based on factor (0.0 to 1.0)"""
+        return tuple(int(c1 + (c2 - c1) * factor) for c1, c2 in zip(color1, color2))
+
+    def draw_text_with_background(self, frame, text, position, font, font_scale, text_color, thickness=2, bg_color=(0, 0, 0), padding=8):
+        """Draw text with a background rectangle for better visibility"""
+        text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
+        x, y = position
+        
+        # Draw background rectangle with some padding
+        bg_rect_start = (x - padding, y - text_size[1] - padding)
+        bg_rect_end = (x + text_size[0] + padding, y + padding)
+        
+        # Add subtle transparency effect by blending
+        overlay = frame.copy()
+        cv2.rectangle(overlay, bg_rect_start, bg_rect_end, bg_color, -1)
+        cv2.addWeighted(overlay, 0.7, frame, 0.3, 0, frame)
+        
+        # Draw border
+        cv2.rectangle(frame, bg_rect_start, bg_rect_end, (64, 64, 64), 1)
+        
+        # Draw text
+        cv2.putText(frame, text, position, font, font_scale, text_color, thickness)
+
+    def draw_gradient_background(self, frame, start_color, end_color):
+        """Draw a subtle gradient background"""
+        height, width = frame.shape[:2]
+        for y in range(height):
+            factor = y / height
+            color = self.interpolate_color(start_color, end_color, factor)
+            frame[y, :] = color
+
+    def animate_feature(self, feature, window_size, top_label, bottom_label, width, height, low_color, high_color, title_override):
+        low_color = self.parse_color(low_color)
+        high_color = self.parse_color(high_color)
+        
+        values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
+        
+        # Calculate actual min and max from the values
+        actual_min = min(values)
+        actual_max = max(values)
+        
+        # Handle constant value case
+        if actual_max == actual_min:
+            actual_max = actual_min + 1.0
+            
+        y_range = actual_max - actual_min
+        padding = 0.05 * y_range
+        y_min = actual_min - padding
+        y_max = actual_max + padding
+        
+        # Graph area parameters with better proportions for labels above/below
+        margin_x = 80
+        margin_y = 120  # More space for labels above/below
+        graph_width = width - 2 * margin_x
+        graph_height = height - 2 * margin_y
+        graph_x = margin_x
+        graph_y = margin_y
+        
+        output_frames = []
+        
+        for frame_index in range(feature.frame_count):
+            # Create frame with gradient background
+            frame = np.zeros((height, width, 3), dtype=np.uint8)
+            self.draw_gradient_background(frame, (15, 15, 25), (25, 25, 35))
+            
+            # Determine the window for this frame
+            window_start = max(0, frame_index - window_size // 2)
+            window_end = min(feature.frame_count, window_start + window_size)
+            
+            # Adjust window_start if we're near the end
+            if window_end - window_start < window_size and window_start > 0:
+                window_start = max(0, window_end - window_size)
+            
+            # Draw enhanced grid
+            grid_color = (45, 45, 55)  # Subtle grid
+            major_grid_color = (65, 65, 75)  # Slightly more visible for major lines
+            
+            # Horizontal grid lines
+            for i in range(9):  # More grid lines for precision
+                y = graph_y + (i * graph_height // 8)
+                color = major_grid_color if i % 2 == 0 else grid_color
+                cv2.line(frame, (graph_x, y), (graph_x + graph_width, y), color, 1)
+            
+            # Vertical grid lines
+            for i in range(13):  # More vertical lines
+                x = graph_x + (i * graph_width // 12)
+                color = major_grid_color if i % 3 == 0 else grid_color
+                cv2.line(frame, (x, graph_y), (x, graph_y + graph_height), color, 1)
+            
+            # Draw graph border with gradient effect
+            border_color = (120, 120, 140)
+            cv2.rectangle(frame, (graph_x-2, graph_y-2), (graph_x + graph_width+2, graph_y + graph_height+2), border_color, 3)
+            cv2.rectangle(frame, (graph_x-1, graph_y-1), (graph_x + graph_width+1, graph_y + graph_height+1), (200, 200, 220), 1)
+            
+            # Get the values for the current window
+            window_values = values[window_start:window_end]
+            window_frames = list(range(window_start, window_end))
+            
+            # Convert values to screen coordinates and draw enhanced line with smoother interpolation
+            if len(window_values) > 1:
+                points = []
+                point_values = []
+                for i, (f, v) in enumerate(zip(window_frames, window_values)):
+                    # X coordinate based on frame position in window
+                    x_ratio = (f - window_start) / window_size
+                    x = int(graph_x + x_ratio * graph_width)
+                    
+                    # Y coordinate based on value (inverted because screen Y increases downward)
+                    y_ratio = (v - y_min) / (y_max - y_min)
+                    y = int(graph_y + graph_height - y_ratio * graph_height)
+                    
+                    points.append((x, y))
+                    point_values.append(v)
+                
+                # Draw the line with smooth gradient colors
+                for i in range(len(points) - 1):
+                    # Create multiple segments for smoother color transition
+                    start_point = points[i]
+                    end_point = points[i + 1]
+                    start_value = point_values[i]
+                    end_value = point_values[i + 1]
+                    
+                    # Number of segments for smooth color transition
+                    num_segments = max(5, abs(end_point[0] - start_point[0]) // 2)
+                    
+                    for seg in range(num_segments):
+                        seg_ratio = seg / num_segments
+                        next_seg_ratio = (seg + 1) / num_segments
+                        
+                        # Interpolate position
+                        seg_x = int(start_point[0] + (end_point[0] - start_point[0]) * seg_ratio)
+                        seg_y = int(start_point[1] + (end_point[1] - start_point[1]) * seg_ratio)
+                        next_x = int(start_point[0] + (end_point[0] - start_point[0]) * next_seg_ratio)
+                        next_y = int(start_point[1] + (end_point[1] - start_point[1]) * next_seg_ratio)
+                        
+                        # Interpolate value for color
+                        seg_value = start_value + (end_value - start_value) * (seg_ratio + next_seg_ratio) / 2
+                        color_factor = (seg_value - actual_min) / (actual_max - actual_min) if actual_max != actual_min else 0.5
+                        line_color = self.interpolate_color(low_color, high_color, color_factor)
+                        
+                        # Draw segment with glow effect
+                        cv2.line(frame, (seg_x, seg_y), (next_x, next_y), (line_color[0]//3, line_color[1]//3, line_color[2]//3), 5)  # Glow
+                        cv2.line(frame, (seg_x, seg_y), (next_x, next_y), line_color, 3)  # Main line
+                
+                # Draw the current position dot with enhanced styling
+                current_value = values[frame_index]
+                x_ratio = (frame_index - window_start) / window_size
+                x = int(graph_x + x_ratio * graph_width)
+                y_ratio = (current_value - y_min) / (y_max - y_min)
+                y = int(graph_y + graph_height - y_ratio * graph_height)
+                
+                # Calculate dot color based on current value
+                color_factor = (current_value - actual_min) / (actual_max - actual_min) if actual_max != actual_min else 0.5
+                dot_color = self.interpolate_color(low_color, high_color, color_factor)
+                
+                # Draw dot with glow effect
+                cv2.circle(frame, (x, y), 12, (dot_color[0]//2, dot_color[1]//2, dot_color[2]//2), -1)  # Outer glow
+                cv2.circle(frame, (x, y), 8, (255, 255, 255), 2)  # White outline
+                cv2.circle(frame, (x, y), 6, dot_color, -1)     # Colored fill
+            
+            # Enhanced text rendering
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            text_color = (255, 255, 255)
+            
+            # Labels positioned next to the y-axis
+            # Top label (left side, aligned with top of graph)
+            self.draw_text_with_background(frame, top_label, (15, graph_y + 20), font, 0.9, text_color, 2, (20, 20, 40), 8)
+            
+            # Bottom label (left side, aligned with bottom of graph)
+            self.draw_text_with_background(frame, bottom_label, (15, graph_y + graph_height - 10), font, 0.9, text_color, 2, (20, 20, 40), 8)
+            
+            # Enhanced title (centered at top)
+            title = title_override if title_override.strip() else feature.name
+            title_size = cv2.getTextSize(title, font, 1.2, 3)[0]
+            title_x = (width - title_size[0]) // 2
+            self.draw_text_with_background(frame, title, (title_x, 40), font, 1.2, text_color, 3, (20, 20, 40), 12)
+            
+            # Current value (top right, no crowding)
+            current_value = values[frame_index]
+            value_text = f'Value: {current_value:.4f}'
+            value_size = cv2.getTextSize(value_text, font, 0.8, 2)[0]
+            value_pos = (width - value_size[0] - 20, 70)  # Moved down to avoid title
+            
+            # Color the value text based on the current value
+            color_factor = (current_value - actual_min) / (actual_max - actual_min) if actual_max != actual_min else 0.5
+            value_color = self.interpolate_color(low_color, high_color, color_factor)
+            self.draw_text_with_background(frame, value_text, value_pos, font, 0.8, value_color, 2, (20, 20, 40), 8)
+            
+            # Frame info (bottom left - no crowding)
+            frame_info = f'Frame: {frame_index + 1}/{feature.frame_count}'
+            self.draw_text_with_background(frame, frame_info, (20, height - 30), font, 0.7, text_color, 2, (20, 20, 40), 6)
+            
+            # Window range info (bottom right, properly spaced)
+            range_text = f'Window: {window_start}-{window_end-1}'
+            range_size = cv2.getTextSize(range_text, font, 0.6, 1)[0]
+            range_pos = (width - range_size[0] - 20, height - 30)  # Same height as frame info
+            self.draw_text_with_background(frame, range_text, range_pos, font, 0.6, (180, 180, 180), 1, (20, 20, 40), 4)
+            
+            output_frames.append(frame)
+        
+        # Convert to tensor
+        output_tensor = torch.from_numpy(np.stack(output_frames)).float() / 255.0
+        return (output_tensor,)
