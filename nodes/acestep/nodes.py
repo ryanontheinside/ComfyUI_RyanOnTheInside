@@ -3,6 +3,10 @@ import comfy.model_management
 import comfy.samplers
 from .ace_step_guiders import ACEStepRepaintGuider, ACEStepExtendGuider, ACEStepHybridGuider
 from .ace_step_utils import ACEStepLatentUtils
+from .audio_mask_nodes import (
+    AudioTemporalMask, AudioRegionMask, AudioMaskAnalyzer,
+    AUDIO_MASK_NODE_CLASS_MAPPINGS, AUDIO_MASK_NODE_DISPLAY_NAME_MAPPINGS
+)
 
 def validate_audio_latent(latents):
     """Validate that latents are audio latents, handling both typed and untyped cases"""
@@ -502,6 +506,7 @@ NODE_CLASS_MAPPINGS = {
     "ACEStepTimeRange": ACEStepTimeRangeNode,
     "ACEStepMaskVisualizer": ACEStepMaskVisualizerNode,
     "ACEStepAudioPostProcessor": ACEStepAudioPostProcessor,
+    **AUDIO_MASK_NODE_CLASS_MAPPINGS,  # Add audio mask nodes
 }
 
 # Display name mappings for ComfyUI
@@ -513,4 +518,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ACEStepTimeRange": "ACEStep Time Range BETA",
     "ACEStepMaskVisualizer": "ACEStep Mask Visualizer BETA",
     "ACEStepAudioPostProcessor": "ACEStep Audio Post Processor BETA",
+    **AUDIO_MASK_NODE_DISPLAY_NAME_MAPPINGS,  # Add audio mask node display names
 } 
