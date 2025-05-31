@@ -165,6 +165,7 @@ from .nodes.flex.visualizers import(
     EffectVisualizer,
     PitchVisualizer,
     PreviewFeature,
+    AnimatedFeaturePreview,
 )
 
 
@@ -534,6 +535,7 @@ NODE_CLASS_MAPPINGS = {
     "FeatureFade":                  FeatureFade,
     "FeatureMath":                  FeatureMath,
     "PreviewFeature":               PreviewFeature,
+    "AnimatedFeaturePreview":       AnimatedFeaturePreview,
     "FeatureRebase":                FeatureRebase,
     "FeatureTruncateOrExtend":      FeatureTruncateOrExtend,
     "FeatureAccumulate":            FeatureAccumulate,
