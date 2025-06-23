@@ -213,40 +213,40 @@ def apply_hue_shift(image: np.ndarray, intensity: float, preserve_luminosity: bo
     
     return np.clip(adjusted, 0, 1)
 
-
-
-
-def warp_affine(image: np.ndarray, M: np.ndarray) -> np.ndarray:
+def warp_affine(image: np.ndarray, M: np.ndarray, edge_mode: str = "extend") -> np.ndarray:
     height, width = image.shape[:2]
-    return cv2.warpAffine(image, M, (width, height), borderMode=cv2.BORDER_REPLICATE)
+    
+    # Map edge modes to cv2 border modes
+    border_modes = {
+        "extend": cv2.BORDER_REPLICATE,
+        "wrap": cv2.BORDER_WRAP,
+        "reflect": cv2.BORDER_REFLECT,
+        "none": cv2.BORDER_CONSTANT
+    }
+    
+    if edge_mode not in border_modes:
+        raise ValueError(f"Unsupported edge mode: {edge_mode}. Supported modes: {list(border_modes.keys())}")
+    
+    border_mode = border_modes[edge_mode]
+    
+    if edge_mode == "none":
+        return cv2.warpAffine(image, M, (width, height), borderMode=border_mode, borderValue=0)
+    else:
+        return cv2.warpAffine(image, M, (width, height), borderMode=border_mode)
 
-def translate_image(image: np.ndarray, x_value: float, y_value: float) -> np.ndarray:
+def translate_image(image: np.ndarray, x_value: float, y_value: float, edge_mode: str = "extend") -> np.ndarray:
     M = np.float32([[1, 0, x_value],
                     [0, 1, y_value]])
-    return warp_affine(image, M)
+    return warp_affine(image, M, edge_mode)
 
-def rotate_image(image: np.ndarray, angle: float) -> np.ndarray:
+def rotate_image(image: np.ndarray, angle: float, edge_mode: str = "none") -> np.ndarray:
     height, width = image.shape[:2]
-    
-    # Find the bounding box of non-zero pixels
-    rows = np.any(image, axis=(1, 2))
-    cols = np.any(image, axis=(0, 2))
-    ymin, ymax = np.where(rows)[0][[0, -1]] if np.any(rows) else (0, height-1)
-    xmin, xmax = np.where(cols)[0][[0, -1]] if np.any(cols) else (0, width-1)
-    
-    center_y = int((ymin + ymax) / 2)
-    center_x = int((xmin + xmax) / 2)
+    center_x, center_y = width / 2, height / 2
     
     M = cv2.getRotationMatrix2D((center_x, center_y), angle, 1.0)
-    
-    rotated = np.zeros_like(image)
-    
-    image_rotated = cv2.warpAffine(image, M, (width, height), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-    rotated = np.maximum(rotated, image_rotated)
-    
-    return rotated
+    return warp_affine(image, M, edge_mode)
 
-def scale_image(image: np.ndarray, scale_x: float, scale_y: float) -> np.ndarray:
+def scale_image(image: np.ndarray, scale_x: float, scale_y: float, edge_mode: str = "extend") -> np.ndarray:
     height, width = image.shape[:2]
     center_x, center_y = width / 2, height / 2
     
@@ -255,15 +255,25 @@ def scale_image(image: np.ndarray, scale_x: float, scale_y: float) -> np.ndarray
         [0, scale_y, center_y * (1 - scale_y)]
     ])
     
-    return warp_affine(image, M)
+    return warp_affine(image, M, edge_mode)
 
-def transform_image(image: np.ndarray, transform_type: str, x_value: float, y_value: float) -> np.ndarray:
+def transform_image(image: np.ndarray, transform_type: str, x_value: float, y_value: float, edge_mode: str = "extend") -> np.ndarray:
+    """
+    Apply various transformations to an image with configurable edge handling.
+    
+    :param image: Input image as numpy array
+    :param transform_type: Type of transform ("translate", "rotate", "scale")
+    :param x_value: X parameter for the transform
+    :param y_value: Y parameter for the transform (unused for rotation)
+    :param edge_mode: How to handle edges - "extend" (replicate), "wrap" (tile), "reflect" (mirror), or "none" (black)
+    :return: Transformed image
+    """
     if transform_type == "translate":
-        return translate_image(image, x_value, y_value)
+        return translate_image(image, x_value, y_value, edge_mode)
     elif transform_type == "rotate":
-        return rotate_image(image, x_value)
+        return rotate_image(image, x_value, edge_mode)
     elif transform_type == "scale":
-        return scale_image(image, 1 + x_value, 1 + y_value)
+        return scale_image(image, 1 + x_value, 1 + y_value, edge_mode)
     else:
         raise ValueError(f"Unknown transform type: {transform_type}")
 

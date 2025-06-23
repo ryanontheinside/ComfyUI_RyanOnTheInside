@@ -1016,6 +1016,7 @@ class FlexImageTransform(FlexImageBase):
             "transform_type": (["translate", "rotate", "scale"],),
             "x_value": ("FLOAT", {"default": 0.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
             "y_value": ("FLOAT", {"default": 0.0, "min": -1000.0, "max": 1000.0, "step": 0.1}),
+            "edge_mode": (["extend", "wrap", "reflect", "none"],),
         })
         return base_inputs
 
@@ -1023,8 +1024,8 @@ class FlexImageTransform(FlexImageBase):
     def get_modifiable_params(cls):
         return ["x_value", "y_value", "None"]
 
-    def apply_effect_internal(self, image: np.ndarray, transform_type: str, x_value: float, y_value: float, **kwargs) -> np.ndarray:
-        return transform_image(image, transform_type, x_value, y_value)
+    def apply_effect_internal(self, image: np.ndarray, transform_type: str, x_value: float, y_value: float, edge_mode: str, **kwargs) -> np.ndarray:
+        return transform_image(image, transform_type, x_value, y_value, edge_mode)
 
 @apply_tooltips
 class FlexImageHueShift(FlexImageBase):
