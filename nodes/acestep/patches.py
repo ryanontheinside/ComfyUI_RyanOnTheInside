@@ -206,7 +206,19 @@ def _create_patched_tokenizer(original_tokenize_with_weights):
 
         out["lyrics"] = self.qwen3_06b.tokenize_with_weights("# Languages\n{}\n\n# Lyric{}<|endoftext|><|endoftext|>".format(language, lyrics), return_word_ids, disable_weights=True, **kwargs)
         out["qwen3_06b"] = self.qwen3_06b.tokenize_with_weights("# Instruction\n{}\n\n# Caption\n{}# Metas\n{}<|endoftext|>\n<|endoftext|>".format(instruction, text, meta_cap), return_word_ids, **kwargs)
-        out["lm_metadata"] = {"min_tokens": duration * 5, "seed": seed}
+        # Determine whether to generate audio codes based on task type
+        # Cover/extract tasks use precomputed semantic hints instead of LLM-generated codes
+        generate_audio_codes = task_type in ("text2music", "repaint")
+
+        out["lm_metadata"] = {
+            "min_tokens": duration * 5,
+            "seed": seed,
+            "generate_audio_codes": generate_audio_codes,
+            "cfg_scale": kwargs.get("cfg_scale", 2.0),
+            "temperature": kwargs.get("temperature", 0.85),
+            "top_p": kwargs.get("top_p", 0.9),
+            "top_k": kwargs.get("top_k", 0.0),
+        }
 
         # Store task info for downstream use
         out["task_type"] = task_type
