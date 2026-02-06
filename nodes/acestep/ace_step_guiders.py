@@ -228,32 +228,49 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
     """
     ACE-Step 1.5 cover guider for style transfer/regeneration.
 
-    Uses the source audio as context (src_latents) while generating new content
-    across the entire duration. This is useful for cover songs, style transfer,
-    or regenerating audio with a new prompt while maintaining the original structure.
+    Uses semantic tokens (lm_hints) from the source audio as structural guidance
+    while generating new content with a different style/timbre.
 
     Official behavior:
     - chunk_masks: All 1s (generate everything)
-    - src_latents: Original audio latents (provides structural guidance)
+    - is_covers: 1 (use semantic hints instead of raw latents)
+    - precomputed_lm_hints_25Hz: Semantic representation of source audio
+
+    IMPORTANT: For proper cover behavior, provide semantic_hints from ACEStep15SemanticExtractor.
+    Without semantic_hints, falls back to using raw VAE latents (less accurate style transfer).
     """
 
-    def __init__(self, model, positive, negative, cfg, source_latent):
+    def __init__(self, model, positive, negative, cfg, source_latent, semantic_hints=None):
         super().__init__(model)
         self.set_conds(positive, negative)
         self.set_cfg(cfg)
 
         self.source_latent = source_latent
+        self.semantic_hints = semantic_hints
 
         batch_size, channels, total_length = source_latent.shape
 
         print(f"[ACE15_NATIVE_COVER] Initializing")
         print(f"[ACE15_NATIVE_COVER]   source_latent.shape: {source_latent.shape}")
+        print(f"[ACE15_NATIVE_COVER]   source_latent stats: mean={source_latent.mean():.4f}, std={source_latent.std():.4f}")
+        if semantic_hints is not None:
+            print(f"[ACE15_NATIVE_COVER]   semantic_hints.shape: {semantic_hints.shape}")
+            print(f"[ACE15_NATIVE_COVER]   semantic_hints stats: mean={semantic_hints.mean():.4f}, std={semantic_hints.std():.4f}, min={semantic_hints.min():.4f}, max={semantic_hints.max():.4f}")
+            # Validate semantic hints have reasonable variance
+            if semantic_hints.std() < 0.01:
+                print(f"[ACE15_NATIVE_COVER]   WARNING: semantic_hints have very low variance ({semantic_hints.std():.6f}) - may be constant/invalid!")
+            # Validate shape matches source
+            if semantic_hints.shape != source_latent.shape:
+                print(f"[ACE15_NATIVE_COVER]   WARNING: semantic_hints shape {semantic_hints.shape} != source_latent shape {source_latent.shape}")
+            print(f"[ACE15_NATIVE_COVER]   Using semantic hints for proper cover behavior (is_covers=1)")
+        else:
+            print(f"[ACE15_NATIVE_COVER]   WARNING: No semantic_hints provided, falling back to VAE latents (is_covers=0)")
 
-        # Cover: generate everything but use source audio as context
+        # Cover: generate everything
         # chunk_masks: All 1s (generate all frames)
         self.chunk_masks = torch.ones_like(source_latent)
 
-        # src_latents: Original audio (provides structural guidance)
+        # src_latents: Original audio (used as fallback if is_covers=0)
         self.src_latents = source_latent.clone()
 
         print(f"[ACE15_NATIVE_COVER]   chunk_masks.shape: {self.chunk_masks.shape}")
@@ -262,12 +279,13 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
         self._wrapper_applied = False
 
     def _apply_model_wrapper(self):
-        """Apply model wrapper to inject chunk_masks and src_latents"""
+        """Apply model wrapper to inject chunk_masks, src_latents, is_covers, and semantic hints"""
         if self._wrapper_applied:
             return
 
         chunk_masks = self.chunk_masks
         src_latents = self.src_latents
+        semantic_hints = self.semantic_hints
 
         self.model_patcher.set_model_unet_function_wrapper(None)
 
@@ -286,11 +304,36 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
             c["chunk_masks"] = cm
             c["src_latents"] = sl
 
+            # Set is_covers based on whether we have semantic hints
+            if semantic_hints is not None:
+                # Proper cover: use semantic hints via is_covers=1
+                sh = semantic_hints.to(device=device, dtype=dtype)
+                if sh.shape[0] < input_batch_size:
+                    sh = sh.repeat(input_batch_size, 1, 1)
+                c["precomputed_lm_hints_25Hz"] = sh
+                c["is_covers"] = torch.ones((input_batch_size,), device=device, dtype=torch.long)
+            else:
+                # Fallback: use raw VAE latents via is_covers=0
+                c["is_covers"] = torch.zeros((input_batch_size,), device=device, dtype=torch.long)
+
             if not hasattr(model_function_wrapper, '_logged'):
-                print(f"[ACE15_COVER_WRAPPER] Injecting chunk_masks and src_latents")
+                print(f"[ACE15_COVER_WRAPPER] Injecting cover parameters")
                 print(f"[ACE15_COVER_WRAPPER]   input.shape: {args['input'].shape}")
+                print(f"[ACE15_COVER_WRAPPER]   input stats: mean={args['input'].mean():.4f}, std={args['input'].std():.4f}")
                 print(f"[ACE15_COVER_WRAPPER]   chunk_masks.shape: {c['chunk_masks'].shape}")
+                print(f"[ACE15_COVER_WRAPPER]   chunk_masks sum: {c['chunk_masks'].sum().item()} (should be all 1s for cover)")
                 print(f"[ACE15_COVER_WRAPPER]   src_latents.shape: {c['src_latents'].shape}")
+                print(f"[ACE15_COVER_WRAPPER]   src_latents stats: mean={c['src_latents'].mean():.4f}, std={c['src_latents'].std():.4f}")
+                print(f"[ACE15_COVER_WRAPPER]   is_covers: {c['is_covers']} (1=use semantic hints, 0=use VAE latents)")
+                if "precomputed_lm_hints_25Hz" in c:
+                    sh = c["precomputed_lm_hints_25Hz"]
+                    print(f"[ACE15_COVER_WRAPPER]   precomputed_lm_hints_25Hz.shape: {sh.shape}")
+                    print(f"[ACE15_COVER_WRAPPER]   precomputed_lm_hints_25Hz stats: mean={sh.mean():.4f}, std={sh.std():.4f}, min={sh.min():.4f}, max={sh.max():.4f}")
+                    # Check if hints look valid (should have some variance, not constant)
+                    if sh.std() < 0.01:
+                        print(f"[ACE15_COVER_WRAPPER]   WARNING: semantic hints have very low variance! May be constant/invalid.")
+                else:
+                    print(f"[ACE15_COVER_WRAPPER]   WARNING: No precomputed_lm_hints_25Hz - will fall back to VAE latents!")
                 model_function_wrapper._logged = True
 
             return apply_model(args["input"], args["timestep"], **c)
@@ -338,23 +381,31 @@ class ACEStep15NativeExtractGuider(comfy.samplers.CFGGuider):
 
     Official behavior:
     - chunk_masks: All 1s (generate everything)
-    - src_latents: Original audio latents
+    - is_covers: 1 (use semantic hints for structure)
+    - precomputed_lm_hints_25Hz: Semantic representation of source audio
     - Instruction: "Extract the {TRACK_NAME} track from the audio:"
+
+    IMPORTANT: For proper extract behavior, provide semantic_hints from ACEStep15SemanticExtractor.
     """
 
-    def __init__(self, model, positive, negative, cfg, source_latent, track_name="vocals"):
+    def __init__(self, model, positive, negative, cfg, source_latent, track_name="vocals", semantic_hints=None):
         super().__init__(model)
         self.set_conds(positive, negative)
         self.set_cfg(cfg)
 
         self.source_latent = source_latent
         self.track_name = track_name
+        self.semantic_hints = semantic_hints
 
         batch_size, channels, total_length = source_latent.shape
 
         print(f"[ACE15_NATIVE_EXTRACT] Initializing")
         print(f"[ACE15_NATIVE_EXTRACT]   source_latent.shape: {source_latent.shape}")
         print(f"[ACE15_NATIVE_EXTRACT]   track_name: {track_name}")
+        if semantic_hints is not None:
+            print(f"[ACE15_NATIVE_EXTRACT]   semantic_hints.shape: {semantic_hints.shape}")
+        else:
+            print(f"[ACE15_NATIVE_EXTRACT]   WARNING: No semantic_hints provided, falling back to VAE latents")
 
         # Extract: generate everything (the extracted track)
         self.chunk_masks = torch.ones_like(source_latent)
@@ -365,12 +416,13 @@ class ACEStep15NativeExtractGuider(comfy.samplers.CFGGuider):
         self._wrapper_applied = False
 
     def _apply_model_wrapper(self):
-        """Apply model wrapper to inject chunk_masks and src_latents"""
+        """Apply model wrapper to inject chunk_masks, src_latents, is_covers, and semantic hints"""
         if self._wrapper_applied:
             return
 
         chunk_masks = self.chunk_masks
         src_latents = self.src_latents
+        semantic_hints = self.semantic_hints
 
         self.model_patcher.set_model_unet_function_wrapper(None)
 
@@ -389,8 +441,21 @@ class ACEStep15NativeExtractGuider(comfy.samplers.CFGGuider):
             c["chunk_masks"] = cm
             c["src_latents"] = sl
 
+            # Set is_covers based on whether we have semantic hints
+            if semantic_hints is not None:
+                sh = semantic_hints.to(device=device, dtype=dtype)
+                if sh.shape[0] < input_batch_size:
+                    sh = sh.repeat(input_batch_size, 1, 1)
+                c["precomputed_lm_hints_25Hz"] = sh
+                c["is_covers"] = torch.ones((input_batch_size,), device=device, dtype=torch.long)
+            else:
+                c["is_covers"] = torch.zeros((input_batch_size,), device=device, dtype=torch.long)
+
             if not hasattr(model_function_wrapper, '_logged'):
-                print(f"[ACE15_EXTRACT_WRAPPER] Injecting chunk_masks and src_latents")
+                print(f"[ACE15_EXTRACT_WRAPPER] Injecting extract parameters")
+                print(f"[ACE15_EXTRACT_WRAPPER]   is_covers: {c['is_covers']}")
+                if "precomputed_lm_hints_25Hz" in c:
+                    print(f"[ACE15_EXTRACT_WRAPPER]   precomputed_lm_hints_25Hz.shape: {c['precomputed_lm_hints_25Hz'].shape}")
                 model_function_wrapper._logged = True
 
             return apply_model(args["input"], args["timestep"], **c)

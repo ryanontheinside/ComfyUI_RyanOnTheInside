@@ -71,29 +71,46 @@ def _create_patched_ace_step15_forward(original_forward):
     Create a patched forward method for AceStepConditionGenerationModel.
 
     The patched version:
-    1. Accepts chunk_masks and src_latents as kwargs
-    2. Sets is_covers=0 when src_latents is provided (to use provided latents instead of lm_hints)
+    1. Accepts chunk_masks, src_latents, is_covers, and precomputed_lm_hints_25Hz as kwargs
+    2. Allows guiders to explicitly control is_covers flag for different task types
     3. Properly transposes user-provided tensors from (batch, channels, length) to (batch, length, channels)
+
+    Task type behavior via is_covers:
+    - is_covers=0: Use provided src_latents directly (extend/repaint)
+    - is_covers=1: Use lm_hints from precomputed_lm_hints_25Hz or audio_codes (cover/extract)
+    - is_covers=None: Default behavior (src_latents = x)
 
     This enables extend, repaint, cover, extract, and lego task types.
     """
+    # One-time logging flag
+    _forward_logged = [False]
+
     @functools.wraps(original_forward)
     def patched_forward(self, x, timestep, context, lyric_embed=None, refer_audio=None,
-                        audio_codes=None, chunk_masks=None, src_latents=None, **kwargs):
+                        audio_codes=None, chunk_masks=None, src_latents=None,
+                        is_covers=None, precomputed_lm_hints_25Hz=None, **kwargs):
         text_attention_mask = None
         lyric_attention_mask = None
         refer_audio_order_mask = None
         attention_mask = None
 
-        # chunk_masks and src_latents now come from kwargs for extend/repaint support
-        # When src_latents is explicitly provided (for extend/repaint), we need is_covers=0
-        # so prepare_condition() uses our src_latents instead of replacing with lm_hints
-        is_covers = None
-        if src_latents is not None:
-            # Set is_covers to 0 to indicate we want to use the provided src_latents
+        # One-time diagnostic log for cover task
+        if not _forward_logged[0] and precomputed_lm_hints_25Hz is not None:
+            print(f"[ACE15_PATCHED_FORWARD] Cover mode detected")
+            print(f"[ACE15_PATCHED_FORWARD]   x.shape (before transpose): {x.shape}")
+            print(f"[ACE15_PATCHED_FORWARD]   is_covers: {is_covers}")
+            print(f"[ACE15_PATCHED_FORWARD]   precomputed_lm_hints_25Hz.shape (before transpose): {precomputed_lm_hints_25Hz.shape}")
+            print(f"[ACE15_PATCHED_FORWARD]   precomputed_lm_hints_25Hz stats: mean={precomputed_lm_hints_25Hz.mean():.4f}, std={precomputed_lm_hints_25Hz.std():.4f}")
+            _forward_logged[0] = True
+
+        # is_covers can now be passed explicitly by guiders:
+        # - Cover/Extract tasks: is_covers=1 (use lm_hints from precomputed_lm_hints_25Hz)
+        # - Extend/Repaint tasks: is_covers=0 (use provided src_latents)
+        # - Default (not provided): fallback to old behavior
+        if is_covers is None and src_latents is not None:
+            # Backwards compatibility: default to 0 when src_latents provided but is_covers not specified
             is_covers = torch.zeros((x.shape[0],), device=x.device, dtype=torch.long)
 
-        precomputed_lm_hints_25Hz = None
         lyric_hidden_states = lyric_embed
         text_hidden_states = context
         refer_audio_acoustic_hidden_states_packed = refer_audio.movedim(-1, -2)
@@ -103,11 +120,21 @@ def _create_patched_ace_step15_forward(original_forward):
         if refer_audio_order_mask is None:
             refer_audio_order_mask = torch.zeros((x.shape[0],), device=x.device, dtype=torch.long)
 
-        # Transpose user-provided src_latents/chunk_masks from (batch, channels, length) to (batch, length, channels)
+        # Transpose user-provided tensors from ComfyUI format (batch, channels, length)
+        # to model format (batch, length, channels)
         if src_latents is not None:
             src_latents = src_latents.movedim(-1, -2)
         if chunk_masks is not None:
             chunk_masks = chunk_masks.movedim(-1, -2)
+        if precomputed_lm_hints_25Hz is not None:
+            # precomputed_lm_hints_25Hz comes in ComfyUI format [B, D, T], transpose to [B, T, D]
+            precomputed_lm_hints_25Hz = precomputed_lm_hints_25Hz.movedim(-1, -2)
+            # Log post-transpose shape (one-time)
+            if _forward_logged[0] and not hasattr(patched_forward, '_post_transpose_logged'):
+                print(f"[ACE15_PATCHED_FORWARD]   precomputed_lm_hints_25Hz.shape (after transpose): {precomputed_lm_hints_25Hz.shape}")
+                print(f"[ACE15_PATCHED_FORWARD]   x.shape (after transpose): {x.shape}")
+                print(f"[ACE15_PATCHED_FORWARD]   src_latents.shape (after transpose): {src_latents.shape if src_latents is not None else 'None'}")
+                patched_forward._post_transpose_logged = True
 
         if src_latents is None and is_covers is None:
             src_latents = x
