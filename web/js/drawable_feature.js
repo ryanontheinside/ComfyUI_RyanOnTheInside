@@ -1,5 +1,4 @@
 import { app } from "../../scripts/app.js";
-import { ComfyWidgets } from "../../scripts/widgets.js";
 import { FeatureTemplates } from "./feature_templates.js";
 
 

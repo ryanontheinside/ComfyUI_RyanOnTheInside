@@ -1,116 +1,326 @@
 import torch
 import torch.nn.functional as F
 import math
+import os
+import comfy.model_management
+import folder_paths
+from . import logger
+
+# Module-level cache for silence_latent (loaded once per session)
+_silence_latent_cache = None
+
+# HuggingFace URL for silence_latent.pt
+SILENCE_LATENT_URL = "https://huggingface.co/ACE-Step/Ace-Step1.5/resolve/main/acestep-v15-turbo/silence_latent.pt"
+
+
+def get_silence_latent_path():
+    """Get the path where silence_latent.pt should be stored."""
+    models_dir = folder_paths.models_dir
+    ace_step_dir = os.path.join(models_dir, "ace_step")
+    return os.path.join(ace_step_dir, "silence_latent.pt")
+
+
+def download_silence_latent():
+    """Download silence_latent.pt from HuggingFace."""
+    import urllib.request
+
+    silence_latent_path = get_silence_latent_path()
+    ace_step_dir = os.path.dirname(silence_latent_path)
+
+    # Create directory if it doesn't exist
+    os.makedirs(ace_step_dir, exist_ok=True)
+
+    logger.info(f"[ACE-Step] Downloading silence_latent.pt from HuggingFace...")
+    logger.info(f"[ACE-Step]   URL: {SILENCE_LATENT_URL}")
+    logger.info(f"[ACE-Step]   Destination: {silence_latent_path}")
+
+    try:
+        urllib.request.urlretrieve(SILENCE_LATENT_URL, silence_latent_path)
+        logger.info(f"[ACE-Step] Download complete!")
+        return True
+    except Exception as e:
+        logger.info(f"[ACE-Step] ERROR: Failed to download silence_latent.pt: {e}")
+        return False
+
+
+def load_silence_latent(verbose=True):
+    """
+    Load the silence_latent tensor, downloading if necessary.
+
+    The silence_latent is a LEARNED tensor that represents "silence" in the latent space.
+    It is NOT zeros - it's a specific tensor that the model was trained with.
+    This tells the model to "generate new content here".
+
+    Returns:
+        torch.Tensor: silence_latent in shape [1, T, D] (transposed from file)
+    """
+    global _silence_latent_cache
+
+    # Return cached version if available
+    if _silence_latent_cache is not None:
+        if verbose:
+            logger.info(f"[ACE-Step] Using cached silence_latent, shape: {_silence_latent_cache.shape}")
+        return _silence_latent_cache
+
+    silence_latent_path = get_silence_latent_path()
+
+    # Download if not exists
+    if not os.path.exists(silence_latent_path):
+        success = download_silence_latent()
+        if not success:
+            raise RuntimeError(
+                f"Failed to download silence_latent.pt. Please manually download from:\n"
+                f"  {SILENCE_LATENT_URL}\n"
+                f"and place it at:\n"
+                f"  {silence_latent_path}"
+            )
+
+    # Load the tensor
+    if verbose:
+        logger.info(f"[ACE-Step] Loading silence_latent from {silence_latent_path}")
+    silence_latent = torch.load(silence_latent_path, map_location="cpu", weights_only=True)
+
+    # Transpose from [1, D, T] to [1, T, D] as per reference implementation
+    # handler.py line 465: self.silence_latent = torch.load(silence_latent_path).transpose(1, 2)
+    silence_latent = silence_latent.transpose(1, 2)
+
+    if verbose:
+        logger.info(f"[ACE-Step] silence_latent loaded, shape: {silence_latent.shape}")
+
+    # Cache for future use
+    _silence_latent_cache = silence_latent
+
+    return silence_latent
+
+
+def extract_semantic_hints(model, source_latent, verbose=True):
+    """
+    Extract semantic hints from source audio latents for Cover/Extract tasks.
+
+    This extracts the semantic structure of the audio (rhythm, melody, harmony)
+    while abstracting away the timbre. Used by Cover and Extract guiders.
+
+    Args:
+        model: ComfyUI ModelPatcher wrapping the ACE-Step 1.5 model
+        source_latent: Source audio latent in ComfyUI format [B, 64, T]
+        verbose: Whether to print diagnostic information
+
+    Returns:
+        torch.Tensor: Semantic hints in ComfyUI format [B, 64, T]
+    """
+    prefix = "[SEMANTIC_EXTRACT]"
+
+    # Validate v1.5 shape: (batch, 64, length)
+    if len(source_latent.shape) != 3 or source_latent.shape[1] != 64:
+        raise ValueError(f"ACE-Step 1.5 requires latent shape (batch, 64, length), got {source_latent.shape}")
+
+    # Get the diffusion model (AceStepConditionGenerationModel)
+    diffusion_model = model.model.diffusion_model
+
+    if not hasattr(diffusion_model, 'tokenizer') or not hasattr(diffusion_model, 'detokenizer'):
+        raise RuntimeError(
+            "Model does not have tokenizer/detokenizer. "
+            "Make sure you're using an ACE-Step 1.5 model."
+        )
+
+    # Load model to GPU
+    comfy.model_management.load_model_gpu(model)
+
+    device = comfy.model_management.get_torch_device()
+    dtype = model.model.get_dtype()
+
+    # Move source tensor to model device/dtype
+    # Source is in ComfyUI format: [B, D, T] = [B, 64, length]
+    # Tokenizer expects: [B, T, D] = [B, length, 64]
+    source_on_device = source_latent.to(device=device, dtype=dtype)
+    source_transposed = source_on_device.movedim(-1, -2)  # [B, T, D]
+
+    if verbose:
+        logger.debug(f"{prefix} Extracting from source shape: {source_latent.shape}")
+        logger.debug(f"{prefix}   source stats: mean={source_transposed.mean():.4f}, std={source_transposed.std():.4f}")
+
+    # Verify weights are on GPU
+    tokenizer_device = next(diffusion_model.tokenizer.parameters()).device
+    if verbose:
+        logger.debug(f"{prefix}   tokenizer on: {tokenizer_device}, target: {device}")
+
+    # Step 1: Tokenize - get quantized embeddings at 5Hz
+    with torch.no_grad():
+        quantized, indices = diffusion_model.tokenizer.tokenize(source_transposed)
+
+    if verbose:
+        logger.debug(f"{prefix}   quantized shape: {quantized.shape}")
+        logger.debug(f"{prefix}   quantized stats: mean={quantized.mean():.4f}, std={quantized.std():.4f}")
+
+    # Step 2: Detokenize - upsample from 5Hz to 25Hz
+    # Use quantized directly (not get_output_from_indices) to avoid redundant computation
+    with torch.no_grad():
+        lm_hints = diffusion_model.detokenizer(quantized)
+
+    if verbose:
+        logger.debug(f"{prefix}   lm_hints shape: {lm_hints.shape}")
+        logger.debug(f"{prefix}   lm_hints stats: mean={lm_hints.mean():.4f}, std={lm_hints.std():.4f}")
+        if lm_hints.std() < 0.01:
+            logger.warning(f"{prefix}   Very low variance in semantic hints!")
+
+    # Transpose back to ComfyUI format: [B, T, D] → [B, D, T]
+    semantic_hints = lm_hints.movedim(-1, -2)
+
+    return semantic_hints
+
 
 class ACEStepLatentUtils:
     """Utility functions for ACEStep audio latent manipulation"""
-    
+
+    # Version constants
+    V1_0 = "v1.0"
+    V1_5 = "v1.5"
+
+    # Frame rates: frames per second
+    V1_0_FPS = 44100 / 512 / 8  # ≈ 10.77 fps
+    V1_5_FPS = 48000 / 1920     # = 25 fps
+
     @staticmethod
-    def time_to_frame_index(time_seconds):
-        """Convert time in seconds to ACE latent frame index
-        ACE audio: 1 second = 44100 samples / 512 / 8 ≈ 10.8 frames
+    def detect_version(latent):
+        """Detect ACE-Step version from latent shape
+        v1.0: (batch, 8, 16, length) - 4D
+        v1.5: (batch, 64, length) - 3D
         """
-        return int(time_seconds * 44100 / 512 / 8)
-    
+        if len(latent.shape) == 4 and latent.shape[1] == 8 and latent.shape[2] == 16:
+            return ACEStepLatentUtils.V1_0
+        elif len(latent.shape) == 3 and latent.shape[1] == 64:
+            return ACEStepLatentUtils.V1_5
+        else:
+            return None
+
     @staticmethod
-    def frame_index_to_time(frame_index):
+    def get_fps(version):
+        """Get frames per second for a given version"""
+        if version == ACEStepLatentUtils.V1_5:
+            return ACEStepLatentUtils.V1_5_FPS
+        return ACEStepLatentUtils.V1_0_FPS
+
+    @staticmethod
+    def time_to_frame_index(time_seconds, version=None):
+        """Convert time in seconds to ACE latent frame index
+        v1.0: 1 second = 44100 / 512 / 8 ≈ 10.77 frames
+        v1.5: 1 second = 48000 / 1920 = 25 frames
+        """
+        fps = ACEStepLatentUtils.get_fps(version)
+        return int(time_seconds * fps)
+
+    @staticmethod
+    def frame_index_to_time(frame_index, version=None):
         """Convert ACE latent frame index to time in seconds"""
-        return frame_index * 512 * 8 / 44100
-    
+        fps = ACEStepLatentUtils.get_fps(version)
+        return frame_index / fps
+
+    @staticmethod
+    def get_latent_length(latent):
+        """Get the time dimension length from latent (last dim for both versions)"""
+        return latent.shape[-1]
+
     @staticmethod
     def validate_ace_latent_shape(latent):
-        """Validate that latent has correct ACE audio shape"""
-        if len(latent.shape) != 4:
-            raise ValueError(f"ACE latent must be 4D, got {len(latent.shape)}D")
-        
-        batch_size, channels, height, length = latent.shape
-        if channels != 8:
-            raise ValueError(f"ACE latent must have 8 channels, got {channels}")
-        if height != 16:
-            raise ValueError(f"ACE latent must have height 16, got {height}")
-        
-        return True
+        """Validate that latent has correct ACE audio shape (v1.0 or v1.5)"""
+        version = ACEStepLatentUtils.detect_version(latent)
+        if version is None:
+            if len(latent.shape) == 4:
+                raise ValueError(f"ACE v1.0 latent must have shape (batch, 8, 16, length), got {latent.shape}")
+            elif len(latent.shape) == 3:
+                raise ValueError(f"ACE v1.5 latent must have shape (batch, 64, length), got {latent.shape}")
+            else:
+                raise ValueError(f"ACE latent must be 3D (v1.5) or 4D (v1.0), got {len(latent.shape)}D")
+        return version
     
     @staticmethod
-    def create_repaint_mask(latent_shape, start_frame, end_frame):
+    def create_repaint_mask(latent_shape, start_frame, end_frame, version=None):
         """Create a mask for repainting a specific region
-        
+
         Args:
-            latent_shape: (batch, 8, 16, length)
+            latent_shape: (batch, 8, 16, length) for v1.0 or (batch, 64, length) for v1.5
             start_frame: Frame index to start repainting
             end_frame: Frame index to end repainting
-            
+            version: ACE-Step version (auto-detected if None)
+
         Returns:
             torch.Tensor: Binary mask with 1.0 in repaint region
         """
-        batch_size, channels, height, length = latent_shape
-        
+        length = latent_shape[-1]
+
         # Clamp frame indices to valid range
         start_frame = max(0, start_frame)
         end_frame = min(length, end_frame)
-        
+
         if start_frame >= end_frame:
             raise ValueError(f"start_frame ({start_frame}) must be less than end_frame ({end_frame})")
-        
+
         mask = torch.zeros(latent_shape)
-        mask[:, :, :, start_frame:end_frame] = 1.0
-        
+        if len(latent_shape) == 4:  # v1.0
+            mask[:, :, :, start_frame:end_frame] = 1.0
+        else:  # v1.5
+            mask[:, :, start_frame:end_frame] = 1.0
+
         return mask
-    
+
     @staticmethod
     def create_extend_mask(source_shape, left_frames, right_frames):
         """Create a mask for extension regions
-        
+
         Args:
-            source_shape: (batch, 8, 16, length) shape of source latent
+            source_shape: (batch, 8, 16, length) for v1.0 or (batch, 64, length) for v1.5
             left_frames: Number of frames to extend on the left
             right_frames: Number of frames to extend on the right
-            
+
         Returns:
             torch.Tensor: Binary mask with 1.0 in extension regions
         """
-        batch_size, channels, height, source_length = source_shape
+        source_length = source_shape[-1]
         total_length = source_length + left_frames + right_frames
-        
-        mask = torch.zeros((batch_size, channels, height, total_length))
-        
-        # Mark left extension region
-        if left_frames > 0:
-            mask[:, :, :, :left_frames] = 1.0
-        
-        # Mark right extension region  
-        if right_frames > 0:
-            mask[:, :, :, -right_frames:] = 1.0
-            
+
+        if len(source_shape) == 4:  # v1.0
+            batch_size, channels, height, _ = source_shape
+            mask = torch.zeros((batch_size, channels, height, total_length))
+            if left_frames > 0:
+                mask[:, :, :, :left_frames] = 1.0
+            if right_frames > 0:
+                mask[:, :, :, -right_frames:] = 1.0
+        else:  # v1.5
+            batch_size, channels, _ = source_shape
+            mask = torch.zeros((batch_size, channels, total_length))
+            if left_frames > 0:
+                mask[:, :, :left_frames] = 1.0
+            if right_frames > 0:
+                mask[:, :, -right_frames:] = 1.0
+
         return mask
-    
+
     @staticmethod
     def create_extend_region_mask(extended_shape, left_frames, right_frames, source_length):
         """Create a mask indicating which regions to generate vs preserve in extended latent
-        
+
         Args:
-            extended_shape: Shape of the extended latent (batch, 8, 16, total_length)
+            extended_shape: Shape of the extended latent
             left_frames: Number of frames added on the left
             right_frames: Number of frames added on the right
             source_length: Length of the original source latent
-            
+
         Returns:
             torch.Tensor: Binary mask with 1.0 = generate (extension regions), 0.0 = preserve (source region)
         """
-        batch_size, channels, height, total_length = extended_shape
-        
         mask = torch.zeros(extended_shape)
-        
-        # Mark left extension region for generation
-        if left_frames > 0:
-            mask[:, :, :, :left_frames] = 1.0
-        
-        # Mark right extension region for generation
-        if right_frames > 0:
-            mask[:, :, :, -right_frames:] = 1.0
-        
-        # The middle region (source_length) remains 0.0 for preservation
-        
+
+        if len(extended_shape) == 4:  # v1.0
+            if left_frames > 0:
+                mask[:, :, :, :left_frames] = 1.0
+            if right_frames > 0:
+                mask[:, :, :, -right_frames:] = 1.0
+        else:  # v1.5
+            if left_frames > 0:
+                mask[:, :, :left_frames] = 1.0
+            if right_frames > 0:
+                mask[:, :, -right_frames:] = 1.0
+
         return mask
     
     @staticmethod
@@ -161,47 +371,52 @@ class ACEStepLatentUtils:
     @staticmethod
     def create_feather_mask(mask, feather_frames=2):
         """Create a feathered (soft) version of a binary mask
-        
+
         Args:
-            mask: Binary mask tensor
+            mask: Binary mask tensor (3D for v1.5 or 4D for v1.0)
             feather_frames: Number of frames to feather on each side
-            
+
         Returns:
             torch.Tensor: Feathered mask with smooth transitions
         """
         if feather_frames <= 0:
             return mask
-        
+
         # Create gaussian kernel for smoothing
         kernel_size = feather_frames * 2 + 1
         sigma = feather_frames / 3.0
-        
+
         x = torch.arange(kernel_size, dtype=torch.float32) - feather_frames
         gaussian_kernel = torch.exp(-0.5 * (x / sigma) ** 2)
         gaussian_kernel = gaussian_kernel / gaussian_kernel.sum()
-        
-        # Reshape for 1D convolution along time dimension
-        kernel = gaussian_kernel.view(1, 1, 1, -1)
-        
-        # Apply convolution to each channel separately
-        batch_size, channels, height, length = mask.shape
+
         result = torch.zeros_like(mask)
-        
-        for b in range(batch_size):
-            for c in range(channels):
-                for h in range(height):
-                    # Extract 1D signal
-                    signal = mask[b:b+1, c:c+1, h:h+1, :]  # Shape: (1, 1, 1, length)
-                    
-                    # Pad with constant values (edge values)
+        is_v1_5 = len(mask.shape) == 3
+
+        if is_v1_5:
+            # v1.5: (batch, channels, length)
+            batch_size, channels, length = mask.shape
+            kernel = gaussian_kernel.view(1, 1, -1)
+
+            for b in range(batch_size):
+                for c in range(channels):
+                    signal = mask[b:b+1, c:c+1, :]
                     padded_signal = F.pad(signal, (feather_frames, feather_frames), 'constant', 0.0)
-                    
-                    # Apply 1D convolution
-                    smoothed = F.conv2d(padded_signal, kernel, padding=0)
-                    
-                    # Store result
-                    result[b, c, h, :] = smoothed[0, 0, 0, :]
-        
+                    smoothed = F.conv1d(padded_signal, kernel, padding=0)
+                    result[b, c, :] = smoothed[0, 0, :]
+        else:
+            # v1.0: (batch, channels, height, length)
+            batch_size, channels, height, length = mask.shape
+            kernel = gaussian_kernel.view(1, 1, 1, -1)
+
+            for b in range(batch_size):
+                for c in range(channels):
+                    for h in range(height):
+                        signal = mask[b:b+1, c:c+1, h:h+1, :]
+                        padded_signal = F.pad(signal, (feather_frames, feather_frames), 'constant', 0.0)
+                        smoothed = F.conv2d(padded_signal, kernel, padding=0)
+                        result[b, c, h, :] = smoothed[0, 0, 0, :]
+
         return torch.clamp(result, 0.0, 1.0)
     
     @staticmethod
@@ -282,29 +497,29 @@ class ACEStepLatentUtils:
 
 class ACEStepRepaintHelper:
     """Helper class for repaint operations"""
-    
-    def __init__(self, source_latents, start_time, end_time, 
+
+    def __init__(self, source_latents, start_time, end_time,
                  repaint_strength=0.7, feather_time=0.1):
         """
         Args:
-            source_latents: Original audio latents (batch, 8, 16, length)
+            source_latents: Original audio latents (v1.0 or v1.5 shape)
             start_time: Start time in seconds for repaint region
             end_time: End time in seconds for repaint region
             repaint_strength: Strength of repainting (0.0 = no repaint, 1.0 = full repaint)
             feather_time: Time in seconds for feathering edges
         """
-        ACEStepLatentUtils.validate_ace_latent_shape(source_latents)
-        
+        self.version = ACEStepLatentUtils.validate_ace_latent_shape(source_latents)
+
         self.source_latents = source_latents
-        self.start_frame = ACEStepLatentUtils.time_to_frame_index(start_time)
-        self.end_frame = ACEStepLatentUtils.time_to_frame_index(end_time)
+        self.start_frame = ACEStepLatentUtils.time_to_frame_index(start_time, self.version)
+        self.end_frame = ACEStepLatentUtils.time_to_frame_index(end_time, self.version)
         self.repaint_strength = repaint_strength
-        self.feather_frames = ACEStepLatentUtils.time_to_frame_index(feather_time)
-        
+        self.feather_frames = ACEStepLatentUtils.time_to_frame_index(feather_time, self.version)
+
         # Create masks
         self.repaint_mask = ACEStepLatentUtils.create_repaint_mask(
-            source_latents.shape, self.start_frame, self.end_frame)
-        
+            source_latents.shape, self.start_frame, self.end_frame, self.version)
+
         # Apply feathering for smooth transitions
         if self.feather_frames > 0:
             self.repaint_mask = ACEStepLatentUtils.create_feather_mask(
@@ -325,24 +540,24 @@ class ACEStepRepaintHelper:
 
 class ACEStepExtendHelper:
     """Helper class for extend operations"""
-    
+
     def __init__(self, source_latents, extend_left_time=0, extend_right_time=0):
         """
         Args:
-            source_latents: Original audio latents (batch, 8, 16, length)
+            source_latents: Original audio latents (v1.0 or v1.5 shape)
             extend_left_time: Time in seconds to extend before the audio
             extend_right_time: Time in seconds to extend after the audio
         """
-        ACEStepLatentUtils.validate_ace_latent_shape(source_latents)
-        
+        self.version = ACEStepLatentUtils.validate_ace_latent_shape(source_latents)
+
         self.source_latents = source_latents
-        self.left_frames = ACEStepLatentUtils.time_to_frame_index(extend_left_time)
-        self.right_frames = ACEStepLatentUtils.time_to_frame_index(extend_right_time)
-        
+        self.left_frames = ACEStepLatentUtils.time_to_frame_index(extend_left_time, self.version)
+        self.right_frames = ACEStepLatentUtils.time_to_frame_index(extend_right_time, self.version)
+
         # Create extended latent with zero padding
         self.extended_latents = ACEStepLatentUtils.pad_latent_for_extend(
             source_latents, self.left_frames, self.right_frames)
-        
+
         # Create extension mask
         self.extension_mask = ACEStepLatentUtils.create_extend_mask(
             source_latents.shape, self.left_frames, self.right_frames)

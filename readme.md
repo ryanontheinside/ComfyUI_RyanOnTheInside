@@ -12,7 +12,7 @@
 - 🎵 **Audio & MIDI Processing**: Separate instruments, manipulate audio, work with ACEStep and other audio models
 - 🎆 **Particle Systems**: Create mesmerizing, fluid-like effects
 - 🌊 **Optical Flow**: Generate masks based on motion in videos
-- 🎨 **ACEStep Native**: Native ComfyUI implementation for audio repaint and extend functionality
+- 🎨 **ACE-Step 1.5 Native**: Native ComfyUI guiders for ACE-Step 1.5 — extend/repaint and cover
 - 🌊 **DEPTH Flow** 🌊: Use flex features to control depthflow nodes, adding parallax animations to your workflows!
 - 👤 **AdvancedLivePortrait** 👤: Use flex features to control facial animation expressions! 
 - 🎨 **Advanced Controlnet** 🎨: Direct integration with ComfyUI-AdvancedControlnet!
@@ -42,19 +42,6 @@ If you are not getting updates, or are having trouble updating from ComfyUI-Mana
 - **And much more!**
 
 
-### ⚠️ Breaking Changes Notice
-Due to ComfyUI's workflow loading mechanism, **existing workflows using these nodes ~~may~~ *will* break after updating**. I did consider this carefully, as I have yet to introduce breaking changes to this node system, but this extensive update  neccesitated a complete overhaul.
-
-If you need to run an older workflow, you can revert to the previous version of these nodes by using the Manager, or by running this command in your ComfyUI_RyanOnTheInside directory:
-
-```bash
-git checkout dab96492ac7d906368ac9c7a17cb0dbd670923d9
-```
-
-To return to the latest version later, use:
-```bash
-git checkout main
-```
 
 <table style="border-collapse: collapse; border: none;">
   <tr>
@@ -135,10 +122,11 @@ Dynamic control over various aspects of your workflow:
 - Extract features from audio and MIDI for visual effects
 - Create audio-reactive animations and transformations
 
-### 🎨 ACEStep Native
-- **Repaint**: Selectively regenerate specific time ranges in existing audio
-- **Extend**: Add new content before or after existing audio  
-- **Hybrid**: Combine repaint and extend operations simultaneously
+### 🎨 ACE-Step 1.5 Native
+Native ComfyUI guiders for the new [ACE-Step 1.5](https://github.com/ace-step/ACE-Step) music generation model.
+- **Extend/Repaint**: Selectively regenerate specific regions or extend audio with new content
+- **Cover**: Style transfer/regeneration using semantic guidance from source audio
+- *Extract and Lego guiders coming soon*
 
 ### 🌊 Optical Flow
 - Generate masks based on movement in video sequences
@@ -301,42 +289,41 @@ These audio and MIDI processing capabilities enable the creation of music-driven
 </details>
 
 <details>
-<summary><h3>ACEStep Native</h3></summary>
+<summary><h3>ACE-Step 1.5 Native</h3></summary>
 
-Native ComfyUI implementation of ACEStep audio repaint and extend functionality. This provides seamless integration with ComfyUI's existing sampling infrastructure to enable selective audio regeneration and extension without requiring custom types.
+Native ComfyUI guiders for the [ACE-Step 1.5](https://github.com/ace-step/ACE-Step) music generation model. These integrate directly with ComfyUI's sampling infrastructure (SamplerCustomAdvanced) using model-level mask injection.
 
-#### Core Functionality Nodes
+#### Available Guiders
 
-**ACEStep Repaint Guider**
-Creates a guider for repainting specific audio regions.
-- **Inputs**: Model, conditioning, source latents, time range, strength settings
-- **Output**: GUIDER (for use with SamplerCustomAdvanced)
+**ACE-Step 1.5 Edit Guider (Extend/Repaint)**
+Unified guider for extend and/or repaint operations.
+- Extend audio by adding new content before or after existing audio
+- Repaint specific time regions while preserving the rest
+- Combine both operations in a single pass
+- Silence latent is automatically loaded from HuggingFace on first use
 
-**ACEStep Extend Guider**  
-Creates a guider for extending audio before/after existing content.
-- **Inputs**: Model, conditioning, source latents, extend times
-- **Output**: GUIDER (for use with SamplerCustomAdvanced)
-
-**ACEStep Hybrid Guider**
-Combines repaint and extend functionality in a single node.
-- **Inputs**: All repaint/extend parameters with optional controls
-- **Output**: GUIDER (for use with SamplerCustomAdvanced)
+**ACE-Step 1.5 Cover Guider**
+Style transfer/regeneration using semantic guidance from source audio.
+- Uses semantic tokens extracted from source audio as structural guidance
+- Generates new content with different style/timbre while preserving musical structure
+- Semantic hints are auto-extracted or can be provided manually for advanced workflows
 
 #### Utility Nodes
 
-- **ACEStep Analyze Latent**: Analyzes ACE latent properties for debugging
-- **ACEStep Time Range**: Converts time ranges to frame indices
-- **ACEStep Mask Visualizer**: Visualizes repaint masks for debugging
-- **ACEStep Audio Post Processor**: Preserves original audio fidelity in unchanged regions
+- **ACE-Step 1.5 Task Text Encode**: Task-aware text encoder with support for lyrics, BPM, key, time signature, and language
+- **ACE-Step 1.5 Semantic Extractor**: Extract semantic tokens for use with Cover guider
+- **ACE-Step 1.5 Semantic Hints Blend**: Blend semantic hints from multiple sources for mashups
+- **ACEStep Analyze Latent**: Analyze audio latent properties
+- **ACEStep Audio Post Processor**: Preserve original audio fidelity in unchanged regions
 
-#### Basic Workflows
+#### Coming Soon
 
-**Repaint Workflow**: Replace audio content from 10-20 seconds with new generation.
-See: [examples/acestep_repaint.json](examples/acestep_repaint.json)
+- **Extract Guider**: Extract specific tracks (vocals, drums, bass, etc.) from source audio
+- **Lego Guider**: Generate specific tracks within a time region
 
-**Extend Workflow**: Add 10 seconds of new content after existing audio.
-See: [examples/acestep_extend.json](examples/acestep_extend.json)
+#### Legacy (ACE-Step 1.0)
 
+The v1.0 Repaint, Extend, and Hybrid guiders remain available for use with ACE-Step 1.0 latents.
 
 </details>
 

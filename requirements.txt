@@ -1,11 +1,10 @@
-opencv-python>=4.10.0
+opencv-python>=4.5.0
 scipy
 pillow
-librosa>=0.10.2
-pymunk==6.8.1
+librosa>=0.10.1
+pymunk>=6.8.0,<7.0.0
 matplotlib
 openunmix
 mido
-torchaudio
 pygame
 scikit-image
