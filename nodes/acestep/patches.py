@@ -143,6 +143,13 @@ def _create_patched_ace_step15_forward(original_forward):
         if chunk_masks is None:
             chunk_masks = torch.ones_like(x)
 
+        # Stock prepare_condition uses identity checks (is_covers is True / is False)
+        # which fail for tensors. Convert to Python bool so the lm_hints branch triggers.
+        # Only convert truthy tensors — falsy (extend/repaint) must stay as tensor so
+        # neither branch triggers and src_latents is left unchanged.
+        if isinstance(is_covers, torch.Tensor) and is_covers.any().item():
+            is_covers = True
+
         enc_hidden, enc_mask, context_latents = self.prepare_condition(
             text_hidden_states, text_attention_mask,
             lyric_hidden_states, lyric_attention_mask,
