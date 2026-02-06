@@ -4,6 +4,7 @@ import comfy.samplers
 
 # Import patches module to apply ACE-Step 1.5 patches
 from . import patches
+from . import logger
 
 from .ace_step_guiders import (
     ACEStepRepaintGuider, ACEStepExtendGuider, ACEStepHybridGuider,
@@ -73,7 +74,7 @@ class ACEStep15SemanticExtractor:
         from .ace_step_utils import extract_semantic_hints
 
         source_tensor = source_latents["samples"]
-        print(f"[ACE15_SEMANTIC_EXTRACTOR] Extracting semantic hints from shape {source_tensor.shape}")
+        logger.debug(f"[ACE15_SEMANTIC_EXTRACTOR] Extracting semantic hints from shape {source_tensor.shape}")
 
         # Use shared utility function
         semantic_hints = extract_semantic_hints(model, source_tensor, verbose=True)
@@ -121,17 +122,17 @@ class ACEStep15SemanticHintsBlend:
             min_length = min(hints_a.shape[-1], hints_b.shape[-1])
             hints_a = hints_a[..., :min_length]
             hints_b = hints_b[..., :min_length]
-            print(f"[SEMANTIC_BLEND] Truncated to common length: {min_length}")
+            logger.debug(f"[SEMANTIC_BLEND] Truncated to common length: {min_length}")
 
-        print(f"[SEMANTIC_BLEND] Blending hints")
-        print(f"[SEMANTIC_BLEND]   hints_a shape: {hints_a.shape}, stats: mean={hints_a.mean():.4f}, std={hints_a.std():.4f}")
-        print(f"[SEMANTIC_BLEND]   hints_b shape: {hints_b.shape}, stats: mean={hints_b.mean():.4f}, std={hints_b.std():.4f}")
-        print(f"[SEMANTIC_BLEND]   blend_factor: {blend_factor} (0=A, 1=B)")
+        logger.debug(f"[SEMANTIC_BLEND] Blending hints")
+        logger.debug(f"[SEMANTIC_BLEND]   hints_a shape: {hints_a.shape}, stats: mean={hints_a.mean():.4f}, std={hints_a.std():.4f}")
+        logger.debug(f"[SEMANTIC_BLEND]   hints_b shape: {hints_b.shape}, stats: mean={hints_b.mean():.4f}, std={hints_b.std():.4f}")
+        logger.debug(f"[SEMANTIC_BLEND]   blend_factor: {blend_factor} (0=A, 1=B)")
 
         # Simple linear interpolation
         blended = (1.0 - blend_factor) * hints_a + blend_factor * hints_b
 
-        print(f"[SEMANTIC_BLEND]   result stats: mean={blended.mean():.4f}, std={blended.std():.4f}")
+        logger.debug(f"[SEMANTIC_BLEND]   result stats: mean={blended.mean():.4f}, std={blended.std():.4f}")
 
         return (blended,)
 
@@ -205,9 +206,9 @@ class ACEStepExtendGuiderNode:
     def get_guider(self, model, positive, negative, cfg, source_latents,
                   extend_left_time, extend_right_time):
 
-        print(f"[EXTEND_GUIDER_NODE] get_guider called")
-        print(f"[EXTEND_GUIDER_NODE]   extend_left_time: {extend_left_time}")
-        print(f"[EXTEND_GUIDER_NODE]   extend_right_time: {extend_right_time}")
+        logger.debug(f"[EXTEND_GUIDER_NODE] get_guider called")
+        logger.debug(f"[EXTEND_GUIDER_NODE]   extend_left_time: {extend_left_time}")
+        logger.debug(f"[EXTEND_GUIDER_NODE]   extend_right_time: {extend_right_time}")
 
         if extend_left_time == 0 and extend_right_time == 0:
             raise ValueError("At least one of extend_left_time or extend_right_time must be > 0")
@@ -217,17 +218,17 @@ class ACEStepExtendGuiderNode:
 
         # Extract latent tensor
         latent_tensor = source_latents["samples"]
-        print(f"[EXTEND_GUIDER_NODE]   latent_tensor.shape: {latent_tensor.shape}")
+        logger.debug(f"[EXTEND_GUIDER_NODE]   latent_tensor.shape: {latent_tensor.shape}")
         version = ACEStepLatentUtils.detect_version(latent_tensor)
-        print(f"[EXTEND_GUIDER_NODE]   detected version: {version}")
+        logger.debug(f"[EXTEND_GUIDER_NODE]   detected version: {version}")
 
         # Create and return the extend guider
         guider = ACEStepExtendGuider(
             model, positive, negative, cfg,
             latent_tensor, extend_left_time, extend_right_time
         )
-        print(f"[EXTEND_GUIDER_NODE]   guider.is_v1_5: {guider.is_v1_5}")
-        print(f"[EXTEND_GUIDER_NODE]   guider.extended_latent.shape: {guider.extended_latent.shape}")
+        logger.debug(f"[EXTEND_GUIDER_NODE]   guider.is_v1_5: {guider.is_v1_5}")
+        logger.debug(f"[EXTEND_GUIDER_NODE]   guider.extended_latent.shape: {guider.extended_latent.shape}")
 
         return (guider,)
 
@@ -707,12 +708,12 @@ class ACEStep15NativeEditGuiderNode:
         repaint_start = repaint_start_seconds if repaint_start_seconds >= 0 else None
         repaint_end = repaint_end_seconds if repaint_end_seconds >= 0 else None
 
-        print(f"[ACE15_EDIT_NODE] Creating guider")
-        print(f"[ACE15_EDIT_NODE]   source_tensor.shape: {source_tensor.shape}")
+        logger.debug(f"[ACE15_EDIT_NODE] Creating guider")
+        logger.debug(f"[ACE15_EDIT_NODE]   source_tensor.shape: {source_tensor.shape}")
         if has_extend:
-            print(f"[ACE15_EDIT_NODE]   extend: left={extend_left_seconds}s, right={extend_right_seconds}s")
+            logger.debug(f"[ACE15_EDIT_NODE]   extend: left={extend_left_seconds}s, right={extend_right_seconds}s")
         if has_repaint:
-            print(f"[ACE15_EDIT_NODE]   repaint: {repaint_start_seconds}s - {repaint_end_seconds}s")
+            logger.debug(f"[ACE15_EDIT_NODE]   repaint: {repaint_start_seconds}s - {repaint_end_seconds}s")
 
         # Create the unified guider (silence_latent is loaded internally)
         guider = ACEStep15NativeEditGuider(
@@ -768,12 +769,12 @@ class ACEStep15NativeCoverGuiderNode:
         if len(source_tensor.shape) != 3 or source_tensor.shape[1] != 64:
             raise ValueError(f"ACE-Step 1.5 requires latent shape (batch, 64, length), got {source_tensor.shape}")
 
-        print(f"[ACE15_COVER_NODE] Creating guider")
-        print(f"[ACE15_COVER_NODE]   source_tensor.shape: {source_tensor.shape}")
+        logger.debug(f"[ACE15_COVER_NODE] Creating guider")
+        logger.debug(f"[ACE15_COVER_NODE]   source_tensor.shape: {source_tensor.shape}")
         if semantic_hints is not None:
-            print(f"[ACE15_COVER_NODE]   semantic_hints provided externally: {semantic_hints.shape}")
+            logger.debug(f"[ACE15_COVER_NODE]   semantic_hints provided externally: {semantic_hints.shape}")
         else:
-            print(f"[ACE15_COVER_NODE]   semantic_hints will be auto-extracted")
+            logger.debug(f"[ACE15_COVER_NODE]   semantic_hints will be auto-extracted")
 
         guider = ACEStep15NativeCoverGuider(
             model, positive, negative, cfg, source_tensor, semantic_hints
@@ -821,13 +822,13 @@ class ACEStep15NativeExtractGuiderNode:
         if len(source_tensor.shape) != 3 or source_tensor.shape[1] != 64:
             raise ValueError(f"ACE-Step 1.5 requires latent shape (batch, 64, length), got {source_tensor.shape}")
 
-        print(f"[ACE15_EXTRACT_NODE] Creating guider")
-        print(f"[ACE15_EXTRACT_NODE]   source_tensor.shape: {source_tensor.shape}")
-        print(f"[ACE15_EXTRACT_NODE]   track_name: {track_name}")
+        logger.debug(f"[ACE15_EXTRACT_NODE] Creating guider")
+        logger.debug(f"[ACE15_EXTRACT_NODE]   source_tensor.shape: {source_tensor.shape}")
+        logger.debug(f"[ACE15_EXTRACT_NODE]   track_name: {track_name}")
         if semantic_hints is not None:
-            print(f"[ACE15_EXTRACT_NODE]   semantic_hints provided externally: {semantic_hints.shape}")
+            logger.debug(f"[ACE15_EXTRACT_NODE]   semantic_hints provided externally: {semantic_hints.shape}")
         else:
-            print(f"[ACE15_EXTRACT_NODE]   semantic_hints will be auto-extracted")
+            logger.debug(f"[ACE15_EXTRACT_NODE]   semantic_hints will be auto-extracted")
 
         guider = ACEStep15NativeExtractGuider(
             model, positive, negative, cfg, source_tensor, track_name, semantic_hints
@@ -879,10 +880,10 @@ class ACEStep15NativeLegoGuiderNode:
         if len(source_tensor.shape) != 3 or source_tensor.shape[1] != 64:
             raise ValueError(f"ACE-Step 1.5 requires latent shape (batch, 64, length), got {source_tensor.shape}")
 
-        print(f"[ACE15_LEGO_NODE] Creating guider")
-        print(f"[ACE15_LEGO_NODE]   source_tensor.shape: {source_tensor.shape}")
-        print(f"[ACE15_LEGO_NODE]   track_name: {track_name}")
-        print(f"[ACE15_LEGO_NODE]   region: {start_seconds}s - {end_seconds}s")
+        logger.debug(f"[ACE15_LEGO_NODE] Creating guider")
+        logger.debug(f"[ACE15_LEGO_NODE]   source_tensor.shape: {source_tensor.shape}")
+        logger.debug(f"[ACE15_LEGO_NODE]   track_name: {track_name}")
+        logger.debug(f"[ACE15_LEGO_NODE]   region: {start_seconds}s - {end_seconds}s")
 
         # Create guider (silence_latent is loaded internally)
         guider = ACEStep15NativeLegoGuider(
@@ -969,7 +970,7 @@ class ACEStep15TaskTextEncodeNode:
                duration=60, keyscale="C major", timesignature="4", language="en", seed=0):
         # Validate track_name for extract/lego tasks
         if task_type in ["extract", "lego"] and not track_name:
-            print(f"[ACE15_TEXT_ENCODE] Warning: track_name not specified for {task_type} task, using default instruction")
+            logger.debug(f"[ACE15_TEXT_ENCODE] Warning: track_name not specified for {task_type} task, using default instruction")
 
         # Convert timesignature from string to int
         timesig_int = int(timesignature)
@@ -987,13 +988,13 @@ class ACEStep15TaskTextEncodeNode:
             "track_name": track_name if track_name else None,
         }
 
-        print(f"[ACE15_TEXT_ENCODE] Encoding with task_type={task_type}, track_name={track_name or 'N/A'}")
+        logger.debug(f"[ACE15_TEXT_ENCODE] Encoding with task_type={task_type}, track_name={track_name or 'N/A'}")
 
         # Import to get task instruction for verification
         from .patches import get_task_instruction, is_patched
         instruction = get_task_instruction(task_type, track_name if track_name else None)
-        print(f"[ACE15_TEXT_ENCODE]   patches applied: {is_patched()}")
-        print(f"[ACE15_TEXT_ENCODE]   task instruction: {instruction}")
+        logger.debug(f"[ACE15_TEXT_ENCODE]   patches applied: {is_patched()}")
+        logger.debug(f"[ACE15_TEXT_ENCODE]   task instruction: {instruction}")
 
         # Use the patched tokenize_with_weights which accepts task_type
         # encode_from_tokens_scheduled returns conditioning directly (list format)
@@ -1002,10 +1003,10 @@ class ACEStep15TaskTextEncodeNode:
         # Verify the tokens contain task_type info (patched tokenizer should include this)
         if isinstance(tokens, dict):
             if "task_type" in tokens:
-                print(f"[ACE15_TEXT_ENCODE]   tokens contain task_type: {tokens.get('task_type')}")
+                logger.debug(f"[ACE15_TEXT_ENCODE]   tokens contain task_type: {tokens.get('task_type')}")
             else:
-                print(f"[ACE15_TEXT_ENCODE]   WARNING: tokens dict does not contain task_type - patch may not be applied!")
-                print(f"[ACE15_TEXT_ENCODE]   tokens keys: {list(tokens.keys())}")
+                logger.debug(f"[ACE15_TEXT_ENCODE]   WARNING: tokens dict does not contain task_type - patch may not be applied!")
+                logger.debug(f"[ACE15_TEXT_ENCODE]   tokens keys: {list(tokens.keys())}")
 
         conditioning = clip.encode_from_tokens_scheduled(tokens)
 

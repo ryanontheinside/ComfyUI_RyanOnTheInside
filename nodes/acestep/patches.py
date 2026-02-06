@@ -15,6 +15,7 @@ Patches are applied at module import time.
 import torch
 import math
 import functools
+from . import logger
 
 # Flag to track if patches have been applied
 _patches_applied = False
@@ -96,11 +97,11 @@ def _create_patched_ace_step15_forward(original_forward):
 
         # One-time diagnostic log for cover task
         if not _forward_logged[0] and precomputed_lm_hints_25Hz is not None:
-            print(f"[ACE15_PATCHED_FORWARD] Cover mode detected")
-            print(f"[ACE15_PATCHED_FORWARD]   x.shape (before transpose): {x.shape}")
-            print(f"[ACE15_PATCHED_FORWARD]   is_covers: {is_covers}")
-            print(f"[ACE15_PATCHED_FORWARD]   precomputed_lm_hints_25Hz.shape (before transpose): {precomputed_lm_hints_25Hz.shape}")
-            print(f"[ACE15_PATCHED_FORWARD]   precomputed_lm_hints_25Hz stats: mean={precomputed_lm_hints_25Hz.mean():.4f}, std={precomputed_lm_hints_25Hz.std():.4f}")
+            logger.debug(f"[ACE15_PATCHED_FORWARD] Cover mode detected")
+            logger.debug(f"[ACE15_PATCHED_FORWARD]   x.shape (before transpose): {x.shape}")
+            logger.debug(f"[ACE15_PATCHED_FORWARD]   is_covers: {is_covers}")
+            logger.debug(f"[ACE15_PATCHED_FORWARD]   precomputed_lm_hints_25Hz.shape (before transpose): {precomputed_lm_hints_25Hz.shape}")
+            logger.debug(f"[ACE15_PATCHED_FORWARD]   precomputed_lm_hints_25Hz stats: mean={precomputed_lm_hints_25Hz.mean():.4f}, std={precomputed_lm_hints_25Hz.std():.4f}")
             _forward_logged[0] = True
 
         # is_covers can now be passed explicitly by guiders:
@@ -131,9 +132,9 @@ def _create_patched_ace_step15_forward(original_forward):
             precomputed_lm_hints_25Hz = precomputed_lm_hints_25Hz.movedim(-1, -2)
             # Log post-transpose shape (one-time)
             if _forward_logged[0] and not hasattr(patched_forward, '_post_transpose_logged'):
-                print(f"[ACE15_PATCHED_FORWARD]   precomputed_lm_hints_25Hz.shape (after transpose): {precomputed_lm_hints_25Hz.shape}")
-                print(f"[ACE15_PATCHED_FORWARD]   x.shape (after transpose): {x.shape}")
-                print(f"[ACE15_PATCHED_FORWARD]   src_latents.shape (after transpose): {src_latents.shape if src_latents is not None else 'None'}")
+                logger.debug(f"[ACE15_PATCHED_FORWARD]   precomputed_lm_hints_25Hz.shape (after transpose): {precomputed_lm_hints_25Hz.shape}")
+                logger.debug(f"[ACE15_PATCHED_FORWARD]   x.shape (after transpose): {x.shape}")
+                logger.debug(f"[ACE15_PATCHED_FORWARD]   src_latents.shape (after transpose): {src_latents.shape if src_latents is not None else 'None'}")
                 patched_forward._post_transpose_logged = True
 
         if src_latents is None and is_covers is None:
@@ -233,21 +234,21 @@ def apply_patches():
         from comfy.ldm.ace.ace_step15 import AceStepConditionGenerationModel
         original_forward = AceStepConditionGenerationModel.forward
         AceStepConditionGenerationModel.forward = _create_patched_ace_step15_forward(original_forward)
-        print("[ACE-Step Patches] Patched AceStepConditionGenerationModel.forward")
+        logger.info("[ACE-Step Patches] Patched AceStepConditionGenerationModel.forward")
     except ImportError as e:
-        print(f"[ACE-Step Patches] Warning: Could not patch ace_step15: {e}")
+        logger.info(f"[ACE-Step Patches] Warning: Could not patch ace_step15: {e}")
 
     try:
         # Patch ACE15Tokenizer.tokenize_with_weights
         from comfy.text_encoders.ace15 import ACE15Tokenizer
         original_tokenize = ACE15Tokenizer.tokenize_with_weights
         ACE15Tokenizer.tokenize_with_weights = _create_patched_tokenizer(original_tokenize)
-        print("[ACE-Step Patches] Patched ACE15Tokenizer.tokenize_with_weights")
+        logger.info("[ACE-Step Patches] Patched ACE15Tokenizer.tokenize_with_weights")
     except ImportError as e:
-        print(f"[ACE-Step Patches] Warning: Could not patch ace15 tokenizer: {e}")
+        logger.info(f"[ACE-Step Patches] Warning: Could not patch ace15 tokenizer: {e}")
 
     _patches_applied = True
-    print("[ACE-Step Patches] All patches applied successfully")
+    logger.info("[ACE-Step Patches] All patches applied successfully")
 
 
 def is_patched():

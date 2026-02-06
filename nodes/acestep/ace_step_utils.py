@@ -4,6 +4,7 @@ import math
 import os
 import comfy.model_management
 import folder_paths
+from . import logger
 
 # Module-level cache for silence_latent (loaded once per session)
 _silence_latent_cache = None
@@ -29,16 +30,16 @@ def download_silence_latent():
     # Create directory if it doesn't exist
     os.makedirs(ace_step_dir, exist_ok=True)
 
-    print(f"[ACE-Step] Downloading silence_latent.pt from HuggingFace...")
-    print(f"[ACE-Step]   URL: {SILENCE_LATENT_URL}")
-    print(f"[ACE-Step]   Destination: {silence_latent_path}")
+    logger.info(f"[ACE-Step] Downloading silence_latent.pt from HuggingFace...")
+    logger.info(f"[ACE-Step]   URL: {SILENCE_LATENT_URL}")
+    logger.info(f"[ACE-Step]   Destination: {silence_latent_path}")
 
     try:
         urllib.request.urlretrieve(SILENCE_LATENT_URL, silence_latent_path)
-        print(f"[ACE-Step] Download complete!")
+        logger.info(f"[ACE-Step] Download complete!")
         return True
     except Exception as e:
-        print(f"[ACE-Step] ERROR: Failed to download silence_latent.pt: {e}")
+        logger.info(f"[ACE-Step] ERROR: Failed to download silence_latent.pt: {e}")
         return False
 
 
@@ -58,7 +59,7 @@ def load_silence_latent(verbose=True):
     # Return cached version if available
     if _silence_latent_cache is not None:
         if verbose:
-            print(f"[ACE-Step] Using cached silence_latent, shape: {_silence_latent_cache.shape}")
+            logger.info(f"[ACE-Step] Using cached silence_latent, shape: {_silence_latent_cache.shape}")
         return _silence_latent_cache
 
     silence_latent_path = get_silence_latent_path()
@@ -76,7 +77,7 @@ def load_silence_latent(verbose=True):
 
     # Load the tensor
     if verbose:
-        print(f"[ACE-Step] Loading silence_latent from {silence_latent_path}")
+        logger.info(f"[ACE-Step] Loading silence_latent from {silence_latent_path}")
     silence_latent = torch.load(silence_latent_path, map_location="cpu", weights_only=True)
 
     # Transpose from [1, D, T] to [1, T, D] as per reference implementation
@@ -84,7 +85,7 @@ def load_silence_latent(verbose=True):
     silence_latent = silence_latent.transpose(1, 2)
 
     if verbose:
-        print(f"[ACE-Step] silence_latent loaded, shape: {silence_latent.shape}")
+        logger.info(f"[ACE-Step] silence_latent loaded, shape: {silence_latent.shape}")
 
     # Cache for future use
     _silence_latent_cache = silence_latent
@@ -107,7 +108,7 @@ def extract_semantic_hints(model, source_latent, verbose=True):
     Returns:
         torch.Tensor: Semantic hints in ComfyUI format [B, 64, T]
     """
-    prefix = "[SEMANTIC_EXTRACT]" if verbose else None
+    prefix = "[SEMANTIC_EXTRACT]"
 
     # Validate v1.5 shape: (batch, 64, length)
     if len(source_latent.shape) != 3 or source_latent.shape[1] != 64:
@@ -135,21 +136,21 @@ def extract_semantic_hints(model, source_latent, verbose=True):
     source_transposed = source_on_device.movedim(-1, -2)  # [B, T, D]
 
     if verbose:
-        print(f"{prefix} Extracting from source shape: {source_latent.shape}")
-        print(f"{prefix}   source stats: mean={source_transposed.mean():.4f}, std={source_transposed.std():.4f}")
+        logger.debug(f"{prefix} Extracting from source shape: {source_latent.shape}")
+        logger.debug(f"{prefix}   source stats: mean={source_transposed.mean():.4f}, std={source_transposed.std():.4f}")
 
     # Verify weights are on GPU
     tokenizer_device = next(diffusion_model.tokenizer.parameters()).device
     if verbose:
-        print(f"{prefix}   tokenizer on: {tokenizer_device}, target: {device}")
+        logger.debug(f"{prefix}   tokenizer on: {tokenizer_device}, target: {device}")
 
     # Step 1: Tokenize - get quantized embeddings at 5Hz
     with torch.no_grad():
         quantized, indices = diffusion_model.tokenizer.tokenize(source_transposed)
 
     if verbose:
-        print(f"{prefix}   quantized shape: {quantized.shape}")
-        print(f"{prefix}   quantized stats: mean={quantized.mean():.4f}, std={quantized.std():.4f}")
+        logger.debug(f"{prefix}   quantized shape: {quantized.shape}")
+        logger.debug(f"{prefix}   quantized stats: mean={quantized.mean():.4f}, std={quantized.std():.4f}")
 
     # Step 2: Detokenize - upsample from 5Hz to 25Hz
     # Use quantized directly (not get_output_from_indices) to avoid redundant computation
@@ -157,10 +158,10 @@ def extract_semantic_hints(model, source_latent, verbose=True):
         lm_hints = diffusion_model.detokenizer(quantized)
 
     if verbose:
-        print(f"{prefix}   lm_hints shape: {lm_hints.shape}")
-        print(f"{prefix}   lm_hints stats: mean={lm_hints.mean():.4f}, std={lm_hints.std():.4f}")
+        logger.debug(f"{prefix}   lm_hints shape: {lm_hints.shape}")
+        logger.debug(f"{prefix}   lm_hints stats: mean={lm_hints.mean():.4f}, std={lm_hints.std():.4f}")
         if lm_hints.std() < 0.01:
-            print(f"{prefix}   WARNING: Very low variance in semantic hints!")
+            logger.warning(f"{prefix}   Very low variance in semantic hints!")
 
     # Transpose back to ComfyUI format: [B, T, D] → [B, D, T]
     semantic_hints = lm_hints.movedim(-1, -2)

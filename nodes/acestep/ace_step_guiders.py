@@ -3,6 +3,7 @@ import comfy.samplers
 import comfy.sample
 import math
 from .ace_step_utils import ACEStepLatentUtils
+from . import logger
 
 # NOTE: gigantic shoutout to the powerful acestep team https://github.com/ace-step/ACE-Step
 # NOTE: And another massive shoutout.... the adapted code here is based on https://github.com/billwuhao/ComfyUI_ACE-Step
@@ -74,13 +75,13 @@ class ACEStep15NativeEditGuider(comfy.samplers.CFGGuider):
             self.repaint_start_frame = 0
             self.repaint_end_frame = 0
 
-        print(f"[ACE15_EDIT] Initializing")
-        print(f"[ACE15_EDIT]   source_latent.shape: {source_latent.shape}")
-        print(f"[ACE15_EDIT]   silence_latent.shape: {silence_latent.shape}")
-        print(f"[ACE15_EDIT]   extend: left={extend_left_seconds}s ({self.left_frames}f), right={extend_right_seconds}s ({self.right_frames}f)")
+        logger.debug(f"[ACE15_EDIT] Initializing")
+        logger.debug(f"[ACE15_EDIT]   source_latent.shape: {source_latent.shape}")
+        logger.debug(f"[ACE15_EDIT]   silence_latent.shape: {silence_latent.shape}")
+        logger.debug(f"[ACE15_EDIT]   extend: left={extend_left_seconds}s ({self.left_frames}f), right={extend_right_seconds}s ({self.right_frames}f)")
         if self.has_repaint:
-            print(f"[ACE15_EDIT]   repaint: {repaint_start_seconds}s-{repaint_end_seconds}s (frames {self.repaint_start_frame}-{self.repaint_end_frame} in extended space)")
-        print(f"[ACE15_EDIT]   total_length: {total_length}")
+            logger.debug(f"[ACE15_EDIT]   repaint: {repaint_start_seconds}s-{repaint_end_seconds}s (frames {self.repaint_start_frame}-{self.repaint_end_frame} in extended space)")
+        logger.debug(f"[ACE15_EDIT]   total_length: {total_length}")
 
         # Step 1: Prepare silence_latent in ComfyUI format [D, total_length]
         # silence_latent shape is [1, T, D], need [D, total_length] for ComfyUI format
@@ -130,41 +131,41 @@ class ACEStep15NativeEditGuider(comfy.samplers.CFGGuider):
 
         # Log summary
         gen_frames = self.chunk_masks.sum().item() / (batch_size * channels)
-        print(f"[ACE15_EDIT]   silence_tiled.shape: {silence_tiled.shape}")
-        print(f"[ACE15_EDIT]   working_latent.shape: {self.working_latent.shape}")
-        print(f"[ACE15_EDIT]   src_latents.shape: {self.src_latents.shape}")
-        print(f"[ACE15_EDIT]   chunk_masks.shape: {self.chunk_masks.shape}")
-        print(f"[ACE15_EDIT]   generation frames: {gen_frames:.0f} ({gen_frames / self.fps:.2f}s)")
+        logger.debug(f"[ACE15_EDIT]   silence_tiled.shape: {silence_tiled.shape}")
+        logger.debug(f"[ACE15_EDIT]   working_latent.shape: {self.working_latent.shape}")
+        logger.debug(f"[ACE15_EDIT]   src_latents.shape: {self.src_latents.shape}")
+        logger.debug(f"[ACE15_EDIT]   chunk_masks.shape: {self.chunk_masks.shape}")
+        logger.debug(f"[ACE15_EDIT]   generation frames: {gen_frames:.0f} ({gen_frames / self.fps:.2f}s)")
 
         # Verify chunk_masks has generation regions marked
         mask_max = self.chunk_masks.max().item()
         mask_min = self.chunk_masks.min().item()
-        print(f"[ACE15_EDIT]   chunk_masks range: [{mask_min:.1f}, {mask_max:.1f}] (should have 1.0 for generation)")
+        logger.debug(f"[ACE15_EDIT]   chunk_masks range: [{mask_min:.1f}, {mask_max:.1f}] (should have 1.0 for generation)")
 
         # Verify silence_latent was inserted (check mean/std of extend regions vs source region)
         silence_ref_mean = silence_tiled.mean().item()
         silence_ref_std = silence_tiled.std().item()
-        print(f"[ACE15_EDIT]   silence_latent reference: mean={silence_ref_mean:.4f}, std={silence_ref_std:.4f}")
+        logger.debug(f"[ACE15_EDIT]   silence_latent reference: mean={silence_ref_mean:.4f}, std={silence_ref_std:.4f}")
 
         if self.left_frames > 0:
             left_mean = self.working_latent[:, :, :self.left_frames].mean().item()
             left_std = self.working_latent[:, :, :self.left_frames].std().item()
             src_left_mean = self.src_latents[:, :, :self.left_frames].mean().item()
-            print(f"[ACE15_EDIT]   left_extend working_latent: mean={left_mean:.4f}, std={left_std:.4f}")
-            print(f"[ACE15_EDIT]   left_extend src_latents: mean={src_left_mean:.4f} (should match silence_latent)")
+            logger.debug(f"[ACE15_EDIT]   left_extend working_latent: mean={left_mean:.4f}, std={left_std:.4f}")
+            logger.debug(f"[ACE15_EDIT]   left_extend src_latents: mean={src_left_mean:.4f} (should match silence_latent)")
         if self.right_frames > 0:
             right_mean = self.working_latent[:, :, -self.right_frames:].mean().item()
             right_std = self.working_latent[:, :, -self.right_frames:].std().item()
             src_right_mean = self.src_latents[:, :, -self.right_frames:].mean().item()
-            print(f"[ACE15_EDIT]   right_extend working_latent: mean={right_mean:.4f}, std={right_std:.4f}")
-            print(f"[ACE15_EDIT]   right_extend src_latents: mean={src_right_mean:.4f} (should match silence_latent)")
+            logger.debug(f"[ACE15_EDIT]   right_extend working_latent: mean={right_mean:.4f}, std={right_std:.4f}")
+            logger.debug(f"[ACE15_EDIT]   right_extend src_latents: mean={src_right_mean:.4f} (should match silence_latent)")
         source_mean = self.working_latent[:, :, self.left_frames:self.left_frames + source_length].mean().item()
         source_std = self.working_latent[:, :, self.left_frames:self.left_frames + source_length].std().item()
-        print(f"[ACE15_EDIT]   source region: mean={source_mean:.4f}, std={source_std:.4f}")
+        logger.debug(f"[ACE15_EDIT]   source region: mean={source_mean:.4f}, std={source_std:.4f}")
 
         # Warn if no generation regions
         if gen_frames == 0:
-            print(f"[ACE15_EDIT]   WARNING: No generation frames! This will produce silence in extend regions.")
+            logger.debug(f"[ACE15_EDIT]   WARNING: No generation frames! This will produce silence in extend regions.")
 
         self._wrapper_applied = False
 
@@ -199,12 +200,12 @@ class ACEStep15NativeEditGuider(comfy.samplers.CFGGuider):
             c["is_covers"] = torch.zeros((input_batch_size,), device=device, dtype=torch.long)
 
             if not hasattr(model_function_wrapper, '_logged'):
-                print(f"[ACE15_EDIT_WRAPPER] Injecting chunk_masks and src_latents")
-                print(f"[ACE15_EDIT_WRAPPER]   input.shape: {args['input'].shape}")
-                print(f"[ACE15_EDIT_WRAPPER]   chunk_masks.shape: {c['chunk_masks'].shape}")
-                print(f"[ACE15_EDIT_WRAPPER]   src_latents.shape: {c['src_latents'].shape}")
-                print(f"[ACE15_EDIT_WRAPPER]   is_covers: {c['is_covers']} (0=extend/repaint mode)")
-                print(f"[ACE15_EDIT_WRAPPER]   chunk_masks sum: {cm.sum().item():.0f} (generation frames * batch * channels)")
+                logger.debug(f"[ACE15_EDIT_WRAPPER] Injecting chunk_masks and src_latents")
+                logger.debug(f"[ACE15_EDIT_WRAPPER]   input.shape: {args['input'].shape}")
+                logger.debug(f"[ACE15_EDIT_WRAPPER]   chunk_masks.shape: {c['chunk_masks'].shape}")
+                logger.debug(f"[ACE15_EDIT_WRAPPER]   src_latents.shape: {c['src_latents'].shape}")
+                logger.debug(f"[ACE15_EDIT_WRAPPER]   is_covers: {c['is_covers']} (0=extend/repaint mode)")
+                logger.debug(f"[ACE15_EDIT_WRAPPER]   chunk_masks sum: {cm.sum().item():.0f} (generation frames * batch * channels)")
                 model_function_wrapper._logged = True
 
             return apply_model(args["input"], args["timestep"], **c)
@@ -212,14 +213,14 @@ class ACEStep15NativeEditGuider(comfy.samplers.CFGGuider):
         model_function_wrapper._logged = False
         self.model_patcher.set_model_unet_function_wrapper(model_function_wrapper)
         self._wrapper_applied = True
-        print(f"[ACE15_EDIT] Model wrapper applied")
+        logger.debug(f"[ACE15_EDIT] Model wrapper applied")
 
     def sample(self, noise, latent_image, sampler, sigmas, denoise_mask=None, callback=None, disable_pbar=False, seed=None):
         """Override sample to apply model wrapper and use working latent"""
 
-        print(f"[ACE15_EDIT] sample() called")
-        print(f"[ACE15_EDIT]   noise.shape: {noise.shape}")
-        print(f"[ACE15_EDIT]   latent_image.shape: {latent_image.shape}")
+        logger.debug(f"[ACE15_EDIT] sample() called")
+        logger.debug(f"[ACE15_EDIT]   noise.shape: {noise.shape}")
+        logger.debug(f"[ACE15_EDIT]   latent_image.shape: {latent_image.shape}")
 
         self._apply_model_wrapper()
 
@@ -228,8 +229,8 @@ class ACEStep15NativeEditGuider(comfy.samplers.CFGGuider):
         dtype = noise.dtype
         working_noise = torch.randn_like(self.working_latent, device=device, dtype=dtype)
 
-        print(f"[ACE15_EDIT]   working_noise.shape: {working_noise.shape}")
-        print(f"[ACE15_EDIT]   working_latent.shape: {self.working_latent.shape}")
+        logger.debug(f"[ACE15_EDIT]   working_noise.shape: {working_noise.shape}")
+        logger.debug(f"[ACE15_EDIT]   working_latent.shape: {self.working_latent.shape}")
 
         result = super().sample(
             working_noise,
@@ -242,7 +243,7 @@ class ACEStep15NativeEditGuider(comfy.samplers.CFGGuider):
             seed
         )
 
-        print(f"[ACE15_EDIT]   result.shape: {result.shape}")
+        logger.debug(f"[ACE15_EDIT]   result.shape: {result.shape}")
 
         return result
 
@@ -278,25 +279,25 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
 
         batch_size, channels, total_length = source_latent.shape
 
-        print(f"[ACE15_NATIVE_COVER] Initializing")
-        print(f"[ACE15_NATIVE_COVER]   source_latent.shape: {source_latent.shape}")
-        print(f"[ACE15_NATIVE_COVER]   source_latent stats: mean={source_latent.mean():.4f}, std={source_latent.std():.4f}")
+        logger.debug(f"[ACE15_NATIVE_COVER] Initializing")
+        logger.debug(f"[ACE15_NATIVE_COVER]   source_latent.shape: {source_latent.shape}")
+        logger.debug(f"[ACE15_NATIVE_COVER]   source_latent stats: mean={source_latent.mean():.4f}, std={source_latent.std():.4f}")
 
         # Auto-extract semantic hints if not provided
         if semantic_hints is None:
-            print(f"[ACE15_NATIVE_COVER]   No semantic_hints provided, auto-extracting...")
+            logger.debug(f"[ACE15_NATIVE_COVER]   No semantic_hints provided, auto-extracting...")
             from .ace_step_utils import extract_semantic_hints
             semantic_hints = extract_semantic_hints(model, source_latent, verbose=True)
-            print(f"[ACE15_NATIVE_COVER]   Auto-extracted semantic_hints shape: {semantic_hints.shape}")
+            logger.debug(f"[ACE15_NATIVE_COVER]   Auto-extracted semantic_hints shape: {semantic_hints.shape}")
 
         self.semantic_hints = semantic_hints
 
         # Validate semantic hints
-        print(f"[ACE15_NATIVE_COVER]   semantic_hints stats: mean={semantic_hints.mean():.4f}, std={semantic_hints.std():.4f}")
+        logger.debug(f"[ACE15_NATIVE_COVER]   semantic_hints stats: mean={semantic_hints.mean():.4f}, std={semantic_hints.std():.4f}")
         if semantic_hints.std() < 0.01:
-            print(f"[ACE15_NATIVE_COVER]   WARNING: semantic_hints have very low variance ({semantic_hints.std():.6f}) - may be invalid!")
+            logger.debug(f"[ACE15_NATIVE_COVER]   WARNING: semantic_hints have very low variance ({semantic_hints.std():.6f}) - may be invalid!")
         if semantic_hints.shape != source_latent.shape:
-            print(f"[ACE15_NATIVE_COVER]   WARNING: semantic_hints shape {semantic_hints.shape} != source_latent shape {source_latent.shape}")
+            logger.debug(f"[ACE15_NATIVE_COVER]   WARNING: semantic_hints shape {semantic_hints.shape} != source_latent shape {source_latent.shape}")
 
         # Cover: generate everything
         # chunk_masks: All 1s (generate all frames)
@@ -305,8 +306,8 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
         # src_latents: Original audio (used as fallback if is_covers=0)
         self.src_latents = source_latent.clone()
 
-        print(f"[ACE15_NATIVE_COVER]   chunk_masks.shape: {self.chunk_masks.shape}")
-        print(f"[ACE15_NATIVE_COVER]   mask sum: {self.chunk_masks.sum().item()} (all 1s)")
+        logger.debug(f"[ACE15_NATIVE_COVER]   chunk_masks.shape: {self.chunk_masks.shape}")
+        logger.debug(f"[ACE15_NATIVE_COVER]   mask sum: {self.chunk_masks.sum().item()} (all 1s)")
 
         self._wrapper_applied = False
 
@@ -349,23 +350,23 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
                 c["is_covers"] = torch.zeros((input_batch_size,), device=device, dtype=torch.long)
 
             if not hasattr(model_function_wrapper, '_logged'):
-                print(f"[ACE15_COVER_WRAPPER] Injecting cover parameters")
-                print(f"[ACE15_COVER_WRAPPER]   input.shape: {args['input'].shape}")
-                print(f"[ACE15_COVER_WRAPPER]   input stats: mean={args['input'].mean():.4f}, std={args['input'].std():.4f}")
-                print(f"[ACE15_COVER_WRAPPER]   chunk_masks.shape: {c['chunk_masks'].shape}")
-                print(f"[ACE15_COVER_WRAPPER]   chunk_masks sum: {c['chunk_masks'].sum().item()} (should be all 1s for cover)")
-                print(f"[ACE15_COVER_WRAPPER]   src_latents.shape: {c['src_latents'].shape}")
-                print(f"[ACE15_COVER_WRAPPER]   src_latents stats: mean={c['src_latents'].mean():.4f}, std={c['src_latents'].std():.4f}")
-                print(f"[ACE15_COVER_WRAPPER]   is_covers: {c['is_covers']} (1=use semantic hints, 0=use VAE latents)")
+                logger.debug(f"[ACE15_COVER_WRAPPER] Injecting cover parameters")
+                logger.debug(f"[ACE15_COVER_WRAPPER]   input.shape: {args['input'].shape}")
+                logger.debug(f"[ACE15_COVER_WRAPPER]   input stats: mean={args['input'].mean():.4f}, std={args['input'].std():.4f}")
+                logger.debug(f"[ACE15_COVER_WRAPPER]   chunk_masks.shape: {c['chunk_masks'].shape}")
+                logger.debug(f"[ACE15_COVER_WRAPPER]   chunk_masks sum: {c['chunk_masks'].sum().item()} (should be all 1s for cover)")
+                logger.debug(f"[ACE15_COVER_WRAPPER]   src_latents.shape: {c['src_latents'].shape}")
+                logger.debug(f"[ACE15_COVER_WRAPPER]   src_latents stats: mean={c['src_latents'].mean():.4f}, std={c['src_latents'].std():.4f}")
+                logger.debug(f"[ACE15_COVER_WRAPPER]   is_covers: {c['is_covers']} (1=use semantic hints, 0=use VAE latents)")
                 if "precomputed_lm_hints_25Hz" in c:
                     sh = c["precomputed_lm_hints_25Hz"]
-                    print(f"[ACE15_COVER_WRAPPER]   precomputed_lm_hints_25Hz.shape: {sh.shape}")
-                    print(f"[ACE15_COVER_WRAPPER]   precomputed_lm_hints_25Hz stats: mean={sh.mean():.4f}, std={sh.std():.4f}, min={sh.min():.4f}, max={sh.max():.4f}")
+                    logger.debug(f"[ACE15_COVER_WRAPPER]   precomputed_lm_hints_25Hz.shape: {sh.shape}")
+                    logger.debug(f"[ACE15_COVER_WRAPPER]   precomputed_lm_hints_25Hz stats: mean={sh.mean():.4f}, std={sh.std():.4f}, min={sh.min():.4f}, max={sh.max():.4f}")
                     # Check if hints look valid (should have some variance, not constant)
                     if sh.std() < 0.01:
-                        print(f"[ACE15_COVER_WRAPPER]   WARNING: semantic hints have very low variance! May be constant/invalid.")
+                        logger.debug(f"[ACE15_COVER_WRAPPER]   WARNING: semantic hints have very low variance! May be constant/invalid.")
                 else:
-                    print(f"[ACE15_COVER_WRAPPER]   WARNING: No precomputed_lm_hints_25Hz - will fall back to VAE latents!")
+                    logger.debug(f"[ACE15_COVER_WRAPPER]   WARNING: No precomputed_lm_hints_25Hz - will fall back to VAE latents!")
                 model_function_wrapper._logged = True
 
             return apply_model(args["input"], args["timestep"], **c)
@@ -373,14 +374,14 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
         model_function_wrapper._logged = False
         self.model_patcher.set_model_unet_function_wrapper(model_function_wrapper)
         self._wrapper_applied = True
-        print(f"[ACE15_NATIVE_COVER] Model wrapper applied")
+        logger.debug(f"[ACE15_NATIVE_COVER] Model wrapper applied")
 
     def sample(self, noise, latent_image, sampler, sigmas, denoise_mask=None, callback=None, disable_pbar=False, seed=None):
         """Override sample to apply model wrapper for cover"""
 
-        print(f"[ACE15_NATIVE_COVER] sample() called")
-        print(f"[ACE15_NATIVE_COVER]   noise.shape: {noise.shape}")
-        print(f"[ACE15_NATIVE_COVER]   latent_image.shape: {latent_image.shape}")
+        logger.debug(f"[ACE15_NATIVE_COVER] sample() called")
+        logger.debug(f"[ACE15_NATIVE_COVER]   noise.shape: {noise.shape}")
+        logger.debug(f"[ACE15_NATIVE_COVER]   latent_image.shape: {latent_image.shape}")
 
         self._apply_model_wrapper()
 
@@ -399,7 +400,7 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
             seed
         )
 
-        print(f"[ACE15_NATIVE_COVER]   result.shape: {result.shape}")
+        logger.debug(f"[ACE15_NATIVE_COVER]   result.shape: {result.shape}")
 
         return result
 
@@ -431,27 +432,27 @@ class ACEStep15NativeExtractGuider(comfy.samplers.CFGGuider):
 
         batch_size, channels, total_length = source_latent.shape
 
-        print(f"[ACE15_NATIVE_EXTRACT] Initializing")
-        print(f"[ACE15_NATIVE_EXTRACT]   source_latent.shape: {source_latent.shape}")
-        print(f"[ACE15_NATIVE_EXTRACT]   track_name: {track_name}")
+        logger.debug(f"[ACE15_NATIVE_EXTRACT] Initializing")
+        logger.debug(f"[ACE15_NATIVE_EXTRACT]   source_latent.shape: {source_latent.shape}")
+        logger.debug(f"[ACE15_NATIVE_EXTRACT]   track_name: {track_name}")
 
         # Auto-extract semantic hints if not provided
         if semantic_hints is None:
-            print(f"[ACE15_NATIVE_EXTRACT]   No semantic_hints provided, auto-extracting...")
+            logger.debug(f"[ACE15_NATIVE_EXTRACT]   No semantic_hints provided, auto-extracting...")
             from .ace_step_utils import extract_semantic_hints
             semantic_hints = extract_semantic_hints(model, source_latent, verbose=True)
-            print(f"[ACE15_NATIVE_EXTRACT]   Auto-extracted semantic_hints shape: {semantic_hints.shape}")
+            logger.debug(f"[ACE15_NATIVE_EXTRACT]   Auto-extracted semantic_hints shape: {semantic_hints.shape}")
 
         self.semantic_hints = semantic_hints
 
         # Validate semantic hints
-        print(f"[ACE15_NATIVE_EXTRACT]   semantic_hints stats: mean={semantic_hints.mean():.4f}, std={semantic_hints.std():.4f}")
+        logger.debug(f"[ACE15_NATIVE_EXTRACT]   semantic_hints stats: mean={semantic_hints.mean():.4f}, std={semantic_hints.std():.4f}")
 
         # Extract: generate everything (the extracted track)
         self.chunk_masks = torch.ones_like(source_latent)
         self.src_latents = source_latent.clone()
 
-        print(f"[ACE15_NATIVE_EXTRACT]   chunk_masks.shape: {self.chunk_masks.shape}")
+        logger.debug(f"[ACE15_NATIVE_EXTRACT]   chunk_masks.shape: {self.chunk_masks.shape}")
 
         self._wrapper_applied = False
 
@@ -492,10 +493,10 @@ class ACEStep15NativeExtractGuider(comfy.samplers.CFGGuider):
                 c["is_covers"] = torch.zeros((input_batch_size,), device=device, dtype=torch.long)
 
             if not hasattr(model_function_wrapper, '_logged'):
-                print(f"[ACE15_EXTRACT_WRAPPER] Injecting extract parameters")
-                print(f"[ACE15_EXTRACT_WRAPPER]   is_covers: {c['is_covers']}")
+                logger.debug(f"[ACE15_EXTRACT_WRAPPER] Injecting extract parameters")
+                logger.debug(f"[ACE15_EXTRACT_WRAPPER]   is_covers: {c['is_covers']}")
                 if "precomputed_lm_hints_25Hz" in c:
-                    print(f"[ACE15_EXTRACT_WRAPPER]   precomputed_lm_hints_25Hz.shape: {c['precomputed_lm_hints_25Hz'].shape}")
+                    logger.debug(f"[ACE15_EXTRACT_WRAPPER]   precomputed_lm_hints_25Hz.shape: {c['precomputed_lm_hints_25Hz'].shape}")
                 model_function_wrapper._logged = True
 
             return apply_model(args["input"], args["timestep"], **c)
@@ -503,12 +504,12 @@ class ACEStep15NativeExtractGuider(comfy.samplers.CFGGuider):
         model_function_wrapper._logged = False
         self.model_patcher.set_model_unet_function_wrapper(model_function_wrapper)
         self._wrapper_applied = True
-        print(f"[ACE15_NATIVE_EXTRACT] Model wrapper applied")
+        logger.debug(f"[ACE15_NATIVE_EXTRACT] Model wrapper applied")
 
     def sample(self, noise, latent_image, sampler, sigmas, denoise_mask=None, callback=None, disable_pbar=False, seed=None):
         """Override sample to apply model wrapper for extract"""
 
-        print(f"[ACE15_NATIVE_EXTRACT] sample() called")
+        logger.debug(f"[ACE15_NATIVE_EXTRACT] sample() called")
 
         self._apply_model_wrapper()
 
@@ -527,7 +528,7 @@ class ACEStep15NativeExtractGuider(comfy.samplers.CFGGuider):
             seed
         )
 
-        print(f"[ACE15_NATIVE_EXTRACT]   result.shape: {result.shape}")
+        logger.debug(f"[ACE15_NATIVE_EXTRACT]   result.shape: {result.shape}")
 
         return result
 
@@ -579,11 +580,11 @@ class ACEStep15NativeLegoGuider(comfy.samplers.CFGGuider):
         self.start_frame = max(0, min(self.start_frame, total_length))
         self.end_frame = max(0, min(self.end_frame, total_length))
 
-        print(f"[ACE15_NATIVE_LEGO] Initializing")
-        print(f"[ACE15_NATIVE_LEGO]   source_latent.shape: {source_latent.shape}")
-        print(f"[ACE15_NATIVE_LEGO]   silence_latent.shape: {silence_latent.shape}")
-        print(f"[ACE15_NATIVE_LEGO]   track_name: {track_name}")
-        print(f"[ACE15_NATIVE_LEGO]   region: {start_seconds}s-{end_seconds}s (frames {self.start_frame}-{self.end_frame})")
+        logger.debug(f"[ACE15_NATIVE_LEGO] Initializing")
+        logger.debug(f"[ACE15_NATIVE_LEGO]   source_latent.shape: {source_latent.shape}")
+        logger.debug(f"[ACE15_NATIVE_LEGO]   silence_latent.shape: {silence_latent.shape}")
+        logger.debug(f"[ACE15_NATIVE_LEGO]   track_name: {track_name}")
+        logger.debug(f"[ACE15_NATIVE_LEGO]   region: {start_seconds}s-{end_seconds}s (frames {self.start_frame}-{self.end_frame})")
 
         # Lego: generate track in region, preserve elsewhere
         self.chunk_masks = torch.zeros_like(source_latent)
@@ -613,9 +614,9 @@ class ACEStep15NativeLegoGuider(comfy.samplers.CFGGuider):
         self.src_latents[:, :, self.start_frame:self.end_frame] = silence_region.unsqueeze(0).expand(batch_size, -1, -1)
 
         lego_frames = self.end_frame - self.start_frame
-        print(f"[ACE15_NATIVE_LEGO]   chunk_masks.shape: {self.chunk_masks.shape}")
-        print(f"[ACE15_NATIVE_LEGO]   lego frames: {lego_frames} ({lego_frames / self.fps:.2f}s)")
-        print(f"[ACE15_NATIVE_LEGO]   src_latents lego region filled with silence_latent: frames {self.start_frame}-{self.end_frame}")
+        logger.debug(f"[ACE15_NATIVE_LEGO]   chunk_masks.shape: {self.chunk_masks.shape}")
+        logger.debug(f"[ACE15_NATIVE_LEGO]   lego frames: {lego_frames} ({lego_frames / self.fps:.2f}s)")
+        logger.debug(f"[ACE15_NATIVE_LEGO]   src_latents lego region filled with silence_latent: frames {self.start_frame}-{self.end_frame}")
 
         self._wrapper_applied = False
 
@@ -645,7 +646,7 @@ class ACEStep15NativeLegoGuider(comfy.samplers.CFGGuider):
             c["src_latents"] = sl
 
             if not hasattr(model_function_wrapper, '_logged'):
-                print(f"[ACE15_LEGO_WRAPPER] Injecting chunk_masks and src_latents")
+                logger.debug(f"[ACE15_LEGO_WRAPPER] Injecting chunk_masks and src_latents")
                 model_function_wrapper._logged = True
 
             return apply_model(args["input"], args["timestep"], **c)
@@ -653,12 +654,12 @@ class ACEStep15NativeLegoGuider(comfy.samplers.CFGGuider):
         model_function_wrapper._logged = False
         self.model_patcher.set_model_unet_function_wrapper(model_function_wrapper)
         self._wrapper_applied = True
-        print(f"[ACE15_NATIVE_LEGO] Model wrapper applied")
+        logger.debug(f"[ACE15_NATIVE_LEGO] Model wrapper applied")
 
     def sample(self, noise, latent_image, sampler, sigmas, denoise_mask=None, callback=None, disable_pbar=False, seed=None):
         """Override sample to apply model wrapper for lego"""
 
-        print(f"[ACE15_NATIVE_LEGO] sample() called")
+        logger.debug(f"[ACE15_NATIVE_LEGO] sample() called")
 
         self._apply_model_wrapper()
 
@@ -677,7 +678,7 @@ class ACEStep15NativeLegoGuider(comfy.samplers.CFGGuider):
             seed
         )
 
-        print(f"[ACE15_NATIVE_LEGO]   result.shape: {result.shape}")
+        logger.debug(f"[ACE15_NATIVE_LEGO]   result.shape: {result.shape}")
 
         return result
 
@@ -727,13 +728,13 @@ class ACEStepRepaintGuider(comfy.samplers.CFGGuider):
     def sample(self, noise, latent_image, sampler, sigmas, denoise_mask=None, callback=None, disable_pbar=False, seed=None):
         """Override sample to implement repaint logic"""
 
-        print(f"[REPAINT_GUIDER] sample() called")
-        print(f"[REPAINT_GUIDER]   noise.shape: {noise.shape}")
-        print(f"[REPAINT_GUIDER]   latent_image.shape: {latent_image.shape}")
-        print(f"[REPAINT_GUIDER]   self.is_v1_5: {self.is_v1_5}")
-        print(f"[REPAINT_GUIDER]   self.version: {self.version}")
-        print(f"[REPAINT_GUIDER]   self.source_latent.shape: {self.source_latent.shape}")
-        print(f"[REPAINT_GUIDER]   self.repaint_mask.shape: {self.repaint_mask.shape}")
+        logger.debug(f"[REPAINT_GUIDER] sample() called")
+        logger.debug(f"[REPAINT_GUIDER]   noise.shape: {noise.shape}")
+        logger.debug(f"[REPAINT_GUIDER]   latent_image.shape: {latent_image.shape}")
+        logger.debug(f"[REPAINT_GUIDER]   self.is_v1_5: {self.is_v1_5}")
+        logger.debug(f"[REPAINT_GUIDER]   self.version: {self.version}")
+        logger.debug(f"[REPAINT_GUIDER]   self.source_latent.shape: {self.source_latent.shape}")
+        logger.debug(f"[REPAINT_GUIDER]   self.repaint_mask.shape: {self.repaint_mask.shape}")
 
         # Calculate n_min
         total_steps = len(sigmas) - 1
@@ -913,17 +914,17 @@ class ACEStepExtendGuider(comfy.samplers.CFGGuider):
     def sample(self, noise, latent_image, sampler, sigmas, denoise_mask=None, callback=None, disable_pbar=False, seed=None):
         """Override sample to implement extend logic exactly matching community implementation"""
 
-        print(f"[EXTEND_GUIDER] sample() called")
-        print(f"[EXTEND_GUIDER]   noise.shape: {noise.shape}")
-        print(f"[EXTEND_GUIDER]   latent_image.shape: {latent_image.shape}")
-        print(f"[EXTEND_GUIDER]   self.is_v1_5: {self.is_v1_5}")
-        print(f"[EXTEND_GUIDER]   self.version: {self.version}")
-        print(f"[EXTEND_GUIDER]   self.extended_latent.shape: {self.extended_latent.shape}")
-        print(f"[EXTEND_GUIDER]   self.source_latent.shape: {self.source_latent.shape}")
-        print(f"[EXTEND_GUIDER]   self.left_frames: {self.left_frames}")
-        print(f"[EXTEND_GUIDER]   self.right_frames: {self.right_frames}")
-        print(f"[EXTEND_GUIDER]   self.left_trim_length: {self.left_trim_length}")
-        print(f"[EXTEND_GUIDER]   self.right_trim_length: {self.right_trim_length}")
+        logger.debug(f"[EXTEND_GUIDER] sample() called")
+        logger.debug(f"[EXTEND_GUIDER]   noise.shape: {noise.shape}")
+        logger.debug(f"[EXTEND_GUIDER]   latent_image.shape: {latent_image.shape}")
+        logger.debug(f"[EXTEND_GUIDER]   self.is_v1_5: {self.is_v1_5}")
+        logger.debug(f"[EXTEND_GUIDER]   self.version: {self.version}")
+        logger.debug(f"[EXTEND_GUIDER]   self.extended_latent.shape: {self.extended_latent.shape}")
+        logger.debug(f"[EXTEND_GUIDER]   self.source_latent.shape: {self.source_latent.shape}")
+        logger.debug(f"[EXTEND_GUIDER]   self.left_frames: {self.left_frames}")
+        logger.debug(f"[EXTEND_GUIDER]   self.right_frames: {self.right_frames}")
+        logger.debug(f"[EXTEND_GUIDER]   self.left_trim_length: {self.left_trim_length}")
+        logger.debug(f"[EXTEND_GUIDER]   self.right_trim_length: {self.right_trim_length}")
 
         device = noise.device
         dtype = noise.dtype
@@ -931,12 +932,12 @@ class ACEStepExtendGuider(comfy.samplers.CFGGuider):
         # Generate retake_latents - separate noise for extended regions (matches community)
         # Community uses randn_tensor with retake_random_generators, we approximate with randn_like
         retake_latents = torch.randn_like(self.extended_latent, device=device, dtype=dtype)
-        print(f"[EXTEND_GUIDER]   retake_latents.shape: {retake_latents.shape}")
+        logger.debug(f"[EXTEND_GUIDER]   retake_latents.shape: {retake_latents.shape}")
 
         # Generate target_latents for the FULL extended duration (this is what community does)
         # Community generates target_latents for the full frame_length, then slices it
         target_latents_full = torch.randn_like(self.extended_latent, device=device, dtype=dtype)
-        print(f"[EXTEND_GUIDER]   target_latents_full.shape: {target_latents_full.shape}")
+        logger.debug(f"[EXTEND_GUIDER]   target_latents_full.shape: {target_latents_full.shape}")
 
         # Create target_latents by concatenating pieces EXACTLY like community implementation
         # Community code lines 768-775: proper slicing with trimming
@@ -945,7 +946,7 @@ class ACEStepExtendGuider(comfy.samplers.CFGGuider):
         # Left extension: use retake_latents directly
         if self.left_frames > 0:
             actual_left_frames = min(self.left_frames, retake_latents.shape[-1])
-            print(f"[EXTEND_GUIDER]   LEFT: actual_left_frames={actual_left_frames}")
+            logger.debug(f"[EXTEND_GUIDER]   LEFT: actual_left_frames={actual_left_frames}")
             # v1.5 is 3D, v1.0 is 4D - use appropriate indexing
             if self.is_v1_5:
                 padd_list.append(retake_latents[:, :, :actual_left_frames])
@@ -956,20 +957,20 @@ class ACEStepExtendGuider(comfy.samplers.CFGGuider):
         # Community: target_latents[left_trim_length : target_latents.shape[-1] - right_trim_length]
         middle_start = self.left_trim_length
         middle_end = target_latents_full.shape[-1] - self.right_trim_length
-        print(f"[EXTEND_GUIDER]   MIDDLE: middle_start={middle_start}, middle_end={middle_end}")
+        logger.debug(f"[EXTEND_GUIDER]   MIDDLE: middle_start={middle_start}, middle_end={middle_end}")
 
         # v1.5 is 3D, v1.0 is 4D - use appropriate indexing
         if self.is_v1_5:
             middle_slice = target_latents_full[:, :, middle_start:middle_end]
         else:
             middle_slice = target_latents_full[:, :, :, middle_start:middle_end]
-        print(f"[EXTEND_GUIDER]   middle_slice.shape after slicing: {middle_slice.shape}")
+        logger.debug(f"[EXTEND_GUIDER]   middle_slice.shape after slicing: {middle_slice.shape}")
 
         # The middle slice should match the original source latent length
         # We need to trim it to match the source latent size
         if middle_slice.shape[-1] > self.src_latents_length:
             # Trim to source length
-            print(f"[EXTEND_GUIDER]   Trimming middle_slice from {middle_slice.shape[-1]} to {self.src_latents_length}")
+            logger.debug(f"[EXTEND_GUIDER]   Trimming middle_slice from {middle_slice.shape[-1]} to {self.src_latents_length}")
             if self.is_v1_5:
                 middle_slice = middle_slice[:, :, :self.src_latents_length]
             else:
@@ -977,16 +978,16 @@ class ACEStepExtendGuider(comfy.samplers.CFGGuider):
         elif middle_slice.shape[-1] < self.src_latents_length:
             # This shouldn't happen in normal cases, but pad if needed
             padding_needed = self.src_latents_length - middle_slice.shape[-1]
-            print(f"[EXTEND_GUIDER]   Padding middle_slice by {padding_needed}")
+            logger.debug(f"[EXTEND_GUIDER]   Padding middle_slice by {padding_needed}")
             middle_slice = torch.nn.functional.pad(middle_slice, (0, padding_needed), "constant", 0.0)
 
-        print(f"[EXTEND_GUIDER]   middle_slice.shape final: {middle_slice.shape}")
+        logger.debug(f"[EXTEND_GUIDER]   middle_slice.shape final: {middle_slice.shape}")
         padd_list.append(middle_slice)
 
         # Right extension: use retake_latents directly
         if self.right_frames > 0:
             actual_right_frames = min(self.right_frames, retake_latents.shape[-1])
-            print(f"[EXTEND_GUIDER]   RIGHT: actual_right_frames={actual_right_frames}")
+            logger.debug(f"[EXTEND_GUIDER]   RIGHT: actual_right_frames={actual_right_frames}")
             # v1.5 is 3D, v1.0 is 4D - use appropriate indexing
             if self.is_v1_5:
                 padd_list.append(retake_latents[:, :, -actual_right_frames:])
@@ -1223,16 +1224,16 @@ class ACEStepHybridGuider(comfy.samplers.CFGGuider):
     def sample(self, noise, latent_image, sampler, sigmas, denoise_mask=None, callback=None, disable_pbar=False, seed=None):
         """Override sample to handle hybrid repaint+extend logic"""
 
-        print(f"[HYBRID_GUIDER] sample() called")
-        print(f"[HYBRID_GUIDER]   noise.shape: {noise.shape}")
-        print(f"[HYBRID_GUIDER]   latent_image.shape: {latent_image.shape}")
-        print(f"[HYBRID_GUIDER]   self.is_v1_5: {self.is_v1_5}")
-        print(f"[HYBRID_GUIDER]   self.has_extend: {self.has_extend}")
-        print(f"[HYBRID_GUIDER]   self.has_repaint: {self.has_repaint}")
+        logger.debug(f"[HYBRID_GUIDER] sample() called")
+        logger.debug(f"[HYBRID_GUIDER]   noise.shape: {noise.shape}")
+        logger.debug(f"[HYBRID_GUIDER]   latent_image.shape: {latent_image.shape}")
+        logger.debug(f"[HYBRID_GUIDER]   self.is_v1_5: {self.is_v1_5}")
+        logger.debug(f"[HYBRID_GUIDER]   self.has_extend: {self.has_extend}")
+        logger.debug(f"[HYBRID_GUIDER]   self.has_repaint: {self.has_repaint}")
 
         # Use extended latent (which equals source latent if no extend)
         working_latent = self.extended_latent
-        print(f"[HYBRID_GUIDER]   working_latent.shape: {working_latent.shape}")
+        logger.debug(f"[HYBRID_GUIDER]   working_latent.shape: {working_latent.shape}")
 
         # Generate noise for working shape
         if self.has_extend:
@@ -1293,7 +1294,7 @@ class ACEStepHybridGuider(comfy.samplers.CFGGuider):
                         padd_list.append(retake_noise[:, :, :, -actual_right_frames:])
 
                 working_noise = torch.cat(padd_list, dim=-1)
-                print(f"[HYBRID_GUIDER]   working_noise.shape: {working_noise.shape}")
+                logger.debug(f"[HYBRID_GUIDER]   working_noise.shape: {working_noise.shape}")
 
                 # Ensure working_noise matches working_latent shape
                 assert working_noise.shape[-1] == working_latent.shape[-1], \
