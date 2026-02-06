@@ -1,8 +1,6 @@
 import torch
-import os
 import comfy.model_management
 import comfy.samplers
-import folder_paths
 
 # Import patches module to apply ACE-Step 1.5 patches
 from . import patches
@@ -39,89 +37,6 @@ def validate_audio_latent(latents):
     return False
 
 
-class ACEStep15SilenceLatentLoader:
-    """
-    Loads the ACE-Step 1.5 silence_latent tensor required for repaint and lego tasks.
-
-    The silence_latent is a LEARNED tensor that represents "silence" in the latent space.
-    It is NOT zeros - it's a specific tensor that the model was trained with.
-
-    Downloads automatically from HuggingFace on first use.
-    """
-
-    # HuggingFace URL for silence_latent.pt
-    SILENCE_LATENT_URL = "https://huggingface.co/ACE-Step/Ace-Step1.5/resolve/main/acestep-v15-turbo/silence_latent.pt"
-
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {}
-        }
-
-    RETURN_TYPES = ("SILENCE_LATENT",)
-    RETURN_NAMES = ("silence_latent",)
-    FUNCTION = "load"
-    CATEGORY = "audio/acestep"
-
-    @classmethod
-    def get_silence_latent_path(cls):
-        """Get the path where silence_latent.pt should be stored."""
-        # Use ComfyUI's models directory structure
-        models_dir = folder_paths.models_dir
-        ace_step_dir = os.path.join(models_dir, "ace_step")
-        return os.path.join(ace_step_dir, "silence_latent.pt")
-
-    @classmethod
-    def download_silence_latent(cls):
-        """Download silence_latent.pt from HuggingFace."""
-        import urllib.request
-
-        silence_latent_path = cls.get_silence_latent_path()
-        ace_step_dir = os.path.dirname(silence_latent_path)
-
-        # Create directory if it doesn't exist
-        os.makedirs(ace_step_dir, exist_ok=True)
-
-        print(f"[ACE-Step] Downloading silence_latent.pt from HuggingFace...")
-        print(f"[ACE-Step]   URL: {cls.SILENCE_LATENT_URL}")
-        print(f"[ACE-Step]   Destination: {silence_latent_path}")
-
-        try:
-            urllib.request.urlretrieve(cls.SILENCE_LATENT_URL, silence_latent_path)
-            print(f"[ACE-Step] Download complete!")
-            return True
-        except Exception as e:
-            print(f"[ACE-Step] ERROR: Failed to download silence_latent.pt: {e}")
-            return False
-
-    def load(self):
-        """Load the silence_latent tensor, downloading if necessary."""
-        silence_latent_path = self.get_silence_latent_path()
-
-        # Download if not exists
-        if not os.path.exists(silence_latent_path):
-            success = self.download_silence_latent()
-            if not success:
-                raise RuntimeError(
-                    f"Failed to download silence_latent.pt. Please manually download from:\n"
-                    f"  {self.SILENCE_LATENT_URL}\n"
-                    f"and place it at:\n"
-                    f"  {silence_latent_path}"
-                )
-
-        # Load the tensor
-        print(f"[ACE-Step] Loading silence_latent from {silence_latent_path}")
-        silence_latent = torch.load(silence_latent_path, map_location="cpu", weights_only=True)
-
-        # Transpose from [1, D, T] to [1, T, D] as per reference implementation
-        # handler.py line 465: self.silence_latent = torch.load(silence_latent_path).transpose(1, 2)
-        silence_latent = silence_latent.transpose(1, 2)
-
-        print(f"[ACE-Step] silence_latent loaded, shape: {silence_latent.shape}")
-
-        return (silence_latent,)
-
-
 class ACEStep15SemanticExtractor:
     """
     Extracts semantic tokens from source audio latents for use with Cover/Extract tasks.
@@ -129,10 +44,13 @@ class ACEStep15SemanticExtractor:
     The ACE-Step 1.5 model uses semantic tokens (lm_hints) as structural guidance
     for tasks like Cover and Extract. This node extracts those tokens from VAE latents.
 
-    Flow: VAE latents → tokenizer → indices → quantizer → detokenizer → semantic_hints
+    Flow: VAE latents → tokenizer → quantized → detokenizer → semantic_hints
 
-    Use the output with ACE-Step 1.5 Cover Guider or Extract Guider for proper
-    style transfer behavior.
+    Use the output with ACE-Step 1.5 Cover Guider or Extract Guider for creative
+    workflows like blending semantic hints from multiple sources.
+
+    Note: Cover and Extract guiders will auto-extract semantic hints if not provided.
+    This node is useful for advanced workflows like semantic hint blending.
     """
 
     @classmethod
@@ -150,87 +68,70 @@ class ACEStep15SemanticExtractor:
     CATEGORY = "audio/acestep"
 
     def extract(self, model, source_latents):
+        from .ace_step_utils import extract_semantic_hints
+
         source_tensor = source_latents["samples"]
+        print(f"[ACE15_SEMANTIC_EXTRACTOR] Extracting semantic hints from shape {source_tensor.shape}")
 
-        # Validate v1.5 shape: (batch, 64, length)
-        if len(source_tensor.shape) != 3 or source_tensor.shape[1] != 64:
-            raise ValueError(f"ACE-Step 1.5 requires latent shape (batch, 64, length), got {source_tensor.shape}")
-
-        print(f"[ACE15_SEMANTIC_EXTRACTOR] Extracting semantic hints")
-        print(f"[ACE15_SEMANTIC_EXTRACTOR]   source_tensor.shape: {source_tensor.shape}")
-
-        # Debug: Print model structure
-        print(f"[ACE15_SEMANTIC_EXTRACTOR]   model type: {type(model)}")
-        print(f"[ACE15_SEMANTIC_EXTRACTOR]   model.__class__.__name__: {model.__class__.__name__}")
-        if hasattr(model, 'model'):
-            print(f"[ACE15_SEMANTIC_EXTRACTOR]   model.model type: {type(model.model)}")
-            print(f"[ACE15_SEMANTIC_EXTRACTOR]   model.model.__class__.__name__: {model.model.__class__.__name__}")
-            if hasattr(model.model, 'diffusion_model'):
-                print(f"[ACE15_SEMANTIC_EXTRACTOR]   model.model.diffusion_model type: {type(model.model.diffusion_model)}")
-                print(f"[ACE15_SEMANTIC_EXTRACTOR]   model.model.diffusion_model.__class__.__name__: {model.model.diffusion_model.__class__.__name__}")
-
-        # Get the diffusion model (AceStepConditionGenerationModel)
-        # It has .tokenizer and .detokenizer attributes
-        diffusion_model = model.model.diffusion_model
-
-        if not hasattr(diffusion_model, 'tokenizer') or not hasattr(diffusion_model, 'detokenizer'):
-            raise RuntimeError(
-                "Model does not have tokenizer/detokenizer. "
-                "Make sure you're using an ACE-Step 1.5 model."
-            )
-
-        # Load model to GPU using ComfyUI's model management
-        # Pass the ModelPatcher (model), not the raw model (model.model)
-        print(f"[ACE15_SEMANTIC_EXTRACTOR]   Loading model to GPU...")
-        comfy.model_management.load_model_gpu(model)
-
-        device = comfy.model_management.get_torch_device()
-        dtype = model.model.get_dtype()
-
-        print(f"[ACE15_SEMANTIC_EXTRACTOR]   device: {device}, dtype: {dtype}")
-
-        # Move source tensor to model device/dtype
-        # Source is in ComfyUI format: [B, D, T] = [B, 64, length]
-        # Tokenizer expects: [B, T, D] = [B, length, 64]
-        source_on_device = source_tensor.to(device=device, dtype=dtype)
-        source_transposed = source_on_device.movedim(-1, -2)  # [B, T, D]
-
-        print(f"[ACE15_SEMANTIC_EXTRACTOR]   source_transposed.shape: {source_transposed.shape}")
-        print(f"[ACE15_SEMANTIC_EXTRACTOR]   source stats: mean={source_transposed.mean():.4f}, std={source_transposed.std():.4f}, min={source_transposed.min():.4f}, max={source_transposed.max():.4f}")
-
-        # Verify tokenizer/detokenizer weights are on GPU
-        tokenizer_device = next(diffusion_model.tokenizer.parameters()).device
-        detokenizer_device = next(diffusion_model.detokenizer.parameters()).device
-        print(f"[ACE15_SEMANTIC_EXTRACTOR]   tokenizer weights on: {tokenizer_device}")
-        print(f"[ACE15_SEMANTIC_EXTRACTOR]   detokenizer weights on: {detokenizer_device}")
-
-        # Step 1: Tokenize - get quantized embeddings at 5Hz
-        # tokenizer.tokenize() handles the window pooling internally
-        # Returns: quantized [B, T/5, hidden_size], indices [B, T/5, num_quantizers]
-        with torch.no_grad():
-            quantized, indices = diffusion_model.tokenizer.tokenize(source_transposed)
-
-        print(f"[ACE15_SEMANTIC_EXTRACTOR]   quantized.shape: {quantized.shape}")
-        print(f"[ACE15_SEMANTIC_EXTRACTOR]   quantized stats: mean={quantized.mean():.4f}, std={quantized.std():.4f}, min={quantized.min():.4f}, max={quantized.max():.4f}")
-        print(f"[ACE15_SEMANTIC_EXTRACTOR]   indices.shape: {indices.shape}")
-
-        # Step 2: Detokenize - upsample from 5Hz to 25Hz
-        # FIX: Use quantized directly instead of going through get_output_from_indices
-        # This avoids potential precision loss from the redundant index lookup
-        with torch.no_grad():
-            lm_hints = diffusion_model.detokenizer(quantized)
-
-        print(f"[ACE15_SEMANTIC_EXTRACTOR]   lm_hints.shape: {lm_hints.shape}")
-        print(f"[ACE15_SEMANTIC_EXTRACTOR]   lm_hints stats: mean={lm_hints.mean():.4f}, std={lm_hints.std():.4f}, min={lm_hints.min():.4f}, max={lm_hints.max():.4f}")
-
-        # Transpose back to ComfyUI format: [B, T, D] → [B, D, T]
-        semantic_hints = lm_hints.movedim(-1, -2)
-        print(f"[ACE15_SEMANTIC_EXTRACTOR]   semantic_hints.shape (output): {semantic_hints.shape}")
+        # Use shared utility function
+        semantic_hints = extract_semantic_hints(model, source_tensor, verbose=True)
 
         # Move to CPU for storage
         semantic_hints = semantic_hints.cpu()
 
         return (semantic_hints,)
+
+
+class ACEStep15SemanticHintsBlend:
+    """
+    Blends semantic hints from two sources for creative mashups.
+
+    Use this to:
+    - Create song mashups by blending structure from two sources
+    - Interpolate between musical structures
+    - Create hybrid compositions
+
+    blend_factor: 0.0 = 100% hints_a, 1.0 = 100% hints_b, 0.5 = 50/50 mix
+
+    TODO: Enhance with feature system for temporal blending, crossfades,
+    and region-based masking.
+    """
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "hints_a": ("SEMANTIC_HINTS",),
+                "hints_b": ("SEMANTIC_HINTS",),
+                "blend_factor": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            }
+        }
+
+    RETURN_TYPES = ("SEMANTIC_HINTS",)
+    RETURN_NAMES = ("blended_hints",)
+    FUNCTION = "blend"
+    CATEGORY = "audio/acestep"
+
+    def blend(self, hints_a, hints_b, blend_factor):
+        # Validate shapes match
+        if hints_a.shape != hints_b.shape:
+            # Try to match lengths by truncating to shorter
+            min_length = min(hints_a.shape[-1], hints_b.shape[-1])
+            hints_a = hints_a[..., :min_length]
+            hints_b = hints_b[..., :min_length]
+            print(f"[SEMANTIC_BLEND] Truncated to common length: {min_length}")
+
+        print(f"[SEMANTIC_BLEND] Blending hints")
+        print(f"[SEMANTIC_BLEND]   hints_a shape: {hints_a.shape}, stats: mean={hints_a.mean():.4f}, std={hints_a.std():.4f}")
+        print(f"[SEMANTIC_BLEND]   hints_b shape: {hints_b.shape}, stats: mean={hints_b.mean():.4f}, std={hints_b.std():.4f}")
+        print(f"[SEMANTIC_BLEND]   blend_factor: {blend_factor} (0=A, 1=B)")
+
+        # Simple linear interpolation
+        blended = (1.0 - blend_factor) * hints_a + blend_factor * hints_b
+
+        print(f"[SEMANTIC_BLEND]   result stats: mean={blended.mean():.4f}, std={blended.std():.4f}")
+
+        return (blended,)
 
 
 class ACEStepRepaintGuiderNode:
@@ -756,9 +657,8 @@ class ACEStep15NativeEditGuiderNode:
     - Repaint: Set repaint_start_seconds and repaint_end_seconds (repaint_end > repaint_start)
     - Both: Combine extend and repaint in a single operation
 
-    IMPORTANT: Requires silence_latent from ACEStep15SilenceLatentLoader.
-    The silence_latent is a learned tensor that tells the model to generate
-    new content in the specified regions.
+    The silence_latent is automatically loaded internally (downloaded from HuggingFace
+    on first use). It's a learned tensor that tells the model to generate new content.
     """
 
     @classmethod
@@ -769,7 +669,6 @@ class ACEStep15NativeEditGuiderNode:
                 "positive": ("CONDITIONING",),
                 "negative": ("CONDITIONING",),
                 "source_latents": ("LATENT",),
-                "silence_latent": ("SILENCE_LATENT",),
                 "cfg": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01}),
             },
             "optional": {
@@ -785,7 +684,7 @@ class ACEStep15NativeEditGuiderNode:
     FUNCTION = "get_guider"
     CATEGORY = "sampling/custom_sampling/guiders"
 
-    def get_guider(self, model, positive, negative, source_latents, silence_latent, cfg,
+    def get_guider(self, model, positive, negative, source_latents, cfg,
                    extend_left_seconds=0.0, extend_right_seconds=0.0,
                    repaint_start_seconds=-1.0, repaint_end_seconds=-1.0):
 
@@ -808,17 +707,15 @@ class ACEStep15NativeEditGuiderNode:
 
         print(f"[ACE15_EDIT_NODE] Creating guider")
         print(f"[ACE15_EDIT_NODE]   source_tensor.shape: {source_tensor.shape}")
-        print(f"[ACE15_EDIT_NODE]   silence_latent.shape: {silence_latent.shape}")
         if has_extend:
             print(f"[ACE15_EDIT_NODE]   extend: left={extend_left_seconds}s, right={extend_right_seconds}s")
         if has_repaint:
             print(f"[ACE15_EDIT_NODE]   repaint: {repaint_start_seconds}s - {repaint_end_seconds}s")
 
-        # Create the unified guider
+        # Create the unified guider (silence_latent is loaded internally)
         guider = ACEStep15NativeEditGuider(
             model, positive, negative, cfg,
             source_tensor,
-            silence_latent,
             extend_left_seconds=extend_left_seconds,
             extend_right_seconds=extend_right_seconds,
             repaint_start_seconds=repaint_start,
@@ -838,8 +735,9 @@ class ACEStep15NativeCoverGuiderNode:
     Uses semantic tokens from the source audio as structural guidance while
     generating new content with a different style/timbre.
 
-    IMPORTANT: For proper cover behavior, connect semantic_hints from ACEStep15SemanticExtractor.
-    Without semantic_hints, falls back to using raw VAE latents (less accurate style transfer).
+    Semantic hints are automatically extracted if not provided. For advanced
+    workflows like blending hints from multiple sources, use the Semantic
+    Extractor and Semantic Hints Blend nodes.
     """
 
     @classmethod
@@ -871,9 +769,9 @@ class ACEStep15NativeCoverGuiderNode:
         print(f"[ACE15_COVER_NODE] Creating guider")
         print(f"[ACE15_COVER_NODE]   source_tensor.shape: {source_tensor.shape}")
         if semantic_hints is not None:
-            print(f"[ACE15_COVER_NODE]   semantic_hints.shape: {semantic_hints.shape}")
+            print(f"[ACE15_COVER_NODE]   semantic_hints provided externally: {semantic_hints.shape}")
         else:
-            print(f"[ACE15_COVER_NODE]   WARNING: No semantic_hints provided - using fallback mode")
+            print(f"[ACE15_COVER_NODE]   semantic_hints will be auto-extracted")
 
         guider = ACEStep15NativeCoverGuider(
             model, positive, negative, cfg, source_tensor, semantic_hints
@@ -889,7 +787,8 @@ class ACEStep15NativeExtractGuiderNode:
     Extracts a specific track (vocals, drums, bass, etc.) from the source audio.
     Use with the ACEStep15TaskTextEncode node with task_type="extract".
 
-    IMPORTANT: For proper extract behavior, connect semantic_hints from ACEStep15SemanticExtractor.
+    Semantic hints are automatically extracted if not provided. For advanced
+    workflows, use the Semantic Extractor node.
     """
 
     @classmethod
@@ -924,7 +823,9 @@ class ACEStep15NativeExtractGuiderNode:
         print(f"[ACE15_EXTRACT_NODE]   source_tensor.shape: {source_tensor.shape}")
         print(f"[ACE15_EXTRACT_NODE]   track_name: {track_name}")
         if semantic_hints is not None:
-            print(f"[ACE15_EXTRACT_NODE]   semantic_hints.shape: {semantic_hints.shape}")
+            print(f"[ACE15_EXTRACT_NODE]   semantic_hints provided externally: {semantic_hints.shape}")
+        else:
+            print(f"[ACE15_EXTRACT_NODE]   semantic_hints will be auto-extracted")
 
         guider = ACEStep15NativeExtractGuider(
             model, positive, negative, cfg, source_tensor, track_name, semantic_hints
@@ -941,9 +842,8 @@ class ACEStep15NativeLegoGuiderNode:
     preserving the rest. Useful for adding instruments to existing audio.
     Use with the ACEStep15TaskTextEncode node with task_type="lego".
 
-    IMPORTANT: Requires silence_latent from ACEStep15SilenceLatentLoader.
-    The silence_latent is a learned tensor that tells the model to generate
-    new content in the lego region.
+    The silence_latent is automatically loaded internally (downloaded from HuggingFace
+    on first use). It's a learned tensor that tells the model to generate new content.
     """
 
     @classmethod
@@ -955,7 +855,6 @@ class ACEStep15NativeLegoGuiderNode:
                 "negative": ("CONDITIONING",),
                 "cfg": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01}),
                 "source_latents": ("LATENT",),
-                "silence_latent": ("SILENCE_LATENT",),
                 "track_name": (["vocals", "drums", "bass", "guitar", "keyboard", "strings",
                                "percussion", "synth", "fx", "brass", "woodwinds", "backing_vocals"],),
                 "start_seconds": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1000.0, "step": 0.1}),
@@ -968,7 +867,7 @@ class ACEStep15NativeLegoGuiderNode:
     CATEGORY = "sampling/custom_sampling/guiders"
 
     def get_guider(self, model, positive, negative, cfg, source_latents,
-                   silence_latent, track_name, start_seconds, end_seconds):
+                   track_name, start_seconds, end_seconds):
         if start_seconds >= end_seconds:
             raise ValueError(f"start_seconds ({start_seconds}) must be less than end_seconds ({end_seconds})")
 
@@ -980,13 +879,13 @@ class ACEStep15NativeLegoGuiderNode:
 
         print(f"[ACE15_LEGO_NODE] Creating guider")
         print(f"[ACE15_LEGO_NODE]   source_tensor.shape: {source_tensor.shape}")
-        print(f"[ACE15_LEGO_NODE]   silence_latent.shape: {silence_latent.shape}")
         print(f"[ACE15_LEGO_NODE]   track_name: {track_name}")
         print(f"[ACE15_LEGO_NODE]   region: {start_seconds}s - {end_seconds}s")
 
+        # Create guider (silence_latent is loaded internally)
         guider = ACEStep15NativeLegoGuider(
             model, positive, negative, cfg, source_tensor,
-            silence_latent, track_name, start_seconds, end_seconds
+            track_name, start_seconds, end_seconds
         )
 
         return (guider,)
@@ -1125,10 +1024,9 @@ NODE_CLASS_MAPPINGS = {
     "ACEStepTimeRange": ACEStepTimeRangeNode,
     "ACEStepMaskVisualizer": ACEStepMaskVisualizerNode,
     "ACEStepAudioPostProcessor": ACEStepAudioPostProcessor,
-    # ACE-Step 1.5 loaders
-    "ACEStep15SilenceLatentLoader": ACEStep15SilenceLatentLoader,
-    # ACE-Step 1.5 semantic extraction
+    # ACE-Step 1.5 semantic extraction and blending
     "ACEStep15SemanticExtractor": ACEStep15SemanticExtractor,
+    "ACEStep15SemanticHintsBlend": ACEStep15SemanticHintsBlend,
     # ACE-Step 1.5 guiders (model-level mask input)
     "ACEStep15NativeEditGuider": ACEStep15NativeEditGuiderNode,
     "ACEStep15NativeCoverGuider": ACEStep15NativeCoverGuiderNode,
@@ -1150,10 +1048,9 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ACEStepTimeRange": "ACEStep Time Range",
     "ACEStepMaskVisualizer": "ACEStep Mask Visualizer",
     "ACEStepAudioPostProcessor": "ACEStep Audio Post Processor",
-    # ACE-Step 1.5 loaders
-    "ACEStep15SilenceLatentLoader": "ACE-Step 1.5 Load Silence Latent",
-    # ACE-Step 1.5 semantic extraction
+    # ACE-Step 1.5 semantic extraction and blending
     "ACEStep15SemanticExtractor": "ACE-Step 1.5 Semantic Extractor",
+    "ACEStep15SemanticHintsBlend": "ACE-Step 1.5 Semantic Hints Blend",
     # ACE-Step 1.5 guiders
     "ACEStep15NativeEditGuider": "ACE-Step 1.5 Edit Guider (Extend/Repaint)",
     "ACEStep15NativeCoverGuider": "ACE-Step 1.5 Cover Guider",

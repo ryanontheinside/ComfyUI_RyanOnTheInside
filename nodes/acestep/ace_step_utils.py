@@ -1,6 +1,172 @@
 import torch
 import torch.nn.functional as F
 import math
+import os
+import comfy.model_management
+import folder_paths
+
+# Module-level cache for silence_latent (loaded once per session)
+_silence_latent_cache = None
+
+# HuggingFace URL for silence_latent.pt
+SILENCE_LATENT_URL = "https://huggingface.co/ACE-Step/Ace-Step1.5/resolve/main/acestep-v15-turbo/silence_latent.pt"
+
+
+def get_silence_latent_path():
+    """Get the path where silence_latent.pt should be stored."""
+    models_dir = folder_paths.models_dir
+    ace_step_dir = os.path.join(models_dir, "ace_step")
+    return os.path.join(ace_step_dir, "silence_latent.pt")
+
+
+def download_silence_latent():
+    """Download silence_latent.pt from HuggingFace."""
+    import urllib.request
+
+    silence_latent_path = get_silence_latent_path()
+    ace_step_dir = os.path.dirname(silence_latent_path)
+
+    # Create directory if it doesn't exist
+    os.makedirs(ace_step_dir, exist_ok=True)
+
+    print(f"[ACE-Step] Downloading silence_latent.pt from HuggingFace...")
+    print(f"[ACE-Step]   URL: {SILENCE_LATENT_URL}")
+    print(f"[ACE-Step]   Destination: {silence_latent_path}")
+
+    try:
+        urllib.request.urlretrieve(SILENCE_LATENT_URL, silence_latent_path)
+        print(f"[ACE-Step] Download complete!")
+        return True
+    except Exception as e:
+        print(f"[ACE-Step] ERROR: Failed to download silence_latent.pt: {e}")
+        return False
+
+
+def load_silence_latent(verbose=True):
+    """
+    Load the silence_latent tensor, downloading if necessary.
+
+    The silence_latent is a LEARNED tensor that represents "silence" in the latent space.
+    It is NOT zeros - it's a specific tensor that the model was trained with.
+    This tells the model to "generate new content here".
+
+    Returns:
+        torch.Tensor: silence_latent in shape [1, T, D] (transposed from file)
+    """
+    global _silence_latent_cache
+
+    # Return cached version if available
+    if _silence_latent_cache is not None:
+        if verbose:
+            print(f"[ACE-Step] Using cached silence_latent, shape: {_silence_latent_cache.shape}")
+        return _silence_latent_cache
+
+    silence_latent_path = get_silence_latent_path()
+
+    # Download if not exists
+    if not os.path.exists(silence_latent_path):
+        success = download_silence_latent()
+        if not success:
+            raise RuntimeError(
+                f"Failed to download silence_latent.pt. Please manually download from:\n"
+                f"  {SILENCE_LATENT_URL}\n"
+                f"and place it at:\n"
+                f"  {silence_latent_path}"
+            )
+
+    # Load the tensor
+    if verbose:
+        print(f"[ACE-Step] Loading silence_latent from {silence_latent_path}")
+    silence_latent = torch.load(silence_latent_path, map_location="cpu", weights_only=True)
+
+    # Transpose from [1, D, T] to [1, T, D] as per reference implementation
+    # handler.py line 465: self.silence_latent = torch.load(silence_latent_path).transpose(1, 2)
+    silence_latent = silence_latent.transpose(1, 2)
+
+    if verbose:
+        print(f"[ACE-Step] silence_latent loaded, shape: {silence_latent.shape}")
+
+    # Cache for future use
+    _silence_latent_cache = silence_latent
+
+    return silence_latent
+
+
+def extract_semantic_hints(model, source_latent, verbose=True):
+    """
+    Extract semantic hints from source audio latents for Cover/Extract tasks.
+
+    This extracts the semantic structure of the audio (rhythm, melody, harmony)
+    while abstracting away the timbre. Used by Cover and Extract guiders.
+
+    Args:
+        model: ComfyUI ModelPatcher wrapping the ACE-Step 1.5 model
+        source_latent: Source audio latent in ComfyUI format [B, 64, T]
+        verbose: Whether to print diagnostic information
+
+    Returns:
+        torch.Tensor: Semantic hints in ComfyUI format [B, 64, T]
+    """
+    prefix = "[SEMANTIC_EXTRACT]" if verbose else None
+
+    # Validate v1.5 shape: (batch, 64, length)
+    if len(source_latent.shape) != 3 or source_latent.shape[1] != 64:
+        raise ValueError(f"ACE-Step 1.5 requires latent shape (batch, 64, length), got {source_latent.shape}")
+
+    # Get the diffusion model (AceStepConditionGenerationModel)
+    diffusion_model = model.model.diffusion_model
+
+    if not hasattr(diffusion_model, 'tokenizer') or not hasattr(diffusion_model, 'detokenizer'):
+        raise RuntimeError(
+            "Model does not have tokenizer/detokenizer. "
+            "Make sure you're using an ACE-Step 1.5 model."
+        )
+
+    # Load model to GPU
+    comfy.model_management.load_model_gpu(model)
+
+    device = comfy.model_management.get_torch_device()
+    dtype = model.model.get_dtype()
+
+    # Move source tensor to model device/dtype
+    # Source is in ComfyUI format: [B, D, T] = [B, 64, length]
+    # Tokenizer expects: [B, T, D] = [B, length, 64]
+    source_on_device = source_latent.to(device=device, dtype=dtype)
+    source_transposed = source_on_device.movedim(-1, -2)  # [B, T, D]
+
+    if verbose:
+        print(f"{prefix} Extracting from source shape: {source_latent.shape}")
+        print(f"{prefix}   source stats: mean={source_transposed.mean():.4f}, std={source_transposed.std():.4f}")
+
+    # Verify weights are on GPU
+    tokenizer_device = next(diffusion_model.tokenizer.parameters()).device
+    if verbose:
+        print(f"{prefix}   tokenizer on: {tokenizer_device}, target: {device}")
+
+    # Step 1: Tokenize - get quantized embeddings at 5Hz
+    with torch.no_grad():
+        quantized, indices = diffusion_model.tokenizer.tokenize(source_transposed)
+
+    if verbose:
+        print(f"{prefix}   quantized shape: {quantized.shape}")
+        print(f"{prefix}   quantized stats: mean={quantized.mean():.4f}, std={quantized.std():.4f}")
+
+    # Step 2: Detokenize - upsample from 5Hz to 25Hz
+    # Use quantized directly (not get_output_from_indices) to avoid redundant computation
+    with torch.no_grad():
+        lm_hints = diffusion_model.detokenizer(quantized)
+
+    if verbose:
+        print(f"{prefix}   lm_hints shape: {lm_hints.shape}")
+        print(f"{prefix}   lm_hints stats: mean={lm_hints.mean():.4f}, std={lm_hints.std():.4f}")
+        if lm_hints.std() < 0.01:
+            print(f"{prefix}   WARNING: Very low variance in semantic hints!")
+
+    # Transpose back to ComfyUI format: [B, T, D] → [B, D, T]
+    semantic_hints = lm_hints.movedim(-1, -2)
+
+    return semantic_hints
+
 
 class ACEStepLatentUtils:
     """Utility functions for ACEStep audio latent manipulation"""

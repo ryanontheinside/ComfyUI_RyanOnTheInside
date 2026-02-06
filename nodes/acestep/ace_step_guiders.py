@@ -27,12 +27,11 @@ class ACEStep15NativeEditGuider(comfy.samplers.CFGGuider):
 
     Both operations can be combined in a single pass.
 
-    IMPORTANT: Requires silence_latent from ACEStep15SilenceLatentLoader.
-    Generation regions in src_latents are filled with silence_latent to signal
-    "generate new content here".
+    The silence_latent is automatically loaded internally (downloaded from HuggingFace
+    on first use). It's a learned tensor that tells the model to generate new content.
     """
 
-    def __init__(self, model, positive, negative, cfg, source_latent, silence_latent,
+    def __init__(self, model, positive, negative, cfg, source_latent,
                  extend_left_seconds=0.0, extend_right_seconds=0.0,
                  repaint_start_seconds=None, repaint_end_seconds=None):
         super().__init__(model)
@@ -40,7 +39,10 @@ class ACEStep15NativeEditGuider(comfy.samplers.CFGGuider):
         self.set_cfg(cfg)
 
         self.source_latent = source_latent
-        self.silence_latent = silence_latent
+
+        # Load silence_latent internally
+        from .ace_step_utils import load_silence_latent
+        silence_latent = load_silence_latent(verbose=True)
 
         # v1.5 frame rate: 48000 / 1920 = 25 fps
         self.fps = 25.0
@@ -236,8 +238,9 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
     - is_covers: 1 (use semantic hints instead of raw latents)
     - precomputed_lm_hints_25Hz: Semantic representation of source audio
 
-    IMPORTANT: For proper cover behavior, provide semantic_hints from ACEStep15SemanticExtractor.
-    Without semantic_hints, falls back to using raw VAE latents (less accurate style transfer).
+    If semantic_hints is not provided, they will be automatically extracted from
+    the source_latent. For advanced workflows (e.g., blending hints from multiple
+    sources), use ACEStep15SemanticExtractor and ACEStep15SemanticHintsBlend.
     """
 
     def __init__(self, model, positive, negative, cfg, source_latent, semantic_hints=None):
@@ -246,25 +249,28 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
         self.set_cfg(cfg)
 
         self.source_latent = source_latent
-        self.semantic_hints = semantic_hints
 
         batch_size, channels, total_length = source_latent.shape
 
         print(f"[ACE15_NATIVE_COVER] Initializing")
         print(f"[ACE15_NATIVE_COVER]   source_latent.shape: {source_latent.shape}")
         print(f"[ACE15_NATIVE_COVER]   source_latent stats: mean={source_latent.mean():.4f}, std={source_latent.std():.4f}")
-        if semantic_hints is not None:
-            print(f"[ACE15_NATIVE_COVER]   semantic_hints.shape: {semantic_hints.shape}")
-            print(f"[ACE15_NATIVE_COVER]   semantic_hints stats: mean={semantic_hints.mean():.4f}, std={semantic_hints.std():.4f}, min={semantic_hints.min():.4f}, max={semantic_hints.max():.4f}")
-            # Validate semantic hints have reasonable variance
-            if semantic_hints.std() < 0.01:
-                print(f"[ACE15_NATIVE_COVER]   WARNING: semantic_hints have very low variance ({semantic_hints.std():.6f}) - may be constant/invalid!")
-            # Validate shape matches source
-            if semantic_hints.shape != source_latent.shape:
-                print(f"[ACE15_NATIVE_COVER]   WARNING: semantic_hints shape {semantic_hints.shape} != source_latent shape {source_latent.shape}")
-            print(f"[ACE15_NATIVE_COVER]   Using semantic hints for proper cover behavior (is_covers=1)")
-        else:
-            print(f"[ACE15_NATIVE_COVER]   WARNING: No semantic_hints provided, falling back to VAE latents (is_covers=0)")
+
+        # Auto-extract semantic hints if not provided
+        if semantic_hints is None:
+            print(f"[ACE15_NATIVE_COVER]   No semantic_hints provided, auto-extracting...")
+            from .ace_step_utils import extract_semantic_hints
+            semantic_hints = extract_semantic_hints(model, source_latent, verbose=True)
+            print(f"[ACE15_NATIVE_COVER]   Auto-extracted semantic_hints shape: {semantic_hints.shape}")
+
+        self.semantic_hints = semantic_hints
+
+        # Validate semantic hints
+        print(f"[ACE15_NATIVE_COVER]   semantic_hints stats: mean={semantic_hints.mean():.4f}, std={semantic_hints.std():.4f}")
+        if semantic_hints.std() < 0.01:
+            print(f"[ACE15_NATIVE_COVER]   WARNING: semantic_hints have very low variance ({semantic_hints.std():.6f}) - may be invalid!")
+        if semantic_hints.shape != source_latent.shape:
+            print(f"[ACE15_NATIVE_COVER]   WARNING: semantic_hints shape {semantic_hints.shape} != source_latent shape {source_latent.shape}")
 
         # Cover: generate everything
         # chunk_masks: All 1s (generate all frames)
@@ -385,7 +391,8 @@ class ACEStep15NativeExtractGuider(comfy.samplers.CFGGuider):
     - precomputed_lm_hints_25Hz: Semantic representation of source audio
     - Instruction: "Extract the {TRACK_NAME} track from the audio:"
 
-    IMPORTANT: For proper extract behavior, provide semantic_hints from ACEStep15SemanticExtractor.
+    If semantic_hints is not provided, they will be automatically extracted from
+    the source_latent. For advanced workflows, use ACEStep15SemanticExtractor.
     """
 
     def __init__(self, model, positive, negative, cfg, source_latent, track_name="vocals", semantic_hints=None):
@@ -395,17 +402,24 @@ class ACEStep15NativeExtractGuider(comfy.samplers.CFGGuider):
 
         self.source_latent = source_latent
         self.track_name = track_name
-        self.semantic_hints = semantic_hints
 
         batch_size, channels, total_length = source_latent.shape
 
         print(f"[ACE15_NATIVE_EXTRACT] Initializing")
         print(f"[ACE15_NATIVE_EXTRACT]   source_latent.shape: {source_latent.shape}")
         print(f"[ACE15_NATIVE_EXTRACT]   track_name: {track_name}")
-        if semantic_hints is not None:
-            print(f"[ACE15_NATIVE_EXTRACT]   semantic_hints.shape: {semantic_hints.shape}")
-        else:
-            print(f"[ACE15_NATIVE_EXTRACT]   WARNING: No semantic_hints provided, falling back to VAE latents")
+
+        # Auto-extract semantic hints if not provided
+        if semantic_hints is None:
+            print(f"[ACE15_NATIVE_EXTRACT]   No semantic_hints provided, auto-extracting...")
+            from .ace_step_utils import extract_semantic_hints
+            semantic_hints = extract_semantic_hints(model, source_latent, verbose=True)
+            print(f"[ACE15_NATIVE_EXTRACT]   Auto-extracted semantic_hints shape: {semantic_hints.shape}")
+
+        self.semantic_hints = semantic_hints
+
+        # Validate semantic hints
+        print(f"[ACE15_NATIVE_EXTRACT]   semantic_hints stats: mean={semantic_hints.mean():.4f}, std={semantic_hints.std():.4f}")
 
         # Extract: generate everything (the extracted track)
         self.chunk_masks = torch.ones_like(source_latent)
@@ -504,18 +518,22 @@ class ACEStep15NativeLegoGuider(comfy.samplers.CFGGuider):
     - src_latents: Original audio with generation region replaced by silence_latent
     - Instruction: "Generate the {TRACK_NAME} track based on the audio context:"
 
-    IMPORTANT: Requires silence_latent from ACEStep15SilenceLatentLoader.
+    The silence_latent is automatically loaded internally (downloaded from HuggingFace
+    on first use). It's a learned tensor that tells the model to generate new content.
     """
 
     def __init__(self, model, positive, negative, cfg, source_latent,
-                 silence_latent, track_name="vocals", start_seconds=0.0, end_seconds=None):
+                 track_name="vocals", start_seconds=0.0, end_seconds=None):
         super().__init__(model)
         self.set_conds(positive, negative)
         self.set_cfg(cfg)
 
         self.source_latent = source_latent
-        self.silence_latent = silence_latent
         self.track_name = track_name
+
+        # Load silence_latent internally
+        from .ace_step_utils import load_silence_latent
+        silence_latent = load_silence_latent(verbose=True)
         self.start_seconds = start_seconds
 
         # v1.5 frame rate: 48000 / 1920 = 25 fps
