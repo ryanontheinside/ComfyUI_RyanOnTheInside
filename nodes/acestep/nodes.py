@@ -8,7 +8,9 @@ from . import patches
 from .ace_step_guiders import (
     ACEStepRepaintGuider, ACEStepExtendGuider, ACEStepHybridGuider,
     ACEStep15NativeEditGuider,
-    ACEStep15NativeCoverGuider, ACEStep15NativeExtractGuider, ACEStep15NativeLegoGuider
+    ACEStep15NativeCoverGuider,
+    # TODO: Re-enable when ready
+    # ACEStep15NativeExtractGuider, ACEStep15NativeLegoGuider
 )
 from .ace_step_utils import ACEStepLatentUtils
 from .audio_mask_nodes import (
@@ -941,7 +943,7 @@ class ACEStep15TaskTextEncodeNode:
             "required": {
                 "clip": ("CLIP",),
                 "text": ("STRING", {"multiline": True, "dynamicPrompts": True, "default": "A melodic electronic track with soft synths"}),
-                "task_type": (["text2music", "repaint", "cover", "extract", "lego"],),
+                "task_type": (["text2music", "repaint", "cover"],),  # TODO: Re-enable "extract", "lego" when ready
             },
             "optional": {
                 "track_name": (["", "vocals", "drums", "bass", "guitar", "keyboard", "strings",
@@ -1030,8 +1032,9 @@ NODE_CLASS_MAPPINGS = {
     # ACE-Step 1.5 guiders (model-level mask input)
     "ACEStep15NativeEditGuider": ACEStep15NativeEditGuiderNode,
     "ACEStep15NativeCoverGuider": ACEStep15NativeCoverGuiderNode,
-    "ACEStep15NativeExtractGuider": ACEStep15NativeExtractGuiderNode,
-    "ACEStep15NativeLegoGuider": ACEStep15NativeLegoGuiderNode,
+    # TODO: Re-enable when ready
+    # "ACEStep15NativeExtractGuider": ACEStep15NativeExtractGuiderNode,
+    # "ACEStep15NativeLegoGuider": ACEStep15NativeLegoGuiderNode,
     # ACE-Step 1.5 text encoder
     "ACEStep15TaskTextEncode": ACEStep15TaskTextEncodeNode,
     **AUDIO_MASK_NODE_CLASS_MAPPINGS,  # Add audio mask nodes
@@ -1054,8 +1057,9 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     # ACE-Step 1.5 guiders
     "ACEStep15NativeEditGuider": "ACE-Step 1.5 Edit Guider (Extend/Repaint)",
     "ACEStep15NativeCoverGuider": "ACE-Step 1.5 Cover Guider",
-    "ACEStep15NativeExtractGuider": "ACE-Step 1.5 Extract Guider",
-    "ACEStep15NativeLegoGuider": "ACE-Step 1.5 Lego Guider",
+    # TODO: Re-enable when ready
+    # "ACEStep15NativeExtractGuider": "ACE-Step 1.5 Extract Guider",
+    # "ACEStep15NativeLegoGuider": "ACE-Step 1.5 Lego Guider",
     # ACE-Step 1.5 text encoder
     "ACEStep15TaskTextEncode": "ACE-Step 1.5 Task Text Encode",
     **AUDIO_MASK_NODE_DISPLAY_NAME_MAPPINGS,
