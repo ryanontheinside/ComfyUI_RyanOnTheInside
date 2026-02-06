@@ -6,6 +6,5 @@ pymunk>=6.8.0,<7.0.0
 matplotlib
 openunmix
 mido
-torchaudio
 pygame
 scikit-image

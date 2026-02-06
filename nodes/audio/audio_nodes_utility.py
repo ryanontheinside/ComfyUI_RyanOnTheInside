@@ -203,6 +203,14 @@ class AudioSubtract(AudioUtility):
 #TODO: TOO SLOW
 @apply_tooltips
 class AudioInfo(AudioUtility):
+    # Krumhansl-Kessler key profiles for major and minor keys
+    MAJOR_PROFILE = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
+    MINOR_PROFILE = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17])
+
+    # Note names matching the keyscale format in TextEncodeAceStepAudio1.5
+    # Using sharps for detection, which covers all keys
+    NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -212,47 +220,91 @@ class AudioInfo(AudioUtility):
             }
         }
 
-    RETURN_TYPES = ("INT", "INT", "INT", "INT", "INT", "FLOAT", "FLOAT", "FLOAT", "INT", "INT", "INT", "FLOAT", "FLOAT", "FLOAT", "STRING")
+    RETURN_TYPES = ("INT", "INT", "INT", "INT", "INT", "FLOAT", "FLOAT", "FLOAT", "INT", "INT", "INT", "INT", "FLOAT", "FLOAT", "FLOAT", "STRING", "COMBO")
     RETURN_NAMES = (
         "total_frames", "frames_per_beat", "frames_per_bar", "frames_per_quarter", "frames_per_eighth",
-        "audio_duration", "beats_per_second", "detected_bpm",
+        "audio_duration", "beats_per_second", "detected_bpm", "detected_bpm_rounded",
         "sample_rate", "num_channels", "num_samples",
-        "max_amplitude", "mean_amplitude", "rms_amplitude", "bit_depth"
+        "max_amplitude", "mean_amplitude", "rms_amplitude", "bit_depth",
+        "detected_key"
     )
     FUNCTION = "get_audio_info"
+
+    def _detect_key(self, audio_mono, sample_rate):
+        """Detect musical key using chromagram and Krumhansl-Kessler key profiles."""
+        # Extract chromagram using Constant-Q Transform (better for pitch detection)
+        chromagram = librosa.feature.chroma_cqt(y=audio_mono, sr=sample_rate)
+
+        # Average chroma values across time to get a single 12-element profile
+        chroma_profile = np.mean(chromagram, axis=1)
+
+        # Normalize the profile
+        chroma_profile = chroma_profile / (np.linalg.norm(chroma_profile) + 1e-8)
+
+        best_correlation = -1
+        best_key = "C major"
+
+        # Test all 24 keys (12 major + 12 minor)
+        for i in range(12):
+            # Rotate the key profiles to match each root note
+            major_rotated = np.roll(self.MAJOR_PROFILE, i)
+            minor_rotated = np.roll(self.MINOR_PROFILE, i)
+
+            # Normalize profiles
+            major_rotated = major_rotated / (np.linalg.norm(major_rotated) + 1e-8)
+            minor_rotated = minor_rotated / (np.linalg.norm(minor_rotated) + 1e-8)
+
+            # Calculate correlation with major key
+            major_corr = np.corrcoef(chroma_profile, major_rotated)[0, 1]
+            if major_corr > best_correlation:
+                best_correlation = major_corr
+                best_key = f"{self.NOTE_NAMES[i]} major"
+
+            # Calculate correlation with minor key
+            minor_corr = np.corrcoef(chroma_profile, minor_rotated)[0, 1]
+            if minor_corr > best_correlation:
+                best_correlation = minor_corr
+                best_key = f"{self.NOTE_NAMES[i]} minor"
+
+        return best_key
 
     def get_audio_info(self, audio, frame_rate):
         # Get basic audio info
         waveform = audio['waveform']
         sample_rate = audio['sample_rate']
-        
+
         # Calculate original audio info first
         num_channels = waveform.shape[1] if waveform.dim() > 2 else 1
         num_samples = waveform.shape[-1]
         audio_duration = num_samples / sample_rate
-        
+
         # Calculate total frames
         total_frames = int(audio_duration * frame_rate)
-        
+
         # Detect BPM using librosa
         audio_mono = waveform.squeeze(0).mean(axis=0).cpu().numpy()
         tempo, _ = librosa.beat.beat_track(y=audio_mono, sr=sample_rate)
+        tempo_scalar = float(tempo.item() if hasattr(tempo, 'item') else tempo)
+        detected_bpm_rounded = int(round(tempo_scalar))
         beats_per_second = tempo / 60.0
-        
+
         # Calculate frames per beat and musical divisions
         frames_per_beat = int(frame_rate / beats_per_second)
         frames_per_bar = frames_per_beat * 4  # Assuming 4/4 time signature
         frames_per_quarter = frames_per_beat
         frames_per_eighth = frames_per_beat // 2
-        
+
         # Calculate amplitude statistics
         max_amplitude = float(torch.max(torch.abs(waveform)))
         mean_amplitude = float(torch.mean(torch.abs(waveform)))
         rms_amplitude = float(torch.sqrt(torch.mean(waveform ** 2)))
-        
+
         # Get bit depth from dtype
         bit_depth = str(waveform.dtype)
-        
+
+        # Detect musical key
+        detected_key = self._detect_key(audio_mono, sample_rate)
+
         return (
             total_frames,
             frames_per_beat,
@@ -262,13 +314,15 @@ class AudioInfo(AudioUtility):
             audio_duration,
             beats_per_second,
             tempo,  # detected_bpm
+            detected_bpm_rounded,
             sample_rate,
             num_channels,
             num_samples,
             max_amplitude,
             mean_amplitude,
             rms_amplitude,
-            bit_depth
+            bit_depth,
+            detected_key
         )
 
 @apply_tooltips
