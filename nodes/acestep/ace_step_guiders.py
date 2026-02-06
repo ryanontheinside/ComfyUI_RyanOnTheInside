@@ -135,15 +135,36 @@ class ACEStep15NativeEditGuider(comfy.samplers.CFGGuider):
         print(f"[ACE15_EDIT]   src_latents.shape: {self.src_latents.shape}")
         print(f"[ACE15_EDIT]   chunk_masks.shape: {self.chunk_masks.shape}")
         print(f"[ACE15_EDIT]   generation frames: {gen_frames:.0f} ({gen_frames / self.fps:.2f}s)")
-        # Verify silence_latent was inserted (check mean of extend regions vs source region)
+
+        # Verify chunk_masks has generation regions marked
+        mask_max = self.chunk_masks.max().item()
+        mask_min = self.chunk_masks.min().item()
+        print(f"[ACE15_EDIT]   chunk_masks range: [{mask_min:.1f}, {mask_max:.1f}] (should have 1.0 for generation)")
+
+        # Verify silence_latent was inserted (check mean/std of extend regions vs source region)
+        silence_ref_mean = silence_tiled.mean().item()
+        silence_ref_std = silence_tiled.std().item()
+        print(f"[ACE15_EDIT]   silence_latent reference: mean={silence_ref_mean:.4f}, std={silence_ref_std:.4f}")
+
         if self.left_frames > 0:
             left_mean = self.working_latent[:, :, :self.left_frames].mean().item()
-            print(f"[ACE15_EDIT]   left_extend region mean: {left_mean:.4f}")
+            left_std = self.working_latent[:, :, :self.left_frames].std().item()
+            src_left_mean = self.src_latents[:, :, :self.left_frames].mean().item()
+            print(f"[ACE15_EDIT]   left_extend working_latent: mean={left_mean:.4f}, std={left_std:.4f}")
+            print(f"[ACE15_EDIT]   left_extend src_latents: mean={src_left_mean:.4f} (should match silence_latent)")
         if self.right_frames > 0:
             right_mean = self.working_latent[:, :, -self.right_frames:].mean().item()
-            print(f"[ACE15_EDIT]   right_extend region mean: {right_mean:.4f}")
+            right_std = self.working_latent[:, :, -self.right_frames:].std().item()
+            src_right_mean = self.src_latents[:, :, -self.right_frames:].mean().item()
+            print(f"[ACE15_EDIT]   right_extend working_latent: mean={right_mean:.4f}, std={right_std:.4f}")
+            print(f"[ACE15_EDIT]   right_extend src_latents: mean={src_right_mean:.4f} (should match silence_latent)")
         source_mean = self.working_latent[:, :, self.left_frames:self.left_frames + source_length].mean().item()
-        print(f"[ACE15_EDIT]   source region mean: {source_mean:.4f}")
+        source_std = self.working_latent[:, :, self.left_frames:self.left_frames + source_length].std().item()
+        print(f"[ACE15_EDIT]   source region: mean={source_mean:.4f}, std={source_std:.4f}")
+
+        # Warn if no generation regions
+        if gen_frames == 0:
+            print(f"[ACE15_EDIT]   WARNING: No generation frames! This will produce silence in extend regions.")
 
         self._wrapper_applied = False
 
@@ -173,12 +194,17 @@ class ACEStep15NativeEditGuider(comfy.samplers.CFGGuider):
 
             c["chunk_masks"] = cm
             c["src_latents"] = sl
+            # Explicitly set is_covers=0 for extend/repaint tasks
+            # This tells the model to use src_latents directly (not semantic hints)
+            c["is_covers"] = torch.zeros((input_batch_size,), device=device, dtype=torch.long)
 
             if not hasattr(model_function_wrapper, '_logged'):
                 print(f"[ACE15_EDIT_WRAPPER] Injecting chunk_masks and src_latents")
                 print(f"[ACE15_EDIT_WRAPPER]   input.shape: {args['input'].shape}")
                 print(f"[ACE15_EDIT_WRAPPER]   chunk_masks.shape: {c['chunk_masks'].shape}")
                 print(f"[ACE15_EDIT_WRAPPER]   src_latents.shape: {c['src_latents'].shape}")
+                print(f"[ACE15_EDIT_WRAPPER]   is_covers: {c['is_covers']} (0=extend/repaint mode)")
+                print(f"[ACE15_EDIT_WRAPPER]   chunk_masks sum: {cm.sum().item():.0f} (generation frames * batch * channels)")
                 model_function_wrapper._logged = True
 
             return apply_model(args["input"], args["timestep"], **c)
