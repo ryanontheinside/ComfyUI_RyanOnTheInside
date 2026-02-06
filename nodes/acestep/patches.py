@@ -172,53 +172,49 @@ def _create_patched_tokenizer(original_tokenize_with_weights):
     Create a patched tokenize_with_weights method for ACE15Tokenizer.
 
     The patched version:
-    1. Accepts task_type kwarg to determine the instruction
-    2. Accepts track_name kwarg for extract/lego tasks
-    3. Uses appropriate instruction template based on task type
+    1. Calls the original (stock) tokenizer first to get a baseline output with all
+       keys that encode_token_weights expects — this keeps us forward-compatible
+       when upstream adds new lm_metadata fields.
+    2. Overrides the instruction-dependent keys (lm_prompt, lm_prompt_negative,
+       lyrics, qwen3_06b) with task-specific versions.
+    3. Overrides generate_audio_codes based on task type (False for cover/extract/lego).
+    4. Adds task_type and track_name for downstream use.
     """
     @functools.wraps(original_tokenize_with_weights)
     def patched_tokenize_with_weights(self, text, return_word_ids=False, **kwargs):
-        out = {}
-        lyrics = kwargs.get("lyrics", "")
-        bpm = kwargs.get("bpm", 120)
-        duration = kwargs.get("duration", 120)
-        keyscale = kwargs.get("keyscale", "C major")
-        timesignature = kwargs.get("timesignature", 2)
-        language = kwargs.get("language", "en")
-        seed = kwargs.get("seed", 0)
-
-        # New kwargs for task type support
         task_type = kwargs.get("task_type", "text2music")
         track_name = kwargs.get("track_name", None)
+
+        # Strip our custom kwargs before forwarding to the stock tokenizer
+        stock_kwargs = {k: v for k, v in kwargs.items() if k not in ("task_type", "track_name")}
+
+        # Call the original tokenizer to get baseline output with all expected keys
+        out = original_tokenize_with_weights(self, text, return_word_ids, **stock_kwargs)
 
         # Get appropriate instruction for task type
         instruction = get_task_instruction(task_type, track_name)
 
-        duration = math.ceil(duration)
+        # Re-extract the params we need for our templates
+        lyrics = kwargs.get("lyrics", "")
+        bpm = kwargs.get("bpm", 120)
+        duration = math.ceil(kwargs.get("duration", 120))
+        keyscale = kwargs.get("keyscale", "C major")
+        timesignature = kwargs.get("timesignature", 2)
+        language = kwargs.get("language", "en")
+
         meta_lm = 'bpm: {}\nduration: {}\nkeyscale: {}\ntimesignature: {}'.format(bpm, duration, keyscale, timesignature)
-
-        # Use task-specific instruction in template
         lm_template = "<|im_start|>system\n# Instruction\n{}\n\n<|im_end|>\n<|im_start|>user\n# Caption\n{}\n{}\n<|im_end|>\n<|im_start|>assistant\n<think>\n{}\n</think>\n\n<|im_end|>\n"
-
         meta_cap = '- bpm: {}\n- timesignature: {}\n- keyscale: {}\n- duration: {}\n'.format(bpm, timesignature, keyscale, duration)
+
+        # Override only the instruction-dependent tokenized outputs
         out["lm_prompt"] = self.qwen3_06b.tokenize_with_weights(lm_template.format(instruction, text, lyrics, meta_lm), disable_weights=True)
         out["lm_prompt_negative"] = self.qwen3_06b.tokenize_with_weights(lm_template.format(instruction, text, lyrics, ""), disable_weights=True)
-
         out["lyrics"] = self.qwen3_06b.tokenize_with_weights("# Languages\n{}\n\n# Lyric{}<|endoftext|><|endoftext|>".format(language, lyrics), return_word_ids, disable_weights=True, **kwargs)
         out["qwen3_06b"] = self.qwen3_06b.tokenize_with_weights("# Instruction\n{}\n\n# Caption\n{}# Metas\n{}<|endoftext|>\n<|endoftext|>".format(instruction, text, meta_cap), return_word_ids, **kwargs)
-        # Determine whether to generate audio codes based on task type
-        # Cover/extract tasks use precomputed semantic hints instead of LLM-generated codes
-        generate_audio_codes = task_type in ("text2music", "repaint")
 
-        out["lm_metadata"] = {
-            "min_tokens": duration * 5,
-            "seed": seed,
-            "generate_audio_codes": generate_audio_codes,
-            "cfg_scale": kwargs.get("cfg_scale", 2.0),
-            "temperature": kwargs.get("temperature", 0.85),
-            "top_p": kwargs.get("top_p", 0.9),
-            "top_k": kwargs.get("top_k", 0.0),
-        }
+        # Cover/extract/lego tasks use precomputed semantic hints, skip LLM code generation
+        if isinstance(out.get("lm_metadata"), dict):
+            out["lm_metadata"]["generate_audio_codes"] = task_type in ("text2music", "repaint")
 
         # Store task info for downstream use
         out["task_type"] = task_type
