@@ -500,29 +500,6 @@
       ]
     },
     {
-      "id": 11,
-      "type": "MarkdownNote",
-      "pos": [
-        -31.061241999511992,
-        69.42480905548084
-      ],
-      "size": [
-        420,
-        360
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [],
-      "properties": {},
-      "widgets_values": [
-        "## ACE-Step 1.5 Cover Workflow\n\nAceStep1.5 Cover task\n\nGenerates new content across the entire duration while using the source audio structure as guidance.\n\n**Model:**\n- [ace_step_1.5_turbo_aio.safetensors](https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/checkpoints/ace_step_1.5_turbo_aio.safetensors)\n\n## [gimmi stars on github](https://github.com/ryanontheinside/ComfyUI_RyanOnTheInside)\n\n## [follow me on youtube](https://www.youtube.com/@ryanontheinside)"
-      ],
-      "color": "#222",
-      "bgcolor": "#000"
-    },
-    {
       "id": 40,
       "type": "ACEStep15TaskTextEncode",
       "pos": [
@@ -615,7 +592,7 @@
         58
       ],
       "flags": {},
-      "order": 5,
+      "order": 4,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -733,7 +710,7 @@
         360
       ],
       "flags": {},
-      "order": 6,
+      "order": 5,
       "mode": 0,
       "inputs": [],
       "outputs": [],
@@ -756,7 +733,7 @@
         800
       ],
       "flags": {},
-      "order": 7,
+      "order": 6,
       "mode": 4,
       "inputs": [],
       "outputs": [
@@ -1026,7 +1003,7 @@
         174
       ],
       "flags": {},
-      "order": 8,
+      "order": 7,
       "mode": 4,
       "inputs": [
         {
@@ -1072,7 +1049,7 @@
         322
       ],
       "flags": {},
-      "order": 9,
+      "order": 8,
       "mode": 4,
       "inputs": [
         {
@@ -1142,7 +1119,8 @@
         "cnr_id": "comfyui_ryanontheinside",
         "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
         "Node name for S&R": "FeatureToFloat"
-      }
+      },
+      "widgets_values": []
     },
     {
       "id": 16,
@@ -1462,6 +1440,29 @@
       "widgets_values": [
         25
       ]
+    },
+    {
+      "id": 11,
+      "type": "MarkdownNote",
+      "pos": [
+        -31.061241999511992,
+        69.42480905548084
+      ],
+      "size": [
+        420,
+        360
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "## ACE-Step 1.5 Cover Workflow\n\nAceStep1.5 Cover task\n\nGenerates new content across the entire duration while using the source audio structure as guidance.\n\n**Model:**\n- [ace_step_1.5_turbo_aio.safetensors](https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files/resolve/main/checkpoints/ace_step_1.5_turbo_aio.safetensors)\n\n## [gimmi stars on github](https://github.com/ryanontheinside/ComfyUI_RyanOnTheInside)\n\n## [TUTORIAL - follow me on youtube](https://youtu.be/_lIGlKKJ1OM)"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
     }
   ],
   "links": [
@@ -1882,12 +1883,13 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.683013455365071,
+      "scale": 1.4641000000000006,
       "offset": [
-        625.7350128749001,
-        -99.48499783622248
+        435.2339500588612,
+        117.38447822217108
       ]
     },
+    "frontendVersion": "1.37.11",
     "reroutes": [
       {
         "id": 1,
@@ -1902,6 +1904,10 @@
       }
     ],
     "workflowRendererVersion": "LG",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true,
     "linkExtensions": [
       {
         "id": 39,
@@ -1911,12 +1917,7 @@
         "id": 40,
         "parentId": 1
       }
-    ],
-    "frontendVersion": "1.37.11",
-    "VHS_latentpreview": false,
-    "VHS_latentpreviewrate": 0,
-    "VHS_MetadataImage": true,
-    "VHS_KeepIntermediate": true
+    ]
   },
   "version": 0.4
 }
