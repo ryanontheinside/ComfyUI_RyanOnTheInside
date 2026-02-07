@@ -86,6 +86,19 @@ def _create_patched_ace_step15_forward(original_forward):
     # One-time logging flag
     _forward_logged = [False]
 
+    # Stock prepare_condition uses `is_covers is True` identity checks which fail
+    # for tensors. Detect at patch-creation time whether the stock code has been
+    # updated to use tensor ops (e.g. unsqueeze) so we pass the right type.
+    import inspect
+    try:
+        _prepare_src = inspect.getsource(
+            __import__('comfy.ldm.ace.ace_step15', fromlist=['AceStepConditionGenerationModel'])
+            .AceStepConditionGenerationModel.prepare_condition
+        )
+        _prepare_wants_tensor = "unsqueeze" in _prepare_src
+    except Exception:
+        _prepare_wants_tensor = False
+
     @functools.wraps(original_forward)
     def patched_forward(self, x, timestep, context, lyric_embed=None, refer_audio=None,
                         audio_codes=None, chunk_masks=None, src_latents=None,
@@ -143,12 +156,19 @@ def _create_patched_ace_step15_forward(original_forward):
         if chunk_masks is None:
             chunk_masks = torch.ones_like(x)
 
-        # Stock prepare_condition uses identity checks (is_covers is True / is False)
-        # which fail for tensors. Convert to Python bool so the lm_hints branch triggers.
-        # Only convert truthy tensors — falsy (extend/repaint) must stay as tensor so
-        # neither branch triggers and src_latents is left unchanged.
-        if isinstance(is_covers, torch.Tensor) and is_covers.any().item():
-            is_covers = True
+        # Adapt is_covers type to match what stock prepare_condition expects
+        if _prepare_wants_tensor:
+            # New stock code expects a tensor — ensure we have one
+            if is_covers is True:
+                is_covers = torch.ones((x.shape[0],), device=x.device, dtype=torch.long)
+            elif is_covers is False or is_covers is None:
+                is_covers = torch.zeros((x.shape[0],), device=x.device, dtype=torch.long)
+        else:
+            # Old stock code uses identity checks — convert truthy tensor to Python bool
+            # so the lm_hints branch triggers. Falsy (extend/repaint) stays as tensor
+            # so neither branch triggers and src_latents is left unchanged.
+            if isinstance(is_covers, torch.Tensor) and is_covers.any().item():
+                is_covers = True
 
         enc_hidden, enc_mask, context_latents = self.prepare_condition(
             text_hidden_states, text_attention_mask,
