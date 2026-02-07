@@ -214,9 +214,11 @@ def _create_patched_tokenizer(original_tokenize_with_weights):
 
         # Strip our custom kwargs before forwarding to the stock tokenizer
         stock_kwargs = {k: v for k, v in kwargs.items() if k not in ("task_type", "track_name")}
+        print(f"[ACE15_PATCHED_TOKENIZER] stock_kwargs LM params: cfg_scale={stock_kwargs.get('cfg_scale', 'MISSING')}, temperature={stock_kwargs.get('temperature', 'MISSING')}, top_p={stock_kwargs.get('top_p', 'MISSING')}, top_k={stock_kwargs.get('top_k', 'MISSING')}")
 
         # Call the original tokenizer to get baseline output with all expected keys
         out = original_tokenize_with_weights(self, text, return_word_ids, **stock_kwargs)
+        print(f"[ACE15_PATCHED_TOKENIZER] lm_metadata after stock tokenizer: {out.get('lm_metadata', 'MISSING')}")
 
         # Get appropriate instruction for task type
         instruction = get_task_instruction(task_type, track_name)
@@ -247,6 +249,7 @@ def _create_patched_tokenizer(original_tokenize_with_weights):
         out["task_type"] = task_type
         out["track_name"] = track_name
 
+        print(f"[ACE15_PATCHED_TOKENIZER] FINAL lm_metadata: {out.get('lm_metadata', 'MISSING')}")
         return out
 
     return patched_tokenize_with_weights
