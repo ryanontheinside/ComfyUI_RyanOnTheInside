@@ -2,7 +2,7 @@
   "id": "5053cd4b-bb11-4361-b515-8844ef227a1c",
   "revision": 0,
   "last_node_id": 49,
-  "last_link_id": 68,
+  "last_link_id": 69,
   "nodes": [
     {
       "id": 13,
@@ -287,66 +287,6 @@
       }
     },
     {
-      "id": 19,
-      "type": "ACEStep15NativeCoverGuider",
-      "pos": [
-        2120.660994667053,
-        294.4027658107756
-      ],
-      "size": [
-        359,
-        146
-      ],
-      "flags": {},
-      "order": 27,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 19
-        },
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "link": 54
-        },
-        {
-          "name": "negative",
-          "type": "CONDITIONING",
-          "link": 21
-        },
-        {
-          "name": "source_latents",
-          "type": "LATENT",
-          "link": 22
-        },
-        {
-          "name": "semantic_hints",
-          "shape": 7,
-          "type": "SEMANTIC_HINTS",
-          "link": 68
-        }
-      ],
-      "outputs": [
-        {
-          "name": "GUIDER",
-          "type": "GUIDER",
-          "links": [
-            26
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfyui_ryanontheinside",
-        "ver": "418dd269462f0f08096ae5ab899f991500f3a44c",
-        "Node name for S&R": "ACEStep15NativeCoverGuider"
-      },
-      "widgets_values": [
-        1
-      ]
-    },
-    {
       "id": 15,
       "type": "CheckpointLoaderSimple",
       "pos": [
@@ -484,35 +424,6 @@
       "widgets_values": []
     },
     {
-      "id": 25,
-      "type": "PreviewAudio",
-      "pos": [
-        3528.059533816525,
-        923.3023141623759
-      ],
-      "size": [
-        270,
-        88
-      ],
-      "flags": {},
-      "order": 21,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "link": 30
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.12.2",
-        "Node name for S&R": "PreviewAudio"
-      },
-      "widgets_values": []
-    },
-    {
       "id": 10,
       "type": "Knob",
       "pos": [
@@ -589,100 +500,6 @@
       ]
     },
     {
-      "id": 42,
-      "type": "AudioFeatureExtractor",
-      "pos": [
-        390.5454834615275,
-        1939.0939460634913
-      ],
-      "size": [
-        327.5435546875,
-        174
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 4,
-      "inputs": [
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "feature",
-          "type": "FEATURE",
-          "links": null
-        },
-        {
-          "name": "frame_count",
-          "type": "INT",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfyui_ryanontheinside",
-        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
-        "Node name for S&R": "AudioFeatureExtractor"
-      },
-      "widgets_values": [
-        "amplitude_envelope",
-        30,
-        0,
-        512,
-        512
-      ]
-    },
-    {
-      "id": 44,
-      "type": "FeatureMixer",
-      "pos": [
-        1578.5736111146523,
-        1909.7768240912508
-      ],
-      "size": [
-        302.15234375,
-        322
-      ],
-      "flags": {},
-      "order": 5,
-      "mode": 4,
-      "inputs": [
-        {
-          "name": "feature",
-          "type": "FEATURE",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "FEATURE",
-          "type": "FEATURE",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfyui_ryanontheinside",
-        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
-        "Node name for S&R": "FeatureMixer"
-      },
-      "widgets_values": [
-        1,
-        0,
-        1,
-        1,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1,
-        0.5,
-        false
-      ]
-    },
-    {
       "id": 11,
       "type": "MarkdownNote",
       "pos": [
@@ -694,7 +511,7 @@
         360
       ],
       "flags": {},
-      "order": 6,
+      "order": 4,
       "mode": 0,
       "inputs": [],
       "outputs": [],
@@ -787,71 +604,6 @@
       ]
     },
     {
-      "id": 48,
-      "type": "FeatureToFloat",
-      "pos": [
-        1577.2370809193128,
-        1359.3227939919466
-      ],
-      "size": [
-        218.0650390625,
-        26
-      ],
-      "flags": {},
-      "order": 24,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "feature",
-          "type": "FEATURE",
-          "link": 64
-        }
-      ],
-      "outputs": [
-        {
-          "name": "FLOAT",
-          "type": "FLOAT",
-          "links": [
-            67
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfyui_ryanontheinside",
-        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
-        "Node name for S&R": "FeatureToFloat"
-      }
-    },
-    {
-      "id": 45,
-      "type": "PreviewFeature",
-      "pos": [
-        2284.0138838995704,
-        1444.420707817115
-      ],
-      "size": [
-        217.6548828125,
-        246
-      ],
-      "flags": {},
-      "order": 23,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "feature",
-          "type": "FEATURE",
-          "link": 58
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfyui_ryanontheinside",
-        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
-        "Node name for S&R": "PreviewFeature"
-      },
-      "widgets_values": []
-    },
-    {
       "id": 41,
       "type": "PrimitiveFloat",
       "pos": [
@@ -863,7 +615,7 @@
         58
       ],
       "flags": {},
-      "order": 7,
+      "order": 5,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -886,64 +638,271 @@
       ]
     },
     {
-      "id": 16,
-      "type": "VHS_LoadAudioUpload",
+      "id": 33,
+      "type": "VAEEncodeAudio",
       "pos": [
-        -63.93693226623546,
-        582.3149725006097
+        517.6212178723146,
+        1168.1747821276851
       ],
       "size": [
-        252.0078125,
-        204
+        210,
+        46
       ],
       "flags": {},
-      "order": 11,
+      "order": 17,
       "mode": 0,
       "inputs": [
         {
-          "name": "duration",
-          "shape": 7,
-          "type": "FLOAT",
-          "widget": {
-            "name": "duration"
-          },
-          "link": 55
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 44
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 43
         }
       ],
       "outputs": [
         {
-          "name": "audio",
-          "type": "AUDIO",
+          "name": "LATENT",
+          "type": "LATENT",
           "links": [
-            12,
-            14,
-            35
+            45
           ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.12.2",
+        "Node name for S&R": "VAEEncodeAudio"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 32,
+      "type": "ACEStep15SemanticExtractor",
+      "pos": [
+        1206.3592832641598,
+        1237.5157619323734
+      ],
+      "size": [
+        327.023046875,
+        46
+      ],
+      "flags": {},
+      "order": 22,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 40
         },
         {
-          "name": "duration",
-          "type": "FLOAT",
+          "name": "source_latents",
+          "type": "LATENT",
+          "link": 45
+        }
+      ],
+      "outputs": [
+        {
+          "name": "semantic_hints",
+          "type": "SEMANTIC_HINTS",
+          "links": [
+            66
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
+        "Node name for S&R": "ACEStep15SemanticExtractor"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 47,
+      "type": "MarkdownNote",
+      "pos": [
+        592.1893608220332,
+        1382.302018095915
+      ],
+      "size": [
+        420,
+        360
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "## Features\n\nWe use features to blend between the semantic hints of two different songs. Think of features as a timeline. \n\nThere are dozens of feature sources - we use 'time feature' here, but theres audio, midi, color, depth, pitch, whisper, brightness....you get the idea.  \n\nLikewise, there are many dozens of nodes that allow you to combine and manipulate these features. \n\n\n## [gimmi stars on github](https://github.com/ryanontheinside/ComfyUI_RyanOnTheInside)\n\n## [follow me on youtube](https://www.youtube.com/@ryanontheinside)"
+      ],
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 43,
+      "type": "DrawableFeatureNode",
+      "pos": [
+        774.8298922168989,
+        1903.4825955953156
+      ],
+      "size": [
+        760,
+        800
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 4,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
           "links": null
         }
       ],
       "properties": {
-        "cnr_id": "comfyui-videohelpersuite",
-        "ver": "1.7.7",
-        "Node name for S&R": "VHS_LoadAudioUpload"
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
+        "Node name for S&R": "DrawableFeatureNode"
       },
-      "widgets_values": {
-        "audio": "Vesuvius_v2_edit.wav",
-        "start_time": 0,
-        "duration": 60,
-        "audiopreview": {
-          "params": {
-            "filename": "Vesuvius_v2_edit.wav",
-            "type": "input",
-            "start_time": 0,
-            "duration": 60
-          }
+      "widgets_values": [
+        "drawn",
+        30,
+        30,
+        512,
+        512,
+        0,
+        1,
+        "linear",
+        0,
+        "[[2,0.10780681557258087],[20,0.6912164051831925],[25,0.40761395465843053]]",
+        "selected_template",
+        1,
+        "load",
+        "clear"
+      ],
+      "points": [
+        [
+          2,
+          0.10780681557258087
+        ],
+        [
+          20,
+          0.6912164051831925
+        ],
+        [
+          25,
+          0.40761395465843053
+        ]
+      ]
+    },
+    {
+      "id": 19,
+      "type": "ACEStep15NativeCoverGuider",
+      "pos": [
+        2114.0609409561152,
+        291.46949066429136
+      ],
+      "size": [
+        359,
+        146
+      ],
+      "flags": {},
+      "order": 27,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 19
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 54
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 21
+        },
+        {
+          "name": "source_latents",
+          "type": "LATENT",
+          "link": 22
+        },
+        {
+          "name": "semantic_hints",
+          "shape": 7,
+          "type": "SEMANTIC_HINTS",
+          "link": 68
         }
-      }
+      ],
+      "outputs": [
+        {
+          "name": "GUIDER",
+          "type": "GUIDER",
+          "links": [
+            26
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "418dd269462f0f08096ae5ab899f991500f3a44c",
+        "Node name for S&R": "ACEStep15NativeCoverGuider"
+      },
+      "widgets_values": [
+        1
+      ]
+    },
+    {
+      "id": 31,
+      "type": "ACEStep15SemanticExtractor",
+      "pos": [
+        1220.2244670354671,
+        1037.5116338029345
+      ],
+      "size": [
+        327.023046875,
+        46
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 39
+        },
+        {
+          "name": "source_latents",
+          "type": "LATENT",
+          "link": 41
+        }
+      ],
+      "outputs": [
+        {
+          "name": "semantic_hints",
+          "type": "SEMANTIC_HINTS",
+          "links": [
+            65
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
+        "Node name for S&R": "ACEStep15SemanticExtractor"
+      },
+      "widgets_values": []
     },
     {
       "id": 34,
@@ -1004,11 +963,389 @@
       }
     },
     {
+      "id": 49,
+      "type": "ACEStep15SemanticHintsBlend",
+      "pos": [
+        1759.6100247429458,
+        1089.3771433445947
+      ],
+      "size": [
+        402.2671875,
+        78
+      ],
+      "flags": {},
+      "order": 26,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "hints_a",
+          "type": "SEMANTIC_HINTS",
+          "link": 65
+        },
+        {
+          "name": "hints_b",
+          "type": "SEMANTIC_HINTS",
+          "link": 66
+        },
+        {
+          "name": "blend_factor",
+          "type": "FLOAT",
+          "widget": {
+            "name": "blend_factor"
+          },
+          "link": 69
+        }
+      ],
+      "outputs": [
+        {
+          "name": "blended_hints",
+          "type": "SEMANTIC_HINTS",
+          "links": [
+            68
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
+        "Node name for S&R": "ACEStep15SemanticHintsBlend"
+      },
+      "widgets_values": [
+        0.59
+      ]
+    },
+    {
+      "id": 42,
+      "type": "AudioFeatureExtractor",
+      "pos": [
+        390.5454834615275,
+        1939.0939460634913
+      ],
+      "size": [
+        327.5435546875,
+        174
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "links": null
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
+        "Node name for S&R": "AudioFeatureExtractor"
+      },
+      "widgets_values": [
+        "amplitude_envelope",
+        30,
+        0,
+        512,
+        512
+      ]
+    },
+    {
+      "id": 44,
+      "type": "FeatureMixer",
+      "pos": [
+        2035.873970667209,
+        1899.8594712414645
+      ],
+      "size": [
+        302.15234375,
+        322
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
+        "Node name for S&R": "FeatureMixer"
+      },
+      "widgets_values": [
+        1,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        1,
+        0.5,
+        false
+      ]
+    },
+    {
+      "id": 48,
+      "type": "FeatureToFloat",
+      "pos": [
+        1523.703886339234,
+        1357.856119492435
+      ],
+      "size": [
+        218.0650390625,
+        26
+      ],
+      "flags": {},
+      "order": 24,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 64
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FLOAT",
+          "type": "FLOAT",
+          "links": [
+            69
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
+        "Node name for S&R": "FeatureToFloat"
+      }
+    },
+    {
+      "id": 16,
+      "type": "VHS_LoadAudioUpload",
+      "pos": [
+        -100.60361012268078,
+        588.181615109252
+      ],
+      "size": [
+        252.0078125,
+        204
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "duration",
+          "shape": 7,
+          "type": "FLOAT",
+          "widget": {
+            "name": "duration"
+          },
+          "link": 55
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            12,
+            14,
+            35
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "FLOAT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-videohelpersuite",
+        "ver": "1.7.7",
+        "Node name for S&R": "VHS_LoadAudioUpload"
+      },
+      "widgets_values": {
+        "audio": "Vesuvius_v2_edit.wav",
+        "start_time": 0,
+        "duration": 60,
+        "audiopreview": {
+          "params": {
+            "filename": "Vesuvius_v2_edit.wav",
+            "type": "input",
+            "start_time": 0,
+            "duration": 60
+          }
+        }
+      }
+    },
+    {
+      "id": 38,
+      "type": "TimeFeatureNode",
+      "pos": [
+        1161.5980900054212,
+        1432.9711439043606
+      ],
+      "size": [
+        270,
+        202
+      ],
+      "flags": {},
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "widget": {
+            "name": "frame_count"
+          },
+          "link": 57
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            58,
+            64
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
+        "Node name for S&R": "TimeFeatureNode"
+      },
+      "widgets_values": [
+        "pulse",
+        25,
+        30,
+        512,
+        512,
+        200,
+        0
+      ]
+    },
+    {
+      "id": 25,
+      "type": "PreviewAudio",
+      "pos": [
+        3546.604973248898,
+        651.9558552970194
+      ],
+      "size": [
+        270,
+        88
+      ],
+      "flags": {},
+      "order": 21,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 30
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.12.2",
+        "Node name for S&R": "PreviewAudio"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 45,
+      "type": "PreviewFeature",
+      "pos": [
+        1820.0873890838966,
+        1317.3897677542484
+      ],
+      "size": [
+        217.6548828125,
+        246
+      ],
+      "flags": {},
+      "order": 23,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 58
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
+        "Node name for S&R": "PreviewFeature"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 37,
+      "type": "PreviewAudio",
+      "pos": [
+        3631.7798238067617,
+        409.16988601601315
+      ],
+      "size": [
+        530.6096927661129,
+        135.82720262420656
+      ],
+      "flags": {},
+      "order": 31,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 48
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.12.2",
+        "Node name for S&R": "PreviewAudio"
+      },
+      "widgets_values": []
+    },
+    {
       "id": 17,
       "type": "AudioInfo",
       "pos": [
-        275.0452009582516,
-        582.746951257324
+        299.24520095825153,
+        641.413598901367
       ],
       "size": [
         270,
@@ -1123,345 +1460,8 @@
         "Node name for S&R": "AudioInfo"
       },
       "widgets_values": [
-        30
+        25
       ]
-    },
-    {
-      "id": 33,
-      "type": "VAEEncodeAudio",
-      "pos": [
-        517.6212178723146,
-        1168.1747821276851
-      ],
-      "size": [
-        210,
-        46
-      ],
-      "flags": {},
-      "order": 17,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "link": 44
-        },
-        {
-          "name": "vae",
-          "type": "VAE",
-          "link": 43
-        }
-      ],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "links": [
-            45
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.12.2",
-        "Node name for S&R": "VAEEncodeAudio"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 49,
-      "type": "ACEStep15SemanticHintsBlend",
-      "pos": [
-        1759.6100247429458,
-        1089.3771433445947
-      ],
-      "size": [
-        402.2671875,
-        78
-      ],
-      "flags": {},
-      "order": 26,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "hints_a",
-          "type": "SEMANTIC_HINTS",
-          "link": 65
-        },
-        {
-          "name": "hints_b",
-          "type": "SEMANTIC_HINTS",
-          "link": 66
-        },
-        {
-          "name": "blend_factor",
-          "type": "FLOAT",
-          "widget": {
-            "name": "blend_factor"
-          },
-          "link": 67
-        }
-      ],
-      "outputs": [
-        {
-          "name": "blended_hints",
-          "type": "SEMANTIC_HINTS",
-          "links": [
-            68
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfyui_ryanontheinside",
-        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
-        "Node name for S&R": "ACEStep15SemanticHintsBlend"
-      },
-      "widgets_values": [
-        0.5
-      ]
-    },
-    {
-      "id": 31,
-      "type": "ACEStep15SemanticExtractor",
-      "pos": [
-        1229.0398301391601,
-        1097.5667319030767
-      ],
-      "size": [
-        327.023046875,
-        46
-      ],
-      "flags": {},
-      "order": 18,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 39
-        },
-        {
-          "name": "source_latents",
-          "type": "LATENT",
-          "link": 41
-        }
-      ],
-      "outputs": [
-        {
-          "name": "semantic_hints",
-          "type": "SEMANTIC_HINTS",
-          "links": [
-            65
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfyui_ryanontheinside",
-        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
-        "Node name for S&R": "ACEStep15SemanticExtractor"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 32,
-      "type": "ACEStep15SemanticExtractor",
-      "pos": [
-        1206.3592832641598,
-        1237.5157619323734
-      ],
-      "size": [
-        327.023046875,
-        46
-      ],
-      "flags": {},
-      "order": 22,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 40
-        },
-        {
-          "name": "source_latents",
-          "type": "LATENT",
-          "link": 45
-        }
-      ],
-      "outputs": [
-        {
-          "name": "semantic_hints",
-          "type": "SEMANTIC_HINTS",
-          "links": [
-            66
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfyui_ryanontheinside",
-        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
-        "Node name for S&R": "ACEStep15SemanticExtractor"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 38,
-      "type": "TimeFeatureNode",
-      "pos": [
-        1203.9684118271534,
-        1430.1777546221344
-      ],
-      "size": [
-        270,
-        202
-      ],
-      "flags": {},
-      "order": 19,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "frame_count",
-          "type": "INT",
-          "widget": {
-            "name": "frame_count"
-          },
-          "link": 57
-        }
-      ],
-      "outputs": [
-        {
-          "name": "FEATURE",
-          "type": "FEATURE",
-          "links": [
-            58,
-            64
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfyui_ryanontheinside",
-        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
-        "Node name for S&R": "TimeFeatureNode"
-      },
-      "widgets_values": [
-        "pulse",
-        25,
-        30,
-        512,
-        512,
-        200,
-        0
-      ]
-    },
-    {
-      "id": 47,
-      "type": "MarkdownNote",
-      "pos": [
-        592.1893608220332,
-        1382.302018095915
-      ],
-      "size": [
-        420,
-        360
-      ],
-      "flags": {},
-      "order": 8,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [],
-      "properties": {},
-      "widgets_values": [
-        "## Features\n\nWe use features to blend between the semantic hints of two different songs. Think of features as a timeline. \n\nThere are dozens of feature sources - we use 'time feature' here, but theres audio, midi, color, depth, pitch, whisper, brightness....you get the idea.  \n\nLikewise, there are many dozens of nodes that allow you to combine and manipulate these features. \n\n\n## [gimmi stars on github](https://github.com/ryanontheinside/ComfyUI_RyanOnTheInside)\n\n## [follow me on youtube](https://www.youtube.com/@ryanontheinside)"
-      ],
-      "color": "#222",
-      "bgcolor": "#000"
-    },
-    {
-      "id": 43,
-      "type": "DrawableFeatureNode",
-      "pos": [
-        774.8298922168989,
-        1903.4825955953156
-      ],
-      "size": [
-        760,
-        800
-      ],
-      "flags": {},
-      "order": 9,
-      "mode": 4,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "FEATURE",
-          "type": "FEATURE",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfyui_ryanontheinside",
-        "ver": "014dca8651a0e038737cec1ae4191e62514f6e08",
-        "Node name for S&R": "DrawableFeatureNode"
-      },
-      "widgets_values": [
-        "drawn",
-        30,
-        30,
-        512,
-        512,
-        0,
-        1,
-        "linear",
-        0,
-        "[[2,0.10780681557258087],[20,0.6912164051831925],[25,0.40761395465843053]]",
-        "selected_template",
-        1,
-        "load",
-        "clear"
-      ],
-      "points": [
-        [
-          2,
-          0.10780681557258087
-        ],
-        [
-          20,
-          0.6912164051831925
-        ],
-        [
-          25,
-          0.40761395465843053
-        ]
-      ]
-    },
-    {
-      "id": 37,
-      "type": "PreviewAudio",
-      "pos": [
-        3631.7798238067617,
-        409.16988601601315
-      ],
-      "size": [
-        270,
-        88
-      ],
-      "flags": {},
-      "order": 31,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "link": 48
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.12.2",
-        "Node name for S&R": "PreviewAudio"
-      },
-      "widgets_values": []
     }
   ],
   "links": [
@@ -1770,20 +1770,20 @@
       "SEMANTIC_HINTS"
     ],
     [
-      67,
-      48,
-      0,
-      49,
-      2,
-      "FLOAT"
-    ],
-    [
       68,
       49,
       0,
       19,
       4,
       "SEMANTIC_HINTS"
+    ],
+    [
+      69,
+      48,
+      0,
+      49,
+      2,
+      "FLOAT"
     ]
   ],
   "groups": [
@@ -1882,10 +1882,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.35049389948139265,
+      "scale": 0.683013455365071,
       "offset": [
-        1682.1929883145701,
-        588.4795115198237
+        625.7350128749001,
+        -99.48499783622248
       ]
     },
     "reroutes": [
