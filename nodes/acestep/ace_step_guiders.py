@@ -1,14 +1,149 @@
 import torch
+import torch.nn.functional as F
 import comfy.samplers
 import comfy.sample
+import comfy.sampler_helpers
+import comfy.model_sampling
+import comfy.model_patcher
 import math
 from .ace_step_utils import ACEStepLatentUtils
 from . import logger
+
+
+# =============================================================================
+# APG (Adaptive Prompt Guidance) - from ACE-Step reference implementation
+# Reference: https://huggingface.co/ACE-Step/acestep-v15-base/blob/main/apg_guidance.py
+# =============================================================================
+
+class MomentumBuffer:
+    """Momentum buffer for APG guidance smoothing across denoising steps."""
+
+    def __init__(self, momentum: float = -0.75):
+        self.momentum = momentum
+        self.running_average = 0
+
+    def update(self, update_value: torch.Tensor):
+        new_average = self.momentum * self.running_average
+        self.running_average = update_value + new_average
+
+
+def _apg_project(v0: torch.Tensor, v1: torch.Tensor, dims=[-1]):
+    """Project v0 onto v1 and return parallel and orthogonal components."""
+    dtype = v0.dtype
+    device_type = v0.device.type
+    if device_type == "mps":
+        v0, v1 = v0.cpu(), v1.cpu()
+
+    v0, v1 = v0.double(), v1.double()
+    v1 = F.normalize(v1, dim=dims)
+    v0_parallel = (v0 * v1).sum(dim=dims, keepdim=True) * v1
+    v0_orthogonal = v0 - v0_parallel
+    return v0_parallel.to(dtype).to(device_type), v0_orthogonal.to(dtype).to(device_type)
+
+
+def _apg_forward(
+    pred_cond: torch.Tensor,
+    pred_uncond: torch.Tensor,
+    guidance_scale: float,
+    momentum_buffer: MomentumBuffer = None,
+    eta: float = 0.0,
+    norm_threshold: float = 2.5,
+    dims=[-1],
+):
+    """
+    Adaptive Prompt Guidance (APG) - replaces standard CFG.
+
+    Instead of standard CFG (uncond + scale * (cond - uncond)), APG:
+    1. Computes guidance direction with momentum smoothing
+    2. Clamps guidance norm to prevent explosion
+    3. Projects guidance perpendicular to conditional prediction
+    4. Applies scaled perpendicular guidance
+
+    This prevents the guided result from drifting off the valid latent manifold,
+    which is the likely cause of silence with standard CFG at high scales.
+    """
+    diff = pred_cond - pred_uncond
+    if momentum_buffer is not None:
+        momentum_buffer.update(diff)
+        diff = momentum_buffer.running_average
+
+    if norm_threshold > 0:
+        ones = torch.ones_like(diff)
+        diff_norm = diff.norm(p=2, dim=dims, keepdim=True)
+        scale_factor = torch.minimum(ones, norm_threshold / diff_norm)
+        diff = diff * scale_factor
+
+    diff_parallel, diff_orthogonal = _apg_project(diff, pred_cond, dims)
+    normalized_update = diff_orthogonal + eta * diff_parallel
+    pred_guided = pred_cond + (guidance_scale - 1) * normalized_update
+    return pred_guided
+
+
+def _create_apg_sampler_cfg_function(momentum_buffer):
+    """
+    Create a sampler_cfg_function that uses APG instead of standard CFG.
+
+    ComfyUI's cfg_function provides args["cond"] = x - denoised = v * sigma (noise pred).
+    The sampler_cfg_function must return a noise prediction (same domain).
+
+    For ComfyUI format [B, C, T], dims=[-1] normalizes along T (time),
+    matching the reference's dims=[1] for [B, T, C] format.
+    """
+    def apg_cfg_function(args):
+        cond = args["cond"]
+        uncond = args["uncond"]
+        guidance_scale = args["cond_scale"]
+
+        guided = _apg_forward(
+            pred_cond=cond,
+            pred_uncond=uncond,
+            guidance_scale=guidance_scale,
+            momentum_buffer=momentum_buffer,
+            eta=0.0,
+            norm_threshold=2.5,
+            dims=[-1],
+        )
+
+        return guided
+
+    return apg_cfg_function
+
 
 # NOTE: gigantic shoutout to the powerful acestep team https://github.com/ace-step/ACE-Step
 # NOTE: And another massive shoutout.... the adapted code here is based on https://github.com/billwuhao/ComfyUI_ACE-Step
 
 # NOTE: this implementation is experimental and beta with a minimum of testing
+
+
+# =============================================================================
+# Reference Audio Timbre Injection Helper
+# =============================================================================
+
+def _inject_reference_audio(c, reference_latent, input_batch_size, device, dtype):
+    """Inject reference audio timbre latent into model conditioning dict.
+
+    Overrides the silence latent that extra_conds places in c["refer_audio"],
+    providing real timbre information to the timbre encoder without triggering
+    the covers-mode logic in extra_conds.
+
+    Truncates or pads the reference to match the existing refer_audio length,
+    and handles CFG batching.
+    """
+    ref = reference_latent.to(device=device, dtype=dtype)
+    # Match length to whatever extra_conds already set (sized to noise length)
+    if "refer_audio" in c:
+        target_len = c["refer_audio"].shape[2]
+    else:
+        target_len = ref.shape[2]
+    ref_len = ref.shape[2]
+    if ref_len > target_len:
+        ref = ref[:, :, :target_len]
+    elif ref_len < target_len:
+        ref = torch.nn.functional.pad(ref, (0, target_len - ref_len))
+    # Handle CFG batching
+    if ref.shape[0] < input_batch_size:
+        ref = ref.repeat(input_batch_size, 1, 1)
+    c["refer_audio"] = ref
 
 
 # =============================================================================
@@ -34,12 +169,14 @@ class ACEStep15NativeEditGuider(comfy.samplers.CFGGuider):
 
     def __init__(self, model, positive, negative, cfg, source_latent,
                  extend_left_seconds=0.0, extend_right_seconds=0.0,
-                 repaint_start_seconds=None, repaint_end_seconds=None):
+                 repaint_start_seconds=None, repaint_end_seconds=None,
+                 reference_latent=None):
         super().__init__(model)
         self.set_conds(positive, negative)
         self.set_cfg(cfg)
 
         self.source_latent = source_latent
+        self.reference_latent = reference_latent
 
         # Load silence_latent internally
         from .ace_step_utils import load_silence_latent
@@ -176,6 +313,7 @@ class ACEStep15NativeEditGuider(comfy.samplers.CFGGuider):
 
         chunk_masks = self.chunk_masks
         src_latents = self.src_latents
+        reference_latent = self.reference_latent
 
         # Clear any existing wrapper to avoid stale closure values
         self.model_patcher.set_model_unet_function_wrapper(None)
@@ -199,6 +337,10 @@ class ACEStep15NativeEditGuider(comfy.samplers.CFGGuider):
             # This tells the model to use src_latents directly (not semantic hints)
             c["is_covers"] = torch.zeros((input_batch_size,), device=device, dtype=torch.long)
 
+            # Inject reference audio timbre if provided
+            if reference_latent is not None:
+                _inject_reference_audio(c, reference_latent, input_batch_size, device, dtype)
+
             if not hasattr(model_function_wrapper, '_logged'):
                 logger.debug(f"[ACE15_EDIT_WRAPPER] Injecting chunk_masks and src_latents")
                 logger.debug(f"[ACE15_EDIT_WRAPPER]   input.shape: {args['input'].shape}")
@@ -206,6 +348,7 @@ class ACEStep15NativeEditGuider(comfy.samplers.CFGGuider):
                 logger.debug(f"[ACE15_EDIT_WRAPPER]   src_latents.shape: {c['src_latents'].shape}")
                 logger.debug(f"[ACE15_EDIT_WRAPPER]   is_covers: {c['is_covers']} (0=extend/repaint mode)")
                 logger.debug(f"[ACE15_EDIT_WRAPPER]   chunk_masks sum: {cm.sum().item():.0f} (generation frames * batch * channels)")
+                logger.debug(f"[ACE15_EDIT_WRAPPER]   reference_audio: {'injected' if reference_latent is not None else 'none (using silence)'}")
                 model_function_wrapper._logged = True
 
             return apply_model(args["input"], args["timestep"], **c)
@@ -216,13 +359,21 @@ class ACEStep15NativeEditGuider(comfy.samplers.CFGGuider):
         logger.debug(f"[ACE15_EDIT] Model wrapper applied")
 
     def sample(self, noise, latent_image, sampler, sigmas, denoise_mask=None, callback=None, disable_pbar=False, seed=None):
-        """Override sample to apply model wrapper and use working latent"""
+        """Override sample to apply model wrapper, APG guidance, and use working latent"""
 
         logger.debug(f"[ACE15_EDIT] sample() called")
         logger.debug(f"[ACE15_EDIT]   noise.shape: {noise.shape}")
         logger.debug(f"[ACE15_EDIT]   latent_image.shape: {latent_image.shape}")
 
         self._apply_model_wrapper()
+
+        # Apply APG guidance for base model (cfg > 1)
+        if self.cfg > 1.0:
+            momentum_buffer = MomentumBuffer(momentum=-0.75)
+            apg_cfg_fn = _create_apg_sampler_cfg_function(momentum_buffer)
+            self.model_options = comfy.model_patcher.create_model_options_clone(self.model_options)
+            self.model_options["sampler_cfg_function"] = apg_cfg_fn
+            logger.debug(f"[ACE15_EDIT] APG guidance enabled (cfg={self.cfg})")
 
         # Generate noise for working latent shape
         device = noise.device
@@ -270,12 +421,13 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
     sources), use ACEStep15SemanticExtractor and ACEStep15SemanticHintsBlend.
     """
 
-    def __init__(self, model, positive, negative, cfg, source_latent, semantic_hints=None):
+    def __init__(self, model, positive, negative, cfg, source_latent, semantic_hints=None, reference_latent=None):
         super().__init__(model)
         self.set_conds(positive, negative)
         self.set_cfg(cfg)
 
         self.source_latent = source_latent
+        self.reference_latent = reference_latent
 
         batch_size, channels, total_length = source_latent.shape
 
@@ -319,6 +471,7 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
         chunk_masks = self.chunk_masks
         src_latents = self.src_latents
         semantic_hints = self.semantic_hints
+        reference_latent = self.reference_latent
 
         self.model_patcher.set_model_unet_function_wrapper(None)
 
@@ -349,6 +502,10 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
                 # Fallback: use raw VAE latents via is_covers=0
                 c["is_covers"] = torch.zeros((input_batch_size,), device=device, dtype=torch.long)
 
+            # Inject reference audio timbre if provided
+            if reference_latent is not None:
+                _inject_reference_audio(c, reference_latent, input_batch_size, device, dtype)
+
             if not hasattr(model_function_wrapper, '_logged'):
                 logger.debug(f"[ACE15_COVER_WRAPPER] Injecting cover parameters")
                 logger.debug(f"[ACE15_COVER_WRAPPER]   input.shape: {args['input'].shape}")
@@ -367,6 +524,7 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
                         logger.debug(f"[ACE15_COVER_WRAPPER]   WARNING: semantic hints have very low variance! May be constant/invalid.")
                 else:
                     logger.debug(f"[ACE15_COVER_WRAPPER]   WARNING: No precomputed_lm_hints_25Hz - will fall back to VAE latents!")
+                logger.debug(f"[ACE15_COVER_WRAPPER]   reference_audio: {'injected' if reference_latent is not None else 'none (using silence)'}")
                 model_function_wrapper._logged = True
 
             return apply_model(args["input"], args["timestep"], **c)
@@ -377,7 +535,7 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
         logger.debug(f"[ACE15_NATIVE_COVER] Model wrapper applied")
 
     def sample(self, noise, latent_image, sampler, sigmas, denoise_mask=None, callback=None, disable_pbar=False, seed=None):
-        """Override sample to apply model wrapper for cover"""
+        """Override sample to apply model wrapper and APG guidance for cover"""
 
         logger.debug(f"[ACE15_NATIVE_COVER] sample() called")
         logger.debug(f"[ACE15_NATIVE_COVER]   noise.shape: {noise.shape}")
@@ -385,12 +543,16 @@ class ACEStep15NativeCoverGuider(comfy.samplers.CFGGuider):
 
         self._apply_model_wrapper()
 
-        device = noise.device
-        dtype = noise.dtype
-        working_noise = torch.randn_like(self.source_latent, device=device, dtype=dtype)
+        # Apply APG guidance for base model (cfg > 1)
+        if self.cfg > 1.0:
+            momentum_buffer = MomentumBuffer(momentum=-0.75)
+            apg_cfg_fn = _create_apg_sampler_cfg_function(momentum_buffer)
+            self.model_options = comfy.model_patcher.create_model_options_clone(self.model_options)
+            self.model_options["sampler_cfg_function"] = apg_cfg_fn
+            logger.debug(f"[ACE15_NATIVE_COVER] APG guidance enabled (cfg={self.cfg})")
 
         result = super().sample(
-            working_noise,
+            noise,
             self.source_latent,
             sampler,
             sigmas,
@@ -422,13 +584,14 @@ class ACEStep15NativeExtractGuider(comfy.samplers.CFGGuider):
     the source_latent. For advanced workflows, use ACEStep15SemanticExtractor.
     """
 
-    def __init__(self, model, positive, negative, cfg, source_latent, track_name="vocals", semantic_hints=None):
+    def __init__(self, model, positive, negative, cfg, source_latent, track_name="vocals", semantic_hints=None, reference_latent=None):
         super().__init__(model)
         self.set_conds(positive, negative)
         self.set_cfg(cfg)
 
         self.source_latent = source_latent
         self.track_name = track_name
+        self.reference_latent = reference_latent
 
         batch_size, channels, total_length = source_latent.shape
 
@@ -436,17 +599,8 @@ class ACEStep15NativeExtractGuider(comfy.samplers.CFGGuider):
         logger.debug(f"[ACE15_NATIVE_EXTRACT]   source_latent.shape: {source_latent.shape}")
         logger.debug(f"[ACE15_NATIVE_EXTRACT]   track_name: {track_name}")
 
-        # Auto-extract semantic hints if not provided
-        if semantic_hints is None:
-            logger.debug(f"[ACE15_NATIVE_EXTRACT]   No semantic_hints provided, auto-extracting...")
-            from .ace_step_utils import extract_semantic_hints
-            semantic_hints = extract_semantic_hints(model, source_latent, verbose=True)
-            logger.debug(f"[ACE15_NATIVE_EXTRACT]   Auto-extracted semantic_hints shape: {semantic_hints.shape}")
-
+        # Store semantic hints if provided (optional, not used for context when is_covers=0)
         self.semantic_hints = semantic_hints
-
-        # Validate semantic hints
-        logger.debug(f"[ACE15_NATIVE_EXTRACT]   semantic_hints stats: mean={semantic_hints.mean():.4f}, std={semantic_hints.std():.4f}")
 
         # Extract: generate everything (the extracted track)
         self.chunk_masks = torch.ones_like(source_latent)
@@ -457,13 +611,22 @@ class ACEStep15NativeExtractGuider(comfy.samplers.CFGGuider):
         self._wrapper_applied = False
 
     def _apply_model_wrapper(self):
-        """Apply model wrapper to inject chunk_masks, src_latents, is_covers, and semantic hints"""
+        """Apply model wrapper to inject chunk_masks, src_latents, and is_covers for extract.
+
+        Reference behavior for extract (from handler.py):
+        - is_covers = False (tensor zeros) -> prepare_condition keeps src_latents as raw audio
+        - src_latents = VAE-encoded source audio (the mix to extract from)
+        - chunk_masks = all ones (generate everything)
+        - precomputed_lm_hints_25Hz = NOT provided (reference lets prepare_condition
+          tokenize refer_audio internally; hints are computed but unused when is_covers=0)
+        """
         if self._wrapper_applied:
             return
 
         chunk_masks = self.chunk_masks
         src_latents = self.src_latents
         semantic_hints = self.semantic_hints
+        reference_latent = self.reference_latent
 
         self.model_patcher.set_model_unet_function_wrapper(None)
 
@@ -481,22 +644,24 @@ class ACEStep15NativeExtractGuider(comfy.samplers.CFGGuider):
 
             c["chunk_masks"] = cm
             c["src_latents"] = sl
+            c["is_covers"] = torch.zeros((input_batch_size,), device=device, dtype=torch.long)
 
-            # Set is_covers based on whether we have semantic hints
+            # Optionally provide precomputed semantic hints to skip internal tokenization
+            # (hints are NOT used for context when is_covers=0, but providing them avoids
+            # a wasteful tokenize/detokenize of the silence latent in prepare_condition)
             if semantic_hints is not None:
                 sh = semantic_hints.to(device=device, dtype=dtype)
                 if sh.shape[0] < input_batch_size:
                     sh = sh.repeat(input_batch_size, 1, 1)
                 c["precomputed_lm_hints_25Hz"] = sh
-                c["is_covers"] = torch.ones((input_batch_size,), device=device, dtype=torch.long)
-            else:
-                c["is_covers"] = torch.zeros((input_batch_size,), device=device, dtype=torch.long)
+
+            # Inject reference audio timbre if provided
+            if reference_latent is not None:
+                _inject_reference_audio(c, reference_latent, input_batch_size, device, dtype)
 
             if not hasattr(model_function_wrapper, '_logged'):
-                logger.debug(f"[ACE15_EXTRACT_WRAPPER] Injecting extract parameters")
-                logger.debug(f"[ACE15_EXTRACT_WRAPPER]   is_covers: {c['is_covers']}")
-                if "precomputed_lm_hints_25Hz" in c:
-                    logger.debug(f"[ACE15_EXTRACT_WRAPPER]   precomputed_lm_hints_25Hz.shape: {c['precomputed_lm_hints_25Hz'].shape}")
+                logger.debug(f"[ACE15_EXTRACT_WRAPPER] is_covers={c['is_covers']}, "
+                             f"hints={'yes' if 'precomputed_lm_hints_25Hz' in c else 'no'}")
                 model_function_wrapper._logged = True
 
             return apply_model(args["input"], args["timestep"], **c)
@@ -507,18 +672,22 @@ class ACEStep15NativeExtractGuider(comfy.samplers.CFGGuider):
         logger.debug(f"[ACE15_NATIVE_EXTRACT] Model wrapper applied")
 
     def sample(self, noise, latent_image, sampler, sigmas, denoise_mask=None, callback=None, disable_pbar=False, seed=None):
-        """Override sample to apply model wrapper for extract"""
+        """Override sample to apply model wrapper and APG guidance for extract"""
 
         logger.debug(f"[ACE15_NATIVE_EXTRACT] sample() called")
 
         self._apply_model_wrapper()
 
-        device = noise.device
-        dtype = noise.dtype
-        working_noise = torch.randn_like(self.source_latent, device=device, dtype=dtype)
+        # Apply APG guidance for base model (cfg > 1)
+        if self.cfg > 1.0:
+            momentum_buffer = MomentumBuffer(momentum=-0.75)
+            apg_cfg_fn = _create_apg_sampler_cfg_function(momentum_buffer)
+            self.model_options = comfy.model_patcher.create_model_options_clone(self.model_options)
+            self.model_options["sampler_cfg_function"] = apg_cfg_fn
+            logger.debug(f"[ACE15_NATIVE_EXTRACT] APG guidance enabled (cfg={self.cfg})")
 
         result = super().sample(
-            working_noise,
+            noise,
             self.source_latent,
             sampler,
             sigmas,
@@ -550,13 +719,14 @@ class ACEStep15NativeLegoGuider(comfy.samplers.CFGGuider):
     """
 
     def __init__(self, model, positive, negative, cfg, source_latent,
-                 track_name="vocals", start_seconds=0.0, end_seconds=None):
+                 track_name="vocals", start_seconds=0.0, end_seconds=None, reference_latent=None):
         super().__init__(model)
         self.set_conds(positive, negative)
         self.set_cfg(cfg)
 
         self.source_latent = source_latent
         self.track_name = track_name
+        self.reference_latent = reference_latent
 
         # Load silence_latent internally
         from .ace_step_utils import load_silence_latent
@@ -627,6 +797,7 @@ class ACEStep15NativeLegoGuider(comfy.samplers.CFGGuider):
 
         chunk_masks = self.chunk_masks
         src_latents = self.src_latents
+        reference_latent = self.reference_latent
 
         self.model_patcher.set_model_unet_function_wrapper(None)
 
@@ -644,9 +815,18 @@ class ACEStep15NativeLegoGuider(comfy.samplers.CFGGuider):
 
             c["chunk_masks"] = cm
             c["src_latents"] = sl
+            # Lego task: is_covers=False (like extract/repaint, not cover)
+            # Using tensor zeros prevents stock prepare_condition's `is_covers is False`
+            # identity check from replacing src_latents with refer_audio.
+            c["is_covers"] = torch.zeros((input_batch_size,), device=device, dtype=torch.long)
+
+            # Inject reference audio timbre if provided
+            if reference_latent is not None:
+                _inject_reference_audio(c, reference_latent, input_batch_size, device, dtype)
 
             if not hasattr(model_function_wrapper, '_logged'):
-                logger.debug(f"[ACE15_LEGO_WRAPPER] Injecting chunk_masks and src_latents")
+                logger.debug(f"[ACE15_LEGO_WRAPPER] Injecting chunk_masks, src_latents, is_covers=0")
+                logger.debug(f"[ACE15_LEGO_WRAPPER]   reference_audio: {'injected' if reference_latent is not None else 'none (using silence)'}")
                 model_function_wrapper._logged = True
 
             return apply_model(args["input"], args["timestep"], **c)
@@ -657,11 +837,19 @@ class ACEStep15NativeLegoGuider(comfy.samplers.CFGGuider):
         logger.debug(f"[ACE15_NATIVE_LEGO] Model wrapper applied")
 
     def sample(self, noise, latent_image, sampler, sigmas, denoise_mask=None, callback=None, disable_pbar=False, seed=None):
-        """Override sample to apply model wrapper for lego"""
+        """Override sample to apply model wrapper, APG guidance, and correct sigma schedule for lego"""
 
         logger.debug(f"[ACE15_NATIVE_LEGO] sample() called")
 
         self._apply_model_wrapper()
+
+        # Apply APG guidance for base model (cfg > 1)
+        if self.cfg > 1.0:
+            momentum_buffer = MomentumBuffer(momentum=-0.75)
+            apg_cfg_fn = _create_apg_sampler_cfg_function(momentum_buffer)
+            self.model_options = comfy.model_patcher.create_model_options_clone(self.model_options)
+            self.model_options["sampler_cfg_function"] = apg_cfg_fn
+            logger.debug(f"[ACE15_NATIVE_LEGO] APG guidance enabled (cfg={self.cfg})")
 
         device = noise.device
         dtype = noise.dtype
@@ -811,6 +999,13 @@ class ACEStepRepaintGuider(comfy.samplers.CFGGuider):
             if callback is not None:
                 return callback(step, x0_unused, x, total_steps)
         
+        # Use APG guidance for base model (cfg > 1.0) instead of standard CFG
+        if self.cfg > 1.0:
+            momentum_buffer = MomentumBuffer(momentum=-0.75)
+            apg_cfg_fn = _create_apg_sampler_cfg_function(momentum_buffer)
+            self.model_options = comfy.model_patcher.create_model_options_clone(self.model_options)
+            self.model_options["sampler_cfg_function"] = apg_cfg_fn
+
         # Run sampling with repaint callback
         result = super().sample(noise, latent_image, sampler, sigmas, denoise_mask, repaint_callback, disable_pbar, seed)
         
@@ -1071,6 +1266,13 @@ class ACEStepExtendGuider(comfy.samplers.CFGGuider):
             if callback is not None:
                 return callback(step, x0_unused, x, total_steps)
         
+        # Use APG guidance for base model (cfg > 1.0) instead of standard CFG
+        if self.cfg > 1.0:
+            momentum_buffer = MomentumBuffer(momentum=-0.75)
+            apg_cfg_fn = _create_apg_sampler_cfg_function(momentum_buffer)
+            self.model_options = comfy.model_patcher.create_model_options_clone(self.model_options)
+            self.model_options["sampler_cfg_function"] = apg_cfg_fn
+
         # Use extended latent and target_latents as initial noise
         result = super().sample(target_latents, self.extended_latent, sampler, sigmas, denoise_mask, extend_callback, disable_pbar, seed)
         
@@ -1378,6 +1580,13 @@ class ACEStepHybridGuider(comfy.samplers.CFGGuider):
             if callback is not None:
                 return callback(step, x0_unused, x, total_steps)
         
+        # Use APG guidance for base model (cfg > 1.0) instead of standard CFG
+        if self.cfg > 1.0:
+            momentum_buffer = MomentumBuffer(momentum=-0.75)
+            apg_cfg_fn = _create_apg_sampler_cfg_function(momentum_buffer)
+            self.model_options = comfy.model_patcher.create_model_options_clone(self.model_options)
+            self.model_options["sampler_cfg_function"] = apg_cfg_fn
+
         # Run sampling with working latent and hybrid callback
         result = super().sample(working_noise, working_latent, sampler, sigmas, denoise_mask, hybrid_callback, disable_pbar, seed)
         

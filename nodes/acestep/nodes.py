@@ -1,5 +1,6 @@
 import torch
 import comfy.model_management
+import comfy.model_sampling
 import comfy.samplers
 
 # Import patches module to apply ACE-Step 1.5 patches
@@ -10,14 +11,15 @@ from .ace_step_guiders import (
     ACEStepRepaintGuider, ACEStepExtendGuider, ACEStepHybridGuider,
     ACEStep15NativeEditGuider,
     ACEStep15NativeCoverGuider,
-    # TODO: Re-enable when ready
-    # ACEStep15NativeExtractGuider, ACEStep15NativeLegoGuider
+    # ACEStep15NativeExtractGuider,  # TODO: temporarily disabled pending fixes
+    # ACEStep15NativeLegoGuider,     # TODO: temporarily disabled pending fixes
 )
 from .ace_step_utils import ACEStepLatentUtils
 from .audio_mask_nodes import (
     AudioTemporalMask, AudioRegionMask, AudioMaskAnalyzer,
     AUDIO_MASK_NODE_CLASS_MAPPINGS, AUDIO_MASK_NODE_DISPLAY_NAME_MAPPINGS
 )
+
 
 def validate_audio_latent(latents):
     """Validate that latents are audio latents, handling both typed and untyped cases
@@ -708,6 +710,7 @@ class ACEStep15NativeEditGuiderNode:
                 "extend_right_seconds": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 240.0, "step": 0.1}),
                 "repaint_start_seconds": ("FLOAT", {"default": -1.0, "min": -1.0, "max": 1000.0, "step": 0.1}),
                 "repaint_end_seconds": ("FLOAT", {"default": -1.0, "min": -1.0, "max": 1000.0, "step": 0.1}),
+                "reference_latent": ("LATENT", {"tooltip": "Optional reference audio latent for timbre conditioning. The model will generate audio with the timbre/instrument character of this reference. Does not affect task behavior (extend/repaint)."}),
             }
         }
 
@@ -718,7 +721,8 @@ class ACEStep15NativeEditGuiderNode:
 
     def get_guider(self, model, positive, negative, source_latents, cfg,
                    extend_left_seconds=0.0, extend_right_seconds=0.0,
-                   repaint_start_seconds=-1.0, repaint_end_seconds=-1.0):
+                   repaint_start_seconds=-1.0, repaint_end_seconds=-1.0,
+                   reference_latent=None):
 
         source_tensor = source_latents["samples"]
 
@@ -744,6 +748,9 @@ class ACEStep15NativeEditGuiderNode:
         if has_repaint:
             logger.debug(f"[ACE15_EDIT_NODE]   repaint: {repaint_start_seconds}s - {repaint_end_seconds}s")
 
+        # Extract reference latent tensor if provided
+        ref_tensor = reference_latent["samples"] if reference_latent is not None else None
+
         # Create the unified guider (silence_latent is loaded internally)
         guider = ACEStep15NativeEditGuider(
             model, positive, negative, cfg,
@@ -751,7 +758,8 @@ class ACEStep15NativeEditGuiderNode:
             extend_left_seconds=extend_left_seconds,
             extend_right_seconds=extend_right_seconds,
             repaint_start_seconds=repaint_start,
-            repaint_end_seconds=repaint_end
+            repaint_end_seconds=repaint_end,
+            reference_latent=ref_tensor
         )
 
         # Return the working latent (may be extended or same as source)
@@ -784,6 +792,7 @@ class ACEStep15NativeCoverGuiderNode:
             },
             "optional": {
                 "semantic_hints": ("SEMANTIC_HINTS",),
+                "reference_latent": ("LATENT", {"tooltip": "Optional reference audio latent for timbre conditioning. Decouples timbre from the source audio's semantic content — the cover follows the source's structure but adopts this reference's instrument/voice character."}),
             }
         }
 
@@ -791,12 +800,15 @@ class ACEStep15NativeCoverGuiderNode:
     FUNCTION = "get_guider"
     CATEGORY = "sampling/custom_sampling/guiders"
 
-    def get_guider(self, model, positive, negative, cfg, source_latents, semantic_hints=None):
+    def get_guider(self, model, positive, negative, cfg, source_latents, semantic_hints=None, reference_latent=None):
         source_tensor = source_latents["samples"]
 
         # Validate v1.5 shape: (batch, 64, length)
         if len(source_tensor.shape) != 3 or source_tensor.shape[1] != 64:
             raise ValueError(f"ACE-Step 1.5 requires latent shape (batch, 64, length), got {source_tensor.shape}")
+
+        # Extract reference latent tensor if provided
+        ref_tensor = reference_latent["samples"] if reference_latent is not None else None
 
         logger.debug(f"[ACE15_COVER_NODE] Creating guider")
         logger.debug(f"[ACE15_COVER_NODE]   source_tensor.shape: {source_tensor.shape}")
@@ -804,9 +816,11 @@ class ACEStep15NativeCoverGuiderNode:
             logger.debug(f"[ACE15_COVER_NODE]   semantic_hints provided externally: {semantic_hints.shape}")
         else:
             logger.debug(f"[ACE15_COVER_NODE]   semantic_hints will be auto-extracted")
+        if ref_tensor is not None:
+            logger.debug(f"[ACE15_COVER_NODE]   reference_latent provided: {ref_tensor.shape}")
 
         guider = ACEStep15NativeCoverGuider(
-            model, positive, negative, cfg, source_tensor, semantic_hints
+            model, positive, negative, cfg, source_tensor, semantic_hints, reference_latent=ref_tensor
         )
 
         return (guider,)
@@ -830,13 +844,15 @@ class ACEStep15NativeExtractGuiderNode:
                 "model": ("MODEL",),
                 "positive": ("CONDITIONING",),
                 "negative": ("CONDITIONING",),
-                "cfg": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01}),
+                "cfg": ("FLOAT", {"default": 7.0, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01,
+                         "tooltip": "Classifier-free guidance scale. Base model default is 7.0. Turbo model uses 1.0 (no CFG)."}),
                 "source_latents": ("LATENT",),
                 "track_name": (["vocals", "drums", "bass", "guitar", "keyboard", "strings",
                                "percussion", "synth", "fx", "brass", "woodwinds", "backing_vocals"],),
             },
             "optional": {
                 "semantic_hints": ("SEMANTIC_HINTS",),
+                "reference_latent": ("LATENT", {"tooltip": "Optional reference audio latent for timbre conditioning. Guides what the extracted track should sound like."}),
             }
         }
 
@@ -844,12 +860,15 @@ class ACEStep15NativeExtractGuiderNode:
     FUNCTION = "get_guider"
     CATEGORY = "sampling/custom_sampling/guiders"
 
-    def get_guider(self, model, positive, negative, cfg, source_latents, track_name, semantic_hints=None):
+    def get_guider(self, model, positive, negative, cfg, source_latents, track_name, semantic_hints=None, reference_latent=None):
         source_tensor = source_latents["samples"]
 
         # Validate v1.5 shape: (batch, 64, length)
         if len(source_tensor.shape) != 3 or source_tensor.shape[1] != 64:
             raise ValueError(f"ACE-Step 1.5 requires latent shape (batch, 64, length), got {source_tensor.shape}")
+
+        # Extract reference latent tensor if provided
+        ref_tensor = reference_latent["samples"] if reference_latent is not None else None
 
         logger.debug(f"[ACE15_EXTRACT_NODE] Creating guider")
         logger.debug(f"[ACE15_EXTRACT_NODE]   source_tensor.shape: {source_tensor.shape}")
@@ -857,10 +876,12 @@ class ACEStep15NativeExtractGuiderNode:
         if semantic_hints is not None:
             logger.debug(f"[ACE15_EXTRACT_NODE]   semantic_hints provided externally: {semantic_hints.shape}")
         else:
-            logger.debug(f"[ACE15_EXTRACT_NODE]   semantic_hints will be auto-extracted")
+            logger.debug(f"[ACE15_EXTRACT_NODE]   no semantic_hints (not needed for extract)")
+        if ref_tensor is not None:
+            logger.debug(f"[ACE15_EXTRACT_NODE]   reference_latent provided: {ref_tensor.shape}")
 
         guider = ACEStep15NativeExtractGuider(
-            model, positive, negative, cfg, source_tensor, track_name, semantic_hints
+            model, positive, negative, cfg, source_tensor, track_name, semantic_hints, reference_latent=ref_tensor
         )
 
         return (guider,)
@@ -885,12 +906,16 @@ class ACEStep15NativeLegoGuiderNode:
                 "model": ("MODEL",),
                 "positive": ("CONDITIONING",),
                 "negative": ("CONDITIONING",),
-                "cfg": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01}),
+                "cfg": ("FLOAT", {"default": 7.0, "min": 0.0, "max": 100.0, "step": 0.1, "round": 0.01,
+                         "tooltip": "Classifier-free guidance scale. Base model default is 7.0. Turbo model uses 1.0 (no CFG)."}),
                 "source_latents": ("LATENT",),
                 "track_name": (["vocals", "drums", "bass", "guitar", "keyboard", "strings",
                                "percussion", "synth", "fx", "brass", "woodwinds", "backing_vocals"],),
                 "start_seconds": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1000.0, "step": 0.1}),
                 "end_seconds": ("FLOAT", {"default": 30.0, "min": 0.0, "max": 1000.0, "step": 0.1}),
+            },
+            "optional": {
+                "reference_latent": ("LATENT", {"tooltip": "Optional reference audio latent for timbre conditioning. The generated track will adopt the timbre/instrument character of this reference."}),
             }
         }
 
@@ -899,7 +924,7 @@ class ACEStep15NativeLegoGuiderNode:
     CATEGORY = "sampling/custom_sampling/guiders"
 
     def get_guider(self, model, positive, negative, cfg, source_latents,
-                   track_name, start_seconds, end_seconds):
+                   track_name, start_seconds, end_seconds, reference_latent=None):
         if start_seconds >= end_seconds:
             raise ValueError(f"start_seconds ({start_seconds}) must be less than end_seconds ({end_seconds})")
 
@@ -909,15 +934,20 @@ class ACEStep15NativeLegoGuiderNode:
         if len(source_tensor.shape) != 3 or source_tensor.shape[1] != 64:
             raise ValueError(f"ACE-Step 1.5 requires latent shape (batch, 64, length), got {source_tensor.shape}")
 
+        # Extract reference latent tensor if provided
+        ref_tensor = reference_latent["samples"] if reference_latent is not None else None
+
         logger.debug(f"[ACE15_LEGO_NODE] Creating guider")
         logger.debug(f"[ACE15_LEGO_NODE]   source_tensor.shape: {source_tensor.shape}")
         logger.debug(f"[ACE15_LEGO_NODE]   track_name: {track_name}")
         logger.debug(f"[ACE15_LEGO_NODE]   region: {start_seconds}s - {end_seconds}s")
+        if ref_tensor is not None:
+            logger.debug(f"[ACE15_LEGO_NODE]   reference_latent provided: {ref_tensor.shape}")
 
         # Create guider (silence_latent is loaded internally)
         guider = ACEStep15NativeLegoGuider(
             model, positive, negative, cfg, source_tensor,
-            track_name, start_seconds, end_seconds
+            track_name, start_seconds, end_seconds, reference_latent=ref_tensor
         )
 
         return (guider,)
@@ -973,8 +1003,8 @@ class ACEStep15TaskTextEncodeNode:
             "required": {
                 "clip": ("CLIP",),
                 "text": ("STRING", {"multiline": True, "dynamicPrompts": True, "default": "A melodic electronic track with soft synths"}),
-                "task_type": (["text2music", "repaint", "cover"],
-                             {"tooltip": "text2music/repaint use LM audio code generation (cfg_scale, temperature, top_p, top_k apply). cover uses precomputed semantic hints from source audio instead."}),  # TODO: Re-enable "extract", "lego" when ready
+                "task_type": (["text2music", "repaint", "cover", "extract", "lego"],
+                             {"tooltip": "text2music/repaint use LM audio code generation (cfg_scale, temperature, top_p, top_k apply). cover/extract/lego use precomputed semantic hints from source audio instead."}),
             },
             "optional": {
                 "track_name": (["", "vocals", "drums", "bass", "guitar", "keyboard", "strings",
@@ -1060,6 +1090,43 @@ class ACEStep15TaskTextEncodeNode:
         return (conditioning,)
 
 
+class ModelSamplingACEStep:
+    """Override model sampling for ACE-Step 1.5.
+
+    ACE-Step uses ModelSamplingDiscreteFlow with multiplier=1.0.
+    The shift parameter controls the sigma schedule:
+    - shift=3.0 for turbo model (default in supported_models)
+    - shift=1.0 for base model (linear spacing)
+
+    Place this node BEFORE the scheduler so sigmas are computed with the correct shift.
+    """
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {
+            "model": ("MODEL",),
+            "shift": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 100.0, "step": 0.01}),
+        }}
+
+    RETURN_TYPES = ("MODEL",)
+    FUNCTION = "patch"
+    CATEGORY = "audio/acestep"
+
+    def patch(self, model, shift):
+        m = model.clone()
+
+        sampling_base = comfy.model_sampling.ModelSamplingDiscreteFlow
+        sampling_type = comfy.model_sampling.CONST
+
+        class ModelSamplingAdvanced(sampling_base, sampling_type):
+            pass
+
+        model_sampling = ModelSamplingAdvanced(model.model.model_config)
+        model_sampling.set_parameters(shift=shift, multiplier=1.0)
+        m.add_object_patch("model_sampling", model_sampling)
+        return (m,)
+
+
 # Node class mappings for ComfyUI
 NODE_CLASS_MAPPINGS = {
     # ACE-Step 1.0 guiders (latent-level ODE blending)
@@ -1077,11 +1144,12 @@ NODE_CLASS_MAPPINGS = {
     # ACE-Step 1.5 guiders (model-level mask input)
     "ACEStep15NativeEditGuider": ACEStep15NativeEditGuiderNode,
     "ACEStep15NativeCoverGuider": ACEStep15NativeCoverGuiderNode,
-    # TODO: Re-enable when ready
-    # "ACEStep15NativeExtractGuider": ACEStep15NativeExtractGuiderNode,
-    # "ACEStep15NativeLegoGuider": ACEStep15NativeLegoGuiderNode,
+    # "ACEStep15NativeExtractGuider": ACEStep15NativeExtractGuiderNode,  # TODO: temporarily disabled
+    # "ACEStep15NativeLegoGuider": ACEStep15NativeLegoGuiderNode,      # TODO: temporarily disabled
     # ACE-Step 1.5 text encoder
     "ACEStep15TaskTextEncode": ACEStep15TaskTextEncodeNode,
+    # ACE-Step 1.5 model sampling override
+    "ModelSamplingACEStep": ModelSamplingACEStep,
     **AUDIO_MASK_NODE_CLASS_MAPPINGS,  # Add audio mask nodes
 }
 
@@ -1102,10 +1170,11 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     # ACE-Step 1.5 guiders
     "ACEStep15NativeEditGuider": "ACE-Step 1.5 Edit Guider (Extend/Repaint)",
     "ACEStep15NativeCoverGuider": "ACE-Step 1.5 Cover Guider",
-    # TODO: Re-enable when ready
-    # "ACEStep15NativeExtractGuider": "ACE-Step 1.5 Extract Guider",
-    # "ACEStep15NativeLegoGuider": "ACE-Step 1.5 Lego Guider",
+    # "ACEStep15NativeExtractGuider": "ACE-Step 1.5 Extract Guider",  # TODO: temporarily disabled
+    # "ACEStep15NativeLegoGuider": "ACE-Step 1.5 Lego Guider",      # TODO: temporarily disabled
     # ACE-Step 1.5 text encoder
     "ACEStep15TaskTextEncode": "ACE-Step 1.5 Task Text Encode",
+    # ACE-Step 1.5 model sampling override
+    "ModelSamplingACEStep": "ACE-Step Model Sampling",
     **AUDIO_MASK_NODE_DISPLAY_NAME_MAPPINGS,
 } 

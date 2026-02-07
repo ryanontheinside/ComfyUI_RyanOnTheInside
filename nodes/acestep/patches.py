@@ -102,11 +102,21 @@ def _create_patched_ace_step15_forward(original_forward):
     @functools.wraps(original_forward)
     def patched_forward(self, x, timestep, context, lyric_embed=None, refer_audio=None,
                         audio_codes=None, chunk_masks=None, src_latents=None,
-                        is_covers=None, precomputed_lm_hints_25Hz=None, **kwargs):
+                        is_covers=None, precomputed_lm_hints_25Hz=None,
+                        replace_with_null_embeds=False, **kwargs):
         text_attention_mask = None
         lyric_attention_mask = None
         refer_audio_order_mask = None
         attention_mask = None
+
+        if not hasattr(patched_forward, '_diag_count'):
+            patched_forward._diag_count = 0
+        patched_forward._diag_count += 1
+        if patched_forward._diag_count <= 2:
+            print(f"[PATCHED_FWD] Call #{patched_forward._diag_count}: "
+                  f"x={x.shape}, t={timestep}, is_covers={is_covers}, "
+                  f"hints={'yes' if precomputed_lm_hints_25Hz is not None else 'no'}, "
+                  f"null_embeds={replace_with_null_embeds}")
 
         # One-time diagnostic log for cover task
         if not _forward_logged[0] and precomputed_lm_hints_25Hz is not None:
@@ -170,6 +180,9 @@ def _create_patched_ace_step15_forward(original_forward):
             if isinstance(is_covers, torch.Tensor) and is_covers.any().item():
                 is_covers = True
 
+        if patched_forward._diag_count <= 2 and precomputed_lm_hints_25Hz is not None:
+            print(f"[PATCHED_FWD]   is_covers_adapted={is_covers}, hints.shape={precomputed_lm_hints_25Hz.shape}")
+
         enc_hidden, enc_mask, context_latents = self.prepare_condition(
             text_hidden_states, text_attention_mask,
             lyric_hidden_states, lyric_attention_mask,
@@ -178,6 +191,13 @@ def _create_patched_ace_step15_forward(original_forward):
             precomputed_lm_hints_25Hz=precomputed_lm_hints_25Hz,
             audio_codes=audio_codes
         )
+
+        # Apply learned null embeddings for uncond CFG pass (matching stock forward behavior)
+        if replace_with_null_embeds:
+            enc_hidden[:] = self.null_condition_emb.to(enc_hidden)
+
+        if patched_forward._diag_count <= 2:
+            print(f"[PATCHED_FWD]   enc_hidden: std={enc_hidden.std():.4f}, ctx_latents: shape={context_latents.shape}")
 
         out = self.decoder(
             hidden_states=x,
@@ -188,6 +208,9 @@ def _create_patched_ace_step15_forward(original_forward):
             encoder_attention_mask=enc_mask,
             context_latents=context_latents
         )
+
+        if patched_forward._diag_count <= 2:
+            print(f"[PATCHED_FWD]   decoder out: mean={out.mean():.4f}, std={out.std():.4f}")
 
         return out.movedim(-1, -2)
 
@@ -214,11 +237,11 @@ def _create_patched_tokenizer(original_tokenize_with_weights):
 
         # Strip our custom kwargs before forwarding to the stock tokenizer
         stock_kwargs = {k: v for k, v in kwargs.items() if k not in ("task_type", "track_name")}
-        print(f"[ACE15_PATCHED_TOKENIZER] stock_kwargs LM params: cfg_scale={stock_kwargs.get('cfg_scale', 'MISSING')}, temperature={stock_kwargs.get('temperature', 'MISSING')}, top_p={stock_kwargs.get('top_p', 'MISSING')}, top_k={stock_kwargs.get('top_k', 'MISSING')}")
+        logger.debug(f"[ACE15_TOKENIZER] task={task_type}, track={track_name}")
 
         # Call the original tokenizer to get baseline output with all expected keys
         out = original_tokenize_with_weights(self, text, return_word_ids, **stock_kwargs)
-        print(f"[ACE15_PATCHED_TOKENIZER] lm_metadata after stock tokenizer: {out.get('lm_metadata', 'MISSING')}")
+        logger.debug(f"[ACE15_TOKENIZER] generate_audio_codes={out.get('lm_metadata', {}).get('generate_audio_codes', 'N/A')}")
 
         # Get appropriate instruction for task type
         instruction = get_task_instruction(task_type, track_name)
@@ -249,7 +272,7 @@ def _create_patched_tokenizer(original_tokenize_with_weights):
         out["task_type"] = task_type
         out["track_name"] = track_name
 
-        print(f"[ACE15_PATCHED_TOKENIZER] FINAL lm_metadata: {out.get('lm_metadata', 'MISSING')}")
+        logger.debug(f"[ACE15_TOKENIZER] final generate_audio_codes={out.get('lm_metadata', {}).get('generate_audio_codes', 'N/A')}")
         return out
 
     return patched_tokenize_with_weights
