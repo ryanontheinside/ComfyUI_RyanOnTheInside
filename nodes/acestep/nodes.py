@@ -96,8 +96,9 @@ class ACEStep15SemanticHintsBlend:
 
     blend_factor: 0.0 = 100% hints_a, 1.0 = 100% hints_b, 0.5 = 50/50 mix
 
-    TODO: Enhance with feature system for temporal blending, crossfades,
-    and region-based masking.
+    Optional FEATURE input enables temporal blending — the feature value at each
+    audio time step controls the blend weight, scaled by blend_factor. This allows
+    crossfades, rhythmic alternation, and region-based masking between sources.
     """
 
     @classmethod
@@ -107,6 +108,9 @@ class ACEStep15SemanticHintsBlend:
                 "hints_a": ("SEMANTIC_HINTS",),
                 "hints_b": ("SEMANTIC_HINTS",),
                 "blend_factor": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            },
+            "optional": {
+                "feature": ("FEATURE",),
             }
         }
 
@@ -115,7 +119,7 @@ class ACEStep15SemanticHintsBlend:
     FUNCTION = "blend"
     CATEGORY = "audio/acestep"
 
-    def blend(self, hints_a, hints_b, blend_factor):
+    def blend(self, hints_a, hints_b, blend_factor, feature=None):
         # Validate shapes match
         if hints_a.shape != hints_b.shape:
             # Try to match lengths by truncating to shorter
@@ -127,10 +131,37 @@ class ACEStep15SemanticHintsBlend:
         logger.debug(f"[SEMANTIC_BLEND] Blending hints")
         logger.debug(f"[SEMANTIC_BLEND]   hints_a shape: {hints_a.shape}, stats: mean={hints_a.mean():.4f}, std={hints_a.std():.4f}")
         logger.debug(f"[SEMANTIC_BLEND]   hints_b shape: {hints_b.shape}, stats: mean={hints_b.mean():.4f}, std={hints_b.std():.4f}")
-        logger.debug(f"[SEMANTIC_BLEND]   blend_factor: {blend_factor} (0=A, 1=B)")
 
-        # Simple linear interpolation
-        blended = (1.0 - blend_factor) * hints_a + blend_factor * hints_b
+        if feature is not None:
+            # Temporal blending: sample feature across the time dimension
+            # Hints shape is [B, D, T] — time is the last dimension
+            T = hints_a.shape[-1]
+            frame_count = feature.frame_count
+
+            logger.debug(f"[SEMANTIC_BLEND]   feature mode: {frame_count} feature frames -> {T} audio time steps")
+
+            weights = []
+            for t in range(T):
+                # Map audio time step to feature frame index
+                if T == 1:
+                    frame_idx = 0
+                else:
+                    frame_idx = round(t * (frame_count - 1) / (T - 1))
+                frame_idx = max(0, min(frame_idx, frame_count - 1))
+                weights.append(float(feature.get_value_at_frame(frame_idx)))
+
+            # Shape [1, 1, T] to broadcast across batch and channel dims
+            weight = torch.tensor(weights, dtype=hints_a.dtype, device=hints_a.device).reshape(1, 1, T)
+            # blend_factor scales the feature values
+            weight = weight * blend_factor
+
+            logger.debug(f"[SEMANTIC_BLEND]   temporal weight stats: min={weight.min():.4f}, max={weight.max():.4f}, mean={weight.mean():.4f}")
+
+            blended = (1.0 - weight) * hints_a + weight * hints_b
+        else:
+            # Static blend — backward compatible
+            logger.debug(f"[SEMANTIC_BLEND]   blend_factor: {blend_factor} (0=A, 1=B)")
+            blended = (1.0 - blend_factor) * hints_a + blend_factor * hints_b
 
         logger.debug(f"[SEMANTIC_BLEND]   result stats: mean={blended.mean():.4f}, std={blended.std():.4f}")
 
