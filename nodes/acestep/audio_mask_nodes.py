@@ -18,13 +18,13 @@ class AudioMaskBase:
     def _create_base_mask(self, latent_tensor, version=None):
         """Create base mask with correct shape for conditioning
         v1.0: (batch, height, length) where height=16 - matches noise.shape[2:] = (16, length)
-        Note: Temporal mask conditioning only works with ACE-Step 1.0
+        v1.5: (batch, length) - matches noise.shape[2:] = (length,)
         """
         if version == ACEStepLatentUtils.V1_5:
-            # v1.5 uses discrete audio_codes tokens that cannot be interpolated
-            # Temporal mask conditioning is not supported for v1.5
-            raise ValueError("Temporal mask conditioning is only supported for ACE-Step 1.0. "
-                           "ACE-Step 1.5 uses discrete audio tokens that cannot be blended temporally.")
+            batch_size, channels, length = latent_tensor.shape
+            mask = torch.zeros((batch_size, length))
+            dims = (batch_size, length)
+            return mask, dims
         else:
             batch_size, channels, height, length = latent_tensor.shape
             mask = torch.zeros((batch_size, height, length))
@@ -314,6 +314,164 @@ class MaskToAudioMask(AudioMaskBase):
 
         return (self._finalize_mask(audio_mask),)
 
+class AudioTemporalMask15(AudioMaskBase):
+    """Create temporal crossfade mask for ACE-Step 1.5 latents"""
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "audio_latents": ("LATENT",),
+                "value": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "length_mismatch": (["repeat", "loop"], {"default": "repeat"}),
+            }
+        }
+
+    RETURN_TYPES = ("MASK",)
+    FUNCTION = "create_temporal_mask"
+    CATEGORY = "conditioning/audio"
+
+    def create_temporal_mask(self, audio_latents, value, length_mismatch):
+        latent_tensor, version = self._extract_and_validate_latent(audio_latents)
+        if version != ACEStepLatentUtils.V1_5:
+            raise ValueError("This node is for ACE-Step 1.5. Use AudioTemporalMask for v1.0.")
+        mask, dims = self._create_base_mask(latent_tensor, version)
+        length = dims[-1]
+
+        if isinstance(value, (int, float)):
+            values = [float(value)]
+        elif isinstance(value, (list, tuple)):
+            values = [float(x) for x in value]
+        else:
+            raise ValueError(f"float_values must be a float or list of floats, got {type(value)}")
+
+        if not values:
+            raise ValueError("No valid float values provided")
+
+        if len(values) > length:
+            values = values[:length]
+        elif len(values) < length:
+            if length_mismatch == "repeat":
+                last_value = values[-1]
+                values.extend([last_value] * (length - len(values)))
+            else:
+                while len(values) < length:
+                    remaining = length - len(values)
+                    values.extend(values[:min(remaining, len(values))])
+
+        for i in range(length):
+            mask[:, i] = values[i]
+
+        return (self._finalize_mask(mask),)
+
+
+class AudioRegionMask15(AudioMaskBase):
+    """Create masks for specific time regions for ACE-Step 1.5"""
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "audio_latents": ("LATENT",),
+                "start_time": ("FLOAT", {"default": 5.0, "min": 0.0, "max": 1000.0, "step": 0.1}),
+                "end_time": ("FLOAT", {"default": 15.0, "min": 0.0, "max": 1000.0, "step": 0.1}),
+                "mask_value": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "feather_seconds": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 5.0, "step": 0.1}),
+            }
+        }
+
+    RETURN_TYPES = ("MASK",)
+    FUNCTION = "create_region_mask"
+    CATEGORY = "conditioning/audio"
+
+    def create_region_mask(self, audio_latents, start_time, end_time, mask_value, feather_seconds):
+        latent_tensor, version = self._extract_and_validate_latent(audio_latents)
+        if version != ACEStepLatentUtils.V1_5:
+            raise ValueError("This node is for ACE-Step 1.5. Use AudioRegionMask for v1.0.")
+        mask, dims = self._create_base_mask(latent_tensor, version)
+        length = dims[-1]
+
+        start_frame = ACEStepLatentUtils.time_to_frame_index(start_time, version)
+        end_frame = ACEStepLatentUtils.time_to_frame_index(end_time, version)
+        feather_frames = ACEStepLatentUtils.time_to_frame_index(feather_seconds, version)
+
+        if start_frame < end_frame:
+            mask[:, start_frame:end_frame] = mask_value
+
+        if feather_frames > 0:
+            for i in range(max(0, start_frame - feather_frames), start_frame):
+                if i >= 0 and i < length:
+                    progress = (i - (start_frame - feather_frames)) / feather_frames
+                    mask[:, i] = mask_value * progress
+            for i in range(end_frame, min(length, end_frame + feather_frames)):
+                if i >= 0 and i < length:
+                    progress = 1.0 - (i - end_frame) / feather_frames
+                    mask[:, i] = mask_value * progress
+
+        return (self._finalize_mask(mask),)
+
+
+class MaskToAudioMask15(AudioMaskBase):
+    """Convert spatial masks to audio temporal masks for ACE-Step 1.5"""
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "audio_latents": ("LATENT",),
+                "spatial_mask": ("MASK",),
+                "frame_summary": (["average", "max", "min", "center_pixel"], {"default": "average"}),
+            }
+        }
+
+    RETURN_TYPES = ("MASK",)
+    FUNCTION = "convert_spatial_to_audio_mask"
+    CATEGORY = "conditioning/audio"
+
+    def convert_spatial_to_audio_mask(self, audio_latents, spatial_mask, frame_summary):
+        latent_tensor, version = self._extract_and_validate_latent(audio_latents)
+        if version != ACEStepLatentUtils.V1_5:
+            raise ValueError("This node is for ACE-Step 1.5. Use MaskToAudioMask for v1.0.")
+        mask, dims = self._create_base_mask(latent_tensor, version)
+        batch_size = dims[0]
+        target_length = dims[-1]
+
+        if len(spatial_mask.shape) == 2:
+            spatial_mask = spatial_mask.unsqueeze(0)
+        elif len(spatial_mask.shape) == 4:
+            spatial_mask = spatial_mask[:, 0, :, :]
+
+        num_frames = spatial_mask.shape[0]
+        temporal_values = []
+        for frame_idx in range(num_frames):
+            frame = spatial_mask[frame_idx]
+            if frame_summary == "average":
+                value = frame.mean().item()
+            elif frame_summary == "max":
+                value = frame.max().item()
+            elif frame_summary == "min":
+                value = frame.min().item()
+            elif frame_summary == "center_pixel":
+                h, w = frame.shape
+                value = frame[h//2, w//2].item()
+            temporal_values.append(value)
+
+        if len(temporal_values) != target_length:
+            pattern_tensor = torch.tensor(temporal_values, dtype=torch.float32)
+            pattern_2d = pattern_tensor.unsqueeze(0).unsqueeze(0)
+            resized = torch.nn.functional.interpolate(
+                pattern_2d, size=target_length, mode='linear', align_corners=False
+            )
+            final_pattern = resized[0, 0]
+        else:
+            final_pattern = torch.tensor(temporal_values, dtype=torch.float32)
+
+        for b in range(batch_size):
+            mask[b, :] = final_pattern
+
+        return (self._finalize_mask(mask),)
+
+
 class AudioLatentInfo(AudioMaskBase):
     """Extract dimensional info from audio latents for use with other nodes"""
     
@@ -368,6 +526,9 @@ AUDIO_MASK_NODE_CLASS_MAPPINGS = {
     "AudioMaskAnalyzer": AudioMaskAnalyzer,
     "MaskToAudioMask": MaskToAudioMask,
     "AudioLatentInfo": AudioLatentInfo,
+    "AudioTemporalMask15": AudioTemporalMask15,
+    "AudioRegionMask15": AudioRegionMask15,
+    "MaskToAudioMask15": MaskToAudioMask15,
 }
 
 AUDIO_MASK_NODE_DISPLAY_NAME_MAPPINGS = {
@@ -376,4 +537,7 @@ AUDIO_MASK_NODE_DISPLAY_NAME_MAPPINGS = {
     "AudioMaskAnalyzer": "Audio Mask Analyzer",
     "MaskToAudioMask": "Mask to Audio Mask (ACE 1.0)",
     "AudioLatentInfo": "Audio Latent Info",
+    "AudioTemporalMask15": "Audio Temporal Mask (ACE 1.5)",
+    "AudioRegionMask15": "Audio Region Mask (ACE 1.5)",
+    "MaskToAudioMask15": "Mask to Audio Mask (ACE 1.5)",
 } 
