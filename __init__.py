@@ -101,6 +101,8 @@ from .nodes.audio.audio_nodes_effects import (
     AudioFade,
 )
 
+from .nodes.audio.audio_compare import PreviewAudioCompare
+
 from .nodes.audio.audio_nodes_utility import (
     AudioPad,
     AudioChannelMerge,
@@ -475,6 +477,7 @@ NODE_CLASS_MAPPINGS = {
     "AudioResample":                AudioResample,
     "AudioVolumeNormalization":     AudioVolumeNormalization,
     "Knob":                Knob,
+    "PreviewAudioCompare":          PreviewAudioCompare,
 
     #features   
     "AudioFeatureExtractor":        AudioFeatureExtractor,
