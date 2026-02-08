@@ -197,7 +197,7 @@ class TimeFeature(BaseFeature):
     @classmethod
     def get_extraction_methods(self):
         return [
-            "smooth", "accelerate", "pulse", "sawtooth","bounce"
+            "smooth", "accelerate", "pulse", "sawtooth", "bounce", "square"
         ]
 
     def extract(self):
@@ -216,6 +216,8 @@ class TimeFeature(BaseFeature):
             self.data = t
         elif self.effect_type == 'bounce':
             self.data = 1 - np.abs(1 - 2 * t)
+        elif self.effect_type == 'square':
+            self.data = (t < 0.5).astype(float)
         else:
             raise ValueError("Unsupported effect type")
         
