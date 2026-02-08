@@ -90,13 +90,21 @@ def _create_apg_sampler_cfg_function(momentum_buffer):
     matching the reference's dims=[1] for [B, T, C] format.
     """
     def apg_cfg_function(args):
-        cond = args["cond"]
-        uncond = args["uncond"]
+        cond = args["cond"]       # v_cond * sigma (noise prediction domain)
+        uncond = args["uncond"]   # v_uncond * sigma
+        sigma = args["sigma"]
         guidance_scale = args["cond_scale"]
 
-        guided = _apg_forward(
-            pred_cond=cond,
-            pred_uncond=uncond,
+        # Convert from noise prediction to velocity domain (matching reference)
+        sigma_view = sigma.view(sigma.shape[:1] + (1,) * (cond.ndim - 1))
+        sigma_clamped = sigma_view.clamp(min=1e-8)
+        v_cond = cond / sigma_clamped
+        v_uncond = uncond / sigma_clamped
+
+        # APG on velocity (matches reference exactly)
+        v_guided = _apg_forward(
+            pred_cond=v_cond,
+            pred_uncond=v_uncond,
             guidance_scale=guidance_scale,
             momentum_buffer=momentum_buffer,
             eta=0.0,
@@ -104,7 +112,25 @@ def _create_apg_sampler_cfg_function(momentum_buffer):
             dims=[-1],
         )
 
-        return guided
+        # Diagnostic: log early, mid, and late steps
+        if not hasattr(apg_cfg_function, '_log_count'):
+            apg_cfg_function._log_count = 0
+            apg_cfg_function._total_steps = None
+        apg_cfg_function._log_count += 1
+        step = apg_cfg_function._log_count
+        # Log steps 1-3, and every step in last 5
+        should_log = step <= 3 or step == 15 or step == 20 or step >= 26
+        if should_log:
+            diff = v_cond - v_uncond
+            guided_diff = v_guided - v_cond
+            print(f"[APG_DEBUG] step={step} sigma={sigma.item():.6f} "
+                  f"cond_noise={cond.norm():.2f} v_cond={v_cond.norm():.2f} "
+                  f"v_uncond={v_uncond.norm():.2f} v_guided={v_guided.norm():.2f} "
+                  f"diff_norm={diff.norm():.2f} guidance_delta={guided_diff.norm():.2f} "
+                  f"v_guided_mean={v_guided.mean():.6f} v_guided_std={v_guided.std():.4f}")
+
+        # Convert back to noise prediction domain
+        return v_guided * sigma_clamped
 
     return apg_cfg_function
 

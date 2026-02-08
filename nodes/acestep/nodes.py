@@ -11,8 +11,8 @@ from .ace_step_guiders import (
     ACEStepRepaintGuider, ACEStepExtendGuider, ACEStepHybridGuider,
     ACEStep15NativeEditGuider,
     ACEStep15NativeCoverGuider,
-    # ACEStep15NativeExtractGuider,  # TODO: temporarily disabled pending fixes
-    # ACEStep15NativeLegoGuider,     # TODO: temporarily disabled pending fixes
+    ACEStep15NativeExtractGuider,
+    ACEStep15NativeLegoGuider,
 )
 from .ace_step_utils import ACEStepLatentUtils
 from .audio_mask_nodes import (
@@ -1144,8 +1144,8 @@ NODE_CLASS_MAPPINGS = {
     # ACE-Step 1.5 guiders (model-level mask input)
     "ACEStep15NativeEditGuider": ACEStep15NativeEditGuiderNode,
     "ACEStep15NativeCoverGuider": ACEStep15NativeCoverGuiderNode,
-    # "ACEStep15NativeExtractGuider": ACEStep15NativeExtractGuiderNode,  # TODO: temporarily disabled
-    # "ACEStep15NativeLegoGuider": ACEStep15NativeLegoGuiderNode,      # TODO: temporarily disabled
+    "ACEStep15NativeExtractGuider": ACEStep15NativeExtractGuiderNode,
+    "ACEStep15NativeLegoGuider": ACEStep15NativeLegoGuiderNode,
     # ACE-Step 1.5 text encoder
     "ACEStep15TaskTextEncode": ACEStep15TaskTextEncodeNode,
     # ACE-Step 1.5 model sampling override
@@ -1170,8 +1170,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     # ACE-Step 1.5 guiders
     "ACEStep15NativeEditGuider": "ACE-Step 1.5 Edit Guider (Extend/Repaint)",
     "ACEStep15NativeCoverGuider": "ACE-Step 1.5 Cover Guider",
-    # "ACEStep15NativeExtractGuider": "ACE-Step 1.5 Extract Guider",  # TODO: temporarily disabled
-    # "ACEStep15NativeLegoGuider": "ACE-Step 1.5 Lego Guider",      # TODO: temporarily disabled
+    "ACEStep15NativeExtractGuider": "ACE-Step 1.5 Extract Guider",
+    "ACEStep15NativeLegoGuider": "ACE-Step 1.5 Lego Guider",
     # ACE-Step 1.5 text encoder
     "ACEStep15TaskTextEncode": "ACE-Step 1.5 Task Text Encode",
     # ACE-Step 1.5 model sampling override

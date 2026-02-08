@@ -112,8 +112,12 @@ def _create_patched_ace_step15_forward(original_forward):
         if not hasattr(patched_forward, '_diag_count'):
             patched_forward._diag_count = 0
         patched_forward._diag_count += 1
-        if patched_forward._diag_count <= 2:
-            print(f"[PATCHED_FWD] Call #{patched_forward._diag_count}: "
+        _call = patched_forward._diag_count
+        # Each step has 2 calls (cond + uncond). Log early, mid, late.
+        # Steps 1-2 = calls 1-4, step 15 = calls 29-30, step 28-30 = calls 55-60
+        _should_log = False #_call <= 4 or _call in (29, 30) or _call >= 55
+        if _should_log:
+            print(f"[PATCHED_FWD] Call #{_call}: "
                   f"x={x.shape}, t={timestep}, is_covers={is_covers}, "
                   f"hints={'yes' if precomputed_lm_hints_25Hz is not None else 'no'}, "
                   f"null_embeds={replace_with_null_embeds}")
@@ -196,8 +200,9 @@ def _create_patched_ace_step15_forward(original_forward):
         if replace_with_null_embeds:
             enc_hidden[:] = self.null_condition_emb.to(enc_hidden)
 
-        if patched_forward._diag_count <= 2:
+        if _should_log:
             print(f"[PATCHED_FWD]   enc_hidden: std={enc_hidden.std():.4f}, ctx_latents: shape={context_latents.shape}")
+            print(f"[PATCHED_FWD]   x stats: mean={x.mean():.4f}, std={x.std():.4f}, min={x.min():.4f}, max={x.max():.4f}")
 
         out = self.decoder(
             hidden_states=x,
@@ -209,8 +214,8 @@ def _create_patched_ace_step15_forward(original_forward):
             context_latents=context_latents
         )
 
-        if patched_forward._diag_count <= 2:
-            print(f"[PATCHED_FWD]   decoder out: mean={out.mean():.4f}, std={out.std():.4f}")
+        if _should_log:
+            print(f"[PATCHED_FWD]   decoder out: mean={out.mean():.4f}, std={out.std():.4f}, min={out.min():.4f}, max={out.max():.4f}")
 
         return out.movedim(-1, -2)
 
@@ -262,7 +267,9 @@ def _create_patched_tokenizer(original_tokenize_with_weights):
         out["lm_prompt"] = self.qwen3_06b.tokenize_with_weights(lm_template.format(instruction, text, lyrics, meta_lm), disable_weights=True)
         out["lm_prompt_negative"] = self.qwen3_06b.tokenize_with_weights(lm_template.format(instruction, text, lyrics, ""), disable_weights=True)
         out["lyrics"] = self.qwen3_06b.tokenize_with_weights("# Languages\n{}\n\n# Lyric{}<|endoftext|><|endoftext|>".format(language, lyrics), return_word_ids, disable_weights=True, **kwargs)
-        out["qwen3_06b"] = self.qwen3_06b.tokenize_with_weights("# Instruction\n{}\n\n# Caption\n{}# Metas\n{}<|endoftext|>\n<|endoftext|>".format(instruction, text, meta_cap), return_word_ids, **kwargs)
+        _fmt = "# Instruction\n{}\n\n# Caption\n{}\n\n# Metas\n{}<|endoftext|>\n".format(instruction, text, meta_cap)
+        print(f"[TOKENIZER_DEBUG] qwen3_06b prompt (first 200 chars): {repr(_fmt[:200])}")
+        out["qwen3_06b"] = self.qwen3_06b.tokenize_with_weights(_fmt, return_word_ids, **kwargs)
 
         # Cover/extract/lego tasks use precomputed semantic hints, skip LLM code generation
         if isinstance(out.get("lm_metadata"), dict):
