@@ -62,6 +62,8 @@ print("""
 
 
     
+from .nodes.misc.misc_nodes import ROTIDisplayAny
+
 from .nodes.masks.temporal_masks import (
     MaskMorph,
     MaskTransform,
@@ -598,6 +600,8 @@ NODE_CLASS_MAPPINGS = {
     
     "MIDIToAudio": MIDIToAudio,
     "MIDILoader": MIDILoader,
+
+    "ROTIDisplayAny": ROTIDisplayAny,
 }
 
 
