@@ -308,6 +308,76 @@ def apply_patches():
     except ImportError as e:
         logger.info(f"[ACE-Step Patches] Warning: Could not patch ace15 tokenizer: {e}")
 
+    # Patch resolve_areas_and_cond_masks_multidim for 1D mask support.
+    # ComfyUI's mask normalization assumes 2D spatial dims (images). This patch
+    # generalizes it to work with any number of spatial dims (1D audio, 2D image, 3D video).
+
+    
+    try:
+        import comfy.samplers as _comfy_samplers
+        import comfy.utils
+        _original_resolve = _comfy_samplers.resolve_areas_and_cond_masks_multidim
+    
+        def _patched_resolve_areas_and_cond_masks_multidim(conditions, dims, device):
+            for i in range(len(conditions)):
+                c = conditions[i]
+                if 'area' in c:
+                    area = c['area']
+                    if area[0] == "percentage":
+                        modified = c.copy()
+                        a = area[1:]
+                        a_len = len(a) // 2
+                        area = ()
+                        for d in range(len(dims)):
+                            area += (max(1, round(a[d] * dims[d])),)
+                        for d in range(len(dims)):
+                            area += (round(a[d + a_len] * dims[d]),)
+                        modified['area'] = area
+                        c = modified
+                        conditions[i] = c
+    
+                if 'mask' in c:
+                    mask = c['mask'].to(device=device)
+                    modified = c.copy()
+                    target_ndim = len(dims) + 1
+                    while mask.ndim > target_ndim and mask.shape[0] == 1:
+                        mask = mask.squeeze(0)
+                    while mask.ndim < target_ndim:
+                        mask = mask.unsqueeze(0)
+                    if mask.shape[1:] != dims:
+                        if len(dims) == 1:
+                            mask = torch.nn.functional.interpolate(
+                                mask.unsqueeze(1), size=dims[0],
+                                mode='linear', align_corners=False).squeeze(1)
+                        elif mask.ndim < 4:
+                            mask = comfy.utils.common_upscale(
+                                mask.unsqueeze(1), dims[-1], dims[-2],
+                                'bilinear', 'none').squeeze(1)
+                        else:
+                            mask = comfy.utils.common_upscale(
+                                mask, dims[-1], dims[-2], 'bilinear', 'none')
+    
+                    if modified.get("set_area_to_bounds", False) and len(dims) == 2:
+                        from comfy.samplers import get_mask_aabb
+                        bounds = torch.max(torch.abs(mask), dim=0).values.unsqueeze(0)
+                        boxes, is_empty = get_mask_aabb(bounds)
+                        if is_empty[0]:
+                            modified['area'] = (8, 8, 0, 0)
+                        else:
+                            box = boxes[0]
+                            H, W, Y, X = (box[3] - box[1] + 1, box[2] - box[0] + 1, box[1], box[0])
+                            H = max(8, H)
+                            W = max(8, W)
+                            modified['area'] = (int(H), int(W), int(Y), int(X))
+    
+                    modified['mask'] = mask
+                    conditions[i] = modified
+    
+        _comfy_samplers.resolve_areas_and_cond_masks_multidim = _patched_resolve_areas_and_cond_masks_multidim
+        logger.info("[ACE-Step Patches] Patched resolve_areas_and_cond_masks_multidim for 1D mask support")
+    except Exception as e:
+        logger.info(f"[ACE-Step Patches] Warning: Could not patch resolve_areas_and_cond_masks_multidim: {e}")
+
     _patches_applied = True
     logger.info("[ACE-Step Patches] All patches applied successfully")
 
