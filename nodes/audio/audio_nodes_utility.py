@@ -9,6 +9,7 @@ from .audio_utils import (
     combine_audio,
     dither_audio,
 )
+from . import librosa_replacements as lr
 import torch
 from ...tooltips import apply_tooltips
 import numpy as np
@@ -231,9 +232,7 @@ class AudioInfo(AudioUtility):
 
     def _detect_key(self, audio_mono, sample_rate):
         """Detect musical key using chromagram and Krumhansl-Kessler key profiles."""
-        import librosa
-        # Extract chromagram using Constant-Q Transform (better for pitch detection)
-        chromagram = librosa.feature.chroma_cqt(y=audio_mono, sr=sample_rate)
+        chromagram = lr.feature_chroma_cqt(y=audio_mono, sr=sample_rate)
 
         # Average chroma values across time to get a single 12-element profile
         chroma_profile = np.mean(chromagram, axis=1)
@@ -269,7 +268,6 @@ class AudioInfo(AudioUtility):
         return best_key
 
     def get_audio_info(self, audio, frame_rate):
-        import librosa
         # Get basic audio info
         waveform = audio['waveform']
         sample_rate = audio['sample_rate']
@@ -284,7 +282,7 @@ class AudioInfo(AudioUtility):
 
         # Detect BPM using librosa
         audio_mono = waveform.squeeze(0).mean(axis=0).cpu().numpy()
-        tempo, _ = librosa.beat.beat_track(y=audio_mono, sr=sample_rate)
+        tempo, _ = lr.beat_track(y=audio_mono, sr=sample_rate)
         tempo_scalar = float(tempo.item() if hasattr(tempo, 'item') else tempo)
         detected_bpm_rounded = int(round(tempo_scalar))
         beats_per_second = tempo / 60.0
@@ -400,7 +398,6 @@ class Knob(AudioUtility):
     FUNCTION = "enhance_audio"
 
     def enhance_audio(self, audio, knob, other_knob):
-        import librosa
         waveform, sample_rate = audio['waveform'], audio['sample_rate']
         
         # Make a copy of the input waveform
@@ -422,48 +419,49 @@ class Knob(AudioUtility):
                     channel_data = enhanced_np[ch]
                     
                     # Split into frequency bands
-                    stft = librosa.stft(channel_data)
+                    stft = lr.stft(channel_data)
                     freq_bins = stft.shape[0]
-                    
+
                     # Define frequency bands (low, mid, high)
                     low_band = int(freq_bins * 0.15)  # 0-15% of frequency range
                     mid_band = int(freq_bins * 0.6)   # 15-60% of frequency range
-                    
+
                     # Apply different compression to each band
                     # Low frequencies - heavy compression for tight bass
                     low_comp = 0.3 + (intensity * 0.5)  # 0.3-0.8
                     stft[:low_band] *= (1.0 + torch.tanh(torch.tensor(abs(stft[:low_band])) * low_comp).numpy())
-                    
+
                     # Mid frequencies - moderate compression for vocal clarity
                     mid_comp = 0.2 + (intensity * 0.3)  # 0.2-0.5
-                    stft[low_band:mid_band] *= (1.0 + (intensity * 0.4)) 
-                    
+                    stft[low_band:mid_band] *= (1.0 + (intensity * 0.4))
+
                     # High frequencies - excitement and air
                     high_boost = 0.3 + (intensity * 0.7)  # 0.3-1.0
                     stft[mid_band:] *= (1.0 + high_boost)
-                    
+
                     # Convert back to time domain
-                    processed_channel = librosa.istft(stft, length=len(channel_data))
+                    processed_channel = lr.istft(stft, length=len(channel_data))
                     processed_channels.append(processed_channel)
                 
                 enhanced_np = np.array(processed_channels)
             else:
                 # Mono processing
-                stft = librosa.stft(enhanced_np)
+                mono_data = enhanced_np.squeeze()
+                stft = lr.stft(mono_data)
                 freq_bins = stft.shape[0]
-                
+
                 # Define frequency bands
                 low_band = int(freq_bins * 0.15)
                 mid_band = int(freq_bins * 0.6)
-                
+
                 # Apply band-specific processing
                 low_comp = 0.3 + (intensity * 0.5)
                 stft[:low_band] *= (1.0 + np.tanh(np.abs(stft[:low_band]) * low_comp))
                 stft[low_band:mid_band] *= (1.0 + (intensity * 0.4))
                 stft[mid_band:] *= (1.0 + (0.3 + (intensity * 0.7)))
-                
+
                 # Convert back
-                enhanced_np = librosa.istft(stft, length=len(enhanced_np))
+                enhanced_np = lr.istft(stft, length=len(mono_data))
                 enhanced_np = np.expand_dims(enhanced_np, axis=0)
                 
             # Convert back to torch tensor
@@ -523,42 +521,43 @@ class Knob(AudioUtility):
                     for ch in range(enhanced_np.shape[0]):
                         # Process each channel independently
                         channel_data = enhanced_np[ch]
-                        stft = librosa.stft(channel_data)
-                        
+                        stft = lr.stft(channel_data)
+
                         # Create bass boost filter for this channel
                         freq_bins = stft.shape[0]
                         bass_gain = 1.0 + (other_knob * intensity * 2.0)
                         bass_shelf = np.ones(freq_bins)
                         bass_end = int(freq_bins * 0.1)
                         bass_shelf[:bass_end] = bass_gain
-                        
+
                         # Reshape for broadcasting and apply
                         bass_shelf = bass_shelf.reshape(-1, 1)
                         stft = stft * bass_shelf
-                        
+
                         # Convert back to time domain
-                        processed_channel = librosa.istft(stft, length=len(channel_data))
+                        processed_channel = lr.istft(stft, length=len(channel_data))
                         processed_channels.append(processed_channel)
                     
                     # Combine channels back
                     enhanced_np = np.array(processed_channels)
                 else:
                     # Mono processing
-                    stft = librosa.stft(enhanced_np.squeeze())
-                    
+                    mono_bass = enhanced_np.squeeze()
+                    stft = lr.stft(mono_bass)
+
                     # Create bass boost filter
                     freq_bins = stft.shape[0]
                     bass_gain = 1.0 + (other_knob * intensity * 2.0)
                     bass_shelf = np.ones(freq_bins)
                     bass_end = int(freq_bins * 0.1)
                     bass_shelf[:bass_end] = bass_gain
-                    
+
                     # Reshape for broadcasting and apply
                     bass_shelf = bass_shelf.reshape(-1, 1)
                     stft = stft * bass_shelf
-                    
+
                     # Convert back to time domain
-                    enhanced_np = librosa.istft(stft, length=len(enhanced_np.squeeze()))
+                    enhanced_np = lr.istft(stft, length=len(mono_bass))
                     enhanced_np = np.expand_dims(enhanced_np, axis=0)
                 
                 # Convert back to torch tensor

@@ -84,14 +84,14 @@ def time_stretch(waveform, rate):
     device = waveform.device
     waveform = waveform.cpu()
 
-    import librosa
-    # Convert to numpy for librosa processing
+    from . import librosa_replacements as lr
+    # Convert to numpy for processing
     waveform_np = waveform.numpy()
 
     # Process each channel
     stretched_channels = []
     for channel in waveform_np:
-        stretched = librosa.effects.time_stretch(channel, rate=rate)
+        stretched = lr.effects_time_stretch(channel, rate=rate)
         stretched_channels.append(stretched)
 
     # Stack channels and convert back to torch tensor
