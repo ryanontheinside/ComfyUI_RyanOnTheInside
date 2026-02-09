@@ -864,4 +864,22 @@ class FeatureToMask(FlexExternalModulator):
         # Create masks for all frames at once by expanding the normalized data
         masks_out = normalized_tensor.unsqueeze(-1).unsqueeze(-1).expand(-1, height, width)
         return (masks_out,)
-    
+
+NODE_CLASS_MAPPINGS = {
+    "FeatureToWeightsStrategy": FeatureToWeightsStrategy,
+    "FeatureToSplineData": FeatureToSplineData,
+    "SplineFeatureModulator": SplineFeatureModulator,
+    "SplineRhythmModulator": SplineRhythmModulator,
+    "DepthShapeModifier": DepthShapeModifier,
+    "DepthShapeModifierPrecise": DepthShapeModifierPrecise,
+    "FeatureToFloat": FeatureToFloat,
+    "FeatureToMask": FeatureToMask,
+    "FeatureToFilteredList": FeatureToFilteredList,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "FeatureToSplineData": "***BETA*** Feature To Spline Data",
+    "SplineFeatureModulator": "***BETA*** Spline Feature Modulator",
+    "SplineRhythmModulator": "***BETA*** Spline Rhythm Modulator",
+}
+

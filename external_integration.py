@@ -76,20 +76,20 @@ else:
     )
 
 # Prepare a dictionary to hold the NODE_CLASS_MAPPINGS additions
-EXTERNAL_NODE_CLASS_MAPPINGS = {}
+NODE_CLASS_MAPPINGS = {}
 
 # Update the mapping based on available integrations
 if HAS_ADVANCED_LIVE_PORTRAIT:
-    EXTERNAL_NODE_CLASS_MAPPINGS["FlexExpressionEditor"] = FlexExpressionEditor
+    NODE_CLASS_MAPPINGS["FlexExpressionEditor"] = FlexExpressionEditor
 
 if HAS_ADVANCED_CONTROLNET:
-    EXTERNAL_NODE_CLASS_MAPPINGS.update({
+    NODE_CLASS_MAPPINGS.update({
         # "FeatureToTimestepKeyframe": FeatureToTimestepKeyframe,
         "FeatureToLatentKeyframe": FeatureToLatentKeyframe,
     })
 
 if HAS_ANIMATEDIFF:
-    EXTERNAL_NODE_CLASS_MAPPINGS.update({
+    NODE_CLASS_MAPPINGS.update({
         "FeatureToADKeyframe": FeatureToADKeyframe,
         # "FeatureToCameraKeyframe": FeatureToCameraKeyframe,
         # "FeatureToPIAKeyframe": FeatureToPIAKeyframe,

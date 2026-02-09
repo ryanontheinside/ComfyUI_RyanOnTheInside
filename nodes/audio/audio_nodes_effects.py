@@ -91,3 +91,10 @@ class AudioTimeStretch(AudioEffect):
         waveform, sample_rate = audio['waveform'], audio['sample_rate']
         stretched_waveform = time_stretch(waveform, rate)
         return ({"waveform": stretched_waveform, "sample_rate": sample_rate},)
+
+NODE_CLASS_MAPPINGS = {
+    "AudioPitchShift": AudioPitchShift,
+    "AudioTimeStretch": AudioTimeStretch,
+    "AudioGain": AudioGain,
+    "AudioFade": AudioFade,
+}

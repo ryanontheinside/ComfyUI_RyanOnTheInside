@@ -250,4 +250,10 @@ class OpticalFlowParticleSystem(OpticalFlowMaskBase):
 
     # Dummy implementation of apply_flow_mask to satisfy the abstract base class
     def apply_flow_mask(self, mask: np.ndarray, flow_magnitude: np.ndarray, flow: np.ndarray, strength: float, **kwargs) -> np.ndarray:
-        return mask  
+        return mask
+
+NODE_CLASS_MAPPINGS = {
+    "OpticalFlowMaskModulation": OpticalFlowMaskModulation,
+    "OpticalFlowDirectionMask": OpticalFlowDirectionMask,
+    "OpticalFlowParticleSystem": OpticalFlowParticleSystem,
+}

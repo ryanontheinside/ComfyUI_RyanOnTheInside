@@ -195,4 +195,9 @@ class LocationTransform(ProximityFeatureInput):
         return (transformed_locations,)
 
 
-
+NODE_CLASS_MAPPINGS = {
+    "LocationFromMask": LocationFromMask,
+    "ProximityFeatureNode": ProximityFeatureNode,
+    "LocationFromPoint": LocationFromPoint,
+    "LocationTransform": LocationTransform,
+}

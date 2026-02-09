@@ -212,3 +212,8 @@ class FlexAudioTimeStretch(FlexAudioBase):
 
     def apply_effect_internal(self, audio_frame: torch.Tensor, rate: float, **kwargs) -> torch.Tensor:
         return time_stretch(audio_frame, rate)
+
+NODE_CLASS_MAPPINGS = {
+    "FlexAudioPitchShift": FlexAudioPitchShift,
+    "FlexAudioTimeStretch": FlexAudioTimeStretch,
+}

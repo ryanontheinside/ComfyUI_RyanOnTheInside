@@ -1,14 +1,8 @@
 import numpy as np
 import torch
-import librosa
 import cv2
 import matplotlib.pyplot as plt
 from comfy.utils import ProgressBar
-import numpy as np
-import librosa
-import torch
-import cv2
-import matplotlib.pyplot as plt
 from ... import ProgressMixin
 
 
@@ -42,13 +36,7 @@ class BaseAudioProcessor(ProgressMixin):
         end_sample = int(end_time * self.sample_rate)
         return self.audio[start_sample:end_sample]
 
-import librosa
-import librosa.display
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-
-class AudioVisualizer(BaseAudioProcessor):  
+class AudioVisualizer(BaseAudioProcessor):
 
     def __init__(self, audio, num_frames, height, width, frame_rate, x_axis, y_axis, cmap):
         super().__init__(audio, num_frames, height, width, frame_rate)
@@ -58,6 +46,8 @@ class AudioVisualizer(BaseAudioProcessor):
         self.cmap = cmap
 
     def _generate_frame(self, data):
+        import librosa
+        import librosa.display
         fig, ax = plt.subplots(figsize=(self.width / 100, self.height / 100), dpi=100)
         librosa.display.specshow(data, sr=self.sample_rate, x_axis=self.x_axis, y_axis=self.y_axis, cmap=self.cmap, ax=ax)
         if self.x_axis == 'off':
@@ -81,6 +71,7 @@ class AudioVisualizer(BaseAudioProcessor):
         return frame
 
     def create_spectrogram(self):
+        import librosa
         frames = []
         self.start_progress(self.num_frames, "Creating Spectrogram")
         for i in range(self.num_frames):
@@ -97,6 +88,8 @@ class AudioVisualizer(BaseAudioProcessor):
         return torch.from_numpy(frames).float() / 255.0
 
     def create_waveform(self):
+        import librosa
+        import librosa.display
         frames = []
         self.start_progress(self.num_frames, "Creating Waveform")
         for i in range(self.num_frames):
@@ -130,6 +123,7 @@ class AudioVisualizer(BaseAudioProcessor):
         return torch.from_numpy(frames).float() / 255.0
 
     def create_mfcc(self):
+        import librosa
         frames = []
         self.start_progress(self.num_frames, "Creating MFCC")
         for i in range(self.num_frames):
@@ -144,6 +138,7 @@ class AudioVisualizer(BaseAudioProcessor):
         return torch.from_numpy(frames).float() / 255.0
 
     def create_chroma(self):
+        import librosa
         frames = []
         self.start_progress(self.num_frames, "Creating Chroma")
         for i in range(self.num_frames):
@@ -158,6 +153,7 @@ class AudioVisualizer(BaseAudioProcessor):
         return torch.from_numpy(frames).float() / 255.0
 
     def create_tonnetz(self):
+        import librosa
         frames = []
         self.start_progress(self.num_frames, "Creating Tonnetz")
         for i in range(self.num_frames):
@@ -172,6 +168,7 @@ class AudioVisualizer(BaseAudioProcessor):
         return torch.from_numpy(frames).float() / 255.0
 
     def create_spectral_centroid(self):
+        import librosa
         frames = []
         self.start_progress(self.num_frames, "Creating Spectral Centroid")
         for i in range(self.num_frames):
@@ -214,22 +211,20 @@ class AudioFeatureExtractor(BaseAudioProcessor):
         return np.array([np.sqrt(np.mean(self._get_audio_frame(i)**2)) for i in range(self.num_frames)])
 
     def _spectral_centroid(self):
+        import librosa
         return np.array([np.mean(librosa.feature.spectral_centroid(y=self._get_audio_frame(i), sr=self.sample_rate)[0]) for i in range(self.num_frames)])
 
     def _onset_detection(self):
+        import librosa
         return np.array([np.mean(librosa.onset.onset_strength(y=self._get_audio_frame(i), sr=self.sample_rate)) for i in range(self.num_frames)])
 
     def _chroma_features(self):
+        import librosa
         return np.array([np.mean(librosa.feature.chroma_stft(y=self._get_audio_frame(i), sr=self.sample_rate), axis=1) for i in range(self.num_frames)])
-
-import numpy as np
-import torch
-import pygame
-import librosa
-from comfy.utils import ProgressBar
 
 class PygameAudioVisualizer(BaseAudioProcessor):
     def __init__(self, audio, num_frames, height, width, frame_rate, scroll_direction='left'):
+        import pygame
         super().__init__(audio, num_frames, height, width, frame_rate)
         self.height = height
         self.width = width
@@ -244,6 +239,7 @@ class PygameAudioVisualizer(BaseAudioProcessor):
         self.total_samples = len(self.full_waveform)
 
     def _surface_to_array(self, surface):
+        import pygame
         # Convert Pygame surface to NumPy array
         frame_array = pygame.surfarray.array3d(surface)
         # Transpose to (H, W, C)
@@ -310,6 +306,7 @@ class PygameAudioVisualizer(BaseAudioProcessor):
         return torch.from_numpy(frames)
 
     def _generate_spectrogram_frame(self, audio_frame):
+        import librosa
         self.screen.fill((0, 0, 0))  # Clear the screen
         # Compute spectrogram
         n_fft = min(2048, len(audio_frame))
@@ -345,6 +342,7 @@ class PygameAudioVisualizer(BaseAudioProcessor):
         return torch.from_numpy(frames)
 
     def _generate_mfcc_frame(self, audio_frame):
+        import librosa
         self.screen.fill((0, 0, 0))  # Clear the screen
         # Compute MFCCs
         mfccs = librosa.feature.mfcc(y=audio_frame, sr=self.sample_rate, n_mfcc=20)
@@ -377,6 +375,7 @@ class PygameAudioVisualizer(BaseAudioProcessor):
         return torch.from_numpy(frames)
 
     def _generate_chroma_frame(self, audio_frame):
+        import librosa
         self.screen.fill((0, 0, 0))  # Clear the screen
         # Compute Chroma features
         chromagram = librosa.feature.chroma_stft(y=audio_frame, sr=self.sample_rate)
@@ -409,6 +408,7 @@ class PygameAudioVisualizer(BaseAudioProcessor):
         return torch.from_numpy(frames)
 
     def _generate_tonnetz_frame(self, audio_frame):
+        import librosa
         self.screen.fill((0, 0, 0))  # Clear the screen
         # Compute Tonnetz
         tonnetz = librosa.feature.tonnetz(y=audio_frame, sr=self.sample_rate)
@@ -441,6 +441,7 @@ class PygameAudioVisualizer(BaseAudioProcessor):
         return torch.from_numpy(frames)
 
     def _generate_spectral_centroid_frame(self, audio_frame):
+        import librosa
         self.screen.fill((0, 0, 0))  # Clear the screen
         # Compute Spectral Centroid
         centroid = librosa.feature.spectral_centroid(y=audio_frame, sr=self.sample_rate)
@@ -459,4 +460,5 @@ class PygameAudioVisualizer(BaseAudioProcessor):
         return self.screen.copy()
 
     def __del__(self):
+        import pygame
         pygame.quit()

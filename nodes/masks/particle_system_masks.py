@@ -499,3 +499,17 @@ class ParticleColorModulation(ParticleModulationBase):
         modulation_chain = super().create_modulation(**kwargs)[0]
         modulation_chain[-1]["target_color"] = target_color
         return (modulation_chain,)
+
+NODE_CLASS_MAPPINGS = {
+    "ParticleEmissionMask": ParticleEmissionMask,
+    "Vortex": Vortex,
+    "GravityWell": GravityWell,
+    "ParticleEmitter": ParticleEmitter,
+    "EmitterMovement": EmitterMovement,
+    "SpringJointSetting": SpringJointSetting,
+    "StaticBody": StaticBody,
+    "ParticleColorModulation": ParticleColorModulation,
+    "ParticleSizeModulation": ParticleSizeModulation,
+    "ParticleSpeedModulation": ParticleSpeedModulation,
+    "EmitterEmissionRateModulation": EmitterEmissionRateModulation,
+}

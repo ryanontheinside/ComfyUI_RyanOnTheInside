@@ -34,5 +34,9 @@ class ManualFeaturePipe(RyanOnTheInside):
         video_frames = torch.zeros((frame_count, height, width, 3), dtype=torch.float32)  # Assuming 3 channels for RGB
 
         feature_pipe = FeaturePipe(frame_rate, video_frames)
-        
+
         return (feature_pipe,)
+
+NODE_CLASS_MAPPINGS = {
+    "ManualFeaturePipe": ManualFeaturePipe,
+}

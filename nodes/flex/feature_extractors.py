@@ -411,6 +411,27 @@ class FeatureInfoNode():
             max_val
         )
 
+NODE_CLASS_MAPPINGS = {
+    "TimeFeatureNode": TimeFeatureNode,
+    "DepthFeatureNode": DepthFeatureNode,
+    "ColorFeatureNode": ColorFeatureNode,
+    "BrightnessFeatureNode": BrightnessFeatureNode,
+    "MotionFeatureNode": MotionFeatureNode,
+    "AreaFeatureNode": AreaFeatureNode,
+    "ManualFeatureNode": ManualFeatureNode,
+    "ManualFeatureFromPipe": ManualFeatureFromPipe,
+    "DrawableFeatureNode": DrawableFeatureNode,
+    "FeatureInfoNode": FeatureInfoNode,
+    "FloatFeatureNode": FloatFeatureNode,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "TimeFeatureNode": "Time Feature",
+    "DepthFeatureNode": "Depth Feature",
+    "BrightnessFeatureNode": "Brightness Feature",
+    "MotionFeatureNode": "Motion Feature",
+}
+
 
 
 

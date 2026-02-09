@@ -45,5 +45,11 @@ class Doom_:
        tensor = torch.from_numpy(img).float() / 255.0
        tensor = tensor.unsqueeze(0)
        return (tensor,)
-      
 
+NODE_CLASS_MAPPINGS = {
+    "Doom_": Doom_,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "Doom_": "DOOM",
+}

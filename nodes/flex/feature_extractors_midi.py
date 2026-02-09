@@ -1,4 +1,3 @@
-import mido
 import os
 import folder_paths
 from .features_midi import MIDIFeature

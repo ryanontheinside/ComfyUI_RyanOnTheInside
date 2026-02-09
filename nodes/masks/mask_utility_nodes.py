@@ -572,5 +572,14 @@ class TranslucentComposite(ProgressMixin):
         
         # Convert back to torch tensor
         result_tensor = torch.from_numpy(np.stack(result)).float().to(device)
-        
+
         return (result_tensor,)
+
+NODE_CLASS_MAPPINGS = {
+    "_mfc": _mfc,
+    "TextMaskNode": TextMaskNode,
+    "MovingShape": MovingShape,
+    "MaskCompositePlus": MaskCompositePlus,
+    "AdvancedLuminanceMask": AdvancedLuminanceMask,
+    "TranslucentComposite": TranslucentComposite,
+}

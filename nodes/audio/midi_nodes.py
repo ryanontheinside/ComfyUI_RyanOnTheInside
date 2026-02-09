@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-import mido
 import os
 import folder_paths
 import math
@@ -350,6 +349,7 @@ class MIDILoader:
     CATEGORY = "RyanOnTheInside/Audio/MIDI"
     
     def load_midi(self, midi_file, track_selection, start_measure=1, start_beat=1, end_measure=0, end_beat=1):
+        import mido
         try:
             midi_path = folder_paths.get_full_path("midi_files", midi_file)
             if not midi_path or not os.path.exists(midi_path):
@@ -491,6 +491,7 @@ class MIDILoader:
     
     @classmethod
     def analyze_midi(cls, midi_path, start_measure=1, start_beat=1, end_measure=0, end_beat=1):
+        import mido
         midi_data = mido.MidiFile(midi_path)
         
         # Get the total measures
@@ -546,6 +547,7 @@ class MIDILoader:
     
     @classmethod
     def VALIDATE_INPUTS(cls, midi_file, track_selection, start_measure=1, start_beat=1, end_measure=0, end_beat=1):
+        import mido
         midi_path = folder_paths.get_full_path("midi_files", midi_file)
         if not midi_path or not os.path.isfile(midi_path):
             return f"MIDI file not found: {midi_file}"
@@ -642,6 +644,7 @@ async def upload_midi(request):
     
 @routes.post('/refresh_midi_data')
 async def refresh_midi_data(request):
+    import mido
     data = await request.json()
     midi_file = data.get('midi_file')
     track_selection = data.get('track_selection')

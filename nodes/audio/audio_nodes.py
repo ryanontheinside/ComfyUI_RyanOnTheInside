@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from scipy.ndimage import zoom
-from .audio_processor_legacy import AudioVisualizer, PygameAudioVisualizer
+
 from scipy import signal
 import comfy.model_management as mm
 import folder_paths
@@ -421,7 +421,8 @@ class AudioFeatureVisualizer(AudioNodeBase):
 
     def visualize_audio_feature(self, audio, video_frames, visualization_type, frame_rate, x_axis, y_axis, cmap, visualizer):
         num_frames, height, width, _ = video_frames.shape
-        if visualizer == "pygame":  
+        from .audio_processor_legacy import AudioVisualizer, PygameAudioVisualizer
+        if visualizer == "pygame":
             visualizer = PygameAudioVisualizer(audio, num_frames, height, width, frame_rate)
         elif visualizer == "matplotlib":
             visualizer = AudioVisualizer(audio, num_frames, height, width, frame_rate, x_axis, y_axis, cmap)
@@ -560,3 +561,21 @@ class EmptyImageAndMaskFromAudio(AudioNodeBase):
         empty_mask = self.create_empty_tensor(audio, frame_rate, height, width)
         frame_count = empty_image.shape[0]
         return (empty_image, empty_mask, frame_count)
+
+NODE_CLASS_MAPPINGS = {
+    "AudioSeparatorSimple": AudioSeparatorSimple,
+    "DownloadOpenUnmixModel": DownloadOpenUnmixModel,
+    "AudioFeatureVisualizer": AudioFeatureVisualizer,
+    "FrequencyFilterCustom": FrequencyFilterCustom,
+    "FrequencyFilterPreset": FrequencyFilterPreset,
+    "FrequencyRange": FrequencyRange,
+    "AudioFilter": AudioFilter,
+    "EmptyMaskFromAudio": EmptyMaskFromAudio,
+    "EmptyImageFromAudio": EmptyImageFromAudio,
+    "EmptyImageAndMaskFromAudio": EmptyImageAndMaskFromAudio,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "AudioSeparatorSimple": "Audio Separator",
+    "AudioFeatureVisualizer": "Audio Feature Visualizer ***BETA***",
+}

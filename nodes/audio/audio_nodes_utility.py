@@ -11,7 +11,6 @@ from .audio_utils import (
 )
 import torch
 from ...tooltips import apply_tooltips
-import librosa
 import numpy as np
 
 class AudioUtility(AudioNodeBase):
@@ -232,6 +231,7 @@ class AudioInfo(AudioUtility):
 
     def _detect_key(self, audio_mono, sample_rate):
         """Detect musical key using chromagram and Krumhansl-Kessler key profiles."""
+        import librosa
         # Extract chromagram using Constant-Q Transform (better for pitch detection)
         chromagram = librosa.feature.chroma_cqt(y=audio_mono, sr=sample_rate)
 
@@ -269,6 +269,7 @@ class AudioInfo(AudioUtility):
         return best_key
 
     def get_audio_info(self, audio, frame_rate):
+        import librosa
         # Get basic audio info
         waveform = audio['waveform']
         sample_rate = audio['sample_rate']
@@ -399,6 +400,7 @@ class Knob(AudioUtility):
     FUNCTION = "enhance_audio"
 
     def enhance_audio(self, audio, knob, other_knob):
+        import librosa
         waveform, sample_rate = audio['waveform'], audio['sample_rate']
         
         # Make a copy of the input waveform
@@ -589,3 +591,23 @@ class Knob(AudioUtility):
                 enhanced = enhanced * pump_envelope
         
         return ({"waveform": enhanced, "sample_rate": sample_rate},)
+
+NODE_CLASS_MAPPINGS = {
+    "AudioPad": AudioPad,
+    "AudioChannelMerge": AudioChannelMerge,
+    "AudioChannelSplit": AudioChannelSplit,
+    "AudioResample": AudioResample,
+    "AudioVolumeNormalization": AudioVolumeNormalization,
+    "Audio_Combine": Audio_Combine,
+    "AudioSubtract": AudioSubtract,
+    "Audio_Concatenate": Audio_Concatenate,
+    "AudioDither": AudioDither,
+    "AudioTrim": AudioTrim,
+    "AudioInfo": AudioInfo,
+    "Knob": Knob,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "Audio_Combine": "Audio Combine ROTI",
+    "Audio_Concatenate": "Audio Concatenate ROTI",
+}

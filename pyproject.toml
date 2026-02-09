@@ -1,7 +1,7 @@
 [project]
 name = "comfyui_ryanonyheinside"
 description = "Custom nodes introducing everything-reactivity and timelines to ComfyUI"
-version = "2.1.6"
+version = "2.1.7"
 license = {file = "LICENSE"}
 
 dependencies = ["pygame", "opencv-python>=4.5.0", "scipy", "torchaudio", "pillow", "librosa>=0.10.1", "pymunk>=6.8.0,<7.0.0", "matplotlib", "openunmix", "mido", "scikit-image"]

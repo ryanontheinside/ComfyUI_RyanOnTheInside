@@ -251,6 +251,18 @@ class FlexVideoFrameBlend(FlexVideoBase):
             processed_video[idx] = np.clip(blended_frame, 0.0, 1.0)
             
             self.update_progress()
-        self.end_progress() 
+        self.end_progress()
 
         return processed_video
+
+NODE_CLASS_MAPPINGS = {
+    "FlexVideoSpeed": FlexVideoSpeed,
+    "FlexVideoDirection": FlexVideoDirection,
+    "FlexVideoFrameBlend": FlexVideoFrameBlend,
+    "FlexVideoSeek": FlexVideoSeek,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "FlexVideoSpeed": "**BETA** Flex Video Speed",
+    "FlexVideoFrameBlend": "**BETA**Flex Video Frame Blend",
+}

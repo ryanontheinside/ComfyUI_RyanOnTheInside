@@ -282,3 +282,19 @@ class SwapDevice(UtilityNode):
 
     RETURN_TYPES = ("IMAGE", "MASK")
     FUNCTION = "swap_device"
+
+NODE_CLASS_MAPPINGS = {
+    "ImageChunk": ImageChunks,
+    "ImageInterval": ImageIntervalSelect,
+    "VideoChunk": VideoChunks,
+    "ImageDifference": ImageDifference,
+    "Image_Shuffle": Image_Shuffle,
+    "SwapDevice": SwapDevice,
+    "ImageIntervalSelectPercentage": ImageIntervalSelectPercentage,
+    "ImageIndexSelect": ImageIndexSelect,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "ImageIntervalSelectPercentage": "Image Interval Select %",
+    "Image_Shuffle": "Image Shuffle ROTI",
+}

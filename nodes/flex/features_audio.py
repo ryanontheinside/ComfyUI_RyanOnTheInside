@@ -1,12 +1,10 @@
 from .features import BaseFeature
-import librosa
 import numpy as np
 from scipy.signal import hilbert
 from scipy import signal
 import functools
 from abc  import ABC, abstractmethod
 import numpy as np
-import librosa
 from scipy.signal import medfilt, hilbert
 from scipy import signal
 import functools
@@ -96,6 +94,7 @@ class AudioFeature(BaseAudioFeature):
         return self
 
     def _calculate_feature(self, frame):
+        import librosa
         if frame.size == 0:
             return 0.0
         if self.feature_name == 'amplitude_envelope':
@@ -125,7 +124,6 @@ class AudioFeature(BaseAudioFeature):
         self.features[self.feature_name] = normalized.tolist()
 
 import numpy as np
-import librosa
 
 class RhythmFeature(BaseAudioFeature):
     def __init__(self, feature_name, audio, frame_count, frame_rate, width, height, feature_type='beat_locations', time_signature=4):
@@ -150,8 +148,9 @@ class RhythmFeature(BaseAudioFeature):
         ]
 
     def extract(self):
+        import librosa
         self.features = {}
-        
+
         # Extract basic rhythm features
         tempo, beat_frames = librosa.beat.beat_track(y=self.audio_array, sr=self.sample_rate)
         onset_env = librosa.onset.onset_strength(y=self.audio_array, sr=self.sample_rate)
@@ -178,6 +177,7 @@ class RhythmFeature(BaseAudioFeature):
         return self
 
     def _extract_beat_locations(self, beat_frames):
+        import librosa
         beat_times = librosa.frames_to_time(beat_frames, sr=self.sample_rate)
         beat_sequence = np.zeros(self.frame_count)
         for beat_time in beat_times:
@@ -200,6 +200,7 @@ class RhythmFeature(BaseAudioFeature):
         self.features[self.feature_name] = resampled_onset.tolist()
 
     def _extract_beat_emphasis(self, beat_frames, onset_env):
+        import librosa
         beat_emphasis = np.zeros(self.frame_count)
         for beat in beat_frames:
             if beat < len(onset_env):
@@ -224,12 +225,14 @@ class RhythmFeature(BaseAudioFeature):
         self.features[self.feature_name] = resampled_syncopation.tolist()
 
     def _extract_rhythm_regularity(self, beat_frames):
+        import librosa
         # Measure regularity by calculating the standard deviation of inter-beat intervals
         ibi = np.diff(librosa.frames_to_time(beat_frames, sr=self.sample_rate))
         regularity = 1 / (1 + np.std(ibi))  # Invert so that higher values mean more regular
         self.features[self.feature_name] = [regularity] * self.frame_count
 
     def _extract_beat_types(self, beat_frames):
+        import librosa
         beat_times = librosa.frames_to_time(beat_frames, sr=self.sample_rate)
         down_beats = np.zeros(self.frame_count)
         up_beats = np.zeros(self.frame_count)
@@ -327,11 +330,13 @@ class PitchFeature(BaseAudioFeature):
     
     @classmethod
     def pitch_to_note(cls, pitch):
+        import librosa
         if pitch == 0:
             return "N/A"
         return librosa.hz_to_note(pitch)
 
     def _calculate_pitch_sequence(self):
+        import librosa
         # Try to use CREPE model if available
         if self.crepe_model != "none":
             try:
@@ -385,6 +390,7 @@ class PitchFeature(BaseAudioFeature):
         self.features[self.feature_name + '_confidence'] = confidences.tolist()
 
     def _fallback_pitch_estimation(self):
+        import librosa
         pitches, magnitudes = librosa.piptrack(
             y=self.audio_array,
             sr=self.sample_rate,
@@ -429,6 +435,7 @@ class PitchFeature(BaseAudioFeature):
         self.features[self.feature_name] = feature_values.tolist()
 
     def _extract_semitone(self):
+        import librosa
         pitches = np.array(self.features[self.feature_name + '_pitch'])
         midi_notes = librosa.hz_to_midi(pitches)
         midi_notes = np.round(midi_notes)
