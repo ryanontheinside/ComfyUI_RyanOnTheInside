@@ -11,7 +11,6 @@ from .audio_utils import (
 )
 import torch
 from ...tooltips import apply_tooltips
-import librosa
 import numpy as np
 
 class AudioUtility(AudioNodeBase):
@@ -232,6 +231,7 @@ class AudioInfo(AudioUtility):
 
     def _detect_key(self, audio_mono, sample_rate):
         """Detect musical key using chromagram and Krumhansl-Kessler key profiles."""
+        import librosa
         # Extract chromagram using Constant-Q Transform (better for pitch detection)
         chromagram = librosa.feature.chroma_cqt(y=audio_mono, sr=sample_rate)
 
@@ -269,6 +269,7 @@ class AudioInfo(AudioUtility):
         return best_key
 
     def get_audio_info(self, audio, frame_rate):
+        import librosa
         # Get basic audio info
         waveform = audio['waveform']
         sample_rate = audio['sample_rate']
@@ -399,6 +400,7 @@ class Knob(AudioUtility):
     FUNCTION = "enhance_audio"
 
     def enhance_audio(self, audio, knob, other_knob):
+        import librosa
         waveform, sample_rate = audio['waveform'], audio['sample_rate']
         
         # Make a copy of the input waveform

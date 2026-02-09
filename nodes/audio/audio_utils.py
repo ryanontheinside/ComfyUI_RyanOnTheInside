@@ -2,7 +2,6 @@ import torch
 import torchaudio
 import torchaudio.transforms as T
 import torchaudio.functional as F
-import librosa
 import numpy as np
 import torch.nn.functional as nnf
 
@@ -85,6 +84,7 @@ def time_stretch(waveform, rate):
     device = waveform.device
     waveform = waveform.cpu()
 
+    import librosa
     # Convert to numpy for librosa processing
     waveform_np = waveform.numpy()
 
