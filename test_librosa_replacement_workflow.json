@@ -1,0 +1,2549 @@
+{
+  "id": "c810d12b-178f-4b78-98eb-28e9aea8c8f4",
+  "revision": 0,
+  "last_node_id": 49,
+  "last_link_id": 58,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "Knob",
+      "pos": [
+        600,
+        840
+      ],
+      "size": [
+        300,
+        150
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "title": "TEST: Knob (stft, istft)",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "Knob"
+      },
+      "widgets_values": [
+        0.7,
+        0.5
+      ]
+    },
+    {
+      "id": 2,
+      "type": "SaveAudio",
+      "pos": [
+        1000,
+        840
+      ],
+      "size": [
+        300,
+        112
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 2
+        }
+      ],
+      "outputs": [],
+      "title": "Save Knob Output",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.12.3"
+      },
+      "widgets_values": [
+        "knob_test"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "EmptyImageFromAudio",
+      "pos": [
+        600,
+        1240
+      ],
+      "size": [
+        300,
+        126
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "empty_image",
+          "type": "IMAGE",
+          "links": [
+            5,
+            7,
+            12,
+            15,
+            25,
+            28
+          ]
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": []
+        }
+      ],
+      "title": "Empty Image for Visualizers",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "EmptyImageFromAudio"
+      },
+      "widgets_values": [
+        30,
+        512,
+        512
+      ]
+    },
+    {
+      "id": 4,
+      "type": "AudioFeatureVisualizer",
+      "pos": [
+        1000,
+        1490
+      ],
+      "size": [
+        365.0171875,
+        200
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 4
+        },
+        {
+          "name": "video_frames",
+          "type": "IMAGE",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            18
+          ]
+        }
+      ],
+      "title": "TEST: Visualizer - Waveform (display_waveshow)",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "AudioFeatureVisualizer"
+      },
+      "widgets_values": [
+        "waveform",
+        30,
+        "time",
+        "linear",
+        "magma",
+        "matplotlib"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "AudioFeatureVisualizer",
+      "pos": [
+        1000,
+        1740
+      ],
+      "size": [
+        350,
+        200
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 6
+        },
+        {
+          "name": "video_frames",
+          "type": "IMAGE",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            20
+          ]
+        }
+      ],
+      "title": "TEST: Visualizer - MFCC (feature_mfcc)",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "AudioFeatureVisualizer"
+      },
+      "widgets_values": [
+        "mfcc",
+        30,
+        "time",
+        "linear",
+        "magma",
+        "matplotlib"
+      ]
+    },
+    {
+      "id": 6,
+      "type": "AudioInfo",
+      "pos": [
+        630,
+        250
+      ],
+      "size": [
+        314.7935546875,
+        378
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "total_frames",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "frames_per_beat",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "frames_per_bar",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "frames_per_quarter",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "frames_per_eighth",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "audio_duration",
+          "type": "FLOAT",
+          "links": []
+        },
+        {
+          "name": "beats_per_second",
+          "type": "FLOAT",
+          "links": []
+        },
+        {
+          "name": "detected_bpm",
+          "type": "FLOAT",
+          "links": []
+        },
+        {
+          "name": "detected_bpm_rounded",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "sample_rate",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "num_channels",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "num_samples",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "max_amplitude",
+          "type": "FLOAT",
+          "links": []
+        },
+        {
+          "name": "mean_amplitude",
+          "type": "FLOAT",
+          "links": []
+        },
+        {
+          "name": "rms_amplitude",
+          "type": "FLOAT",
+          "links": []
+        },
+        {
+          "name": "bit_depth",
+          "type": "STRING",
+          "links": []
+        },
+        {
+          "name": "detected_key",
+          "type": "COMBO",
+          "links": []
+        }
+      ],
+      "title": "TEST: AudioInfo (beat_track, chroma_cqt)",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "AudioInfo"
+      },
+      "widgets_values": [
+        30
+      ]
+    },
+    {
+      "id": 8,
+      "type": "AudioTimeStretch",
+      "pos": [
+        580,
+        1060
+      ],
+      "size": [
+        348.201025390625,
+        94
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            10
+          ]
+        }
+      ],
+      "title": "TEST: AudioTimeStretch (effects_time_stretch)",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "AudioTimeStretch"
+      },
+      "widgets_values": [
+        1.5
+      ]
+    },
+    {
+      "id": 9,
+      "type": "SaveAudio",
+      "pos": [
+        1000,
+        1040
+      ],
+      "size": [
+        300,
+        112
+      ],
+      "flags": {},
+      "order": 20,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 10
+        }
+      ],
+      "outputs": [],
+      "title": "Save TimeStretch Output",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.12.3"
+      },
+      "widgets_values": [
+        "timestretch_test"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "AudioFeatureVisualizer",
+      "pos": [
+        1000,
+        1990
+      ],
+      "size": [
+        358.071875,
+        200
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 11
+        },
+        {
+          "name": "video_frames",
+          "type": "IMAGE",
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            22
+          ]
+        }
+      ],
+      "title": "TEST: Visualizer - Chroma (feature_chroma_stft)",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "AudioFeatureVisualizer"
+      },
+      "widgets_values": [
+        "chroma",
+        30,
+        "time",
+        "chroma",
+        "magma",
+        "matplotlib"
+      ]
+    },
+    {
+      "id": 11,
+      "type": "PreviewImage",
+      "pos": [
+        2150,
+        1230
+      ],
+      "size": [
+        300,
+        200
+      ],
+      "flags": {},
+      "order": 46,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 13
+        }
+      ],
+      "outputs": [],
+      "title": "Preview Spectrogram",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.12.3",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 12,
+      "type": "AudioFeatureVisualizer",
+      "pos": [
+        1000,
+        1240
+      ],
+      "size": [
+        473.2779296875,
+        200
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 14
+        },
+        {
+          "name": "video_frames",
+          "type": "IMAGE",
+          "link": 15
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            16
+          ]
+        }
+      ],
+      "title": "TEST: Visualizer - Spectrogram (stft, amplitude_to_db, specshow)",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "AudioFeatureVisualizer"
+      },
+      "widgets_values": [
+        "spectrogram",
+        30,
+        "time",
+        "linear",
+        "magma",
+        "matplotlib"
+      ]
+    },
+    {
+      "id": 13,
+      "type": "ImageInterval",
+      "pos": [
+        1740,
+        1350
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 34,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 16
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            13
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "ImageInterval"
+      },
+      "widgets_values": [
+        1,
+        0,
+        1
+      ]
+    },
+    {
+      "id": 14,
+      "type": "PreviewImage",
+      "pos": [
+        2090,
+        1550
+      ],
+      "size": [
+        300,
+        200
+      ],
+      "flags": {},
+      "order": 43,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 17
+        }
+      ],
+      "outputs": [],
+      "title": "Preview Waveform",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.12.3",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 15,
+      "type": "ImageInterval",
+      "pos": [
+        1640,
+        1500
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 31,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 18
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            17
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "ImageInterval"
+      },
+      "widgets_values": [
+        1,
+        0,
+        1
+      ]
+    },
+    {
+      "id": 16,
+      "type": "PreviewImage",
+      "pos": [
+        2110,
+        1840
+      ],
+      "size": [
+        300,
+        200
+      ],
+      "flags": {},
+      "order": 44,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 19
+        }
+      ],
+      "outputs": [],
+      "title": "Preview MFCC",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.12.3",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 17,
+      "type": "ImageInterval",
+      "pos": [
+        1660,
+        1740
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 32,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 20
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            19
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "ImageInterval"
+      },
+      "widgets_values": [
+        1,
+        0,
+        1
+      ]
+    },
+    {
+      "id": 18,
+      "type": "PreviewImage",
+      "pos": [
+        2240,
+        2160
+      ],
+      "size": [
+        300,
+        200
+      ],
+      "flags": {},
+      "order": 45,
+      "mode": 4,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 21
+        }
+      ],
+      "outputs": [],
+      "title": "Preview Chroma",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.12.3",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 19,
+      "type": "ImageInterval",
+      "pos": [
+        1650,
+        2010
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 33,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 22
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            21
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "ImageInterval"
+      },
+      "widgets_values": [
+        1,
+        0,
+        1
+      ]
+    },
+    {
+      "id": 20,
+      "type": "PreviewImage",
+      "pos": [
+        2040,
+        2430
+      ],
+      "size": [
+        300,
+        200
+      ],
+      "flags": {},
+      "order": 47,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 23
+        }
+      ],
+      "outputs": [],
+      "title": "Preview Tonnetz",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.12.3",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 21,
+      "type": "AudioFeatureVisualizer",
+      "pos": [
+        1000,
+        2240
+      ],
+      "size": [
+        350,
+        200
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 24
+        },
+        {
+          "name": "video_frames",
+          "type": "IMAGE",
+          "link": 25
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            26
+          ]
+        }
+      ],
+      "title": "TEST: Visualizer - Tonnetz (feature_tonnetz)",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "AudioFeatureVisualizer"
+      },
+      "widgets_values": [
+        "tonnetz",
+        30,
+        "time",
+        "tonnetz",
+        "magma",
+        "matplotlib"
+      ]
+    },
+    {
+      "id": 22,
+      "type": "ImageInterval",
+      "pos": [
+        1620,
+        2270
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 35,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 26
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            23
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "ImageInterval"
+      },
+      "widgets_values": [
+        1,
+        0,
+        1
+      ]
+    },
+    {
+      "id": 23,
+      "type": "AudioFeatureVisualizer",
+      "pos": [
+        1000,
+        2490
+      ],
+      "size": [
+        458.28671875,
+        200
+      ],
+      "flags": {},
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 27
+        },
+        {
+          "name": "video_frames",
+          "type": "IMAGE",
+          "link": 28
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            29
+          ]
+        }
+      ],
+      "title": "TEST: Visualizer - Spectral Centroid (feature_spectral_centroid)",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "AudioFeatureVisualizer"
+      },
+      "widgets_values": [
+        "spectral_centroid",
+        30,
+        "time",
+        "linear",
+        "magma",
+        "matplotlib"
+      ]
+    },
+    {
+      "id": 24,
+      "type": "ImageInterval",
+      "pos": [
+        1620,
+        2570
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 36,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 29
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            30
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "ImageInterval"
+      },
+      "widgets_values": [
+        1,
+        0,
+        1
+      ]
+    },
+    {
+      "id": 25,
+      "type": "PreviewImage",
+      "pos": [
+        2420,
+        2660
+      ],
+      "size": [
+        300,
+        200
+      ],
+      "flags": {},
+      "order": 48,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 30
+        }
+      ],
+      "outputs": [],
+      "title": "Preview Spectral Centroid",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.12.3",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 26,
+      "type": "AudioFeatureExtractor",
+      "pos": [
+        600,
+        2840
+      ],
+      "size": [
+        359.425390625,
+        200
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 31
+        }
+      ],
+      "outputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "links": [
+            32
+          ]
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": []
+        }
+      ],
+      "title": "TEST: AudioFeatureExtractor - spectral_centroid",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "AudioFeatureExtractor"
+      },
+      "widgets_values": [
+        "spectral_centroid",
+        30,
+        0,
+        512,
+        512
+      ]
+    },
+    {
+      "id": 27,
+      "type": "PreviewFeature",
+      "pos": [
+        2110,
+        2990
+      ],
+      "size": [
+        217.6548828125,
+        26
+      ],
+      "flags": {},
+      "order": 21,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 32
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "PreviewFeature"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 28,
+      "type": "AudioFeatureExtractor",
+      "pos": [
+        1000,
+        2840
+      ],
+      "size": [
+        350,
+        200
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 33
+        }
+      ],
+      "outputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "links": [
+            34
+          ]
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": []
+        }
+      ],
+      "title": "TEST: AudioFeatureExtractor - onset_strength",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "AudioFeatureExtractor"
+      },
+      "widgets_values": [
+        "onset_strength",
+        30,
+        0,
+        512,
+        512
+      ]
+    },
+    {
+      "id": 29,
+      "type": "PreviewFeature",
+      "pos": [
+        2240,
+        3150
+      ],
+      "size": [
+        217.6548828125,
+        246
+      ],
+      "flags": {},
+      "order": 22,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 34
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "PreviewFeature"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 31,
+      "type": "PreviewFeature",
+      "pos": [
+        2410,
+        3270
+      ],
+      "size": [
+        217.6548828125,
+        26
+      ],
+      "flags": {},
+      "order": 23,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 36
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "PreviewFeature"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 33,
+      "type": "PreviewFeature",
+      "pos": [
+        2350,
+        3370
+      ],
+      "size": [
+        217.6548828125,
+        246
+      ],
+      "flags": {},
+      "order": 37,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 38
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "PreviewFeature"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 35,
+      "type": "PreviewFeature",
+      "pos": [
+        2220,
+        3530
+      ],
+      "size": [
+        217.6548828125,
+        26
+      ],
+      "flags": {},
+      "order": 39,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 40
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "PreviewFeature"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 37,
+      "type": "PreviewFeature",
+      "pos": [
+        2090,
+        3280
+      ],
+      "size": [
+        217.6548828125,
+        26
+      ],
+      "flags": {},
+      "order": 41,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 42
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "PreviewFeature"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 38,
+      "type": "RhythmFeatureExtractor",
+      "pos": [
+        1000,
+        3390
+      ],
+      "size": [
+        350,
+        200
+      ],
+      "flags": {},
+      "order": 28,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 55
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            44
+          ]
+        }
+      ],
+      "title": "TEST: RhythmFeatureExtractor - down_beats",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "RhythmFeatureExtractor"
+      },
+      "widgets_values": [
+        "down_beats",
+        30,
+        0,
+        512,
+        512,
+        4
+      ]
+    },
+    {
+      "id": 39,
+      "type": "PreviewFeature",
+      "pos": [
+        1940,
+        3530
+      ],
+      "size": [
+        217.6548828125,
+        26
+      ],
+      "flags": {},
+      "order": 40,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 44
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "PreviewFeature"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 40,
+      "type": "RhythmFeatureExtractor",
+      "pos": [
+        600,
+        3390
+      ],
+      "size": [
+        373.8423828125,
+        200
+      ],
+      "flags": {},
+      "order": 26,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 53
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            46
+          ]
+        }
+      ],
+      "title": "TEST: RhythmFeatureExtractor - rhythm_regularity",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "RhythmFeatureExtractor"
+      },
+      "widgets_values": [
+        "rhythm_regularity",
+        30,
+        0,
+        512,
+        512,
+        4
+      ]
+    },
+    {
+      "id": 41,
+      "type": "PreviewFeature",
+      "pos": [
+        2120,
+        3670
+      ],
+      "size": [
+        217.6548828125,
+        26
+      ],
+      "flags": {},
+      "order": 38,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 46
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "PreviewFeature"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 43,
+      "type": "PitchFeatureExtractor",
+      "pos": [
+        600,
+        3690
+      ],
+      "size": [
+        483.4498046875,
+        200
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 49
+        },
+        {
+          "name": "opt_pitch_range_collections",
+          "shape": 7,
+          "type": "PITCH_RANGE_COLLECTION",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            48
+          ]
+        }
+      ],
+      "title": "TEST: PitchFeatureExtractor - frequency (piptrack, frames_to_time)",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "PitchFeatureExtractor"
+      },
+      "widgets_values": [
+        "frequency",
+        30,
+        0,
+        512,
+        512,
+        "none"
+      ]
+    },
+    {
+      "id": 44,
+      "type": "PreviewFeature",
+      "pos": [
+        1980,
+        3830
+      ],
+      "size": [
+        217.6548828125,
+        246
+      ],
+      "flags": {},
+      "order": 24,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 48
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "PreviewFeature"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 46,
+      "type": "PreviewFeature",
+      "pos": [
+        2360,
+        3860
+      ],
+      "size": [
+        217.6548828125,
+        26
+      ],
+      "flags": {},
+      "order": 42,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "link": 50
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "PreviewFeature"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 32,
+      "type": "RhythmFeatureExtractor",
+      "pos": [
+        244.66668701171875,
+        3134.6666870117188
+      ],
+      "size": [
+        650.5953125,
+        200
+      ],
+      "flags": {},
+      "order": 25,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 52
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            38
+          ]
+        }
+      ],
+      "title": "TEST: RhythmFeatureExtractor - beat_locations (beat_track, onset_strength, frames_to_time)",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "RhythmFeatureExtractor"
+      },
+      "widgets_values": [
+        "beat_locations",
+        30,
+        0,
+        512,
+        512,
+        4
+      ]
+    },
+    {
+      "id": 36,
+      "type": "RhythmFeatureExtractor",
+      "pos": [
+        1475.15701418457,
+        3208.324696453856
+      ],
+      "size": [
+        356.3970703125,
+        200
+      ],
+      "flags": {},
+      "order": 29,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 56
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            42
+          ]
+        }
+      ],
+      "title": "TEST: RhythmFeatureExtractor - beat_emphasis",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "RhythmFeatureExtractor"
+      },
+      "widgets_values": [
+        "beat_emphasis",
+        30,
+        0,
+        512,
+        512,
+        4
+      ]
+    },
+    {
+      "id": 34,
+      "type": "RhythmFeatureExtractor",
+      "pos": [
+        965.8002,
+        3118.526503546144
+      ],
+      "size": [
+        350,
+        200
+      ],
+      "flags": {},
+      "order": 27,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 54
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            40
+          ]
+        }
+      ],
+      "title": "TEST: RhythmFeatureExtractor - tempo",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "RhythmFeatureExtractor"
+      },
+      "widgets_values": [
+        "tempo",
+        30,
+        0,
+        512,
+        512,
+        4
+      ]
+    },
+    {
+      "id": 47,
+      "type": "Reroute",
+      "pos": [
+        107.03673314783691,
+        3165.8568515542675
+      ],
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 51
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "AUDIO",
+          "links": [
+            52,
+            53,
+            54,
+            55,
+            56,
+            57
+          ]
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 45,
+      "type": "PitchFeatureExtractor",
+      "pos": [
+        1145.3590000000004,
+        3819.79801418457
+      ],
+      "size": [
+        462.1763671875,
+        200
+      ],
+      "flags": {},
+      "order": 30,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 57
+        },
+        {
+          "name": "opt_pitch_range_collections",
+          "shape": 7,
+          "type": "PITCH_RANGE_COLLECTION",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FEATURE",
+          "type": "FEATURE",
+          "links": [
+            50
+          ]
+        }
+      ],
+      "title": "TEST: PitchFeatureExtractor - semitone (hz_to_midi, midi_to_hz)",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "PitchFeatureExtractor"
+      },
+      "widgets_values": [
+        "semitone",
+        30,
+        0,
+        512,
+        512,
+        "none"
+      ]
+    },
+    {
+      "id": 42,
+      "type": "PitchRangeByNoteNode",
+      "pos": [
+        448.3762380398315,
+        4098.3419211601695
+      ],
+      "size": [
+        357.3046875,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "previous_range_collection",
+          "shape": 7,
+          "type": "PITCH_RANGE_COLLECTION",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "PITCH_RANGE_COLLECTION",
+          "type": "PITCH_RANGE_COLLECTION",
+          "links": []
+        }
+      ],
+      "title": "TEST: PitchRangeByNote (midi_to_hz)",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "selectedNotes": []
+      },
+      "widgets_values": [
+        false,
+        100,
+        "60,64,67"
+      ]
+    },
+    {
+      "id": 30,
+      "type": "AudioFeatureExtractor",
+      "pos": [
+        1400,
+        2840
+      ],
+      "size": [
+        548.0791097399853,
+        212.83234874453592
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 35
+        }
+      ],
+      "outputs": [
+        {
+          "name": "feature",
+          "type": "FEATURE",
+          "links": [
+            36
+          ]
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": []
+        }
+      ],
+      "title": "TEST: AudioFeatureExtractor - chroma_features",
+      "properties": {
+        "cnr_id": "comfyui_ryanontheinside",
+        "ver": "67eb2b7dc84bef16583c91a6f51ca0d1c1c5a17c",
+        "Node name for S&R": "AudioFeatureExtractor"
+      },
+      "widgets_values": [
+        "chroma_features",
+        30,
+        0,
+        512,
+        512
+      ]
+    },
+    {
+      "id": 7,
+      "type": "LoadAudio",
+      "pos": [
+        -381.87077385424493,
+        955.5096265877396
+      ],
+      "size": [
+        295.9930030140637,
+        207.62532906707838
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            1,
+            3,
+            4,
+            6,
+            8,
+            9,
+            11,
+            14,
+            24,
+            27,
+            31,
+            33,
+            35,
+            49,
+            51
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.12.3",
+        "Node name for S&R": "LoadAudio"
+      },
+      "widgets_values": [
+        "City Lights Swinging.mp3",
+        null,
+        null
+      ]
+    },
+    {
+      "id": 49,
+      "type": "Reroute",
+      "pos": [
+        0.957244043238886,
+        1295.2072621961295
+      ],
+      "size": [
+        75,
+        26
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 58
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "AUDIO",
+          "links": null
+        }
+      ],
+      "properties": {
+        "showOutputText": false,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 48,
+      "type": "VHS_LoadAudioUpload",
+      "pos": [
+        -423.58107794162913,
+        1266.3269387890737
+      ],
+      "size": [
+        252.0078125,
+        196.0000000000001
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            58
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "FLOAT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-videohelpersuite",
+        "ver": "1.7.7",
+        "Node name for S&R": "VHS_LoadAudioUpload"
+      },
+      "widgets_values": {
+        "audio": "05-09_00003-audio.mp4",
+        "start_time": 0,
+        "duration": 10,
+        "choose audio to upload": "image",
+        "audiopreview": {
+          "params": {
+            "start_time": 0,
+            "duration": 10
+          }
+        }
+      }
+    }
+  ],
+  "links": [
+    [
+      1,
+      7,
+      0,
+      1,
+      0,
+      "AUDIO"
+    ],
+    [
+      2,
+      1,
+      0,
+      2,
+      0,
+      "AUDIO"
+    ],
+    [
+      3,
+      7,
+      0,
+      3,
+      0,
+      "AUDIO"
+    ],
+    [
+      4,
+      7,
+      0,
+      4,
+      0,
+      "AUDIO"
+    ],
+    [
+      5,
+      3,
+      0,
+      4,
+      1,
+      "IMAGE"
+    ],
+    [
+      6,
+      7,
+      0,
+      5,
+      0,
+      "AUDIO"
+    ],
+    [
+      7,
+      3,
+      0,
+      5,
+      1,
+      "IMAGE"
+    ],
+    [
+      8,
+      7,
+      0,
+      6,
+      0,
+      "AUDIO"
+    ],
+    [
+      9,
+      7,
+      0,
+      8,
+      0,
+      "AUDIO"
+    ],
+    [
+      10,
+      8,
+      0,
+      9,
+      0,
+      "AUDIO"
+    ],
+    [
+      11,
+      7,
+      0,
+      10,
+      0,
+      "AUDIO"
+    ],
+    [
+      12,
+      3,
+      0,
+      10,
+      1,
+      "IMAGE"
+    ],
+    [
+      13,
+      13,
+      0,
+      11,
+      0,
+      "IMAGE"
+    ],
+    [
+      14,
+      7,
+      0,
+      12,
+      0,
+      "AUDIO"
+    ],
+    [
+      15,
+      3,
+      0,
+      12,
+      1,
+      "IMAGE"
+    ],
+    [
+      16,
+      12,
+      0,
+      13,
+      0,
+      "IMAGE"
+    ],
+    [
+      17,
+      15,
+      0,
+      14,
+      0,
+      "IMAGE"
+    ],
+    [
+      18,
+      4,
+      0,
+      15,
+      0,
+      "IMAGE"
+    ],
+    [
+      19,
+      17,
+      0,
+      16,
+      0,
+      "IMAGE"
+    ],
+    [
+      20,
+      5,
+      0,
+      17,
+      0,
+      "IMAGE"
+    ],
+    [
+      21,
+      19,
+      0,
+      18,
+      0,
+      "IMAGE"
+    ],
+    [
+      22,
+      10,
+      0,
+      19,
+      0,
+      "IMAGE"
+    ],
+    [
+      23,
+      22,
+      0,
+      20,
+      0,
+      "IMAGE"
+    ],
+    [
+      24,
+      7,
+      0,
+      21,
+      0,
+      "AUDIO"
+    ],
+    [
+      25,
+      3,
+      0,
+      21,
+      1,
+      "IMAGE"
+    ],
+    [
+      26,
+      21,
+      0,
+      22,
+      0,
+      "IMAGE"
+    ],
+    [
+      27,
+      7,
+      0,
+      23,
+      0,
+      "AUDIO"
+    ],
+    [
+      28,
+      3,
+      0,
+      23,
+      1,
+      "IMAGE"
+    ],
+    [
+      29,
+      23,
+      0,
+      24,
+      0,
+      "IMAGE"
+    ],
+    [
+      30,
+      24,
+      0,
+      25,
+      0,
+      "IMAGE"
+    ],
+    [
+      31,
+      7,
+      0,
+      26,
+      0,
+      "AUDIO"
+    ],
+    [
+      32,
+      26,
+      0,
+      27,
+      0,
+      "FEATURE"
+    ],
+    [
+      33,
+      7,
+      0,
+      28,
+      0,
+      "AUDIO"
+    ],
+    [
+      34,
+      28,
+      0,
+      29,
+      0,
+      "FEATURE"
+    ],
+    [
+      35,
+      7,
+      0,
+      30,
+      0,
+      "AUDIO"
+    ],
+    [
+      36,
+      30,
+      0,
+      31,
+      0,
+      "FEATURE"
+    ],
+    [
+      38,
+      32,
+      0,
+      33,
+      0,
+      "FEATURE"
+    ],
+    [
+      40,
+      34,
+      0,
+      35,
+      0,
+      "FEATURE"
+    ],
+    [
+      42,
+      36,
+      0,
+      37,
+      0,
+      "FEATURE"
+    ],
+    [
+      44,
+      38,
+      0,
+      39,
+      0,
+      "FEATURE"
+    ],
+    [
+      46,
+      40,
+      0,
+      41,
+      0,
+      "FEATURE"
+    ],
+    [
+      48,
+      43,
+      0,
+      44,
+      0,
+      "FEATURE"
+    ],
+    [
+      49,
+      7,
+      0,
+      43,
+      0,
+      "AUDIO"
+    ],
+    [
+      50,
+      45,
+      0,
+      46,
+      0,
+      "FEATURE"
+    ],
+    [
+      51,
+      7,
+      0,
+      47,
+      0,
+      "AUDIO"
+    ],
+    [
+      52,
+      47,
+      0,
+      32,
+      0,
+      "AUDIO"
+    ],
+    [
+      53,
+      47,
+      0,
+      40,
+      0,
+      "AUDIO"
+    ],
+    [
+      54,
+      47,
+      0,
+      34,
+      0,
+      "AUDIO"
+    ],
+    [
+      55,
+      47,
+      0,
+      38,
+      0,
+      "AUDIO"
+    ],
+    [
+      56,
+      47,
+      0,
+      36,
+      0,
+      "AUDIO"
+    ],
+    [
+      57,
+      47,
+      0,
+      45,
+      0,
+      "AUDIO"
+    ],
+    [
+      58,
+      48,
+      0,
+      49,
+      0,
+      "AUDIO"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "AUDIO INFO - Tests: beat_track, chroma_cqt (key detection)",
+      "bounding": [
+        190,
+        490,
+        700,
+        300
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "KNOB (enhance_audio) - Tests: stft, istft",
+      "bounding": [
+        190,
+        790,
+        1200,
+        200
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "TIME STRETCH - Tests: effects_time_stretch",
+      "bounding": [
+        190,
+        990,
+        1200,
+        200
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 4,
+      "title": "AUDIO FEATURE VISUALIZER (matplotlib) - Tests: specshow, waveshow, stft, amplitude_to_db, mfcc, chroma_stft, tonnetz, spectral_centroid",
+      "bounding": [
+        190,
+        1190,
+        1600,
+        1600
+      ],
+      "color": "#8e44ad",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 5,
+      "title": "AUDIO FEATURE EXTRACTOR (flex) - Tests: spectral_centroid, onset_strength, chroma_stft",
+      "bounding": [
+        190,
+        2790,
+        1600,
+        300
+      ],
+      "color": "#27ae60",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 6,
+      "title": "RHYTHM FEATURE EXTRACTOR - Tests: beat_track, onset_strength, frames_to_time",
+      "bounding": [
+        190,
+        3090,
+        1600,
+        550
+      ],
+      "color": "#e67e22",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 7,
+      "title": "PITCH FEATURE EXTRACTOR - Tests: piptrack, frames_to_time, hz_to_midi, midi_to_hz",
+      "bounding": [
+        190,
+        3640,
+        1600,
+        300
+      ],
+      "color": "#e74c3c",
+      "font_size": 24,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.5644739300537773,
+      "offset": [
+        1427.9503344155592,
+        -410.0679516832023
+      ]
+    },
+    "workflowRendererVersion": "LG",
+    "frontendVersion": "1.38.13",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

@@ -270,8 +270,8 @@ class PitchRangeByNoteNode(PitchAbstraction):
         return (collections,)
 
     def _midi_to_frequency(self, midi_note):
-        import librosa
-        return librosa.midi_to_hz(midi_note)
+        from ..audio import librosa_replacements as lr
+        return lr.midi_to_hz(midi_note)
     # The _calculate_tolerance method has been removed from here
 
 NODE_CLASS_MAPPINGS = {
