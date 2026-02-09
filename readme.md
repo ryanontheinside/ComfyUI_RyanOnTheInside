@@ -1,5 +1,7 @@
 # ComfyUI RyanOnTheInside Node Pack
 
+**[ryanontheinside.com](https://ryanontheinside.com)** | [GitHub](https://github.com/ryanontheinside/ComfyUI_RyanOnTheInside) | [Civitai](https://civitai.com/user/RyanOnTheInside) | [YouTube](https://www.youtube.com/@RyanOnTheInside)
+
 ## 🚨 Important: [Version 2.0 Update](#-important-version-20-update--1) 🚨
 ## Overview
 ### These nodes react to **everything**, including audio.
