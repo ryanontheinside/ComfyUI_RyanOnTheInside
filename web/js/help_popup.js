@@ -231,11 +231,20 @@ const create_documentation_stylesheet = () => {
 
 ## For video tutorials and more visit [RyanOnTheInside YouTube](https://www.youtube.com/@ryanontheinside).
 
-## [RyanOnTheInside Linktree](https://linktr.ee/ryanontheinside)
+## [RyanOnTheInside](https://ryanontheinside.com)
 `;
         
-        //parse the combined content with marked and sanitize
-        this._contentWrapper.innerHTML = DOMPurify.sanitize(marked.parse(content))
+        //parse the combined content (simple inline conversion, no external deps)
+        const parseSimpleMarkdown = (md) => {
+          return md
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/```([\s\S]*?)```/g, (_, code) => `<pre style="overflow-x:auto;font-size:0.55em;line-height:1.1">${code.trim()}</pre>`)
+            .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+            .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+            .replace(/^---$/gm, '<hr>')
+            .replace(/\n/g, '<br>');
+        };
+        this._contentWrapper.innerHTML = parseSimpleMarkdown(content)
 
         // resize handle
         const resizeHandle = document.createElement('div');
