@@ -239,3 +239,10 @@ class FlexLatentNoise(FlexLatentBase):
 
         return result
 
+NODE_CLASS_MAPPINGS = {
+    "FlexLatentInterpolate": FlexLatentInterpolate,
+    "EmbeddingGuidedLatentInterpolate": EmbeddingGuidedLatentInterpolate,
+    "FlexLatentBlend": FlexLatentBlend,
+    "FlexLatentNoise": FlexLatentNoise,
+}
+

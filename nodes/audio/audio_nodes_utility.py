@@ -589,3 +589,23 @@ class Knob(AudioUtility):
                 enhanced = enhanced * pump_envelope
         
         return ({"waveform": enhanced, "sample_rate": sample_rate},)
+
+NODE_CLASS_MAPPINGS = {
+    "AudioPad": AudioPad,
+    "AudioChannelMerge": AudioChannelMerge,
+    "AudioChannelSplit": AudioChannelSplit,
+    "AudioResample": AudioResample,
+    "AudioVolumeNormalization": AudioVolumeNormalization,
+    "Audio_Combine": Audio_Combine,
+    "AudioSubtract": AudioSubtract,
+    "Audio_Concatenate": Audio_Concatenate,
+    "AudioDither": AudioDither,
+    "AudioTrim": AudioTrim,
+    "AudioInfo": AudioInfo,
+    "Knob": Knob,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "Audio_Combine": "Audio Combine ROTI",
+    "Audio_Concatenate": "Audio Concatenate ROTI",
+}

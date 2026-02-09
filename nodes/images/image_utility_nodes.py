@@ -194,4 +194,17 @@ class Color_Picker:
             
         except (json.JSONDecodeError, KeyError):
             # Return defaults if JSON parsing fails
-            return ("#FF0000", "255,0,0", 0) 
+            return ("#FF0000", "255,0,0", 0)
+
+NODE_CLASS_MAPPINGS = {
+    "DyeImage": DyeImage,
+    "Color_Picker": Color_Picker,
+    "ImageCASBatch": ImageCASBatch,
+    "ImageScaleToTarget": ImageScaleToTarget,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "ImageCASBatch": "Image Contrast Adaptive Sharpen Batch",
+    "ImageScaleToTarget": "Upscale Image To Target",
+    "Color_Picker": "Color_Picker ROTI",
+}

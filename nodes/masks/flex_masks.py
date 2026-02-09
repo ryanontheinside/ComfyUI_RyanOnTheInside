@@ -763,3 +763,18 @@ class FlexMaskInterpolate(FlexMaskBase):
             interpolated_mask = (1 - weight) * mask + weight * mask_b_frame
 
         return np.clip(interpolated_mask, 0.0, 1.0).astype(np.float32)
+
+NODE_CLASS_MAPPINGS = {
+    "FlexMaskMorph": FlexMaskMorph,
+    "FlexMaskWarp": FlexMaskWarp,
+    "FlexMaskTransform": FlexMaskTransform,
+    "FlexMaskMath": FlexMaskMath,
+    "FlexMaskOpacity": FlexMaskOpacity,
+    "FlexMaskVoronoiScheduled": FlexMaskVoronoiScheduled,
+    "FlexMaskBinary": FlexMaskBinary,
+    "FlexMaskWavePropagation": FlexMaskWavePropagation,
+    "FlexMaskEmanatingRings": FlexMaskEmanatingRings,
+    "FlexMaskRandomShapes": FlexMaskRandomShapes,
+    "FlexMaskDepthChamber": FlexMaskDepthChamber,
+    "FlexMaskInterpolate": FlexMaskInterpolate,
+}

@@ -891,3 +891,21 @@ class FeatureInterpolateMulti(FeatureModulationBase):
 
         return (out1, out2, out3)
 
+NODE_CLASS_MAPPINGS = {
+    "FeatureMixer": FeatureMixer,
+    "FeatureCombine": FeatureCombine,
+    "FeatureOscillator": FeatureOscillator,
+    "FeatureScaler": FeatureScaler,
+    "FeatureSmoothing": FeatureSmoothing,
+    "FeatureFade": FeatureFade,
+    "FeatureMath": FeatureMath,
+    "FeatureRebase": FeatureRebase,
+    "FeatureTruncateOrExtend": FeatureTruncateOrExtend,
+    "FeatureAccumulate": FeatureAccumulate,
+    "FeatureContiguousInterpolate": FeatureContiguousInterpolate,
+    "FeatureRenormalize": FeatureRenormalize,
+    "FeatureInterpolator": FeatureInterpolator,
+    "FeaturePeakDetector": FeaturePeakDetector,
+    "FeatureInterpolateMulti": FeatureInterpolateMulti,
+}
+

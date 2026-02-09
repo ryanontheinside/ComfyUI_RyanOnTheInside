@@ -529,9 +529,23 @@ class AnimatedFeaturePreview(RyanOnTheInside):
             range_size = cv2.getTextSize(range_text, font, 0.6, 1)[0]
             range_pos = (width - range_size[0] - 20, height - 30)  # Same height as frame info
             self.draw_text_with_background(frame, range_text, range_pos, font, 0.6, (180, 180, 180), 1, (20, 20, 40), 4)
-            
+
             output_frames.append(frame)
-        
+
         # Convert to tensor
         output_tensor = torch.from_numpy(np.stack(output_frames)).float() / 255.0
         return (output_tensor,)
+
+NODE_CLASS_MAPPINGS = {
+    "ProximityVisualizer": ProximityVisualizer,
+    "EffectVisualizer": EffectVisualizer,
+    "PitchVisualizer": PitchVisualizer,
+    "PreviewFeature": PreviewFeature,
+    "AnimatedFeaturePreview": AnimatedFeaturePreview,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "ProximityVisualizer": "Preview Proximity",
+    "EffectVisualizer": "Preview FeatureEffect",
+    "PitchVisualizer": "Preview Pitch",
+}

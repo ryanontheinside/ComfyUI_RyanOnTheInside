@@ -888,6 +888,12 @@ class FlexAudioVisualizerContour(FlexAudioVisualizerBase):
                 process_contour(contour, start_idx, end_idx, direction_multiplier)
 
             start_idx = end_idx
-            
+
         return image
+
+NODE_CLASS_MAPPINGS = {
+    "FlexAudioVisualizerCircular": FlexAudioVisualizerCircular,
+    "FlexAudioVisualizerLine": FlexAudioVisualizerLine,
+    "FlexAudioVisualizerContour": FlexAudioVisualizerContour,
+}
 

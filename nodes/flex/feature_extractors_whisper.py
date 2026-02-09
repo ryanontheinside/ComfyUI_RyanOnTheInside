@@ -752,5 +752,13 @@ class WhisperAutoAdjust:
             raise ValueError(f"Error during alignment: {str(e)}")
 
 
-
-
+NODE_CLASS_MAPPINGS = {
+    "WhisperFeature": WhisperFeatureNode,
+    "TriggerBuilder": TriggerBuilder,
+    "ContextModifier": ContextModifier,
+    "WhisperToPromptTravel": WhisperToPromptTravel,
+    "WhisperTextRenderer": WhisperTextRenderer,
+    "ManualWhisperAlignmentData": ManualWhisperAlignmentData,
+    "WhisperAutoAdjust": WhisperAutoAdjust,
+    "WhisperTimeAdjuster": WhisperTimeAdjuster,
+}

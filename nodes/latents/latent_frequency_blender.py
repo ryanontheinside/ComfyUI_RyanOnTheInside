@@ -263,3 +263,7 @@ class LatentFrequencyBlender(FlexLatentBase):
         # Reshape result to original latent shape
         result = result_flat.reshape(latent1.shape)
         return result
+
+NODE_CLASS_MAPPINGS = {
+    "LatentFrequencyBlender": LatentFrequencyBlender,
+}

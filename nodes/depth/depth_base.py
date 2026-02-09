@@ -343,4 +343,8 @@ class DepthRippleEffect(FlexDepthBase):
 
         return modified_depth
 
-
+NODE_CLASS_MAPPINGS = {
+    "DepthInjection": DepthInjection,
+    "DepthBlender": DepthBlender,
+    "DepthRippleEffect": DepthRippleEffect,
+}

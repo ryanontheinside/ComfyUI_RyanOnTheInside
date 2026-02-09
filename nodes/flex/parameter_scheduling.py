@@ -161,4 +161,9 @@ class FeatureToFlexFloatParam(SchedulerNode):
     
     def convert(self, feature, lower_threshold, upper_threshold, invert_output):
         values = self.process_values(feature, lower_threshold, upper_threshold, invert_output)
-        return (values,) 
+        return (values,)
+
+NODE_CLASS_MAPPINGS = {
+    "FeatureToFlexIntParam": FeatureToFlexIntParam,
+    "FeatureToFlexFloatParam": FeatureToFlexFloatParam,
+}

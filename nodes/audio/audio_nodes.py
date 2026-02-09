@@ -560,3 +560,21 @@ class EmptyImageAndMaskFromAudio(AudioNodeBase):
         empty_mask = self.create_empty_tensor(audio, frame_rate, height, width)
         frame_count = empty_image.shape[0]
         return (empty_image, empty_mask, frame_count)
+
+NODE_CLASS_MAPPINGS = {
+    "AudioSeparatorSimple": AudioSeparatorSimple,
+    "DownloadOpenUnmixModel": DownloadOpenUnmixModel,
+    "AudioFeatureVisualizer": AudioFeatureVisualizer,
+    "FrequencyFilterCustom": FrequencyFilterCustom,
+    "FrequencyFilterPreset": FrequencyFilterPreset,
+    "FrequencyRange": FrequencyRange,
+    "AudioFilter": AudioFilter,
+    "EmptyMaskFromAudio": EmptyMaskFromAudio,
+    "EmptyImageFromAudio": EmptyImageFromAudio,
+    "EmptyImageAndMaskFromAudio": EmptyImageAndMaskFromAudio,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "AudioSeparatorSimple": "Audio Separator",
+    "AudioFeatureVisualizer": "Audio Feature Visualizer ***BETA***",
+}

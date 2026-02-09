@@ -150,3 +150,19 @@ class MaskWarp(TemporalMaskBase):
 
     def apply_mask_warp(self, masks, strength, warp_type, frequency, amplitude, octaves, **kwargs):
         return super().main_function(masks, strength, warp_type=warp_type, frequency=frequency, amplitude=amplitude, octaves=octaves, **kwargs)
+
+NODE_CLASS_MAPPINGS = {
+    "MaskMorph": MaskMorph,
+    "MaskTransform": MaskTransform,
+    "MaskMath": MaskMath,
+    "MaskRings": MaskRings,
+    "MaskWarp": MaskWarp,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "MaskMorph": "Mask Morph [DEPRECATED]",
+    "MaskTransform": "Mask Transform [DEPRECATED]",
+    "MaskMath": "Mask Math [DEPRECATED]",
+    "MaskRings": "Mask Rings [DEPRECATED]",
+    "MaskWarp": "Mask Warp [DEPRECATED]",
+}

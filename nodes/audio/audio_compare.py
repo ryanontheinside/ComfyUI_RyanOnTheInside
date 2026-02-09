@@ -53,3 +53,7 @@ class PreviewAudioCompare:
         result_a = _save_audio_temp(audio_a, "comfy_ab_a")
         result_b = _save_audio_temp(audio_b, "comfy_ab_b")
         return {"ui": {"a_audio": [result_a], "b_audio": [result_b]}}
+
+NODE_CLASS_MAPPINGS = {
+    "PreviewAudioCompare": PreviewAudioCompare,
+}

@@ -273,3 +273,17 @@ class PitchRangeByNoteNode(PitchAbstraction):
         import librosa
         return librosa.midi_to_hz(midi_note)
     # The _calculate_tolerance method has been removed from here
+
+NODE_CLASS_MAPPINGS = {
+    "AudioFeatureExtractor": AudioFeatureExtractor,
+    "PitchRange": PitchRangeNode,
+    "PitchRangePreset": PitchRangePresetNode,
+    "PitchRangeByNoteNode": PitchRangeByNoteNode,
+    "PitchFeatureExtractor": PitchFeatureExtractor,
+    "RhythmFeatureExtractor": RhythmFeatureExtractor,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "AudioFeatureExtractor": "Audio Feature Extractor",
+    "PitchRangeByNoteNode": "Pitch Range By Note",
+}

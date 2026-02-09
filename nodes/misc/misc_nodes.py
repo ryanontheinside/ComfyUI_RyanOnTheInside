@@ -32,3 +32,7 @@ class ROTIDisplayAny:
                     value = "Could not serialize value"
 
         return {"ui": {"text": (value,)}}
+
+NODE_CLASS_MAPPINGS = {
+    "ROTIDisplayAny": ROTIDisplayAny,
+}

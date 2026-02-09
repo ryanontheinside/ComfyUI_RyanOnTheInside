@@ -1289,5 +1289,22 @@ class FlexImageHorizontalToVertical(FlexImageBase):
         
         return np.clip(result, 0, 1)
 
-
-     
+NODE_CLASS_MAPPINGS = {
+    "FlexImageEdgeDetect": FlexImageEdgeDetect,
+    "FlexImagePosterize": FlexImagePosterize,
+    "FlexImageKaleidoscope": FlexImageKaleidoscope,
+    "FlexImageBloom": FlexImageBloom,
+    "FlexImageChromaticAberration": FlexImageChromaticAberration,
+    "FlexImageGlitch": FlexImageGlitch,
+    "FlexImagePixelate": FlexImagePixelate,
+    "FlexImageColorGrade": FlexImageColorGrade,
+    "FlexImageTiltShift": FlexImageTiltShift,
+    "FlexImageParallax": FlexImageParallax,
+    "FlexImageContrast": FlexImageContrast,
+    "FlexImageWarp": FlexImageWarp,
+    "FlexImageVignette": FlexImageVignette,
+    "FlexImageTransform": FlexImageTransform,
+    "FlexImageHueShift": FlexImageHueShift,
+    "FlexImageDepthWarp": FlexImageDepthWarp,
+    "FlexImageHorizontalToVertical": FlexImageHorizontalToVertical,
+}
