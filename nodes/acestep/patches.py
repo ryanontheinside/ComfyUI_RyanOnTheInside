@@ -250,6 +250,13 @@ def _create_patched_tokenizer(original_tokenize_with_weights):
         out = original_tokenize_with_weights(self, text, return_word_ids, **stock_kwargs.copy())
         logger.debug(f"[ACE15_TOKENIZER] generate_audio_codes={out.get('lm_metadata', {}).get('generate_audio_codes', 'N/A')}")
 
+        # For text2music, the stock tokenizer output is correct — don't override.
+        # We only need custom templates for our extended task types.
+        if task_type == "text2music":
+            out["task_type"] = task_type
+            out["track_name"] = track_name
+            return out
+
         # Get appropriate instruction for task type
         instruction = get_task_instruction(task_type, track_name)
 
