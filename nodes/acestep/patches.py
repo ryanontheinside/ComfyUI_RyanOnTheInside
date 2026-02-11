@@ -240,12 +240,14 @@ def _create_patched_tokenizer(original_tokenize_with_weights):
         task_type = kwargs.get("task_type", "text2music")
         track_name = kwargs.get("track_name", None)
 
-        # Strip our custom kwargs before forwarding to the stock tokenizer
+        # Strip our custom kwargs before forwarding to the stock tokenizer.
+        # IMPORTANT: copy the dict because the stock tokenizer pop()s keys like
+        # bpm, duration, keyscale, timesignature — we still need them afterwards.
         stock_kwargs = {k: v for k, v in kwargs.items() if k not in ("task_type", "track_name")}
         logger.debug(f"[ACE15_TOKENIZER] task={task_type}, track={track_name}")
 
         # Call the original tokenizer to get baseline output with all expected keys
-        out = original_tokenize_with_weights(self, text, return_word_ids, **stock_kwargs)
+        out = original_tokenize_with_weights(self, text, return_word_ids, **stock_kwargs.copy())
         logger.debug(f"[ACE15_TOKENIZER] generate_audio_codes={out.get('lm_metadata', {}).get('generate_audio_codes', 'N/A')}")
 
         # Get appropriate instruction for task type
@@ -266,10 +268,10 @@ def _create_patched_tokenizer(original_tokenize_with_weights):
         # Override only the instruction-dependent tokenized outputs
         out["lm_prompt"] = self.qwen3_06b.tokenize_with_weights(lm_template.format(instruction, text, lyrics, meta_lm), disable_weights=True)
         out["lm_prompt_negative"] = self.qwen3_06b.tokenize_with_weights(lm_template.format(instruction, text, lyrics, ""), disable_weights=True)
-        out["lyrics"] = self.qwen3_06b.tokenize_with_weights("# Languages\n{}\n\n# Lyric{}<|endoftext|><|endoftext|>".format(language, lyrics), return_word_ids, disable_weights=True, **kwargs)
+        out["lyrics"] = self.qwen3_06b.tokenize_with_weights("# Languages\n{}\n\n# Lyric{}<|endoftext|><|endoftext|>".format(language, lyrics), return_word_ids, disable_weights=True, **stock_kwargs.copy())
         _fmt = "# Instruction\n{}\n\n# Caption\n{}\n\n# Metas\n{}<|endoftext|>\n".format(instruction, text, meta_cap)
-        print(f"[TOKENIZER_DEBUG] qwen3_06b prompt (first 200 chars): {repr(_fmt[:200])}")
-        out["qwen3_06b"] = self.qwen3_06b.tokenize_with_weights(_fmt, return_word_ids, **kwargs)
+        logger.debug(f"[ACE15_TOKENIZER] qwen3_06b prompt (first 200 chars): {repr(_fmt[:200])}")
+        out["qwen3_06b"] = self.qwen3_06b.tokenize_with_weights(_fmt, return_word_ids, **stock_kwargs.copy())
 
         # Cover/extract/lego tasks use precomputed semantic hints, skip LLM code generation
         if isinstance(out.get("lm_metadata"), dict):
@@ -314,76 +316,6 @@ def apply_patches():
         logger.info("[ACE-Step Patches] Patched ACE15Tokenizer.tokenize_with_weights")
     except ImportError as e:
         logger.info(f"[ACE-Step Patches] Warning: Could not patch ace15 tokenizer: {e}")
-
-    # Patch resolve_areas_and_cond_masks_multidim for 1D mask support.
-    # ComfyUI's mask normalization assumes 2D spatial dims (images). This patch
-    # generalizes it to work with any number of spatial dims (1D audio, 2D image, 3D video).
-
-    
-    try:
-        import comfy.samplers as _comfy_samplers
-        import comfy.utils
-        _original_resolve = _comfy_samplers.resolve_areas_and_cond_masks_multidim
-    
-        def _patched_resolve_areas_and_cond_masks_multidim(conditions, dims, device):
-            for i in range(len(conditions)):
-                c = conditions[i]
-                if 'area' in c:
-                    area = c['area']
-                    if area[0] == "percentage":
-                        modified = c.copy()
-                        a = area[1:]
-                        a_len = len(a) // 2
-                        area = ()
-                        for d in range(len(dims)):
-                            area += (max(1, round(a[d] * dims[d])),)
-                        for d in range(len(dims)):
-                            area += (round(a[d + a_len] * dims[d]),)
-                        modified['area'] = area
-                        c = modified
-                        conditions[i] = c
-    
-                if 'mask' in c:
-                    mask = c['mask'].to(device=device)
-                    modified = c.copy()
-                    target_ndim = len(dims) + 1
-                    while mask.ndim > target_ndim and mask.shape[0] == 1:
-                        mask = mask.squeeze(0)
-                    while mask.ndim < target_ndim:
-                        mask = mask.unsqueeze(0)
-                    if mask.shape[1:] != dims:
-                        if len(dims) == 1:
-                            mask = torch.nn.functional.interpolate(
-                                mask.unsqueeze(1), size=dims[0],
-                                mode='linear', align_corners=False).squeeze(1)
-                        elif mask.ndim < 4:
-                            mask = comfy.utils.common_upscale(
-                                mask.unsqueeze(1), dims[-1], dims[-2],
-                                'bilinear', 'none').squeeze(1)
-                        else:
-                            mask = comfy.utils.common_upscale(
-                                mask, dims[-1], dims[-2], 'bilinear', 'none')
-    
-                    if modified.get("set_area_to_bounds", False) and len(dims) == 2:
-                        from comfy.samplers import get_mask_aabb
-                        bounds = torch.max(torch.abs(mask), dim=0).values.unsqueeze(0)
-                        boxes, is_empty = get_mask_aabb(bounds)
-                        if is_empty[0]:
-                            modified['area'] = (8, 8, 0, 0)
-                        else:
-                            box = boxes[0]
-                            H, W, Y, X = (box[3] - box[1] + 1, box[2] - box[0] + 1, box[1], box[0])
-                            H = max(8, H)
-                            W = max(8, W)
-                            modified['area'] = (int(H), int(W), int(Y), int(X))
-    
-                    modified['mask'] = mask
-                    conditions[i] = modified
-    
-        _comfy_samplers.resolve_areas_and_cond_masks_multidim = _patched_resolve_areas_and_cond_masks_multidim
-        logger.info("[ACE-Step Patches] Patched resolve_areas_and_cond_masks_multidim for 1D mask support")
-    except Exception as e:
-        logger.info(f"[ACE-Step Patches] Warning: Could not patch resolve_areas_and_cond_masks_multidim: {e}")
 
     _patches_applied = True
     logger.info("[ACE-Step Patches] All patches applied successfully")
