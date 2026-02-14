@@ -1,4 +1,4 @@
-from ... import RyanOnTheInside 
+from ... import RyanOnTheInside, ProgressMixin
 import cv2
 import numpy as np
 import  torch
@@ -366,175 +366,494 @@ class AnimatedFeaturePreview(RyanOnTheInside):
     def animate_feature(self, feature, window_size, top_label, bottom_label, width, height, low_color, high_color, title_override):
         low_color = self.parse_color(low_color)
         high_color = self.parse_color(high_color)
-        
+
         values = [feature.get_value_at_frame(i) for i in range(feature.frame_count)]
-        
-        # Calculate actual min and max from the values
+
         actual_min = min(values)
         actual_max = max(values)
-        
-        # Handle constant value case
         if actual_max == actual_min:
             actual_max = actual_min + 1.0
-            
         y_range = actual_max - actual_min
         padding = 0.05 * y_range
         y_min = actual_min - padding
         y_max = actual_max + padding
-        
-        # Graph area parameters with better proportions for labels above/below
+
+        # Layout — tighter margins matching float preview
         margin_x = 80
-        margin_y = 120  # More space for labels above/below
+        margin_top = 80
+        margin_bottom = 60
         graph_width = width - 2 * margin_x
-        graph_height = height - 2 * margin_y
+        graph_height = height - margin_top - margin_bottom
         graph_x = margin_x
-        graph_y = margin_y
-        
+        graph_y = margin_top
+
+        font = cv2.FONT_HERSHEY_SIMPLEX
         output_frames = []
-        
+
         for frame_index in range(feature.frame_count):
-            # Create frame with gradient background
             frame = np.zeros((height, width, 3), dtype=np.uint8)
             self.draw_gradient_background(frame, (15, 15, 25), (25, 25, 35))
-            
-            # Determine the window for this frame
+
+            # Window bounds
             window_start = max(0, frame_index - window_size // 2)
             window_end = min(feature.frame_count, window_start + window_size)
-            
-            # Adjust window_start if we're near the end
             if window_end - window_start < window_size and window_start > 0:
                 window_start = max(0, window_end - window_size)
-            
-            # Draw enhanced grid
-            grid_color = (45, 45, 55)  # Subtle grid
-            major_grid_color = (65, 65, 75)  # Slightly more visible for major lines
-            
-            # Horizontal grid lines
-            for i in range(9):  # More grid lines for precision
+
+            # Grid
+            grid_color = (45, 45, 55)
+            major_grid_color = (65, 65, 75)
+
+            for i in range(9):
                 y = graph_y + (i * graph_height // 8)
                 color = major_grid_color if i % 2 == 0 else grid_color
                 cv2.line(frame, (graph_x, y), (graph_x + graph_width, y), color, 1)
-            
-            # Vertical grid lines
-            for i in range(13):  # More vertical lines
+
+            for i in range(13):
                 x = graph_x + (i * graph_width // 12)
                 color = major_grid_color if i % 3 == 0 else grid_color
                 cv2.line(frame, (x, graph_y), (x, graph_y + graph_height), color, 1)
-            
-            # Draw graph border with gradient effect
-            border_color = (120, 120, 140)
-            cv2.rectangle(frame, (graph_x-2, graph_y-2), (graph_x + graph_width+2, graph_y + graph_height+2), border_color, 3)
-            cv2.rectangle(frame, (graph_x-1, graph_y-1), (graph_x + graph_width+1, graph_y + graph_height+1), (200, 200, 220), 1)
-            
-            # Get the values for the current window
+
+            # Border
+            cv2.rectangle(frame, (graph_x - 2, graph_y - 2),
+                          (graph_x + graph_width + 2, graph_y + graph_height + 2), (120, 120, 140), 3)
+            cv2.rectangle(frame, (graph_x - 1, graph_y - 1),
+                          (graph_x + graph_width + 1, graph_y + graph_height + 1), (200, 200, 220), 1)
+
+            # Y-axis numeric labels
+            for i in range(5):
+                y_val = y_min + (y_max - y_min) * (1.0 - i / 4.0)
+                y_pos = graph_y + (i * graph_height // 4)
+                label_text = f"{y_val:.2f}"
+                label_size = cv2.getTextSize(label_text, font, 0.45, 1)[0]
+                cv2.putText(frame, label_text, (graph_x - label_size[0] - 8, y_pos + 4),
+                            font, 0.45, (140, 140, 160), 1)
+
+            # Top/bottom labels (left side, aligned with Y-axis)
+            if top_label:
+                tl_color = self.interpolate_color(low_color, high_color, 1.0)
+                tl_size = cv2.getTextSize(top_label, font, 0.55, 1)[0]
+                cv2.putText(frame, top_label, (graph_x - tl_size[0] - 8, graph_y - 10),
+                            font, 0.55, tl_color, 1)
+            if bottom_label:
+                bl_color = self.interpolate_color(low_color, high_color, 0.0)
+                bl_size = cv2.getTextSize(bottom_label, font, 0.55, 1)[0]
+                cv2.putText(frame, bottom_label, (graph_x - bl_size[0] - 8, graph_y + graph_height + 20),
+                            font, 0.55, bl_color, 1)
+
+            # Draw line
             window_values = values[window_start:window_end]
             window_frames = list(range(window_start, window_end))
-            
-            # Convert values to screen coordinates and draw enhanced line with smoother interpolation
+
             if len(window_values) > 1:
                 points = []
                 point_values = []
                 for i, (f, v) in enumerate(zip(window_frames, window_values)):
-                    # X coordinate based on frame position in window
                     x_ratio = (f - window_start) / window_size
                     x = int(graph_x + x_ratio * graph_width)
-                    
-                    # Y coordinate based on value (inverted because screen Y increases downward)
                     y_ratio = (v - y_min) / (y_max - y_min)
                     y = int(graph_y + graph_height - y_ratio * graph_height)
-                    
                     points.append((x, y))
                     point_values.append(v)
-                
-                # Draw the line with smooth gradient colors
+
+                # Draw line with gradient colors
                 for i in range(len(points) - 1):
-                    # Create multiple segments for smoother color transition
                     start_point = points[i]
                     end_point = points[i + 1]
                     start_value = point_values[i]
                     end_value = point_values[i + 1]
-                    
-                    # Number of segments for smooth color transition
+
                     num_segments = max(5, abs(end_point[0] - start_point[0]) // 2)
-                    
                     for seg in range(num_segments):
                         seg_ratio = seg / num_segments
                         next_seg_ratio = (seg + 1) / num_segments
-                        
-                        # Interpolate position
+
                         seg_x = int(start_point[0] + (end_point[0] - start_point[0]) * seg_ratio)
                         seg_y = int(start_point[1] + (end_point[1] - start_point[1]) * seg_ratio)
                         next_x = int(start_point[0] + (end_point[0] - start_point[0]) * next_seg_ratio)
                         next_y = int(start_point[1] + (end_point[1] - start_point[1]) * next_seg_ratio)
-                        
-                        # Interpolate value for color
+
                         seg_value = start_value + (end_value - start_value) * (seg_ratio + next_seg_ratio) / 2
                         color_factor = (seg_value - actual_min) / (actual_max - actual_min) if actual_max != actual_min else 0.5
                         line_color = self.interpolate_color(low_color, high_color, color_factor)
-                        
-                        # Draw segment with glow effect
-                        cv2.line(frame, (seg_x, seg_y), (next_x, next_y), (line_color[0]//3, line_color[1]//3, line_color[2]//3), 5)  # Glow
-                        cv2.line(frame, (seg_x, seg_y), (next_x, next_y), line_color, 3)  # Main line
-                
-                # Draw the current position dot with enhanced styling
+
+                        cv2.line(frame, (seg_x, seg_y), (next_x, next_y),
+                                 (line_color[0] // 4, line_color[1] // 4, line_color[2] // 4), 5)
+                        cv2.line(frame, (seg_x, seg_y), (next_x, next_y), line_color, 2)
+
+                # Current position dot
                 current_value = values[frame_index]
                 x_ratio = (frame_index - window_start) / window_size
                 x = int(graph_x + x_ratio * graph_width)
                 y_ratio = (current_value - y_min) / (y_max - y_min)
                 y = int(graph_y + graph_height - y_ratio * graph_height)
-                
-                # Calculate dot color based on current value
+
                 color_factor = (current_value - actual_min) / (actual_max - actual_min) if actual_max != actual_min else 0.5
                 dot_color = self.interpolate_color(low_color, high_color, color_factor)
-                
-                # Draw dot with glow effect
-                cv2.circle(frame, (x, y), 12, (dot_color[0]//2, dot_color[1]//2, dot_color[2]//2), -1)  # Outer glow
-                cv2.circle(frame, (x, y), 8, (255, 255, 255), 2)  # White outline
-                cv2.circle(frame, (x, y), 6, dot_color, -1)     # Colored fill
-            
-            # Enhanced text rendering
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            text_color = (255, 255, 255)
-            
-            # Labels positioned next to the y-axis
-            # Top label (left side, aligned with top of graph)
-            self.draw_text_with_background(frame, top_label, (15, graph_y + 20), font, 0.9, text_color, 2, (20, 20, 40), 8)
-            
-            # Bottom label (left side, aligned with bottom of graph)
-            self.draw_text_with_background(frame, bottom_label, (15, graph_y + graph_height - 10), font, 0.9, text_color, 2, (20, 20, 40), 8)
-            
-            # Enhanced title (centered at top)
+
+                cv2.circle(frame, (x, y), 8, (dot_color[0] // 2, dot_color[1] // 2, dot_color[2] // 2), -1)
+                cv2.circle(frame, (x, y), 5, (255, 255, 255), 1)
+                cv2.circle(frame, (x, y), 4, dot_color, -1)
+
+            # Title (centered at top)
             title = title_override if title_override.strip() else feature.name
-            title_size = cv2.getTextSize(title, font, 1.2, 3)[0]
+            title_size = cv2.getTextSize(title, font, 1.0, 2)[0]
             title_x = (width - title_size[0]) // 2
-            self.draw_text_with_background(frame, title, (title_x, 40), font, 1.2, text_color, 3, (20, 20, 40), 12)
-            
-            # Current value (top right, no crowding)
+            overlay = frame.copy()
+            cv2.rectangle(overlay, (title_x - 12, 8), (title_x + title_size[0] + 12, 48), (20, 20, 40), -1)
+            cv2.addWeighted(overlay, 0.7, frame, 0.3, 0, frame)
+            cv2.putText(frame, title, (title_x, 38), font, 1.0, (255, 255, 255), 2)
+
+            # Current value (top right)
             current_value = values[frame_index]
-            value_text = f'Value: {current_value:.4f}'
-            value_size = cv2.getTextSize(value_text, font, 0.8, 2)[0]
-            value_pos = (width - value_size[0] - 20, 70)  # Moved down to avoid title
-            
-            # Color the value text based on the current value
             color_factor = (current_value - actual_min) / (actual_max - actual_min) if actual_max != actual_min else 0.5
             value_color = self.interpolate_color(low_color, high_color, color_factor)
-            self.draw_text_with_background(frame, value_text, value_pos, font, 0.8, value_color, 2, (20, 20, 40), 8)
-            
-            # Frame info (bottom left - no crowding)
-            frame_info = f'Frame: {frame_index + 1}/{feature.frame_count}'
-            self.draw_text_with_background(frame, frame_info, (20, height - 30), font, 0.7, text_color, 2, (20, 20, 40), 6)
-            
-            # Window range info (bottom right, properly spaced)
-            range_text = f'Window: {window_start}-{window_end-1}'
-            range_size = cv2.getTextSize(range_text, font, 0.6, 1)[0]
-            range_pos = (width - range_size[0] - 20, height - 30)  # Same height as frame info
-            self.draw_text_with_background(frame, range_text, range_pos, font, 0.6, (180, 180, 180), 1, (20, 20, 40), 4)
+            value_text = f"Value: {current_value:.4f}"
+            value_size = cv2.getTextSize(value_text, font, 0.6, 1)[0]
+            cv2.putText(frame, value_text, (width - value_size[0] - 20, 38),
+                        font, 0.6, value_color, 1)
+
+            # Frame info (bottom left)
+            frame_info = f"Frame: {frame_index + 1}/{feature.frame_count}"
+            cv2.putText(frame, frame_info, (20, height - 12), font, 0.55, (180, 180, 180), 1)
+
+            # Window range (bottom right)
+            range_text = f"Window: {window_start}-{window_end - 1}"
+            range_size = cv2.getTextSize(range_text, font, 0.5, 1)[0]
+            cv2.putText(frame, range_text, (width - range_size[0] - 20, height - 12),
+                        font, 0.5, (140, 140, 140), 1)
 
             output_frames.append(frame)
 
-        # Convert to tensor
         output_tensor = torch.from_numpy(np.stack(output_frames)).float() / 255.0
         return (output_tensor,)
+
+class AnimatedFloatPreview(RyanOnTheInside, ProgressMixin):
+    """Animated preview for multiple float sequences with legend and sliding window."""
+
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Utilities/Previews"
+    DESCRIPTION = "Plots up to 6 float sequences on a single animated graph with a sliding window, legend, and per-line colors. Accepts scalar or list-of-float inputs."
+
+    # Distinct line colors (BGR for cv2)
+    LINE_COLORS = [
+        (100, 100, 255),  # Red
+        (100, 255, 100),  # Green
+        (255, 100, 100),  # Blue
+        (0, 220, 220),    # Yellow
+        (220, 100, 220),  # Magenta
+        (220, 220, 100),  # Cyan
+    ]
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "window_size": ("INT", {"default": 60, "min": 10, "max": 3000, "step": 1}),
+                "width": ("INT", {"default": 960, "min": 480, "max": 1920, "step": 1}),
+                "height": ("INT", {"default": 540, "min": 270, "max": 1080, "step": 1}),
+                "title": ("STRING", {"default": "Float Preview"}),
+            },
+            "optional": {
+                "audio": ("AUDIO", {"tooltip": "Optional audio input — renders a spectrogram behind the graph"}),
+                "audio_brightness": ("FLOAT", {"default": 0.3, "min": 0.05, "max": 1.0, "step": 0.05,
+                    "tooltip": "Brightness of the background spectrogram (lower = more subtle)"}),
+                "float_1": ("FLOAT", {"default": 0.0, "forceInput": True}),
+                "label_1": ("STRING", {"default": "Float 1"}),
+                "float_2": ("FLOAT", {"default": 0.0, "forceInput": True}),
+                "label_2": ("STRING", {"default": "Float 2"}),
+                "float_3": ("FLOAT", {"default": 0.0, "forceInput": True}),
+                "label_3": ("STRING", {"default": "Float 3"}),
+                "float_4": ("FLOAT", {"default": 0.0, "forceInput": True}),
+                "label_4": ("STRING", {"default": "Float 4"}),
+                "float_5": ("FLOAT", {"default": 0.0, "forceInput": True}),
+                "label_5": ("STRING", {"default": "Float 5"}),
+                "float_6": ("FLOAT", {"default": 0.0, "forceInput": True}),
+                "label_6": ("STRING", {"default": "Float 6"}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "animate_floats"
+
+    def _parse_input(self, value, frame_count):
+        """Convert scalar or list input to a list of length frame_count."""
+        if isinstance(value, list):
+            if len(value) == frame_count:
+                return [float(v) for v in value]
+            # Resample to frame_count
+            result = []
+            src_len = len(value)
+            for i in range(frame_count):
+                idx = round(i * (src_len - 1) / max(frame_count - 1, 1)) if frame_count > 1 else 0
+                idx = max(0, min(idx, src_len - 1))
+                result.append(float(value[idx]))
+            return result
+        else:
+            return [float(value)] * frame_count
+
+    @staticmethod
+    def _compute_band_energy(audio, frame_count):
+        """Precompute smoothed low/mid/high frequency energy per frame.
+        Returns array [frame_count, 3] with values in [0, 1]."""
+        waveform = audio["waveform"].squeeze(0).mean(dim=0).cpu().numpy()
+        sr = audio["sample_rate"]
+        total_samples = len(waveform)
+        samples_per_frame = total_samples / max(frame_count, 1)
+        fft_size = max(1024, int(samples_per_frame * 2))
+
+        # Frequency bin boundaries: low <300Hz, mid 300-3000Hz, high >3000Hz
+        freq_per_bin = sr / fft_size
+        low_end = int(300 / freq_per_bin)
+        mid_end = int(3000 / freq_per_bin)
+
+        bands = np.zeros((frame_count, 3), dtype=np.float32)
+        for i in range(frame_count):
+            center = int(i * samples_per_frame)
+            start = max(0, center - fft_size // 2)
+            end = min(total_samples, start + fft_size)
+            chunk = waveform[start:end]
+            if len(chunk) < fft_size:
+                chunk = np.pad(chunk, (0, fft_size - len(chunk)))
+            spectrum = np.abs(np.fft.rfft(chunk * np.hanning(len(chunk))))
+            bands[i, 0] = np.mean(spectrum[1:max(2, low_end)])
+            bands[i, 1] = np.mean(spectrum[low_end:max(low_end + 1, mid_end)])
+            bands[i, 2] = np.mean(spectrum[mid_end:max(mid_end + 1, len(spectrum))])
+
+        # Normalize each band independently
+        for b in range(3):
+            bmax = bands[:, b].max()
+            if bmax > 0:
+                bands[:, b] /= bmax
+
+        # Temporal smoothing (EMA)
+        smoothed = np.zeros_like(bands)
+        smoothed[0] = bands[0]
+        alpha = 0.3
+        for i in range(1, frame_count):
+            smoothed[i] = alpha * bands[i] + (1 - alpha) * smoothed[i - 1]
+        for b in range(3):
+            bmax = smoothed[:, b].max()
+            if bmax > 0:
+                smoothed[:, b] /= bmax
+        return smoothed
+
+    def animate_floats(self, window_size, width, height, title,
+                       audio=None, audio_brightness=0.3,
+                       float_1=None, label_1="Float 1",
+                       float_2=None, label_2="Float 2",
+                       float_3=None, label_3="Float 3",
+                       float_4=None, label_4="Float 4",
+                       float_5=None, label_5="Float 5",
+                       float_6=None, label_6="Float 6"):
+
+        # Collect connected inputs and determine frame_count from longest list
+        raw_inputs = [
+            (float_1, label_1), (float_2, label_2), (float_3, label_3),
+            (float_4, label_4), (float_5, label_5), (float_6, label_6),
+        ]
+
+        # Determine frame_count from the longest connected list
+        frame_count = 1
+        for val, _ in raw_inputs:
+            if isinstance(val, list) and len(val) > frame_count:
+                frame_count = len(val)
+
+        series = []  # list of (label, values_list, color)
+        for i, (val, label) in enumerate(raw_inputs):
+            if val is None:
+                continue
+            values = self._parse_input(val, frame_count)
+            series.append((label, values, self.LINE_COLORS[i % len(self.LINE_COLORS)]))
+
+        if not series:
+            # Nothing connected — return black frames
+            blank = np.zeros((frame_count, height, width, 3), dtype=np.uint8)
+            return (torch.from_numpy(blank).float() / 255.0,)
+
+        # Precompute audio band energy for reactive background
+        band_energy = None
+        if audio is not None:
+            band_energy = self._compute_band_energy(audio, frame_count)
+
+        # Calculate global min/max across all series
+        all_values = [v for _, vals, _ in series for v in vals]
+        global_min = min(all_values)
+        global_max = max(all_values)
+        if global_max == global_min:
+            global_max = global_min + 1.0
+        y_range = global_max - global_min
+        padding = 0.05 * y_range
+        y_min = global_min - padding
+        y_max = global_max + padding
+
+        # Layout
+        margin_x = 80
+        margin_top = 80
+        legend_height = 30 * ((len(series) + 2) // 3)  # rows of 3 in legend
+        margin_bottom = 60 + legend_height
+        graph_width = width - 2 * margin_x
+        graph_height = height - margin_top - margin_bottom
+        graph_x = margin_x
+        graph_y = margin_top
+
+        font = cv2.FONT_HERSHEY_SIMPLEX
+
+        # Precompute ALL glow frames at once (vectorized)
+        all_glow_frames = None
+        if band_energy is not None:
+            vert = np.linspace(0, 1, graph_height)[:, np.newaxis]
+            ones_h = np.ones((1, graph_width))
+            # Build 3 base masks [H, W, 3] and blur once each
+            masks = []
+            for shape_fn, colors in [
+                (np.power(vert, 0.5) * ones_h,       (0.4, 0.12, 0.5)),   # low: purple bottom
+                (np.exp(-8.0 * (vert - 0.5)**2) * ones_h, (0.15, 0.5, 0.45)), # mid: teal center
+                (np.power(1.0 - vert, 0.8) * ones_h, (0.2, 0.35, 0.55)),  # high: cool top
+            ]:
+                m = np.zeros((graph_height, graph_width, 3), dtype=np.float32)
+                m[:, :, 0] = shape_fn * colors[0]
+                m[:, :, 1] = shape_fn * colors[1]
+                m[:, :, 2] = shape_fn * colors[2]
+                m = cv2.GaussianBlur(m, (0, 0), sigmaX=25, sigmaY=20)
+                masks.append(m)
+            # Stack masks: [3, H, W, 3]
+            masks_arr = np.stack(masks, axis=0)
+            # band_energy: [frame_count, 3] → einsum to get [frame_count, H, W, 3]
+            # glow_frame[f] = sum_b(band_energy[f, b] * masks[b])
+            all_glow_frames = np.einsum('fb,bhwc->fhwc', band_energy, masks_arr)
+            all_glow_frames = np.clip(all_glow_frames * 255 * audio_brightness, 0, 255).astype(np.uint8)
+
+        # Precompute background gradient
+        bg_frame = np.zeros((height, width, 3), dtype=np.uint8)
+        for y in range(height):
+            factor = y / height
+            bg_frame[y, :] = (int(15 + 10 * factor), int(15 + 10 * factor), int(25 + 10 * factor))
+
+        output_frames = []
+        self.start_progress(frame_count, desc="Rendering Float Preview")
+
+        for frame_index in range(frame_count):
+            frame = bg_frame.copy()
+
+            # Window bounds
+            window_start = max(0, frame_index - window_size // 2)
+            window_end = min(frame_count, window_start + window_size)
+            if window_end - window_start < window_size and window_start > 0:
+                window_start = max(0, window_end - window_size)
+
+            # Audio-reactive ambient glow — just index into precomputed array
+            if all_glow_frames is not None:
+                graph_region = frame[graph_y:graph_y + graph_height, graph_x:graph_x + graph_width]
+                cv2.add(graph_region, all_glow_frames[frame_index], dst=graph_region)
+                frame[graph_y:graph_y + graph_height, graph_x:graph_x + graph_width] = graph_region
+
+            # Grid
+            grid_color = (45, 45, 55)
+            major_grid_color = (65, 65, 75)
+
+            for i in range(9):
+                y = graph_y + (i * graph_height // 8)
+                color = major_grid_color if i % 2 == 0 else grid_color
+                cv2.line(frame, (graph_x, y), (graph_x + graph_width, y), color, 1)
+
+            for i in range(13):
+                x = graph_x + (i * graph_width // 12)
+                color = major_grid_color if i % 3 == 0 else grid_color
+                cv2.line(frame, (x, graph_y), (x, graph_y + graph_height), color, 1)
+
+            # Border
+            cv2.rectangle(frame, (graph_x - 2, graph_y - 2),
+                          (graph_x + graph_width + 2, graph_y + graph_height + 2), (120, 120, 140), 3)
+            cv2.rectangle(frame, (graph_x - 1, graph_y - 1),
+                          (graph_x + graph_width + 1, graph_y + graph_height + 1), (200, 200, 220), 1)
+
+            # Y-axis labels
+            for i in range(5):
+                y_val = y_min + (y_max - y_min) * (1.0 - i / 4.0)
+                y_pos = graph_y + (i * graph_height // 4)
+                label_text = f"{y_val:.2f}"
+                label_size = cv2.getTextSize(label_text, font, 0.45, 1)[0]
+                cv2.putText(frame, label_text, (graph_x - label_size[0] - 8, y_pos + 4),
+                            font, 0.45, (140, 140, 160), 1)
+
+            # Draw each series
+            for label, values, color in series:
+                window_values = values[window_start:window_end]
+
+                if len(window_values) < 2:
+                    continue
+
+                points = []
+                for i, v in enumerate(window_values):
+                    f_idx = window_start + i
+                    x_ratio = (f_idx - window_start) / max(window_size, 1)
+                    x = int(graph_x + x_ratio * graph_width)
+                    y_ratio = (v - y_min) / (y_max - y_min)
+                    y = int(graph_y + graph_height - y_ratio * graph_height)
+                    points.append((x, y))
+
+                # Draw line segments
+                for i in range(len(points) - 1):
+                    # Glow
+                    cv2.line(frame, points[i], points[i + 1],
+                             (color[0] // 4, color[1] // 4, color[2] // 4), 5)
+                    # Main line
+                    cv2.line(frame, points[i], points[i + 1], color, 2)
+
+                # Current position dot
+                if window_start <= frame_index < window_end:
+                    dot_idx = frame_index - window_start
+                    if dot_idx < len(points):
+                        px, py = points[dot_idx]
+                        cv2.circle(frame, (px, py), 8,
+                                   (color[0] // 2, color[1] // 2, color[2] // 2), -1)
+                        cv2.circle(frame, (px, py), 5, (255, 255, 255), 1)
+                        cv2.circle(frame, (px, py), 4, color, -1)
+
+            # Title
+            title_size = cv2.getTextSize(title, font, 1.0, 2)[0]
+            title_x = (width - title_size[0]) // 2
+            # Background
+            overlay = frame.copy()
+            cv2.rectangle(overlay, (title_x - 12, 8), (title_x + title_size[0] + 12, 48), (20, 20, 40), -1)
+            cv2.addWeighted(overlay, 0.7, frame, 0.3, 0, frame)
+            cv2.putText(frame, title, (title_x, 38), font, 1.0, (255, 255, 255), 2)
+
+            # Legend (below graph, arranged in rows of 3)
+            legend_y_start = graph_y + graph_height + 25
+            cols = 3
+            col_width = graph_width // cols
+            for i, (label, values, color) in enumerate(series):
+                row = i // cols
+                col = i % cols
+                lx = graph_x + col * col_width
+                ly = legend_y_start + row * 28
+
+                # Color swatch
+                cv2.rectangle(frame, (lx, ly - 8), (lx + 20, ly + 4), color, -1)
+                cv2.rectangle(frame, (lx, ly - 8), (lx + 20, ly + 4), (200, 200, 200), 1)
+
+                # Label + current value
+                current_val = values[frame_index] if frame_index < len(values) else 0.0
+                legend_text = f"{label}: {current_val:.3f}"
+                cv2.putText(frame, legend_text, (lx + 28, ly + 4), font, 0.5, color, 1)
+
+            # Frame info (bottom left)
+            frame_info = f"Frame: {frame_index + 1}/{frame_count}"
+            cv2.putText(frame, frame_info, (20, height - 12), font, 0.55, (180, 180, 180), 1)
+
+            # Window range (bottom right)
+            range_text = f"Window: {window_start}-{window_end - 1}"
+            range_size = cv2.getTextSize(range_text, font, 0.5, 1)[0]
+            cv2.putText(frame, range_text, (width - range_size[0] - 20, height - 12),
+                        font, 0.5, (140, 140, 140), 1)
+
+            output_frames.append(frame)
+            self.update_progress()
+
+        output_tensor = torch.from_numpy(np.stack(output_frames)).float() / 255.0
+        return (output_tensor,)
+
 
 NODE_CLASS_MAPPINGS = {
     "ProximityVisualizer": ProximityVisualizer,
@@ -542,6 +861,7 @@ NODE_CLASS_MAPPINGS = {
     "PitchVisualizer": PitchVisualizer,
     "PreviewFeature": PreviewFeature,
     "AnimatedFeaturePreview": AnimatedFeaturePreview,
+    "AnimatedFloatPreview": AnimatedFloatPreview,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {

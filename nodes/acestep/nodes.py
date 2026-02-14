@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 import comfy.model_management
 import comfy.model_sampling
 import comfy.samplers
@@ -1090,6 +1091,735 @@ class ACEStep15TaskTextEncodeNode:
         return (conditioning,)
 
 
+class ACEStep15KeystoneConfig:
+    """Configuration node for ACE-Step 1.5 keystone channel gains.
+
+    Keystone channels are the 6 individual latent channels with outsized impact on
+    audio generation. Each controls a distinct timbral quality. Connect the output
+    to the Latent Channel EQ node's keystone_config input to layer these on top of
+    band-level EQ.
+    """
+
+    DESCRIPTION = (
+        "[Experimental] Configures gains for 6 keystone latent channels with outsized individual impact.\n\n"
+        "- definition (ch19): Presence/definition. The most impactful single channel. "
+        "Reducing creates a distant/ambient quality.\n"
+        "- spectral_tilt (ch29): Shifts the entire spectrum brighter or darker. "
+        "Reducing shifts darker; boosting shifts brighter.\n"
+        "- air (ch56): High-frequency shimmer. Inverse: reducing adds air/brilliance. "
+        "Guidance also affects rhythm.\n"
+        "- hf_texture (ch13): Brilliance/noisiness. Inverse: reducing brightens and adds HF texture.\n"
+        "- body (ch14): Full spectrum energy carrier. Guidance compensates on volume — "
+        "affects timbre more than loudness.\n"
+        "- warmth (ch23): Low-mid warmth. Saturates quickly at guidance_scale > 1.\n\n"
+        "Connect output to ACE-Step 1.5 Latent Channel EQ's keystone_config input."
+    )
+
+    # Sensitivity factors: internal_gain = 1.0 + factor * (user_gain - 1.0)
+    # Derived from Phase 2 guidance compensation ratios, slightly liberal.
+    # >1.0 = model compensates so we push harder, <1.0 = model amplifies so we pull back.
+    KEYSTONE_SENSITIVITY = {
+        "definition": 1.5,      # ch19: partial compensation (MFCC ratio ~0.49)
+        "spectral_tilt": 1.8,   # ch29: partial compensation (centroid ratio ~0.46)
+        "air": 0.7,             # ch56: amplifies
+        "hf_texture": 0.7,      # ch13: amplifies brightness
+        "body": 1.5,            # ch14: strong RMS compensation, saturates
+        "warmth": 0.5,          # ch23: saturates very fast (gs=2 ≈ gs=1)
+    }
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "definition": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Channel 19: Presence/definition. Most impactful channel. Reducing creates distant/ambient quality."}),
+                "spectral_tilt": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Channel 29: Spectral brightness. Reducing shifts spectrum darker; boosting shifts brighter."}),
+                "air": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Channel 56: High-frequency shimmer. Reducing adds air/brilliance (inverse). Guidance also affects rhythm."}),
+                "hf_texture": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Channel 13: Brilliance/noisiness. Reducing brightens and adds HF texture."}),
+                "body": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Channel 14: Full spectrum energy carrier. Guidance compensates on volume — affects timbre more than loudness."}),
+                "warmth": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Channel 23: Low-mid warmth. Saturates quickly — internally scaled down to prevent overdriving."}),
+            },
+        }
+
+    RETURN_TYPES = ("KEYSTONE_CONFIG",)
+    RETURN_NAMES = ("keystone_config",)
+    FUNCTION = "build_config"
+    CATEGORY = "audio/acestep"
+
+    # Channel index mapping for each keystone parameter
+    KEYSTONE_CHANNELS = {
+        "definition": 19,
+        "spectral_tilt": 29,
+        "air": 56,
+        "hf_texture": 13,
+        "body": 14,
+        "warmth": 23,
+    }
+
+    def build_config(self, definition, spectral_tilt, air, hf_texture, body, warmth):
+        config = {}
+        params = {
+            "definition": definition,
+            "spectral_tilt": spectral_tilt,
+            "air": air,
+            "hf_texture": hf_texture,
+            "body": body,
+            "warmth": warmth,
+        }
+        for name, value in params.items():
+            sensitivity = self.KEYSTONE_SENSITIVITY[name]
+            if isinstance(value, list):
+                # Apply sensitivity per-element for temporal scheduling
+                normalized = [1.0 + sensitivity * (v - 1.0) for v in value]
+                config[self.KEYSTONE_CHANNELS[name]] = normalized
+            else:
+                if abs(value - 1.0) < 1e-6:
+                    continue
+                config[self.KEYSTONE_CHANNELS[name]] = 1.0 + sensitivity * (value - 1.0)
+        return (config,)
+
+
+class _LatentChannelBandMixin:
+    """Shared infrastructure for 6-band latent channel nodes (Generation Steering + EQ).
+
+    Contains band definitions, sensitivity factors, gain tensor building, and temporal utilities.
+    Not a ComfyUI node — just a mixin for code reuse.
+    """
+
+    # 6 semantic bands mapping band index to channel indices
+    BAND_CHANNELS = {
+        0: list(range(0, 8)) + list(range(32, 40)),    # foundation
+        1: list(range(8, 16)) + list(range(40, 48)),    # body
+        2: list(range(16, 24)),                          # texture
+        3: list(range(24, 32)),                          # balance
+        4: list(range(48, 56)),                          # weight
+        5: list(range(56, 64)),                          # air
+    }
+
+    # Per-band sensitivity factors: internal_gain = 1.0 + factor * (user_gain - 1.0)
+    # Derived from Phase 2 guidance/post-sampling ratios, slightly liberal.
+    # >1.0 = model compensates so we push harder, <1.0 = model amplifies so we pull back.
+    BAND_SENSITIVITY = {
+        0: 0.8,     # foundation (G0=1.01, G4=1.32 avg ~1.17 → ~0.85, rounded liberal)
+        1: 1.0,     # body (G1=0.73, G5=1.24 avg ~0.99 → ~1.0)
+        2: 0.7,     # texture (G2=1.38 → ~0.72, amplifies)
+        3: 2.0,     # balance (G3=0.45 → ~2.2, heavy compensation)
+        4: 1.4,     # weight (G6=0.72 → ~1.39, compensated)
+        5: 0.9,     # air (G7=1.10 → ~0.91, roughly linear)
+    }
+
+    # Shared band input definitions for INPUT_TYPES
+    @staticmethod
+    def _band_inputs():
+        return {
+            "foundation_gain": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                "tooltip": "Channels 0-7, 32-39: Low-frequency energy. Bass and sub-bass body."}),
+            "body_gain": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                "tooltip": "Channels 8-15, 40-47: Broadband energy and fullness."}),
+            "texture_gain": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                "tooltip": "Channels 16-23: Mid/presence definition. Highest timbral impact."}),
+            "balance_gain": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                "tooltip": "Channels 24-31: Spectral balance. Inverse: attenuating boosts mids."}),
+            "weight_gain": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                "tooltip": "Channels 48-55: Sub-bass dominance and low-end mass."}),
+            "air_gain": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                "tooltip": "Channels 56-63: Brilliance/shimmer. Inverse: attenuating adds air."}),
+        }
+
+    @staticmethod
+    def _effect_range_inputs():
+        return {
+            "effect_start_pct": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.05,
+                "tooltip": "Denoising progress to start applying effect (0=from start)"}),
+            "effect_end_pct": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05,
+                "tooltip": "Denoising progress to stop applying effect (1=until end)"}),
+        }
+
+    @staticmethod
+    def _gain_to_temporal(gain, T, device, dtype):
+        """Convert a gain value (scalar or list) to a tensor of shape [T]."""
+        if isinstance(gain, list):
+            frame_count = len(gain)
+            if frame_count == T:
+                return torch.tensor(gain, dtype=dtype, device=device)
+            weights = []
+            for t in range(T):
+                if T == 1:
+                    frame_idx = 0
+                else:
+                    frame_idx = round(t * (frame_count - 1) / (T - 1))
+                frame_idx = max(0, min(frame_idx, frame_count - 1))
+                weights.append(float(gain[frame_idx]))
+            return torch.tensor(weights, dtype=dtype, device=device)
+        else:
+            return torch.full((T,), float(gain), dtype=dtype, device=device)
+
+    @staticmethod
+    def _build_gain_tensor(all_gains, n_channels, T, device, dtype, temporal_mask=None, keystone_config=None):
+        """Build gain tensor [1, n_channels, T] with optional temporal mask blending and keystone overlay."""
+        gain_tensor = torch.ones(1, n_channels, T, device=device, dtype=dtype)
+
+        # Assign band gains with per-band sensitivity normalization
+        for band_idx, channels in _LatentChannelBandMixin.BAND_CHANNELS.items():
+            band_gain = _LatentChannelBandMixin._gain_to_temporal(
+                all_gains[band_idx], T, device, dtype
+            )
+            # Apply sensitivity: internal = 1.0 + sensitivity * (user - 1.0)
+            sensitivity = _LatentChannelBandMixin.BAND_SENSITIVITY[band_idx]
+            band_gain = 1.0 + sensitivity * (band_gain - 1.0)
+            for ch in channels:
+                if ch < n_channels:
+                    gain_tensor[:, ch, :] = band_gain
+
+        # Layer keystone config on top (multiply with band gain)
+        if keystone_config:
+            for ch_idx, ks_gain in keystone_config.items():
+                if ch_idx < n_channels:
+                    ks_temporal = _LatentChannelBandMixin._gain_to_temporal(
+                        ks_gain, T, device, dtype
+                    )
+                    gain_tensor[:, ch_idx, :] *= ks_temporal
+
+        if temporal_mask is not None:
+            mask = temporal_mask.to(device=device, dtype=dtype)
+            while mask.ndim < 3:
+                mask = mask.unsqueeze(0)
+            if mask.shape[-1] != T:
+                mask = torch.nn.functional.interpolate(
+                    mask, size=T, mode='linear', align_corners=False
+                )
+            # Broadcast: where mask=1 use EQ gains, where mask=0 use neutral
+            gain_tensor = 1.0 + mask * (gain_tensor - 1.0)
+
+        return gain_tensor
+
+    @staticmethod
+    def _check_progress(sigma, model_options, effect_start_pct, effect_end_pct):
+        """Return True if current denoising progress is outside the effect range."""
+        sigmas = model_options.get("transformer_options", {}).get("sample_sigmas", None)
+        if sigmas is not None:
+            sigma_max = float(sigmas[0])
+            sigma_min = float(sigmas[-1])
+            denom = sigma_max - sigma_min
+            if denom > 1e-7:
+                progress = 1.0 - (float(sigma) - sigma_min) / denom
+                if progress < effect_start_pct or progress > effect_end_pct:
+                    return True
+        return False
+
+    @staticmethod
+    def _collect_gains(foundation_gain, body_gain, texture_gain, balance_gain, weight_gain, air_gain):
+        return [foundation_gain, body_gain, texture_gain, balance_gain, weight_gain, air_gain]
+
+    @staticmethod
+    def _gains_are_neutral(all_gains):
+        return all(not isinstance(g, list) and abs(g - 1.0) < 1e-6 for g in all_gains)
+
+
+class ACEStep15GenerationSteering(_LatentChannelBandMixin):
+    """Steers audio generation via latent channel guidance during diffusion.
+
+    The primary creative tool for shaping ACE-Step 1.5 output. Runs the model twice per step —
+    once with normal input, once with channel-scaled input — then steers generation along the
+    difference. This changes what the model produces, not just how it sounds.
+    """
+
+    DESCRIPTION = (
+        "[Experimental] Steers audio generation by running the model twice per diffusion step — "
+        "once normally, once with channel-scaled input — and steering along the difference.\n\n"
+        "This is NOT post-processing EQ. It changes what the model generates: timbral character, "
+        "spectral balance, rhythmic activity, and harmonic content. The 64 channels are grouped "
+        "into 6 semantically meaningful bands. All sliders range 0-2 with 1.0 as neutral. "
+        "Internal sensitivity scaling normalizes each band so that equal slider movement produces "
+        "roughly equal perceptual impact.\n\n"
+        "BANDS:\n"
+        "- foundation (ch 0-7, 32-39): Low-frequency energy. Bass and sub-bass body.\n"
+        "- body (ch 8-15, 40-47): Broadband energy and fullness. Guidance acts as a brightness tilt.\n"
+        "- texture (ch 16-23): Mid/presence definition. Highest timbral impact of any band.\n"
+        "- balance (ch 24-31): Spectral balance. Inverse: attenuating boosts mids.\n"
+        "- weight (ch 48-55): Sub-bass dominance and low-end mass.\n"
+        "- air (ch 56-63): Brilliance/shimmer. Inverse: attenuating adds air. Also affects rhythm.\n\n"
+        "OPTIONAL: Connect a Keystone Config node to fine-tune the 6 most impactful individual channels.\n\n"
+        "guidance_scale controls strength. Positive steers toward the emphasis, negative steers away. "
+        "Each step runs an extra model forward pass."
+    )
+
+    @classmethod
+    def INPUT_TYPES(s):
+        required = {"model": ("MODEL",)}
+        required["guidance_scale"] = ("FLOAT", {"default": 1.0, "min": -5.0, "max": 5.0, "step": 0.1,
+            "tooltip": "Guidance strength. 0=off, positive=steer toward emphasis, negative=steer away. Accepts a list of floats for temporal scheduling."})
+        required.update(s._band_inputs())
+        required.update(s._effect_range_inputs())
+        return {
+            "required": required,
+            "optional": {
+                "temporal_mask": ("MASK", {"tooltip": "Blends gains toward neutral (1.0) where mask is 0."}),
+                "keystone_config": ("KEYSTONE_CONFIG", {"tooltip": "Optional keystone channel config. Multiplies on top of band gains."}),
+            },
+        }
+
+    RETURN_TYPES = ("MODEL",)
+    FUNCTION = "apply"
+    CATEGORY = "audio/acestep"
+
+    def apply(self, model, guidance_scale,
+              foundation_gain, body_gain, texture_gain, balance_gain, weight_gain, air_gain,
+              effect_start_pct, effect_end_pct, temporal_mask=None, keystone_config=None):
+        m = model.clone()
+
+        all_gains = self._collect_gains(foundation_gain, body_gain, texture_gain, balance_gain, weight_gain, air_gain)
+        gains_neutral = self._gains_are_neutral(all_gains)
+        has_keystone = keystone_config is not None and len(keystone_config) > 0
+
+        gs_is_zero = not isinstance(guidance_scale, list) and abs(guidance_scale) < 1e-6
+        if (gains_neutral and not has_keystone) or gs_is_zero:
+            return (m,)
+
+        def wrapper_fn(apply_model_fn, args):
+            x_in = args["input"]
+            t_in = args["timestep"]
+            c_in = args["c"]
+            model_options = {"transformer_options": c_in.get("transformer_options", {})}
+            skip = self._check_progress(t_in, model_options, effect_start_pct, effect_end_pct)
+
+            # Normal forward pass
+            output = apply_model_fn(x_in, t_in, **c_in)
+
+            if skip:
+                return output
+
+            gain = self._build_gain_tensor(all_gains, x_in.shape[1], x_in.shape[-1],
+                                           x_in.device, x_in.dtype, temporal_mask, keystone_config)
+
+            # Guidance: run model again with channel-scaled input, steer via difference
+            x_eq = x_in * gain
+            eq_output = apply_model_fn(x_eq, t_in, **c_in)
+            guidance_direction = eq_output - output
+
+            # Broadcast guidance_scale across time dimension: [1, 1, T]
+            gs = self._gain_to_temporal(guidance_scale, x_in.shape[-1], x_in.device, x_in.dtype)
+            gs = gs.unsqueeze(0).unsqueeze(0)  # [1, 1, T]
+            output = output + gs * guidance_direction
+
+            return output
+
+        m.model_options["model_function_wrapper"] = wrapper_fn
+        return (m,)
+
+
+class ACEStep15LatentChannelEQ(_LatentChannelBandMixin):
+    """Multiplicative latent-space channel EQ for ACE-Step 1.5.
+
+    Linearly scales model output at various pipeline points. This is closer to traditional
+    post-processing EQ — it changes how the output sounds, but not what the model generates.
+    For creative steering of the generation process itself, use Generation Steering instead.
+    """
+
+    DESCRIPTION = (
+        "[Experimental] Multiplicative 6-band EQ for ACE-Step 1.5 latent channels.\n\n"
+        "Scales model output at a chosen pipeline point. This is equivalent to post-processing "
+        "EQ — it shapes the frequency balance of the output but does not change what the model "
+        "generates. For creative control over the generation process itself, use the Generation "
+        "Steering node instead.\n\n"
+        "BANDS:\n"
+        "- foundation (ch 0-7, 32-39): Low-frequency energy. Bass and sub-bass body.\n"
+        "- body (ch 8-15, 40-47): Broadband energy and fullness.\n"
+        "- texture (ch 16-23): Mid/presence definition.\n"
+        "- balance (ch 24-31): Spectral balance. Inverse: attenuating boosts mids.\n"
+        "- weight (ch 48-55): Sub-bass dominance and low-end mass.\n"
+        "- air (ch 56-63): Brilliance/shimmer. Inverse: attenuating adds air.\n\n"
+        "MODES:\n"
+        "- post_cfg: scales final denoised output (most common)\n"
+        "- pre_cfg_cond_only: scales conditional prediction only\n"
+        "- pre_cfg_both: scales cond and uncond predictions\n"
+        "- model_wrapper: scales each forward pass output"
+    )
+
+    HOOK_MODES = ["post_cfg", "pre_cfg_cond_only", "pre_cfg_both", "model_wrapper"]
+
+    @classmethod
+    def INPUT_TYPES(s):
+        required = {"model": ("MODEL",)}
+        required["hook_mode"] = (s.HOOK_MODES, {"default": "post_cfg",
+            "tooltip": "Pipeline point to apply multiplicative scaling."})
+        required.update(s._band_inputs())
+        required.update(s._effect_range_inputs())
+        return {
+            "required": required,
+            "optional": {
+                "temporal_mask": ("MASK", {"tooltip": "Blends gains toward neutral (1.0) where mask is 0."}),
+                "keystone_config": ("KEYSTONE_CONFIG", {"tooltip": "Optional keystone channel config. Multiplies on top of band gains."}),
+            },
+        }
+
+    RETURN_TYPES = ("MODEL",)
+    FUNCTION = "apply"
+    CATEGORY = "audio/acestep"
+
+    def apply(self, model, hook_mode,
+              foundation_gain, body_gain, texture_gain, balance_gain, weight_gain, air_gain,
+              effect_start_pct, effect_end_pct, temporal_mask=None, keystone_config=None):
+        m = model.clone()
+
+        all_gains = self._collect_gains(foundation_gain, body_gain, texture_gain, balance_gain, weight_gain, air_gain)
+        gains_neutral = self._gains_are_neutral(all_gains)
+        has_keystone = keystone_config is not None and len(keystone_config) > 0
+
+        if gains_neutral and temporal_mask is None and not has_keystone:
+            return (m,)
+
+        if hook_mode == "model_wrapper":
+            def wrapper_fn(apply_model_fn, args):
+                x_in = args["input"]
+                t_in = args["timestep"]
+                c_in = args["c"]
+                model_options = {"transformer_options": c_in.get("transformer_options", {})}
+                output = apply_model_fn(x_in, t_in, **c_in)
+                if self._check_progress(t_in, model_options, effect_start_pct, effect_end_pct):
+                    return output
+                gain = self._build_gain_tensor(all_gains, x_in.shape[1], x_in.shape[-1],
+                                               x_in.device, x_in.dtype, temporal_mask, keystone_config)
+                return output * gain
+
+            m.model_options["model_function_wrapper"] = wrapper_fn
+
+        elif hook_mode == "post_cfg":
+            def post_cfg_fn(args):
+                denoised = args["denoised"]
+                if self._check_progress(args["sigma"], args["model_options"], effect_start_pct, effect_end_pct):
+                    return denoised
+                gain = self._build_gain_tensor(all_gains, denoised.shape[1], denoised.shape[-1],
+                                               denoised.device, denoised.dtype, temporal_mask, keystone_config)
+                return denoised * gain
+
+            existing = m.model_options.get("sampler_post_cfg_function", [])
+            m.model_options["sampler_post_cfg_function"] = existing + [post_cfg_fn]
+
+        elif hook_mode in ("pre_cfg_cond_only", "pre_cfg_both"):
+            cond_only = hook_mode == "pre_cfg_cond_only"
+
+            def pre_cfg_fn(args):
+                conds_out = args["conds_out"]
+                if self._check_progress(args["sigma"], args["model_options"], effect_start_pct, effect_end_pct):
+                    return conds_out
+
+                result = list(conds_out)
+                for idx in range(len(result)):
+                    if cond_only and idx != 0:
+                        continue
+                    pred = result[idx]
+                    gain = self._build_gain_tensor(all_gains, pred.shape[1], pred.shape[-1],
+                                                   pred.device, pred.dtype, temporal_mask, keystone_config)
+                    result[idx] = pred * gain
+                return result
+
+            existing = m.model_options.get("sampler_pre_cfg_function", [])
+            m.model_options["sampler_pre_cfg_function"] = existing + [pre_cfg_fn]
+
+        return (m,)
+
+
+class ACEStep15MusicalControls(_LatentChannelBandMixin):
+    """High-level musical controls for ACE-Step 1.5, derived from Phase 3 research.
+
+    Translates intuitive musical properties into the specific band+keystone recipes
+    that Phase 3 proved reliably control those properties across seeds and genres.
+    Wraps Generation Steering internally — connect MODEL in, get MODEL out.
+    """
+
+    DESCRIPTION = (
+        "[Experimental] Musical-level steering for ACE-Step 1.5 generation.\n\n"
+        "Each slider controls a musically meaningful property, backed by empirical "
+        "research across 3 seeds × 3 genres (297 experiments). All sliders range 0-2 "
+        "with 1.0 as neutral. Accepts lists of floats for temporal scheduling.\n\n"
+        "- rhythmic_density: Sparse (0) ↔ Dense (2). Controls how many rhythmic events occur.\n"
+        "- rhythmic_regularity: Loose/syncopated (0) ↔ Locked/metronomic (2).\n"
+        "- harmonic_complexity: Simple/tonal (0) ↔ Rich/chromatic (2).\n"
+        "- instrument_independence: Unified hits (0) ↔ Independent layers (2).\n"
+        "- tonality: Tonal/clean (0) ↔ Noisy/breathy (2).\n"
+        "- dynamics: Compressed/flat (0) ↔ Dynamic/breathing (2).\n\n"
+        "These map to specific combinations of latent channel bands and keystone channels "
+        "identified through systematic experimentation."
+    )
+
+    # Recipe definitions: each musical control maps to band gains and keystone gains.
+    # Values represent the gain at slider=0 and slider=2 (slider=1 is neutral).
+    # Format: {param_name: (value_at_0, value_at_2)}
+    # The slider linearly interpolates between these.
+    RECIPES = {
+        "rhythmic_density": {
+            # Phase 3: all keystones at 0.7 = +14% density (most reliable densifier)
+            # all keystones at 1.3 = -12% density (simplifier)
+            # So slider>1 = keystones<1 (toward 0.7), slider<1 = keystones>1 (toward 1.3)
+            "keystones": {
+                "definition": (1.3, 0.7),
+                "spectral_tilt": (1.3, 0.7),
+                "air": (1.3, 0.7),
+                "hf_texture": (1.3, 0.7),
+                "body": (1.3, 0.7),
+                "warmth": (1.3, 0.7),
+            },
+            "bands": {},
+        },
+        "rhythmic_regularity": {
+            # Phase 3: texture↑+balance↓ = emergent groove lock (-26.5 interaction on regularity)
+            # So slider>1 = texture up + balance down
+            "bands": {
+                "texture": (0.5, 1.5),
+                "balance": (1.5, 0.5),
+            },
+            "keystones": {},
+        },
+        "harmonic_complexity": {
+            # Phase 3: weight↑+foundation↓ = strongest harmonic simplifier (-9% chroma flux)
+            # foundation↓+weight↓ = harmonic enricher (+6% chroma flux)
+            # So slider>1 (richer) = foundation down + weight down
+            # slider<1 (simpler) = weight up + foundation down
+            "bands": {
+                "foundation": (1.3, 0.7),
+                "weight": (1.5, 0.5),
+            },
+            "keystones": {},
+        },
+        "instrument_independence": {
+            # Phase 3: balance↑ = -17% correlation (more independent layers)
+            # body keystone↓ = -9% correlation (more independent)
+            # Inverse: balance↓ + body↑ = more unified
+            # NOTE: balance has 2.0x sensitivity, so 1.25 here → 1.5 internal.
+            # Higher values cause noise/artifacts.
+            "bands": {
+                "balance": (0.5, 1.25),
+            },
+            "keystones": {
+                "body": (1.3, 0.7),
+            },
+        },
+        "tonality": {
+            # Phase 3: spectral_tilt↑ = +469% flatness (noisy)
+            # weight↑ / foundation↑ = -54%/-51% flatness (tonal)
+            # So slider>1 (noisier) = spectral_tilt up + weight down + foundation down
+            "bands": {
+                "weight": (1.3, 0.7),
+                "foundation": (1.3, 0.7),
+            },
+            "keystones": {
+                "spectral_tilt": (0.7, 1.3),
+            },
+        },
+        "dynamics": {
+            # Phase 3: body keystone↑ = +37% RMS variance (more dynamic)
+            # body↓+air↑ = emergent dynamics (+10.2 interaction)
+            # So slider>1 (more dynamic) = body keystone up + body band down + air up
+            "bands": {
+                "body": (1.3, 0.7),
+                "air": (0.7, 1.3),
+            },
+            "keystones": {
+                "body": (0.7, 1.3),
+            },
+        },
+    }
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "model": ("MODEL",),
+                "guidance_scale": ("FLOAT", {"default": 1.0, "min": -5.0, "max": 5.0, "step": 0.1,
+                    "tooltip": "Guidance strength. Accepts list of floats for temporal scheduling."}),
+                "rhythmic_density": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Sparse (0) ↔ Dense (2). Controls number of rhythmic events."}),
+                "rhythmic_regularity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Loose/syncopated (0) ↔ Locked/metronomic (2). Emergent groove lock at high values."}),
+                "harmonic_complexity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Simple/tonal (0) ↔ Rich/chromatic (2). Controls chord movement and pitch diversity."}),
+                "instrument_independence": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Unified hits (0) ↔ Independent layers (2). Controls whether instruments trigger together or independently."}),
+                "tonality": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Tonal/clean (0) ↔ Noisy/breathy (2). Shifts between pitched and noise-like character."}),
+                "dynamics": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Compressed/flat (0) ↔ Dynamic/breathing (2). Controls loudness variation over time."}),
+                "effect_start_pct": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.05,
+                    "tooltip": "Denoising progress to start applying effect (0=from start)"}),
+                "effect_end_pct": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05,
+                    "tooltip": "Denoising progress to stop applying effect (1=until end)"}),
+            },
+        }
+
+    RETURN_TYPES = ("MODEL",)
+    FUNCTION = "apply"
+    CATEGORY = "audio/acestep"
+
+    @staticmethod
+    def _interpolate_recipe_value(slider, val_at_0, val_at_2):
+        """Interpolate a recipe parameter based on slider position.
+
+        slider=0 → val_at_0, slider=1 → 1.0 (neutral), slider=2 → val_at_2.
+        Handles both scalar and list inputs.
+        """
+        if isinstance(slider, list):
+            return [ACEStep15MusicalControls._interpolate_recipe_value(s, val_at_0, val_at_2) for s in slider]
+        if slider <= 1.0:
+            # Interpolate between val_at_0 and 1.0
+            t = slider  # 0→0, 1→1
+            return val_at_0 + t * (1.0 - val_at_0)
+        else:
+            # Interpolate between 1.0 and val_at_2
+            t = slider - 1.0  # 0→0, 1→1
+            return 1.0 + t * (val_at_2 - 1.0)
+
+    def _compose_gains(self, **musical_params):
+        """Compose all musical sliders into band gains and keystone gains."""
+        # Accumulate deviations from neutral for each band and keystone
+        band_accum = {b: [] for b in ["foundation", "body", "texture", "balance", "weight", "air"]}
+        ks_accum = {k: [] for k in ["definition", "spectral_tilt", "air", "hf_texture", "body", "warmth"]}
+
+        for control_name, slider_value in musical_params.items():
+            recipe = self.RECIPES.get(control_name)
+            if not recipe:
+                continue
+
+            # Skip neutral sliders
+            if not isinstance(slider_value, list) and abs(slider_value - 1.0) < 1e-6:
+                continue
+
+            for band_name, (v0, v2) in recipe.get("bands", {}).items():
+                val = self._interpolate_recipe_value(slider_value, v0, v2)
+                band_accum[band_name].append(val)
+
+            for ks_name, (v0, v2) in recipe.get("keystones", {}).items():
+                val = self._interpolate_recipe_value(slider_value, v0, v2)
+                ks_accum[ks_name].append(val)
+
+        # Combine multiple contributions: multiply deviations from 1.0
+        # final = 1.0 + sum(deviation_i) where deviation_i = (val_i - 1.0)
+        band_gains = {}
+        band_name_to_idx = {"foundation": 0, "body": 1, "texture": 2, "balance": 3, "weight": 4, "air": 5}
+        for band_name, contributions in band_accum.items():
+            if not contributions:
+                band_gains[band_name] = 1.0
+            elif len(contributions) == 1:
+                band_gains[band_name] = contributions[0]
+            else:
+                # Sum deviations from neutral
+                band_gains[band_name] = self._sum_deviations(contributions)
+
+        ks_gains = {}
+        for ks_name, contributions in ks_accum.items():
+            if not contributions:
+                continue
+            elif len(contributions) == 1:
+                val = contributions[0]
+                if isinstance(val, list) or abs(val - 1.0) >= 1e-6:
+                    ks_gains[ks_name] = val
+            else:
+                combined = self._sum_deviations(contributions)
+                if isinstance(combined, list) or abs(combined - 1.0) >= 1e-6:
+                    ks_gains[ks_name] = combined
+
+        return band_gains, ks_gains
+
+    @staticmethod
+    def _sum_deviations(contributions):
+        """Sum deviations from 1.0 across multiple contributions. Handles lists."""
+        if any(isinstance(c, list) for c in contributions):
+            # Find max length
+            max_len = max(len(c) if isinstance(c, list) else 1 for c in contributions)
+            result = []
+            for i in range(max_len):
+                total_dev = 0.0
+                for c in contributions:
+                    if isinstance(c, list):
+                        v = c[min(i, len(c) - 1)]
+                    else:
+                        v = c
+                    total_dev += (v - 1.0)
+                result.append(1.0 + total_dev)
+            return result
+        else:
+            total_dev = sum(c - 1.0 for c in contributions)
+            return 1.0 + total_dev
+
+    def apply(self, model, guidance_scale,
+              rhythmic_density, rhythmic_regularity, harmonic_complexity,
+              instrument_independence, tonality, dynamics,
+              effect_start_pct, effect_end_pct):
+
+        musical_params = {
+            "rhythmic_density": rhythmic_density,
+            "rhythmic_regularity": rhythmic_regularity,
+            "harmonic_complexity": harmonic_complexity,
+            "instrument_independence": instrument_independence,
+            "tonality": tonality,
+            "dynamics": dynamics,
+        }
+
+        # Check if everything is neutral
+        all_neutral = all(
+            not isinstance(v, list) and abs(v - 1.0) < 1e-6
+            for v in musical_params.values()
+        )
+        gs_is_zero = not isinstance(guidance_scale, list) and abs(guidance_scale) < 1e-6
+        if all_neutral or gs_is_zero:
+            return (model.clone(),)
+
+        # Decompose musical sliders into band + keystone gains
+        band_gains, ks_gains = self._compose_gains(**musical_params)
+
+        # Build keystone config (apply sensitivity normalization like KeystoneConfig node does)
+        keystone_config = None
+        if ks_gains:
+            keystone_config = {}
+            for name, value in ks_gains.items():
+                sensitivity = ACEStep15KeystoneConfig.KEYSTONE_SENSITIVITY[name]
+                ch_idx = ACEStep15KeystoneConfig.KEYSTONE_CHANNELS[name]
+                if isinstance(value, list):
+                    keystone_config[ch_idx] = [1.0 + sensitivity * (v - 1.0) for v in value]
+                else:
+                    keystone_config[ch_idx] = 1.0 + sensitivity * (value - 1.0)
+
+        # Collect band gains in order
+        band_order = ["foundation", "body", "texture", "balance", "weight", "air"]
+        all_gains = [band_gains.get(b, 1.0) for b in band_order]
+
+        # Apply via Generation Steering's guidance mechanism
+        m = model.clone()
+
+        def wrapper_fn(apply_model_fn, args):
+            x_in = args["input"]
+            t_in = args["timestep"]
+            c_in = args["c"]
+            model_options = {"transformer_options": c_in.get("transformer_options", {})}
+            skip = self._check_progress(t_in, model_options, effect_start_pct, effect_end_pct)
+
+            output = apply_model_fn(x_in, t_in, **c_in)
+
+            if skip:
+                return output
+
+            gain = self._build_gain_tensor(all_gains, x_in.shape[1], x_in.shape[-1],
+                                           x_in.device, x_in.dtype, None, keystone_config)
+
+            x_eq = x_in * gain
+            eq_output = apply_model_fn(x_eq, t_in, **c_in)
+            guidance_direction = eq_output - output
+
+            gs = self._gain_to_temporal(guidance_scale, x_in.shape[-1], x_in.device, x_in.dtype)
+            gs = gs.unsqueeze(0).unsqueeze(0)
+            output = output + gs * guidance_direction
+
+            return output
+
+        m.model_options["model_function_wrapper"] = wrapper_fn
+        return (m,)
+
+
 class ModelSamplingACEStep:
     """Override model sampling for ACE-Step 1.5.
 
@@ -1148,6 +1878,11 @@ NODE_CLASS_MAPPINGS = {
     "ACEStep15NativeLegoGuider": ACEStep15NativeLegoGuiderNode,
     # ACE-Step 1.5 text encoder
     "ACEStep15TaskTextEncode": ACEStep15TaskTextEncodeNode,
+    # ACE-Step 1.5 generation steering, musical controls, latent channel EQ, and keystone config
+    "ACEStep15GenerationSteering": ACEStep15GenerationSteering,
+    "ACEStep15MusicalControls": ACEStep15MusicalControls,
+    "ACEStep15LatentChannelEQ": ACEStep15LatentChannelEQ,
+    "ACEStep15KeystoneConfig": ACEStep15KeystoneConfig,
     # ACE-Step 1.5 model sampling override
     "ModelSamplingACEStep": ModelSamplingACEStep,
     **AUDIO_MASK_NODE_CLASS_MAPPINGS,  # Add audio mask nodes
@@ -1174,6 +1909,11 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ACEStep15NativeLegoGuider": "ACE-Step 1.5 Lego Guider",
     # ACE-Step 1.5 text encoder
     "ACEStep15TaskTextEncode": "ACE-Step 1.5 Task Text Encode",
+    # ACE-Step 1.5 generation steering, musical controls, latent channel EQ, and keystone config
+    "ACEStep15GenerationSteering": "ACE-Step 1.5 Denoising Trajectory EQ (Experimental)",
+    "ACEStep15MusicalControls": "ACE-Step 1.5 Denoising Trajectory Aggregator (Experimental)",
+    "ACEStep15LatentChannelEQ": "ACE-Step 1.5 Latent Channel EQ (Experimental)",
+    "ACEStep15KeystoneConfig": "ACE-Step 1.5 Keystone Config (Experimental)",
     # ACE-Step 1.5 model sampling override
     "ModelSamplingACEStep": "ACE-Step Model Sampling",
     **AUDIO_MASK_NODE_DISPLAY_NAME_MAPPINGS,

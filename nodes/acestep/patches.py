@@ -307,6 +307,108 @@ def apply_patches():
         return
 
     try:
+        # Patch resolve_areas_and_cond_masks_multidim to handle 1D latents (ACEStep15)
+        # ComfyUI's stock implementation assumes at least 2 spatial dims (dims[-2]),
+        # which fails for 1D audio latents where dims is a 1-element tuple.
+        import comfy.samplers as _samplers
+        _original_resolve = _samplers.resolve_areas_and_cond_masks_multidim
+
+        def _patched_resolve_areas_and_cond_masks_multidim(conditions, dims, device):
+            for i in range(len(conditions)):
+                c = conditions[i]
+                if 'area' in c:
+                    area = c['area']
+                    if area[0] == "percentage":
+                        modified = c.copy()
+                        a = area[1:]
+                        a_len = len(a) // 2
+                        area = ()
+                        for d in range(len(dims)):
+                            area += (max(1, round(a[d] * dims[d])),)
+                        for d in range(len(dims)):
+                            area += (round(a[d + a_len] * dims[d]),)
+                        modified['area'] = area
+                        c = modified
+                        conditions[i] = c
+
+                if 'mask' in c:
+                    mask = c['mask']
+                    mask = mask.to(device=device)
+                    modified = c.copy()
+                    # Normalize mask to [batch, *spatial_dims]
+                    target_ndim = len(dims) + 1
+                    while mask.ndim > target_ndim and mask.shape[0] == 1:
+                        mask = mask.squeeze(0)
+                    while mask.ndim < target_ndim:
+                        mask = mask.unsqueeze(0)
+                    if mask.shape[1:] != dims:
+                        if len(dims) == 1:
+                            mask = torch.nn.functional.interpolate(
+                                mask.unsqueeze(1), size=dims[0],
+                                mode='linear', align_corners=False).squeeze(1)
+                        elif mask.ndim < 4:
+                            import comfy.utils
+                            mask = comfy.utils.common_upscale(mask.unsqueeze(1), dims[-1], dims[-2], 'bilinear', 'none').squeeze(1)
+                        else:
+                            import comfy.utils
+                            mask = comfy.utils.common_upscale(mask, dims[-1], dims[-2], 'bilinear', 'none')
+
+                    if modified.get("set_area_to_bounds", False) and len(dims) == 2:
+                        from comfy.samplers import get_mask_aabb
+                        bounds = torch.max(torch.abs(mask), dim=0).values.unsqueeze(0)
+                        boxes, is_empty = get_mask_aabb(bounds)
+                        if is_empty[0]:
+                            modified['area'] = (8, 8, 0, 0)
+                        else:
+                            box = boxes[0]
+                            H, W, Y, X = (box[3] - box[1] + 1, box[2] - box[0] + 1, box[1], box[0])
+                            H = max(8, H)
+                            W = max(8, W)
+                            modified['area'] = (int(H), int(W), int(Y), int(X))
+
+                    modified['mask'] = mask
+                    conditions[i] = modified
+
+        _samplers.resolve_areas_and_cond_masks_multidim = _patched_resolve_areas_and_cond_masks_multidim
+        logger.info("[ACE-Step Patches] Patched resolve_areas_and_cond_masks_multidim for 1D latent support")
+    except Exception as e:
+        logger.warning(f"[ACE-Step Patches] Warning: Could not patch resolve_areas_and_cond_masks_multidim: {e}")
+
+    try:
+        # Patch comfy.utils.reshape_mask to handle 1D latents (ACEStep15)
+        # Stock reshape_mask sets scale_mode='linear' for 1D but doesn't reshape
+        # the input to (batch, 1, length) like it does for 2D/3D cases.
+        import comfy.utils as _utils
+
+        _original_reshape_mask = _utils.reshape_mask
+
+        def _patched_reshape_mask(input_mask, output_shape):
+            dims = len(output_shape) - 2
+            if dims == 1:
+                # Reshape to (batch, 1, length) for F.interpolate with mode='linear'
+                if input_mask.ndim == 1:
+                    input_mask = input_mask.reshape(1, 1, -1)
+                elif input_mask.ndim == 2:
+                    input_mask = input_mask.reshape(input_mask.shape[0], 1, -1)
+                elif input_mask.ndim >= 3:
+                    input_mask = input_mask.reshape(-1, 1, input_mask.shape[-1])
+
+                mask = torch.nn.functional.interpolate(input_mask, size=output_shape[2:], mode='linear', align_corners=False)
+                if mask.shape[1] < output_shape[1]:
+                    mask = mask.repeat((1, output_shape[1]) + (1,) * dims)[:, :output_shape[1]]
+                mask = _utils.repeat_to_batch_size(mask, output_shape[0])
+                return mask
+            return _original_reshape_mask(input_mask, output_shape)
+
+        _utils.reshape_mask = _patched_reshape_mask
+        # Also patch the reference in sampler_helpers since it imports comfy.utils at module level
+        import comfy.sampler_helpers as _sampler_helpers
+        _sampler_helpers.comfy.utils.reshape_mask = _patched_reshape_mask
+        logger.info("[ACE-Step Patches] Patched comfy.utils.reshape_mask for 1D latent support")
+    except Exception as e:
+        logger.warning(f"[ACE-Step Patches] Warning: Could not patch reshape_mask: {e}")
+
+    try:
         # Patch AceStepConditionGenerationModel.forward
         from comfy.ldm.ace.ace_step15 import AceStepConditionGenerationModel
         original_forward = AceStepConditionGenerationModel.forward

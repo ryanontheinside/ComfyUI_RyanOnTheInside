@@ -387,3 +387,45 @@ def calculate_zero_crossing_rate(audio, frame_count, frame_rate):
         zero_crossing_rates.append(zcr)
 
     return zero_crossing_rates
+
+
+def compute_spectrogram_image(waveform_np, num_columns, num_freq_bins=128):
+    """Compute a visualization-ready spectrogram as a normalized 2D numpy array.
+
+    Args:
+        waveform_np: 1D numpy array of audio samples (mono).
+        num_columns: Number of time columns in the output.
+        num_freq_bins: Number of frequency bins in the output.
+
+    Returns:
+        2D numpy array [num_freq_bins, num_columns] with values in [0, 1].
+    """
+    total_samples = len(waveform_np)
+    hop = max(1, total_samples // num_columns)
+    fft_size = max(512, hop * 2)
+
+    spec_columns = []
+    for i in range(num_columns):
+        start = i * hop
+        end = min(start + fft_size, total_samples)
+        chunk = waveform_np[start:end]
+        if len(chunk) < fft_size:
+            chunk = np.pad(chunk, (0, fft_size - len(chunk)))
+
+        window = np.hanning(len(chunk))
+        spectrum = np.abs(np.fft.rfft(chunk * window))
+        spectrum = np.log1p(spectrum)
+        if len(spectrum) != num_freq_bins:
+            spectrum = np.interp(
+                np.linspace(0, len(spectrum) - 1, num_freq_bins),
+                np.arange(len(spectrum)),
+                spectrum
+            )
+        spec_columns.append(spectrum)
+
+    spectrogram = np.stack(spec_columns, axis=1)
+    smax = spectrogram.max()
+    if smax > 0:
+        spectrogram /= smax
+    spectrogram = np.power(spectrogram, 0.4)
+    return spectrogram
