@@ -385,15 +385,10 @@ def apply_patches():
         def _patched_reshape_mask(input_mask, output_shape):
             dims = len(output_shape) - 2
             if dims == 1:
-                # Reshape to (batch, 1, length) for F.interpolate with mode='linear'
-                if input_mask.ndim == 1:
-                    input_mask = input_mask.reshape(1, 1, -1)
-                elif input_mask.ndim == 2:
-                    input_mask = input_mask.reshape(input_mask.shape[0], 1, -1)
-                elif input_mask.ndim >= 3:
-                    input_mask = input_mask.reshape(-1, 1, input_mask.shape[-1])
-
-                mask = torch.nn.functional.interpolate(input_mask, size=output_shape[2:], mode='linear', align_corners=False)
+                input_mask = input_mask.reshape((-1, 1, input_mask.shape[-1]))
+                # Fall through to stock interpolation logic would be ideal,
+                # but we can't since we replaced the function. Replicate it:
+                mask = torch.nn.functional.interpolate(input_mask, size=output_shape[2:], mode='linear')
                 if mask.shape[1] < output_shape[1]:
                     mask = mask.repeat((1, output_shape[1]) + (1,) * dims)[:, :output_shape[1]]
                 mask = _utils.repeat_to_batch_size(mask, output_shape[0])
