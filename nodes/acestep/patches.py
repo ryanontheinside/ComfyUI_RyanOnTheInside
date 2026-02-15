@@ -253,7 +253,7 @@ def _create_patched_tokenizer(original_tokenize_with_weights):
         logger.debug(f"[ACE15_TOKENIZER] qwen3_06b prompt (first 200 chars): {repr(_fmt[:200])}")
         out["qwen3_06b"] = self.qwen3_06b.tokenize_with_weights(_fmt, return_word_ids, **stock_kwargs.copy())
 
-        # Cover/extract/lego tasks use precomputed semantic hints, skip LLM code generation
+        # Override generate_audio_codes based on task type.
         if isinstance(out.get("lm_metadata"), dict):
             out["lm_metadata"]["generate_audio_codes"] = task_type in ("text2music", "repaint")
 

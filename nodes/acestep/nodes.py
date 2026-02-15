@@ -979,13 +979,13 @@ class ACEStep15TaskTextEncodeNode:
     conditioning (standard ACE-Step workflow pattern).
     """
 
-    # Valid keyscales from reference: 7 notes × 3 accidentals (plain, #, b) × 2 modes = 42 combinations
-    # Using ASCII accidentals for compatibility
-    KEYSCALE_NOTES = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
+    # Valid keyscales from ACE-Step 1.5 reference (constants.py):
+    # 7 notes × 5 accidentals ('', '#', 'b', '♯', '♭') × 2 modes = 70 combinations
+    # We use ASCII only ('#', 'b') plus 'Db/Eb/Gb/Ab/Bb' enharmonic spellings = 56 unique
+    KEYSCALE_NOTES = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
     KEYSCALE_ACCIDENTALS = ['', '#', 'b']
     KEYSCALE_MODES = ['major', 'minor']
 
-    # Generate all valid keyscales
     VALID_KEYSCALES = []
     for note in KEYSCALE_NOTES:
         for acc in KEYSCALE_ACCIDENTALS:
@@ -1019,8 +1019,8 @@ class ACEStep15TaskTextEncodeNode:
                                "percussion", "synth", "fx", "brass", "woodwinds", "backing_vocals"],
                               {"default": ""}),
                 "lyrics": ("STRING", {"multiline": True, "default": ""}),
-                "bpm": ("INT", {"default": 120, "min": 30, "max": 300}),
-                "duration": ("INT", {"default": 60, "min": 10, "max": 600}),
+                "bpm": ("INT", {"default": 120, "min": 10, "max": 300}),
+                "duration": ("FLOAT", {"default": 60.0, "min": 1.0, "max": 2000.0, "step": 0.1}),
                 # Use COMBO type to accept connections from AudioInfo detected_key output
                 "keyscale": ("COMBO", {"default": "C major", "options": s.VALID_KEYSCALES}),
                 "timesignature": ("COMBO", {"default": "4", "options": s.VALID_TIME_SIGNATURES}),
@@ -1034,6 +1034,8 @@ class ACEStep15TaskTextEncodeNode:
                            "tooltip": "Limits how many possible audio choices are considered at each step. Lower values (e.g. 0.8) produce safer, more predictable output. Higher values allow more diversity. 1.0 disables this filter. No effect on cover/extract/lego tasks, which use semantic hints from source audio instead of generating new audio codes."}),
                 "top_k": ("INT", {"default": 0, "min": 0, "max": 100,
                            "tooltip": "Restricts each generation step to only the top K most likely choices. 0 disables this filter. Lower values (e.g. 40) reduce unlikely outputs while keeping variety. No effect on cover/extract/lego tasks, which use semantic hints from source audio instead of generating new audio codes."}),
+                "min_p": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.001,
+                           "tooltip": "Minimum probability threshold for token sampling. Filters out tokens with probability below min_p × max_probability. 0.0 disables this filter. No effect on cover/extract/lego tasks."}),
             }
         }
 
@@ -1043,8 +1045,8 @@ class ACEStep15TaskTextEncodeNode:
     CATEGORY = "conditioning"
 
     def encode(self, clip, text, task_type, track_name="", lyrics="", bpm=120,
-               duration=60, keyscale="C major", timesignature="4", language="en", seed=0,
-               cfg_scale=2.0, temperature=0.85, top_p=0.9, top_k=0):
+               duration=60.0, keyscale="C major", timesignature="4", language="en", seed=0,
+               cfg_scale=2.0, temperature=0.85, top_p=0.9, top_k=0, min_p=0.0):
         patches.apply_acestep_patches()
 
         # Validate track_name for extract/lego tasks
@@ -1069,6 +1071,7 @@ class ACEStep15TaskTextEncodeNode:
             "temperature": temperature,
             "top_p": top_p,
             "top_k": top_k,
+            "min_p": min_p,
         }
 
         logger.debug(f"[ACE15_TEXT_ENCODE] Encoding with task_type={task_type}, track_name={track_name or 'N/A'}")
