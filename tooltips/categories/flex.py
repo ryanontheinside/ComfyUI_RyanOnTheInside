@@ -111,6 +111,19 @@ Great for creating music videos, reactive animations, or automated effects.""")
         "weight2": "Weight applied to feature2 (0.0 to 1.0)"
     }, inherits_from='FeatureModulationBase')
 
+    # AdvancedFeatureCombiner tooltips (inherits from: FeatureModulationBase)
+    TooltipManager.register_tooltips("AdvancedFeatureCombiner", {
+        "combine_mode": "How features are combined: weighted_sum adds weighted values, normalized divides by total weight, max takes the highest, multiply multiplies all together",
+        "interpolation_method": "How weight automation points are interpolated between keyframes (linear, cubic, nearest, hold)",
+        "frame_count": "Number of output frames (0 = auto-detect from audio or first feature)",
+        "frame_rate": "Frames per second for timing calculations",
+        "weight_data": "JSON automation data for per-feature weight envelopes (edited via the visual lanes)",
+        "audio": "Optional audio input for waveform display and frame count detection",
+        "feature_1": "Feature input 1",
+        "feature_2": "Feature input 2",
+        "feature_3": "Feature input 3"
+    }, inherits_from='FeatureModulationBase')
+
     # FeatureMath tooltips (inherits from: FeatureModulationBase)
     TooltipManager.register_tooltips("FeatureMath", {
         "y": "Input value",

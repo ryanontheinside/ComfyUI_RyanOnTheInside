@@ -112,6 +112,7 @@ _NODE_MODULES = [
     ".nodes.flex.visualizers",
     ".nodes.flex.flex_externals",
     ".nodes.flex.feature_modulation",
+    ".nodes.flex.feature_combiner",
     ".nodes.flex.feature_pipe",
     ".nodes.flex.parameter_scheduling",
     ".nodes.masks.optical_flow_masks",
