@@ -108,7 +108,7 @@ def extract_semantic_hints(model, source_latent, verbose=True):
     Returns:
         torch.Tensor: Semantic hints in ComfyUI format [B, 64, T]
     """
-    print(f"[DIAG_SEMANTIC_EXTRACT] input latent shape={source_latent.shape}, mean={source_latent.mean():.4f}, std={source_latent.std():.4f}")
+    logger.debug(f"[SEMANTIC_EXTRACT] input latent shape={source_latent.shape}, mean={source_latent.mean():.4f}, std={source_latent.std():.4f}")
 
     prefix = "[SEMANTIC_EXTRACT]"
 
@@ -168,7 +168,7 @@ def extract_semantic_hints(model, source_latent, verbose=True):
     # Transpose back to ComfyUI format: [B, T, D] → [B, D, T]
     semantic_hints = lm_hints.movedim(-1, -2)
 
-    print(f"[DIAG_SEMANTIC_EXTRACT] output hints shape={semantic_hints.shape}, mean={semantic_hints.mean():.4f}, std={semantic_hints.std():.4f}")
+    logger.debug(f"[SEMANTIC_EXTRACT] output hints shape={semantic_hints.shape}, mean={semantic_hints.mean():.4f}, std={semantic_hints.std():.4f}")
 
     return semantic_hints
 

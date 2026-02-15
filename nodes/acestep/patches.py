@@ -85,9 +85,6 @@ def _create_patched_ace_step15_forward(original_forward):
 
     This enables extend, repaint, cover, extract, and lego task types.
     """
-    # One-time logging flag
-    _forward_logged = [False]
-
     # Stock prepare_condition uses `is_covers is True` identity checks which fail
     # for tensors. Detect at patch-creation time whether the stock code has been
     # updated to use tensor ops (e.g. unsqueeze) so we pass the right type.
@@ -101,37 +98,27 @@ def _create_patched_ace_step15_forward(original_forward):
     except Exception:
         _prepare_wants_tensor = False
 
+    logged = False
+
     @functools.wraps(original_forward)
     def patched_forward(self, x, timestep, context, lyric_embed=None, refer_audio=None,
                         audio_codes=None, chunk_masks=None, src_latents=None,
                         is_covers=None, precomputed_lm_hints_25Hz=None,
                         replace_with_null_embeds=False, **kwargs):
+        nonlocal logged
         text_attention_mask = None
         lyric_attention_mask = None
         refer_audio_order_mask = None
         attention_mask = None
 
-        if not hasattr(patched_forward, '_diag_count'):
-            patched_forward._diag_count = 0
-        patched_forward._diag_count += 1
-        _call = patched_forward._diag_count
-        # Each step has 2 calls (cond + uncond). Log early, mid, late.
-        # Steps 1-2 = calls 1-4, step 15 = calls 29-30, step 28-30 = calls 55-60
-        _should_log = False #_call <= 4 or _call in (29, 30) or _call >= 55
-        if _should_log:
-            print(f"[PATCHED_FWD] Call #{_call}: "
-                  f"x={x.shape}, t={timestep}, is_covers={is_covers}, "
-                  f"hints={'yes' if precomputed_lm_hints_25Hz is not None else 'no'}, "
-                  f"null_embeds={replace_with_null_embeds}")
-
         # One-time diagnostic log for cover task
-        if not _forward_logged[0] and precomputed_lm_hints_25Hz is not None:
+        if not logged and precomputed_lm_hints_25Hz is not None:
             logger.debug(f"[ACE15_PATCHED_FORWARD] Cover mode detected")
             logger.debug(f"[ACE15_PATCHED_FORWARD]   x.shape (before transpose): {x.shape}")
             logger.debug(f"[ACE15_PATCHED_FORWARD]   is_covers: {is_covers}")
             logger.debug(f"[ACE15_PATCHED_FORWARD]   precomputed_lm_hints_25Hz.shape (before transpose): {precomputed_lm_hints_25Hz.shape}")
             logger.debug(f"[ACE15_PATCHED_FORWARD]   precomputed_lm_hints_25Hz stats: mean={precomputed_lm_hints_25Hz.mean():.4f}, std={precomputed_lm_hints_25Hz.std():.4f}")
-            _forward_logged[0] = True
+            logged = True
 
         # is_covers can now be passed explicitly by guiders:
         # - Cover/Extract tasks: is_covers=1 (use lm_hints from precomputed_lm_hints_25Hz)
@@ -159,12 +146,6 @@ def _create_patched_ace_step15_forward(original_forward):
         if precomputed_lm_hints_25Hz is not None:
             # precomputed_lm_hints_25Hz comes in ComfyUI format [B, D, T], transpose to [B, T, D]
             precomputed_lm_hints_25Hz = precomputed_lm_hints_25Hz.movedim(-1, -2)
-            # Log post-transpose shape (one-time)
-            if _forward_logged[0] and not hasattr(patched_forward, '_post_transpose_logged'):
-                logger.debug(f"[ACE15_PATCHED_FORWARD]   precomputed_lm_hints_25Hz.shape (after transpose): {precomputed_lm_hints_25Hz.shape}")
-                logger.debug(f"[ACE15_PATCHED_FORWARD]   x.shape (after transpose): {x.shape}")
-                logger.debug(f"[ACE15_PATCHED_FORWARD]   src_latents.shape (after transpose): {src_latents.shape if src_latents is not None else 'None'}")
-                patched_forward._post_transpose_logged = True
 
         if src_latents is None:
             src_latents = x
@@ -186,9 +167,6 @@ def _create_patched_ace_step15_forward(original_forward):
             if isinstance(is_covers, torch.Tensor) and is_covers.any().item():
                 is_covers = True
 
-        if patched_forward._diag_count <= 2 and precomputed_lm_hints_25Hz is not None:
-            print(f"[PATCHED_FWD]   is_covers_adapted={is_covers}, hints.shape={precomputed_lm_hints_25Hz.shape}")
-
         enc_hidden, enc_mask, context_latents = self.prepare_condition(
             text_hidden_states, text_attention_mask,
             lyric_hidden_states, lyric_attention_mask,
@@ -202,10 +180,6 @@ def _create_patched_ace_step15_forward(original_forward):
         if replace_with_null_embeds:
             enc_hidden[:] = self.null_condition_emb.to(enc_hidden)
 
-        if _should_log:
-            print(f"[PATCHED_FWD]   enc_hidden: std={enc_hidden.std():.4f}, ctx_latents: shape={context_latents.shape}")
-            print(f"[PATCHED_FWD]   x stats: mean={x.mean():.4f}, std={x.std():.4f}, min={x.min():.4f}, max={x.max():.4f}")
-
         out = self.decoder(
             hidden_states=x,
             timestep=timestep,
@@ -215,9 +189,6 @@ def _create_patched_ace_step15_forward(original_forward):
             encoder_attention_mask=enc_mask,
             context_latents=context_latents
         )
-
-        if _should_log:
-            print(f"[PATCHED_FWD]   decoder out: mean={out.mean():.4f}, std={out.std():.4f}, min={out.min():.4f}, max={out.max():.4f}")
 
         return out.movedim(-1, -2)
 
