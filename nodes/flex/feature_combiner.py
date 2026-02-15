@@ -211,7 +211,8 @@ class AdvancedFeatureCombiner(FeatureModulationBase):
             weighted = feature_values * weight_envelopes
             combined = np.min(weighted, axis=0)
         elif combine_mode == "multiply":
-            weighted = feature_values * weight_envelopes
+            # Lerp between identity (1.0) and feature value so weight=0 means no effect
+            weighted = 1.0 + weight_envelopes * (feature_values - 1.0)
             combined = np.prod(weighted, axis=0)
         elif combine_mode == "subtract":
             # First feature minus all others (all weighted)
@@ -220,8 +221,8 @@ class AdvancedFeatureCombiner(FeatureModulationBase):
             for i in range(1, len(weighted)):
                 combined -= weighted[i]
         elif combine_mode == "divide":
-            # First feature divided by each subsequent (all weighted)
-            weighted = feature_values * weight_envelopes
+            # Lerp between identity (1.0) and feature value so weight=0 means no effect
+            weighted = 1.0 + weight_envelopes * (feature_values - 1.0)
             combined = weighted[0].copy()
             for i in range(1, len(weighted)):
                 combined = np.where(weighted[i] != 0, combined / weighted[i], 0.0)

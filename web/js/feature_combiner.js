@@ -579,6 +579,7 @@ app.registerExtension({
             const mode = this.widgets?.find(w => w.name === "combine_mode")?.value || "weighted_sum";
 
             // Build per-feature weighted values
+            const useMultiplicativeWeighting = (mode === "multiply" || mode === "divide");
             const weightedArrays = [];
             const weightArrays = [];
             for (const idx of lanes) {
@@ -592,7 +593,10 @@ app.registerExtension({
                     const w = weights ? weights[i] : 1.0;
                     // Resample feature data if lengths differ
                     const fi = Math.min(Math.round(i / (N - 1) * (fData.length - 1)), fData.length - 1);
-                    weighted[i] = fData[fi] * w;
+                    // For multiply/divide, lerp between identity (1.0) and feature value
+                    weighted[i] = useMultiplicativeWeighting
+                        ? 1.0 + w * (fData[fi] - 1.0)
+                        : fData[fi] * w;
                     wArr[i] = w;
                 }
                 weightedArrays.push(weighted);
