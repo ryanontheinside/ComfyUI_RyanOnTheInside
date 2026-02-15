@@ -519,6 +519,50 @@ class AudioLatentInfo(AudioMaskBase):
 
         return (batch_size, length_frames, duration, info)
 
+class AudioLatentStretch(AudioMaskBase):
+    """Resize audio latent temporal dimension by a scale factor.
+    Values > 1.0 stretch (longer duration), < 1.0 compress (shorter duration).
+    Operates in latent space — results may differ from waveform time-stretching."""
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "audio_latents": ("LATENT",),
+                "scale_by": ("FLOAT", {"default": 1.5, "min": 0.01, "max": 8.0, "step": 0.01}),
+            }
+        }
+
+    RETURN_TYPES = ("LATENT",)
+    FUNCTION = "upscale"
+    CATEGORY = "latent/audio"
+
+    def upscale(self, audio_latents, scale_by):
+        latent_tensor, version = self._extract_and_validate_latent(audio_latents)
+        new_length = round(latent_tensor.shape[-1] * scale_by)
+        if new_length < 1:
+            new_length = 1
+
+        if version == ACEStepLatentUtils.V1_5:
+            # [B, C, T] -> interpolate T
+            resized = torch.nn.functional.interpolate(
+                latent_tensor, size=new_length, mode='linear', align_corners=False
+            )
+        else:
+            # [B, C, H, T] -> interpolate last dim only, preserve H
+            b, c, h, t = latent_tensor.shape
+            # Reshape to [B*C, H, T] so interpolate treats H as channels
+            flat = latent_tensor.reshape(b * c, h, t)
+            resized = torch.nn.functional.interpolate(
+                flat, size=new_length, mode='linear', align_corners=False
+            )
+            resized = resized.reshape(b, c, h, new_length)
+
+        s = audio_latents.copy()
+        s["samples"] = resized
+        return (s,)
+
+
 # Node mappings
 AUDIO_MASK_NODE_CLASS_MAPPINGS = {
     "AudioTemporalMask": AudioTemporalMask,
@@ -529,6 +573,7 @@ AUDIO_MASK_NODE_CLASS_MAPPINGS = {
     "AudioTemporalMask15": AudioTemporalMask15,
     "AudioRegionMask15": AudioRegionMask15,
     "MaskToAudioMask15": MaskToAudioMask15,
+    "AudioLatentStretch": AudioLatentStretch,
 }
 
 AUDIO_MASK_NODE_DISPLAY_NAME_MAPPINGS = {
@@ -540,4 +585,5 @@ AUDIO_MASK_NODE_DISPLAY_NAME_MAPPINGS = {
     "AudioTemporalMask15": "Audio Temporal Mask (ACE 1.5)",
     "AudioRegionMask15": "Audio Region Mask (ACE 1.5)",
     "MaskToAudioMask15": "Mask to Audio Mask (ACE 1.5)",
+    "AudioLatentStretch": "Audio Latent Stretch",
 } 
