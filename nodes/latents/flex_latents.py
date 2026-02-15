@@ -1,6 +1,18 @@
-from .flex_latent_base import FlexLatentBase
+from .flex_latent_base import FlexLatentBase, _is_audio_latent
 import numpy as np
 from ...tooltips import apply_tooltips
+
+
+def _get_latent2_frame(latent_2, frame_index, audio_mode=False):
+    """Extract corresponding frame/column from latent_2 dict."""
+    samples = latent_2["samples"].cpu().numpy()
+    if audio_mode:
+        # Audio: index time step across all batches, return [C] for batch 0
+        t = frame_index % samples.shape[-1]
+        return samples[0, :, t]
+    else:
+        return samples[frame_index % samples.shape[0]]
+
 
 @apply_tooltips
 class FlexLatentInterpolate(FlexLatentBase):
@@ -24,8 +36,9 @@ class FlexLatentInterpolate(FlexLatentBase):
         latent_2 = kwargs['latent_2']
         interpolation_mode = kwargs['interpolation_mode']
         frame_index = kwargs['frame_index']
+        audio_mode = kwargs.get('_audio_mode', False)
 
-        latent_2_np = latent_2["samples"].cpu().numpy()[frame_index]
+        latent_2_np = _get_latent2_frame(latent_2, frame_index, audio_mode)
 
         # Perform interpolation
         t = np.clip(feature_value * strength, 0.0, 1.0)
@@ -82,10 +95,13 @@ class EmbeddingGuidedLatentInterpolate(FlexLatentBase):
         embedding_2 = kwargs['embedding_2']
         interpolation_mode = kwargs['interpolation_mode']
         frame_index = kwargs['frame_index']
+        audio_mode = kwargs.get('_audio_mode', False)
 
-        latent_2_np = latent_2["samples"].cpu().numpy()[frame_index]
-        embedding_1_np = embedding_1.cpu().numpy()[frame_index]
-        embedding_2_np = embedding_2.cpu().numpy()[frame_index]
+        latent_2_np = _get_latent2_frame(latent_2, frame_index, audio_mode)
+        # Embeddings don't have a temporal dimension to index per-timestep
+        emb_idx = frame_index if not audio_mode else 0
+        embedding_1_np = embedding_1.cpu().numpy()[emb_idx % embedding_1.shape[0]]
+        embedding_2_np = embedding_2.cpu().numpy()[emb_idx % embedding_2.shape[0]]
 
         # Compute similarity between embeddings
         similarity = self.compute_similarity(embedding_1_np, embedding_2_np)
@@ -135,7 +151,7 @@ class FlexLatentBlend(FlexLatentBase):
         inputs["required"]["feature_param"] = cls.get_modifiable_params()
         inputs["required"].update({
             "latent_2": ("LATENT",),
-            "blend_mode": (["Add", "Multiply", "Screen", "Overlay"], {"default": "Add"}),
+            "blend_mode": (["Mix", "Add", "Multiply", "Screen", "Overlay"], {"default": "Mix"}),
             "blend_strength": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
         })
         return inputs
@@ -153,6 +169,7 @@ class FlexLatentBlend(FlexLatentBase):
         blend_mode = kwargs['blend_mode']
         blend_strength = kwargs['blend_strength']
         frame_index = kwargs['frame_index']
+        audio_mode = kwargs.get('_audio_mode', False)
 
         # Modulate the blend_strength parameter if selected
         if feature_param == "blend_strength":
@@ -166,7 +183,7 @@ class FlexLatentBlend(FlexLatentBase):
             # Ensure blend_strength remains within [0, 1]
             blend_strength = np.clip(blend_strength, 0.0, 1.0)
 
-        latent_2_np = latent_2["samples"].cpu().numpy()[frame_index]
+        latent_2_np = _get_latent2_frame(latent_2, frame_index, audio_mode)
 
         # Apply blending operation
         blended_latent = self.apply_blend(latent, latent_2_np, blend_mode)
@@ -176,7 +193,9 @@ class FlexLatentBlend(FlexLatentBase):
         return result
 
     def apply_blend(self, latent1, latent2, mode):
-        if mode == "Add":
+        if mode == "Mix":
+            return latent2
+        elif mode == "Add":
             return latent1 + latent2
         elif mode == "Multiply":
             return latent1 * latent2
@@ -245,4 +264,3 @@ NODE_CLASS_MAPPINGS = {
     "FlexLatentBlend": FlexLatentBlend,
     "FlexLatentNoise": FlexLatentNoise,
 }
-
