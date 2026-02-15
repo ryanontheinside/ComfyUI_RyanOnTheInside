@@ -164,7 +164,7 @@ def _create_patched_ace_step15_forward(original_forward):
                 logger.debug(f"[ACE15_PATCHED_FORWARD]   src_latents.shape (after transpose): {src_latents.shape if src_latents is not None else 'None'}")
                 patched_forward._post_transpose_logged = True
 
-        if src_latents is None and is_covers is None:
+        if src_latents is None:
             src_latents = x
 
         if chunk_masks is None:
