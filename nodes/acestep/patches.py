@@ -9,7 +9,8 @@ These patches extend ComfyUI's ACE-Step implementation to support all task types
 - extract: Extract specific track (e.g., vocals, drums) from audio
 - lego: Generate specific track within a region
 
-Patches are applied at module import time.
+Mask patches (1D latent fixes) are applied at import time.
+ACE-Step model patches (forward/tokenizer) are applied lazily on first use.
 """
 
 import torch
@@ -17,8 +18,9 @@ import math
 import functools
 from . import logger
 
-# Flag to track if patches have been applied
-_patches_applied = False
+# Flags to track if patches have been applied
+_mask_patches_applied = False
+_acestep_patches_applied = False
 
 # Task instructions from official ACE-Step 1.5 constants
 TASK_INSTRUCTIONS = {
@@ -294,16 +296,16 @@ def _create_patched_tokenizer(original_tokenize_with_weights):
     return patched_tokenize_with_weights
 
 
-def apply_patches():
+def _apply_mask_patches():
     """
-    Apply all ACE-Step 1.5 patches.
+    Apply mask-related patches for 1D latent support.
 
-    This should be called once at module load time.
-    Safe to call multiple times (will only apply once).
+    These are safe to apply at import time since they only fix ComfyUI bugs
+    for 1D spatial dimensions and don't change behavior for standard 2D/3D latents.
     """
-    global _patches_applied
+    global _mask_patches_applied
 
-    if _patches_applied:
+    if _mask_patches_applied:
         return
 
     try:
@@ -403,6 +405,24 @@ def apply_patches():
     except Exception as e:
         logger.warning(f"[ACE-Step Patches] Warning: Could not patch reshape_mask: {e}")
 
+    _mask_patches_applied = True
+
+
+def apply_acestep_patches():
+    """
+    Apply ACE-Step model patches (forward method and tokenizer).
+
+    These are applied lazily — only when an ACE-Step node is actually executed —
+    so that users who have this node pack installed but aren't using ACE-Step
+    nodes don't get their ACE-Step forward method overwritten.
+
+    Safe to call multiple times (will only apply once).
+    """
+    global _acestep_patches_applied
+
+    if _acestep_patches_applied:
+        return
+
     try:
         # Patch AceStepConditionGenerationModel.forward
         from comfy.ldm.ace.ace_step15 import AceStepConditionGenerationModel
@@ -421,14 +441,14 @@ def apply_patches():
     except ImportError as e:
         logger.info(f"[ACE-Step Patches] Warning: Could not patch ace15 tokenizer: {e}")
 
-    _patches_applied = True
-    logger.info("[ACE-Step Patches] All patches applied successfully")
+    _acestep_patches_applied = True
+    logger.info("[ACE-Step Patches] ACE-Step model patches applied")
 
 
 def is_patched():
-    """Check if patches have been applied."""
-    return _patches_applied
+    """Check if ACE-Step model patches have been applied."""
+    return _acestep_patches_applied
 
 
-# Apply patches when this module is imported
-apply_patches()
+# Apply mask patches at import time (safe for all users, fixes 1D latent bugs)
+_apply_mask_patches()

@@ -192,9 +192,10 @@ class ACEStepRepaintGuiderNode:
     FUNCTION = "get_guider"
     CATEGORY = "sampling/custom_sampling/guiders"
     
-    def get_guider(self, model, positive, negative, cfg, source_latents, 
+    def get_guider(self, model, positive, negative, cfg, source_latents,
                   start_time, end_time, repaint_strength, feather_time):
-        
+        patches.apply_acestep_patches()
+
         # Validate inputs
         if start_time >= end_time:
             raise ValueError(f"start_time ({start_time}) must be less than end_time ({end_time})")
@@ -237,6 +238,7 @@ class ACEStepExtendGuiderNode:
     
     def get_guider(self, model, positive, negative, cfg, source_latents,
                   extend_left_time, extend_right_time):
+        patches.apply_acestep_patches()
 
         logger.debug(f"[EXTEND_GUIDER_NODE] get_guider called")
         logger.debug(f"[EXTEND_GUIDER_NODE]   extend_left_time: {extend_left_time}")
@@ -295,7 +297,8 @@ class ACEStepHybridGuiderNode:
                   extend_left_time, extend_right_time,
                   repaint_start_time=-1.0, repaint_end_time=-1.0, 
                   repaint_strength=0.7, feather_time=0.1):
-        
+        patches.apply_acestep_patches()
+
         if not validate_audio_latent(source_latents):
             raise ValueError("source_latents must be audio latents (from VAEEncodeAudio or EmptyAceStepLatentAudio)")
         
@@ -724,6 +727,7 @@ class ACEStep15NativeEditGuiderNode:
                    extend_left_seconds=0.0, extend_right_seconds=0.0,
                    repaint_start_seconds=-1.0, repaint_end_seconds=-1.0,
                    reference_latent=None):
+        patches.apply_acestep_patches()
 
         source_tensor = source_latents["samples"]
 
@@ -802,6 +806,7 @@ class ACEStep15NativeCoverGuiderNode:
     CATEGORY = "sampling/custom_sampling/guiders"
 
     def get_guider(self, model, positive, negative, cfg, source_latents, semantic_hints=None, reference_latent=None):
+        patches.apply_acestep_patches()
         source_tensor = source_latents["samples"]
 
         # Validate v1.5 shape: (batch, 64, length)
@@ -862,6 +867,7 @@ class ACEStep15NativeExtractGuiderNode:
     CATEGORY = "sampling/custom_sampling/guiders"
 
     def get_guider(self, model, positive, negative, cfg, source_latents, track_name, semantic_hints=None, reference_latent=None):
+        patches.apply_acestep_patches()
         source_tensor = source_latents["samples"]
 
         # Validate v1.5 shape: (batch, 64, length)
@@ -926,6 +932,7 @@ class ACEStep15NativeLegoGuiderNode:
 
     def get_guider(self, model, positive, negative, cfg, source_latents,
                    track_name, start_seconds, end_seconds, reference_latent=None):
+        patches.apply_acestep_patches()
         if start_seconds >= end_seconds:
             raise ValueError(f"start_seconds ({start_seconds}) must be less than end_seconds ({end_seconds})")
 
@@ -1038,6 +1045,8 @@ class ACEStep15TaskTextEncodeNode:
     def encode(self, clip, text, task_type, track_name="", lyrics="", bpm=120,
                duration=60, keyscale="C major", timesignature="4", language="en", seed=0,
                cfg_scale=2.0, temperature=0.85, top_p=0.9, top_k=0):
+        patches.apply_acestep_patches()
+
         # Validate track_name for extract/lego tasks
         if task_type in ["extract", "lego"] and not track_name:
             logger.debug(f"[ACE15_TEXT_ENCODE] Warning: track_name not specified for {task_type} task, using default instruction")
