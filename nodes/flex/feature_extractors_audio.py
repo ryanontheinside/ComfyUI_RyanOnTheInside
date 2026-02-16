@@ -1,5 +1,5 @@
 from .feature_extractors import FeatureExtractorBase
-from .features_audio import AudioFeature, PitchFeature, PitchRange, BaseFeature, RhythmFeature
+from .features_audio import AudioFeature, PitchFeature, PitchRange, BaseFeature, RhythmFeature, BeatWaveFeature
 from ... import RyanOnTheInside
 from ..audio.audio_nodes import AudioNodeBase
 from ...tooltips import apply_tooltips
@@ -133,6 +133,49 @@ class PitchFeatureExtractor(AudioFeatureExtractorMixin, FeatureExtractorBase):
         )
         feature.extract()
         return (feature,)
+
+@apply_tooltips
+class BeatWaveFeatureExtractor(AudioFeatureExtractorMixin, FeatureExtractorBase):
+    @classmethod
+    def INPUT_TYPES(cls):
+        parent_inputs = super().INPUT_TYPES()["required"]
+        parent_inputs["extraction_method"] = (BeatWaveFeature.get_extraction_methods(),)
+        return {
+            "required": {
+                **parent_inputs,
+                "audio": ("AUDIO",),
+                "beat_divisor": ("INT", {"default": 1, "min": -8, "max": 16, "step": 1}),
+                "phase": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "duty_cycle": ("FLOAT", {"default": 0.5, "min": 0.01, "max": 0.99, "step": 0.01}),
+                "time_signature": ("INT", {"default": 4, "min": 1, "max": 12, "step": 1}),
+            },
+        }
+
+    RETURN_TYPES = ("FEATURE", "INT",)
+    RETURN_NAMES = ("feature", "frame_count",)
+    FUNCTION = "extract_feature"
+    CATEGORY = _category
+
+    def extract_feature(self, audio, extraction_method, beat_divisor, phase, duty_cycle,
+                        time_signature, frame_rate, frame_count, width, height):
+        target_frame_count = self.calculate_target_frame_count(audio, frame_rate, frame_count)
+
+        feature = BeatWaveFeature(
+            feature_name=extraction_method,
+            audio=audio,
+            frame_count=target_frame_count,
+            frame_rate=frame_rate,
+            width=width,
+            height=height,
+            waveform=extraction_method,
+            beat_divisor=beat_divisor,
+            phase=phase,
+            duty_cycle=duty_cycle,
+            time_signature=time_signature,
+        )
+        feature.extract()
+        return (feature, target_frame_count)
+
 
 class PitchAbstraction(RyanOnTheInside):
     CATEGORY="RyanOnTheInside/FlexFeatures/Audio/Pitch"
@@ -281,6 +324,7 @@ NODE_CLASS_MAPPINGS = {
     "PitchRangeByNoteNode": PitchRangeByNoteNode,
     "PitchFeatureExtractor": PitchFeatureExtractor,
     "RhythmFeatureExtractor": RhythmFeatureExtractor,
+    "BeatWaveFeatureExtractor": BeatWaveFeatureExtractor,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {

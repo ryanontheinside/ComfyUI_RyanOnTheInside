@@ -278,6 +278,100 @@ class RhythmFeature(BaseAudioFeature):
                 'normalized': self.features[self.feature_name][frame_index]
             }
 
+class BeatWaveFeature(BaseAudioFeature):
+    WAVEFORMS = ['sine', 'sawtooth', 'triangle', 'square', 'exponential_decay', 'ramp']
+
+    def __init__(self, feature_name, audio, frame_count, frame_rate, width, height,
+                 waveform='sine', beat_divisor=1, phase=0.0, duty_cycle=0.5, time_signature=4):
+        super().__init__(feature_name, audio, frame_count, frame_rate, width, height)
+        self.waveform = waveform
+        self.beat_divisor = beat_divisor
+        self.phase = phase
+        self.duty_cycle = duty_cycle
+        self.time_signature = time_signature
+        self.feature_name = waveform
+        self._prepare_audio()
+
+    @classmethod
+    def get_extraction_methods(cls):
+        return cls.WAVEFORMS
+
+    def _waveform_func(self, t):
+        if self.waveform == 'sine':
+            return (np.sin(2 * np.pi * t) + 1) / 2
+        elif self.waveform == 'sawtooth':
+            return t
+        elif self.waveform == 'triangle':
+            return 1 - np.abs(1 - 2 * t)
+        elif self.waveform == 'square':
+            return (t < self.duty_cycle).astype(float)
+        elif self.waveform == 'exponential_decay':
+            return np.exp(-4 * t)
+        elif self.waveform == 'ramp':
+            return t
+        else:
+            raise ValueError(f"Unsupported waveform: {self.waveform}")
+
+    def extract(self):
+        from ..audio import librosa_replacements as lr
+
+        tempo, beat_frames = lr.beat_track(y=self.audio_array, sr=self.sample_rate)
+        beat_times = lr.frames_to_time(beat_frames, sr=self.sample_rate)
+        # Convert beat times to video frame indices (float for precision)
+        beat_video_frames = beat_times * self.frame_rate
+
+        # Apply beat_divisor: >1 groups beats (e.g. 4 = per bar), <1 would subdivide
+        if self.beat_divisor > 1:
+            beat_video_frames = beat_video_frames[::self.beat_divisor]
+        elif self.beat_divisor < 0:
+            # Subdivide: interpolate between beats
+            subdivisions = abs(self.beat_divisor)
+            subdivided = []
+            for i in range(len(beat_video_frames) - 1):
+                start = beat_video_frames[i]
+                end = beat_video_frames[i + 1]
+                for s in range(subdivisions):
+                    subdivided.append(start + (end - start) * s / subdivisions)
+            subdivided.append(beat_video_frames[-1])
+            beat_video_frames = np.array(subdivided)
+
+        # Generate waveform between each pair of beat anchors
+        output = np.zeros(self.frame_count)
+
+        # Handle frames before first beat
+        if len(beat_video_frames) > 0 and beat_video_frames[0] > 0:
+            first_interval = beat_video_frames[1] - beat_video_frames[0] if len(beat_video_frames) > 1 else beat_video_frames[0]
+            pre_start = beat_video_frames[0] - first_interval
+            for f in range(int(beat_video_frames[0])):
+                local_t = (f - pre_start) / first_interval
+                local_t = (local_t + self.phase) % 1.0
+                output[f] = self._waveform_func(np.array([local_t]))[0]
+
+        # Main loop: between consecutive beats
+        for i in range(len(beat_video_frames) - 1):
+            start = beat_video_frames[i]
+            end = beat_video_frames[i + 1]
+            interval = end - start
+            if interval <= 0:
+                continue
+            for f in range(int(start), min(int(end), self.frame_count)):
+                local_t = (f - start) / interval
+                local_t = (local_t + self.phase) % 1.0
+                output[f] = self._waveform_func(np.array([local_t]))[0]
+
+        # Handle frames after last beat
+        if len(beat_video_frames) > 1:
+            last_start = beat_video_frames[-1]
+            last_interval = beat_video_frames[-1] - beat_video_frames[-2]
+            for f in range(int(last_start), self.frame_count):
+                local_t = (f - last_start) / last_interval
+                local_t = (local_t + self.phase) % 1.0
+                output[f] = self._waveform_func(np.array([local_t]))[0]
+
+        self.data = output
+        return self
+
+
 class PitchFeature(BaseAudioFeature):
     def __init__(
         self,
