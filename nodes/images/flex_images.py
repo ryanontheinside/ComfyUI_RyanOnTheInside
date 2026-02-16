@@ -929,9 +929,10 @@ class FlexImageWarp(FlexImageBase):
             
         elif warp_type == "twist":
             angle = np.arctan2(dy, dx)
-            twist = warp_strength * dist * mask
-            x_warped = x + np.sin(angle + twist) * dist - dx
-            y_warped = y - np.cos(angle + twist) * dist - dy
+            normalized_dist = dist / max_dist
+            twist = warp_strength * normalized_dist * max_dist * mask
+            x_warped = center[0] + np.cos(angle + twist) * dist
+            y_warped = center[1] + np.sin(angle + twist) * dist
             
         elif warp_type == "bulge":
             bulge = 1 + warp_strength * mask
