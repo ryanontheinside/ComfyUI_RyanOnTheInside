@@ -1536,100 +1536,109 @@ class ACEStep15LatentChannelEQ(_LatentChannelBandMixin):
 
 
 class ACEStep15MusicalControls(_LatentChannelBandMixin):
-    """High-level musical controls for ACE-Step 1.5, derived from Phase 3 research.
+    """Provisional high-level musical controls for ACE-Step 1.5.
 
-    Translates intuitive musical properties into the specific band+keystone recipes
-    that Phase 3 proved reliably control those properties across seeds and genres.
+    PROVISIONAL — these recipes are best guesses from confounded Phase 3 data.
+    A clean Phase 3 rerun (phase3_raw_channels.py) will test raw channel groups
+    without node abstractions. These sliders will be redesigned from that data.
+    See research/docs/research_status.md for full context.
+
     Wraps Generation Steering internally — connect MODEL in, get MODEL out.
     """
 
     DESCRIPTION = (
-        "[Experimental — NEEDS PHASE 3 RE-VALIDATION] Musical-level steering for ACE-Step 1.5.\n\n"
-        "Each slider controls a musically meaningful property. Band/keystone definitions were "
-        "redesigned in Phase 1+2 validation. These recipes reference the NEW band/keystone names "
-        "but the specific gain values need re-tuning after Phase 3 experiments with the new "
-        "groupings. Use with caution — results may not match descriptions until re-validated.\n\n"
-        "- rhythmic_density: Sparse (0) ↔ Dense (2). Controls how many rhythmic events occur.\n"
-        "- rhythmic_regularity: Loose/syncopated (0) ↔ Locked/metronomic (2).\n"
-        "- harmonic_complexity: Simple/tonal (0) ↔ Rich/chromatic (2).\n"
-        "- instrument_independence: Unified hits (0) ↔ Independent layers (2).\n"
-        "- tonality: Tonal/clean (0) ↔ Noisy/breathy (2).\n"
-        "- dynamics: Compressed/flat (0) ↔ Dynamic/breathing (2).\n\n"
-        "These map to specific combinations of latent channel bands and keystone channels "
-        "identified through systematic experimentation."
+        "[PROVISIONAL — Pre-Validation] Musical-level steering for ACE-Step 1.5.\n\n"
+        "These sliders are best guesses derived from confounded Phase 3 data that tested "
+        "through node abstractions rather than raw channels. They will be redesigned after "
+        "a clean Phase 3 rerun. Use for experimentation, not production.\n\n"
+        "- brightness: Darker (0) ↔ Brighter (2). Most reliable control. Uses brightness band + air band.\n"
+        "- articulation: Muffled (0) ↔ Crisp (2). Tilt band + spectral_tilt keystone.\n"
+        "- energy: Quieter/compressed (0) ↔ Louder/dynamic (2). Bass + body bands + energy keystone.\n"
+        "- density: Sparse/open (0) ↔ Full/condensed (2). body↓+air↑ combo rated best in listening.\n\n"
+        "Gain ranges are conservative (0.75-1.25 safe zone from listening). "
+        "Going beyond 1.25 risks instrument separation collapse."
     )
 
-    # Recipe definitions: each musical control maps to band gains and keystone gains.
-    # Values represent the gain at slider=0 and slider=2 (slider=1 is neutral).
-    # Format: {param_name: (value_at_0, value_at_2)}
-    # The slider linearly interpolates between these.
-    # WARNING: These recipes were ported from old band/keystone names to new Phase 1+2
-    # names but have NOT been re-validated with Phase 3 experiments. The specific gain
-    # values need re-tuning after Phase 3 runs with the new groupings.
+    # PROVISIONAL recipe definitions — will be replaced after clean Phase 3 rerun.
+    #
+    # Each recipe maps a musical slider to band+keystone gains.
+    # Format: {param_name: (value_at_0, value_at_2)}  — slider=1 is neutral.
+    #
+    # Design rationale (from confounded Phase 3 + 54 A/B listening sessions):
+    #
+    # brightness: The strongest and most reliable control. brightness_hi, air_hi,
+    #   ks_brilliance_hi, and ks_energy_hi were all rated "better" in listening.
+    #   Darkness/attenuation consistently rated "worse" (loss of articulation,
+    #   instrument merging). Gains kept within 0.75-1.25 safe zone.
+    #
+    # articulation: tilt_lo = "more articulate, brighter sax" in listening.
+    #   tilt_hi = "inarticulate, no discernable words, mush". ks_spectral_tilt_lo
+    #   also rated "brighter, more articulate". This is a distinct axis from
+    #   brightness — articulation is about transient clarity, not spectral balance.
+    #
+    # energy: bass, body, ks_energy, ks_weight all reliably move RMS and
+    #   rms_variance with *** significance. ks_energy_hi rated "better" in
+    #   listening ("audio quality is better, additional nice notes").
+    #
+    # density: combo_body_lo_air_hi was rated "better" in listening — it
+    #   "condensed 3 instruments into articulate lead vocals with lyrics."
+    #   This is the only combo that was rated better than baseline.
+    #   Subtle — kept conservative.
     RECIPES = {
-        "rhythmic_density": {
-            # NEEDS PHASE 3 RE-VALIDATION
-            # Old recipe used all 6 keystones. New config has 5 keystones.
-            "keystones": {
-                "presence": (1.3, 0.7),
-                "spectral_tilt": (1.3, 0.7),
-                "energy": (1.3, 0.7),
-                "brilliance": (1.3, 0.7),
-                "weight": (1.3, 0.7),
-            },
-            "bands": {},
-        },
-        "rhythmic_regularity": {
-            # NEEDS PHASE 3 RE-VALIDATION
-            # Old: texture↑+balance↓. New: texture↑+tilt↓ (balance→tilt)
+        "brightness": {
+            # brightness_hi: +16% centroid ***, rated "better"
+            # air_hi: +11% centroid ***, rated "better"
+            # ks_brilliance_hi: +14% centroid ***, rated "better", caused swung hi-hats
+            # Safe zone from ablation listening: 0.75-1.25
             "bands": {
-                "texture": (0.5, 1.5),
-                "tilt": (1.5, 0.5),
+                "brightness": (0.8, 1.2),
+                "air": (0.85, 1.15),
+            },
+            "keystones": {
+                "brilliance": (0.85, 1.15),
+            },
+        },
+        "articulation": {
+            # tilt_lo: -12% centroid ***, "more articulate, brighter sax"
+            # tilt_hi: +43% centroid ***, "inarticulate mush, no words"
+            # ks_spectral_tilt_lo: -15% centroid ***, "brighter, more articulate"
+            # NOTE: tilt band has inverse sensitivity (-1.5) baked into the node,
+            # and ks_spectral_tilt has sensitivity 1.2. The recipe values here are
+            # user-facing (pre-sensitivity). Kept conservative because tilt is the
+            # most destructive band when pushed too far.
+            "bands": {
+                "tilt": (1.15, 0.85),  # lower tilt = more articulate
+            },
+            "keystones": {
+                "spectral_tilt": (1.1, 0.9),  # lower = more articulate
+            },
+        },
+        "energy": {
+            # bass_hi: +23% RMS ***, but listening: "worse, mids scooped"
+            # ks_energy_hi: +13% RMS ***, rated "better"
+            # ks_weight_hi: +8% RMS ***, "almost better, added 8th note patterns"
+            # body band controls rms_variance strongly
+            # Conservative on bass (it changes instruments, not just bass)
+            "bands": {
+                "bass": (0.9, 1.1),
+                "body": (0.9, 1.1),
+            },
+            "keystones": {
+                "energy": (0.85, 1.15),
+                "weight": (0.9, 1.1),
+            },
+        },
+        "density": {
+            # combo_body_lo_air_hi: rated "better" — condensed instruments into
+            #   articulate vocals. spectral_flatness +63% ***, chroma_flux +6% ***
+            # This is the only combination that received a "better" rating while
+            #   producing a meaningfully different arrangement.
+            # Very conservative — this is a subtle, emergent effect.
+            "bands": {
+                "body": (1.1, 0.9),  # body down = condensed
+                "air": (0.9, 1.1),   # air up = brighter, more articulate
             },
             "keystones": {},
-        },
-        "harmonic_complexity": {
-            # NEEDS PHASE 3 RE-VALIDATION
-            # Old: foundation+weight bands. New: bass+body (foundation→bass, weight→body)
-            "bands": {
-                "bass": (1.3, 0.7),
-                "body": (1.5, 0.5),
-            },
-            "keystones": {},
-        },
-        "instrument_independence": {
-            # NEEDS PHASE 3 RE-VALIDATION
-            # Old: balance band + body keystone. New: tilt band + weight keystone
-            "bands": {
-                "tilt": (0.5, 1.25),
-            },
-            "keystones": {
-                "weight": (1.3, 0.7),
-            },
-        },
-        "tonality": {
-            # NEEDS PHASE 3 RE-VALIDATION
-            # Old: weight+foundation bands + spectral_tilt keystone.
-            # New: body+bass bands + spectral_tilt keystone
-            "bands": {
-                "body": (1.3, 0.7),
-                "bass": (1.3, 0.7),
-            },
-            "keystones": {
-                "spectral_tilt": (0.7, 1.3),
-            },
-        },
-        "dynamics": {
-            # NEEDS PHASE 3 RE-VALIDATION
-            # Old: body band + air band + body keystone.
-            # New: body band + air band + weight keystone
-            "bands": {
-                "body": (1.3, 0.7),
-                "air": (0.7, 1.3),
-            },
-            "keystones": {
-                "weight": (0.7, 1.3),
-            },
         },
     }
 
@@ -1640,18 +1649,14 @@ class ACEStep15MusicalControls(_LatentChannelBandMixin):
                 "model": ("MODEL",),
                 "guidance_scale": ("FLOAT", {"default": 1.0, "min": -5.0, "max": 5.0, "step": 0.1,
                     "tooltip": "Guidance strength. Accepts list of floats for temporal scheduling."}),
-                "rhythmic_density": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
-                    "tooltip": "Sparse (0) ↔ Dense (2). Controls number of rhythmic events."}),
-                "rhythmic_regularity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
-                    "tooltip": "Loose/syncopated (0) ↔ Locked/metronomic (2). Emergent groove lock at high values."}),
-                "harmonic_complexity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
-                    "tooltip": "Simple/tonal (0) ↔ Rich/chromatic (2). Controls chord movement and pitch diversity."}),
-                "instrument_independence": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
-                    "tooltip": "Unified hits (0) ↔ Independent layers (2). Controls whether instruments trigger together or independently."}),
-                "tonality": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
-                    "tooltip": "Tonal/clean (0) ↔ Noisy/breathy (2). Shifts between pitched and noise-like character."}),
-                "dynamics": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
-                    "tooltip": "Compressed/flat (0) ↔ Dynamic/breathing (2). Controls loudness variation over time."}),
+                "brightness": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Darker (0) ↔ Brighter (2). Most reliable control — boosting consistently sounds better."}),
+                "articulation": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Muffled (0) ↔ Crisp (2). Controls transient clarity and instrument definition."}),
+                "energy": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Quieter/compressed (0) ↔ Louder/dynamic (2). Controls RMS and dynamic range."}),
+                "density": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.05,
+                    "tooltip": "Sparse/open (0) ↔ Full/condensed (2). Subtle — affects arrangement density."}),
                 "effect_start_pct": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.05,
                     "tooltip": "Denoising progress to start applying effect (0=from start)"}),
                 "effect_end_pct": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05,
@@ -1673,17 +1678,14 @@ class ACEStep15MusicalControls(_LatentChannelBandMixin):
         if isinstance(slider, list):
             return [ACEStep15MusicalControls._interpolate_recipe_value(s, val_at_0, val_at_2) for s in slider]
         if slider <= 1.0:
-            # Interpolate between val_at_0 and 1.0
-            t = slider  # 0→0, 1→1
+            t = slider
             return val_at_0 + t * (1.0 - val_at_0)
         else:
-            # Interpolate between 1.0 and val_at_2
-            t = slider - 1.0  # 0→0, 1→1
+            t = slider - 1.0
             return 1.0 + t * (val_at_2 - 1.0)
 
     def _compose_gains(self, **musical_params):
         """Compose all musical sliders into band gains and keystone gains."""
-        # Accumulate deviations from neutral for each band and keystone
         band_accum = {b: [] for b in ["bass", "brightness", "body", "texture", "tilt", "air"]}
         ks_accum = {k: [] for k in ["presence", "spectral_tilt", "energy", "brilliance", "weight"]}
 
@@ -1692,7 +1694,6 @@ class ACEStep15MusicalControls(_LatentChannelBandMixin):
             if not recipe:
                 continue
 
-            # Skip neutral sliders
             if not isinstance(slider_value, list) and abs(slider_value - 1.0) < 1e-6:
                 continue
 
@@ -1704,17 +1705,13 @@ class ACEStep15MusicalControls(_LatentChannelBandMixin):
                 val = self._interpolate_recipe_value(slider_value, v0, v2)
                 ks_accum[ks_name].append(val)
 
-        # Combine multiple contributions: multiply deviations from 1.0
-        # final = 1.0 + sum(deviation_i) where deviation_i = (val_i - 1.0)
         band_gains = {}
-        band_name_to_idx = {"bass": 0, "brightness": 1, "body": 2, "texture": 3, "tilt": 4, "air": 5}
         for band_name, contributions in band_accum.items():
             if not contributions:
                 band_gains[band_name] = 1.0
             elif len(contributions) == 1:
                 band_gains[band_name] = contributions[0]
             else:
-                # Sum deviations from neutral
                 band_gains[band_name] = self._sum_deviations(contributions)
 
         ks_gains = {}
@@ -1736,7 +1733,6 @@ class ACEStep15MusicalControls(_LatentChannelBandMixin):
     def _sum_deviations(contributions):
         """Sum deviations from 1.0 across multiple contributions. Handles lists."""
         if any(isinstance(c, list) for c in contributions):
-            # Find max length
             max_len = max(len(c) if isinstance(c, list) else 1 for c in contributions)
             result = []
             for i in range(max_len):
@@ -1754,17 +1750,14 @@ class ACEStep15MusicalControls(_LatentChannelBandMixin):
             return 1.0 + total_dev
 
     def apply(self, model, guidance_scale,
-              rhythmic_density, rhythmic_regularity, harmonic_complexity,
-              instrument_independence, tonality, dynamics,
+              brightness, articulation, energy, density,
               effect_start_pct, effect_end_pct):
 
         musical_params = {
-            "rhythmic_density": rhythmic_density,
-            "rhythmic_regularity": rhythmic_regularity,
-            "harmonic_complexity": harmonic_complexity,
-            "instrument_independence": instrument_independence,
-            "tonality": tonality,
-            "dynamics": dynamics,
+            "brightness": brightness,
+            "articulation": articulation,
+            "energy": energy,
+            "density": density,
         }
 
         # Check if everything is neutral
