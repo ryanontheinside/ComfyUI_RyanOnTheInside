@@ -13,14 +13,20 @@ def get_case_insensitive_path(base_dir, target_name):
 parent_dir = os.path.dirname(os.path.dirname(__file__))
 
 alp_path = get_case_insensitive_path(parent_dir, "ComfyUI-AdvancedLivePortrait")
+if alp_path is None:
+    alp_path = get_case_insensitive_path(parent_dir, "comfyui-advancedliveportrait")
 HAS_ADVANCED_LIVE_PORTRAIT = alp_path is not None
 print(f"Checking for AdvancedLivePortrait at: {alp_path}")
 
 acn_path = get_case_insensitive_path(parent_dir, "ComfyUI-Advanced-ControlNet")
+if acn_path is None:
+    acn_path = get_case_insensitive_path(parent_dir, "comfyui-advanced-controls")
 HAS_ADVANCED_CONTROLNET = acn_path is not None
 print(f"Checking for Advanced-ControlNet at: {acn_path}")
 
 ad_path = get_case_insensitive_path(parent_dir, "ComfyUI-AnimateDiff-Evolved")
+if ad_path is None:
+    ad_path = get_case_insensitive_path(parent_dir, "comfyui-animatediff-evolved")
 HAS_ANIMATEDIFF = ad_path is not None
 print(f"Checking for AnimateDiff-Evolved at: {ad_path}")
 
