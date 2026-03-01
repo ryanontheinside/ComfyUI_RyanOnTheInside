@@ -5,6 +5,7 @@ All functions match librosa's API signatures, defaults, and output shapes.
 
 import numpy as np
 from scipy.fft import dct
+from scipy.ndimage import median_filter
 from scipy.signal.windows import hann as scipy_hann
 
 
@@ -542,6 +543,183 @@ def effects_time_stretch(y, rate):
 
     y_out = istft(S_out, hop_length=hop_length, length=int(len(y) / rate))
     return y_out
+
+
+# =============================================================================
+# HPSS and key-detection chroma
+# =============================================================================
+
+def _softmask(X, X_ref, power=2.0):
+    """Wiener-style soft mask: X^power / (X^power + X_ref^power)."""
+    X_p = np.abs(X) ** power
+    X_ref_p = np.abs(X_ref) ** power
+    denom = X_p + X_ref_p
+    return np.where(denom > 0, X_p / denom, 0.5)
+
+
+def hpss(S, kernel_size=31):
+    """Harmonic-Percussive Source Separation via median filtering.
+
+    Parameters
+    ----------
+    S : np.ndarray, shape (n_freq, n_frames)
+        Magnitude spectrogram (non-negative).
+    kernel_size : int
+        Size of the median filter kernel (must be odd).
+
+    Returns
+    -------
+    H : np.ndarray  -- harmonic component spectrogram
+    P : np.ndarray  -- percussive component spectrogram
+    """
+    k = kernel_size
+    # Harmonic: median along time axis (horizontal)
+    H_med = median_filter(S, size=(1, k))
+    # Percussive: median along frequency axis (vertical)
+    P_med = median_filter(S, size=(k, 1))
+    # Soft-mask the original spectrogram
+    mask_H = _softmask(H_med, P_med)
+    mask_P = _softmask(P_med, H_med)
+    return S * mask_H, S * mask_P
+
+
+def estimate_tuning(y, sr, n_fft=2048, fmin=150.0, fmax=4000.0):
+    """Estimate tuning offset in fractions of a semitone.
+
+    Returns a float in [-0.5, 0.5). Falls back to 0.0 if no pitched
+    content is detected.
+    """
+    pitches, mags = piptrack(y, sr, n_fft=n_fft, fmin=fmin, fmax=fmax)
+    # Keep only nonzero pitch estimates
+    mask = pitches > 0
+    if not np.any(mask):
+        return 0.0
+    p = pitches[mask]
+    # Fractional chroma residual relative to A440 (semitones mod 1)
+    residuals = (12.0 * np.log2(p / 440.0)) % 1.0
+    # Map to [-0.5, 0.5)
+    residuals = np.where(residuals >= 0.5, residuals - 1.0, residuals)
+    # Histogram to find dominant offset
+    bins = np.linspace(-0.5, 0.5, 65)  # 64 bins
+    counts, edges = np.histogram(residuals, bins=bins)
+    centers = 0.5 * (edges[:-1] + edges[1:])
+    return float(centers[np.argmax(counts)])
+
+
+def cqt(y, sr, hop_length=512, fmin=None, n_bins=84, bins_per_octave=12, tuning=0.0):
+    """Constant-Q Transform via time-domain spectral kernels.
+
+    Builds a kernel matrix of windowed complex exponentials (one per bin)
+    and computes the transform via batched matrix multiplication.
+
+    Parameters
+    ----------
+    y : np.ndarray
+        Audio signal (1D).
+    sr : int
+        Sample rate.
+    hop_length : int
+        Hop length in samples.
+    fmin : float or None
+        Minimum frequency. Defaults to C1 (~32.7 Hz).
+    n_bins : int
+        Number of frequency bins.
+    bins_per_octave : int
+        Number of bins per octave.
+    tuning : float
+        Tuning offset in fractions of a bin.
+
+    Returns
+    -------
+    C : np.ndarray, shape (n_bins, n_frames)
+        Complex CQT matrix. Bin 0 = fmin, bin bins_per_octave = fmin*2, etc.
+    """
+    if fmin is None:
+        fmin = midi_to_hz(24)  # C1 ~32.7 Hz
+    # Apply tuning offset
+    fmin = fmin * 2.0 ** (tuning / bins_per_octave)
+
+    # Q factor for constant-Q spacing
+    Q = 1.0 / (2.0 ** (1.0 / bins_per_octave) - 1.0)
+
+    # Center frequencies and window lengths for each bin
+    freqs = fmin * 2.0 ** (np.arange(n_bins) / bins_per_octave)
+    lengths = np.ceil(Q * sr / freqs).astype(int)
+    max_len = int(lengths[0])  # lowest frequency bin has longest window
+
+    # Build kernel matrix (n_bins, max_len)
+    # Each row is a centered, windowed complex exponential normalized by 1/N_k
+    kernel = np.zeros((n_bins, max_len), dtype=np.complex128)
+    for k in range(n_bins):
+        N_k = int(lengths[k])
+        n = np.arange(N_k)
+        window = scipy_hann(N_k, sym=False)
+        start = (max_len - N_k) // 2
+        kernel[k, start:start + N_k] = (
+            window * np.exp(-2j * np.pi * freqs[k] * n / sr) / N_k
+        )
+
+    # Center-pad the signal
+    y_padded = np.pad(y, max_len // 2, mode='constant')
+    n_frames = 1 + (len(y_padded) - max_len) // hop_length
+
+    # Batched matrix multiplication in chunks to limit memory
+    cqt_out = np.empty((n_bins, n_frames), dtype=np.complex128)
+    chunk_size = 2048
+    win_idx = np.arange(max_len)
+    for c_start in range(0, n_frames, chunk_size):
+        c_end = min(c_start + chunk_size, n_frames)
+        offsets = np.arange(c_start, c_end) * hop_length
+        frames = y_padded[offsets[:, None] + win_idx[None, :]]  # (n_chunk, max_len)
+        cqt_out[:, c_start:c_end] = kernel @ frames.T
+
+    return cqt_out
+
+
+def feature_chroma_for_key_detection(y, sr, n_fft=4096, hop_length=512):
+    """Compute an energy-weighted 12-element chroma profile optimized for
+    key detection.
+
+    Uses CQT (fmin=C2, 6 octaves) for proper pitch resolution at all
+    frequencies, HPSS (harmonic only), and tuning compensation.
+
+    Returns
+    -------
+    chroma_profile : np.ndarray, shape (12,)
+        Energy-weighted chroma vector (not per-frame).
+    """
+    # Estimate tuning from the raw audio
+    tuning = estimate_tuning(y, sr)
+
+    # CQT: fmin=C2 (MIDI 36, ~65.4 Hz), 72 bins = 6 octaves (C2-B7)
+    fmin_c2 = midi_to_hz(36)
+    C = cqt(y, sr, hop_length=hop_length, fmin=fmin_c2, n_bins=72,
+            bins_per_octave=12, tuning=tuning)
+
+    # HPSS on CQT magnitude -- keep harmonic component only
+    C_mag = np.abs(C)
+    C_harm, _ = hpss(C_mag)
+
+    # Power of harmonic component
+    C_harm_power = C_harm ** 2
+
+    # Fold octaves into 12 chroma bins by summing every 12th row
+    # Bin 0 = C2, bin 1 = C#2, ..., bin 12 = C3, etc.
+    # Chroma index = bin_index % 12, with index 0 = C
+    chroma = np.zeros((12, C_harm_power.shape[1]))
+    for i in range(12):
+        chroma[i] = np.sum(C_harm_power[i::12], axis=0)
+
+    # Energy per frame (for weighting)
+    frame_energy = np.sum(C_harm_power, axis=0)
+
+    # Weighted average across time
+    total_energy = np.sum(frame_energy)
+    if total_energy < 1e-10:
+        return np.ones(12) / 12.0
+
+    chroma_profile = chroma @ frame_energy / total_energy
+    return chroma_profile
 
 
 # =============================================================================

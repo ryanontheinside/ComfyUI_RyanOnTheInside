@@ -855,6 +855,112 @@ class AnimatedFloatPreview(RyanOnTheInside, ProgressMixin):
         return (output_tensor,)
 
 
+class InstantFloatPreview(RyanOnTheInside):
+    """Instant browser-rendered float graph with optional audio playback and synced playhead."""
+
+    CATEGORY = "RyanOnTheInside/FlexFeatures/Utilities/Previews"
+    DESCRIPTION = "Plots up to 6 float sequences on an instant, browser-rendered Canvas graph. Optional audio input with synced playhead and configurable rewind on re-execution."
+
+    # RGB colors (converted from AnimatedFloatPreview BGR for browser Canvas)
+    LINE_COLORS_RGB = [
+        [255, 100, 100],  # Red
+        [100, 255, 100],  # Green
+        [100, 100, 255],  # Blue
+        [220, 220, 0],    # Yellow
+        [220, 100, 220],  # Magenta
+        [100, 220, 220],  # Cyan
+    ]
+
+    OUTPUT_NODE = True
+    RETURN_TYPES = ()
+    FUNCTION = "preview_floats"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "title": ("STRING", {"default": "Float Preview"}),
+            },
+            "optional": {
+                "audio": ("AUDIO", {"tooltip": "Optional audio input with synced playhead"}),
+                "rewind_seconds": ("FLOAT", {"default": 2.0, "min": 0.0, "max": 30.0, "step": 0.5,
+                    "tooltip": "Seconds to rewind audio on re-execution (0 = continue from same position)"}),
+                "float_1": ("FLOAT", {"default": 0.0, "forceInput": True}),
+                "label_1": ("STRING", {"default": "Float 1"}),
+                "float_2": ("FLOAT", {"default": 0.0, "forceInput": True}),
+                "label_2": ("STRING", {"default": "Float 2"}),
+                "float_3": ("FLOAT", {"default": 0.0, "forceInput": True}),
+                "label_3": ("STRING", {"default": "Float 3"}),
+                "float_4": ("FLOAT", {"default": 0.0, "forceInput": True}),
+                "label_4": ("STRING", {"default": "Float 4"}),
+                "float_5": ("FLOAT", {"default": 0.0, "forceInput": True}),
+                "label_5": ("STRING", {"default": "Float 5"}),
+                "float_6": ("FLOAT", {"default": 0.0, "forceInput": True}),
+                "label_6": ("STRING", {"default": "Float 6"}),
+            }
+        }
+
+    @staticmethod
+    def _parse_input(value, frame_count):
+        """Convert scalar or list input to a list of length frame_count."""
+        if isinstance(value, list):
+            if len(value) == frame_count:
+                return [float(v) for v in value]
+            result = []
+            src_len = len(value)
+            for i in range(frame_count):
+                idx = round(i * (src_len - 1) / max(frame_count - 1, 1)) if frame_count > 1 else 0
+                idx = max(0, min(idx, src_len - 1))
+                result.append(float(value[idx]))
+            return result
+        else:
+            return [float(value)] * frame_count
+
+    def preview_floats(self, title,
+                       audio=None, rewind_seconds=2.0,
+                       float_1=None, label_1="Float 1",
+                       float_2=None, label_2="Float 2",
+                       float_3=None, label_3="Float 3",
+                       float_4=None, label_4="Float 4",
+                       float_5=None, label_5="Float 5",
+                       float_6=None, label_6="Float 6"):
+        raw_inputs = [
+            (float_1, label_1), (float_2, label_2), (float_3, label_3),
+            (float_4, label_4), (float_5, label_5), (float_6, label_6),
+        ]
+
+        frame_count = 1
+        for val, _ in raw_inputs:
+            if isinstance(val, list) and len(val) > frame_count:
+                frame_count = len(val)
+
+        series_data = []
+        for i, (val, label) in enumerate(raw_inputs):
+            if val is None:
+                continue
+            values = self._parse_input(val, frame_count)
+            series_data.append({
+                "label": label,
+                "values": values,
+                "color": self.LINE_COLORS_RGB[i % len(self.LINE_COLORS_RGB)],
+            })
+
+        ui_data = {
+            "title": [title],
+            "series": series_data,
+            "rewind_seconds": [rewind_seconds],
+        }
+
+        if audio is not None:
+            from ..audio.audio_compare import _save_audio_temp
+            audio_result = _save_audio_temp(audio, "instant_float_preview")
+            duration = float(audio["waveform"].shape[-1]) / audio["sample_rate"]
+            ui_data["ifp_audio"] = [audio_result]
+            ui_data["ifp_audio_duration"] = [duration]
+
+        return {"ui": ui_data}
+
+
 NODE_CLASS_MAPPINGS = {
     "ProximityVisualizer": ProximityVisualizer,
     "EffectVisualizer": EffectVisualizer,
@@ -862,10 +968,12 @@ NODE_CLASS_MAPPINGS = {
     "PreviewFeature": PreviewFeature,
     "AnimatedFeaturePreview": AnimatedFeaturePreview,
     "AnimatedFloatPreview": AnimatedFloatPreview,
+    "InstantFloatPreview": InstantFloatPreview,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "ProximityVisualizer": "Preview Proximity",
     "EffectVisualizer": "Preview FeatureEffect",
     "PitchVisualizer": "Preview Pitch",
+    "InstantFloatPreview": "Instant Float Preview",
 }

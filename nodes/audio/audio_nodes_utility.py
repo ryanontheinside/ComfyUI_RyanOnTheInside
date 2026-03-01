@@ -203,9 +203,9 @@ class AudioSubtract(AudioUtility):
 #TODO: TOO SLOW
 @apply_tooltips
 class AudioInfo(AudioUtility):
-    # Krumhansl-Kessler key profiles for major and minor keys
-    MAJOR_PROFILE = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
-    MINOR_PROFILE = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17])
+    # Sha'ath (2011) key profiles (used by the KeyFinder app)
+    MAJOR_PROFILE = np.array([6.6, 2.0, 3.5, 2.3, 4.6, 4.0, 2.5, 5.2, 2.4, 3.7, 2.3, 3.4])
+    MINOR_PROFILE = np.array([6.5, 2.7, 3.5, 5.4, 2.6, 3.5, 2.5, 5.2, 4.0, 2.7, 4.3, 3.2])
 
     # Note names matching the keyscale format in TextEncodeAceStepAudio1.5
     # Using sharps for detection, which covers all keys
@@ -231,38 +231,42 @@ class AudioInfo(AudioUtility):
     FUNCTION = "get_audio_info"
 
     def _detect_key(self, audio_mono, sample_rate):
-        """Detect musical key using chromagram and Krumhansl-Kessler key profiles."""
-        chromagram = lr.feature_chroma_cqt(y=audio_mono, sr=sample_rate)
+        """Detect musical key using HPSS chroma and Sha'ath key profiles."""
+        # Early return for very short or silent audio
+        if len(audio_mono) < sample_rate * 0.5 or np.max(np.abs(audio_mono)) < 1e-6:
+            return "C major"
 
-        # Average chroma values across time to get a single 12-element profile
-        chroma_profile = np.mean(chromagram, axis=1)
+        # Get energy-weighted chroma profile (HPSS + tuning-compensated)
+        chroma_profile = lr.feature_chroma_for_key_detection(y=audio_mono, sr=sample_rate)
 
-        # Normalize the profile
-        chroma_profile = chroma_profile / (np.linalg.norm(chroma_profile) + 1e-8)
+        # L2-normalize the chroma profile
+        norm = np.linalg.norm(chroma_profile)
+        if norm < 1e-8:
+            return "C major"
+        chroma_profile = chroma_profile / norm
 
-        best_correlation = -1
+        best_score = -2.0
         best_key = "C major"
 
         # Test all 24 keys (12 major + 12 minor)
         for i in range(12):
-            # Rotate the key profiles to match each root note
-            major_rotated = np.roll(self.MAJOR_PROFILE, i)
-            minor_rotated = np.roll(self.MINOR_PROFILE, i)
+            # Shift LEFT by i to align profile[0] with key root i
+            major_rotated = np.roll(self.MAJOR_PROFILE, -i)
+            minor_rotated = np.roll(self.MINOR_PROFILE, -i)
 
-            # Normalize profiles
+            # L2-normalize
             major_rotated = major_rotated / (np.linalg.norm(major_rotated) + 1e-8)
             minor_rotated = minor_rotated / (np.linalg.norm(minor_rotated) + 1e-8)
 
-            # Calculate correlation with major key
-            major_corr = np.corrcoef(chroma_profile, major_rotated)[0, 1]
-            if major_corr > best_correlation:
-                best_correlation = major_corr
+            # Cosine similarity (dot product of unit vectors)
+            major_score = np.dot(chroma_profile, major_rotated)
+            if major_score > best_score:
+                best_score = major_score
                 best_key = f"{self.NOTE_NAMES[i]} major"
 
-            # Calculate correlation with minor key
-            minor_corr = np.corrcoef(chroma_profile, minor_rotated)[0, 1]
-            if minor_corr > best_correlation:
-                best_correlation = minor_corr
+            minor_score = np.dot(chroma_profile, minor_rotated)
+            if minor_score > best_score:
+                best_score = minor_score
                 best_key = f"{self.NOTE_NAMES[i]} minor"
 
         return best_key
