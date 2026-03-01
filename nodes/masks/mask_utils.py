@@ -308,7 +308,10 @@ def calculate_optical_flow(frame1, frame2, flow_method):
     gray2 = cv2.cvtColor(frame2, cv2.COLOR_RGB2GRAY)
     height, width = gray1.shape
 
-    if flow_method == "Farneback":
+    if flow_method == "DIS":
+        dis = cv2.DISOpticalFlow_create(cv2.DISOPTICAL_FLOW_PRESET_MEDIUM)
+        return dis.calc(gray1, gray2, None)
+    elif flow_method == "Farneback":
         return cv2.calcOpticalFlowFarneback(gray1, gray2, None, 0.5, 3, 15, 3, 5, 1.2, 0)
     elif flow_method in ["LucasKanade", "PyramidalLK"]:
         if flow_method == "LucasKanade":

@@ -449,7 +449,9 @@ class BrightnessFeature(BaseFeature):
             raise ValueError(f"Invalid feature name. Available features are: {', '.join(self.available_features)}")
 
 class MotionFeature(BaseFeature):
-    def __init__(self, name, frame_rate, frame_count, width, height, images, feature_name='mean_motion', flow_method='Farneback', flow_threshold=0.0, magnitude_threshold=0.0, progress_callback=None):
+    TEMPORAL_METHODS = {"motion_onset", "motion_acceleration", "motion_energy_slow", "motion_energy_fast"}
+
+    def __init__(self, name, frame_rate, frame_count, width, height, images, feature_name='mean_motion', flow_method='DIS', flow_threshold=0.0, magnitude_threshold=0.0, progress_callback=None, roi_masks=None):
         super().__init__(name, "motion", frame_rate, frame_count, width, height)
         self.images = images
         self.feature_name = feature_name
@@ -458,68 +460,167 @@ class MotionFeature(BaseFeature):
         self.magnitude_threshold = magnitude_threshold
         self.available_features = self.get_extraction_methods()
         self.progress_callback = progress_callback
+        self.roi_masks = roi_masks
+        self.flow_fields = []
 
     @classmethod
-    def get_extraction_methods(self):
+    def get_extraction_methods(cls):
         return [
             "mean_motion", "max_motion", "motion_direction",
             "horizontal_motion", "vertical_motion", "motion_complexity",
-            "motion_speed"
+            "motion_speed",
+            "motion_onset", "motion_acceleration",
+            "motion_energy_slow", "motion_energy_fast"
         ]
     
     
     def extract(self):
         print("Starting MotionFeature extraction")
-        self.features = {self.feature_name: []}
-        
+        is_temporal = self.feature_name in self.TEMPORAL_METHODS
+        base_method = "mean_motion" if is_temporal else self.feature_name
+        self.features = {base_method: []}
+        if is_temporal:
+            self.features[self.feature_name] = []
+
         images_np = (self.images.cpu().numpy() * 255).astype(np.uint8)
         num_frames = len(images_np) - 1
+
+        roi_masks_np = None
+        if self.roi_masks is not None:
+            roi_masks_np = self.roi_masks.cpu().numpy()
+
+        self.flow_fields = []
 
         for i in range(num_frames):
             print(f"Processing frames {i+1} and {i+2}")
             frame1 = images_np[i]
             frame2 = images_np[i+1]
-            
+
             flow = calculate_optical_flow(frame1, frame2, self.flow_method)
-            self._extract_features(flow)
-            
+            self.flow_fields.append(flow)
+
+            roi = None
+            if roi_masks_np is not None and i < len(roi_masks_np):
+                roi = roi_masks_np[i]
+
+            self._extract_features(flow, base_method, roi)
+
             if self.progress_callback:
                 self.progress_callback(i + 1, num_frames)
 
-        self._pad_last_frame()
-        self._normalize_features()
+        self._pad_last_frame_for(base_method)
+        # Pad flow_fields with a copy of the last frame
+        if self.flow_fields:
+            self.flow_fields.append(self.flow_fields[-1])
+
+        if is_temporal:
+            self._compute_temporal_features(base_method)
+        else:
+            self._normalize_features()
+
+        # Stack flow fields into a torch tensor [N, H, W, 2]
+        self.flow_fields = torch.from_numpy(np.stack(self.flow_fields, axis=0))
+
         print("MotionFeature extraction completed")
         return self
 
-    def _extract_features(self, flow):
+    def _extract_features(self, flow, method=None, roi=None):
+        if method is None:
+            method = self.feature_name
+
         flow_magnitude = np.sqrt(flow[..., 0]**2 + flow[..., 1]**2)
-        
+
         if self.flow_threshold > 0:
             flow_magnitude[flow_magnitude < self.flow_threshold] = 0
         if self.magnitude_threshold > 0:
             flow_magnitude[flow_magnitude < self.magnitude_threshold * np.max(flow_magnitude)] = 0
-        
-        if self.feature_name == 'mean_motion':
-            self.features[self.feature_name].append(np.mean(flow_magnitude))
-        elif self.feature_name == 'max_motion':
-            self.features[self.feature_name].append(np.max(flow_magnitude))
-        elif self.feature_name == 'motion_direction':
-            self.features[self.feature_name].append(np.mean(np.arctan2(flow[..., 1], flow[..., 0])))
-        elif self.feature_name == 'horizontal_motion':
-            self.features[self.feature_name].append(np.mean(np.abs(flow[..., 0])))
-        elif self.feature_name == 'vertical_motion':
-            self.features[self.feature_name].append(np.mean(np.abs(flow[..., 1])))
-        elif self.feature_name == 'motion_complexity':
-            self.features[self.feature_name].append(np.std(flow_magnitude))
-        elif self.feature_name == 'motion_speed':
-            self.features[self.feature_name].append(np.mean(flow_magnitude) * self.frame_rate)
+
+        def _mean(arr):
+            if roi is not None:
+                # Resize ROI mask to match flow dimensions if needed
+                mask = roi
+                if mask.shape != arr.shape:
+                    mask = cv2.resize(mask, (arr.shape[1], arr.shape[0]), interpolation=cv2.INTER_NEAREST)
+                mask_bool = mask > 0.5
+                count = np.sum(mask_bool)
+                if count > 0:
+                    return np.sum(arr[mask_bool]) / count
+                return 0.0
+            return np.mean(arr)
+
+        if method == 'mean_motion':
+            self.features[method].append(_mean(flow_magnitude))
+        elif method == 'max_motion':
+            self.features[method].append(np.max(flow_magnitude))
+        elif method == 'motion_direction':
+            self.features[method].append(np.mean(np.arctan2(flow[..., 1], flow[..., 0])))
+        elif method == 'horizontal_motion':
+            self.features[method].append(_mean(np.abs(flow[..., 0])))
+        elif method == 'vertical_motion':
+            self.features[method].append(_mean(np.abs(flow[..., 1])))
+        elif method == 'motion_complexity':
+            self.features[method].append(np.std(flow_magnitude))
+        elif method == 'motion_speed':
+            self.features[method].append(_mean(flow_magnitude) * self.frame_rate)
 
     def _pad_last_frame(self):
         for feature in self.features:
-            if feature != "motion_direction":
-                self.features[feature].append(self.features[feature][-1])
+            self._pad_last_frame_for(feature)
+
+    def _pad_last_frame_for(self, feature):
+        if feature not in self.features or not self.features[feature]:
+            return
+        if feature != "motion_direction":
+            self.features[feature].append(self.features[feature][-1])
+        else:
+            self.features[feature].append(0)
+
+    def _compute_temporal_features(self, base_method):
+        from scipy.signal import butter, filtfilt
+
+        base = np.array(self.features[base_method], dtype=np.float64)
+        # Normalize base signal to 0-1 first
+        bmin, bmax = np.min(base), np.max(base)
+        if bmax > bmin:
+            base = (base - bmin) / (bmax - bmin)
+        else:
+            base = np.zeros_like(base)
+
+        if self.feature_name == "motion_onset":
+            d = np.diff(base, prepend=base[0])
+            result = np.maximum(d, 0)
+        elif self.feature_name == "motion_acceleration":
+            d2 = np.diff(base, n=2, prepend=[base[0], base[0]])
+            result = np.abs(d2)
+        elif self.feature_name in ("motion_energy_slow", "motion_energy_fast"):
+            cutoff = 0.1  # Nyquist-relative
+            order = 2
+            # Need at least padlen = 3*max(len(a), len(b)) samples for filtfilt
+            min_len = 3 * (2 * order + 1)
+            if len(base) > min_len:
+                b, a = butter(order, cutoff, btype='low')
+                slow = filtfilt(b, a, base)
             else:
-                self.features[feature].append(0)
+                # Not enough frames for filtering; use a simple moving average fallback
+                kernel_size = max(3, len(base) // 4)
+                kernel = np.ones(kernel_size) / kernel_size
+                slow = np.convolve(base, kernel, mode='same')
+
+            if self.feature_name == "motion_energy_slow":
+                result = slow
+            else:
+                result = np.abs(base - slow)
+        else:
+            result = base
+
+        # Normalize to 0-1
+        rmin, rmax = np.min(result), np.max(result)
+        if rmax > rmin:
+            result = (result - rmin) / (rmax - rmin)
+        else:
+            result = np.zeros_like(result)
+
+        self.features[self.feature_name] = result.tolist()
 
     def _normalize_features(self):
         for key in self.features:

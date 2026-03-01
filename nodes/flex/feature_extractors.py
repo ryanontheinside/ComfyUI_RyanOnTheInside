@@ -307,19 +307,22 @@ class MotionFeatureNode(FeatureExtractorBase):
             "required": {
                 **parent_inputs,
                 "images": ("IMAGE",),
-                "flow_method": (["Farneback", "LucasKanade", "PyramidalLK"],),
+                "flow_method": (["DIS", "Farneback", "LucasKanade", "PyramidalLK"],),
                 "flow_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 10.0, "step": 0.1}),
                 "magnitude_threshold": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+            },
+            "optional": {
+                "roi_mask": ("MASK",),
             }
         }
 
-    RETURN_TYPES = ("FEATURE",)
+    RETURN_TYPES = ("FEATURE", "OPTICAL_FLOW")
+    RETURN_NAMES = ("feature", "optical_flow")
     FUNCTION = "create_feature"
 
-    def create_feature(self, images, frame_rate, width, height, extraction_method, flow_method, flow_threshold, magnitude_threshold):
-        # Use length of images as frame_count
+    def create_feature(self, images, frame_rate, width, height, extraction_method, flow_method, flow_threshold, magnitude_threshold, roi_mask=None):
         frame_count = len(images)
-        
+
         def progress_callback(current_step, total_steps):
             self.update_progress(current_step - self.current_progress)
 
@@ -336,13 +339,14 @@ class MotionFeatureNode(FeatureExtractorBase):
             flow_method,
             flow_threshold,
             magnitude_threshold,
-            progress_callback=progress_callback
+            progress_callback=progress_callback,
+            roi_masks=roi_mask
         )
 
         motion_feature.extract()
         self.end_progress()
 
-        return (motion_feature,)
+        return (motion_feature, motion_feature.flow_fields)
     
 @apply_tooltips
 class AreaFeatureNode(FeatureExtractorBase):

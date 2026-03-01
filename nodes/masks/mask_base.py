@@ -207,7 +207,7 @@ class OpticalFlowMaskBase(MaskBase, ABC):
             "required": {
                 **super().INPUT_TYPES()["required"],
                 "images": ("IMAGE",),
-                "flow_method": (["Farneback", "LucasKanade", "PyramidalLK"],),
+                "flow_method": (["DIS", "Farneback", "LucasKanade", "PyramidalLK"],),
                 "flow_threshold": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "magnitude_threshold": ("FLOAT", {"default": 0.05, "min": 0.0, "max": 1.0, "step": 0.01}),
             }
