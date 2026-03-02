@@ -4,6 +4,7 @@ const MIN_GRAPH_HEIGHT = 500;
 const AUDIO_HEIGHT = 44;
 const LOOP_BAR_H = 18;
 const HANDLE_W = 6;
+const BRIDGE_FADE_SEC = 0.005; // 5ms crossfade — short enough to be imperceptible
 
 function buildAudioUrl(file) {
     const params = new URLSearchParams({
@@ -23,8 +24,9 @@ app.registerExtension({
         const onSerialize = nodeType.prototype.onSerialize;
         nodeType.prototype.onSerialize = function (data) {
             onSerialize?.apply(this, arguments);
-            if (this._ifpLoop) {
-                data.ifpLoop = { ...this._ifpLoop };
+            const loop = this._ifpLoop || this._ifpPendingLoop;
+            if (loop) {
+                data.ifpLoop = { ...loop };
             }
         };
 
@@ -94,37 +96,28 @@ app.registerExtension({
             canvas.style.cssText = "width:100%;flex:1;display:block;cursor:default;min-height:" + MIN_GRAPH_HEIGHT + "px;";
             container.appendChild(canvas);
 
-            // Double-buffered audio: two elements, only the active one is visible.
-            // This allows seamless audio swaps: new audio loads in the background
-            // element while the old one keeps playing.
             const audioWrapper = document.createElement("div");
             audioWrapper.style.cssText = "width:100%;display:none;flex-shrink:0;";
             container.appendChild(audioWrapper);
 
-            const audioA = document.createElement("audio");
-            audioA.controls = true;
-            audioA.preload = "auto";
-            audioA.style.cssText = "width:100%;display:block;";
-            audioWrapper.appendChild(audioA);
-
-            const audioB = document.createElement("audio");
-            audioB.controls = true;
-            audioB.preload = "auto";
-            audioB.style.cssText = "width:100%;display:none;";
-            audioWrapper.appendChild(audioB);
+            // Single audio element for native controls and normal playback.
+            // Gapless swaps are handled via an AudioBufferSourceNode bridge.
+            const audioEl = document.createElement("audio");
+            audioEl.controls = true;
+            audioEl.preload = "auto";
+            audioEl.style.cssText = "width:100%;display:block;";
+            audioWrapper.appendChild(audioEl);
 
             this._ifpContainer = container;
             this._ifpCanvas = canvas;
             this._ifpAudioWrapper = audioWrapper;
-            this._ifpAudioA = audioA;
-            this._ifpAudioB = audioB;
-            this._ifpActiveAudio = audioA;
-            this._ifpInactiveAudio = audioB;
+            this._ifpAudioEl = audioEl;
             this._ifpData = null;
             this._ifpRafId = null;
             this._ifpAudioShown = false;
             this._ifpAudioDuration = 0;
             this._ifpSized = false;
+            this._ifpHasAudio = false;
 
             // Loop state
             this._ifpLoop = { enabled: false, start: 0, end: 1 };
@@ -134,10 +127,18 @@ app.registerExtension({
                 this._ifpPendingLoop = null;
             }
             this._ifpDrag = null;
+
+            // Swap / bridge state
             this._ifpSwapping = false;
-            this._ifpRealTime = 0;
-            this._ifpRealPlaying = false;
             this._ifpSwapAbort = null;
+            this._ifpBridgeSource = null;
+            this._ifpBridgeStartCtxTime = 0;
+            this._ifpBridgeOffset = 0;
+
+            // Web Audio API state (lazy-init on first audio load)
+            this._ifpAudioCtx = null;
+            this._ifpElementGain = null;
+            this._ifpBridgeGain = null;
 
             const self = this;
             const widget = this.addDOMWidget("instant_float_preview", "custom", container, {
@@ -162,35 +163,51 @@ app.registerExtension({
             canvas.addEventListener("mouseleave", (e) => this._ifpOnMouseUp(e));
             canvas.addEventListener("dblclick", (e) => this._ifpOnDblClick(e));
 
-            // Audio event listeners on both elements; only respond when the
-            // element is the active one and we're not mid-swap.
-            const setupAudioEvents = (el) => {
-                el.addEventListener("timeupdate", () => {
-                    if (el !== this._ifpActiveAudio || this._ifpSwapping) return;
-                    this._ifpRealTime = el.currentTime;
-                    this._ifpCheckLoop();
-                    if (!this._ifpRafId) this._ifpDraw();
-                });
-                el.addEventListener("play", () => {
-                    if (el !== this._ifpActiveAudio) return;
-                    if (!this._ifpSwapping) this._ifpRealPlaying = true;
-                    this._ifpStartRaf();
-                });
-                el.addEventListener("pause", () => {
-                    if (el !== this._ifpActiveAudio || this._ifpSwapping) return;
-                    this._ifpRealPlaying = false;
-                    this._ifpStopRaf();
-                    this._ifpDraw();
-                });
-                el.addEventListener("ended", () => {
-                    if (el !== this._ifpActiveAudio || this._ifpSwapping) return;
-                    this._ifpRealPlaying = false;
-                    this._ifpStopRaf();
-                    this._ifpDraw();
-                });
-            };
-            setupAudioEvents(audioA);
-            setupAudioEvents(audioB);
+            // Audio event listeners on the single element
+            audioEl.addEventListener("timeupdate", () => {
+                if (this._ifpSwapping) return;
+                this._ifpCheckLoop();
+                if (!this._ifpRafId) this._ifpDraw();
+            });
+            audioEl.addEventListener("play", () => {
+                // Resume AudioContext if suspended (browser autoplay policy)
+                if (this._ifpAudioCtx?.state === "suspended") {
+                    this._ifpAudioCtx.resume();
+                }
+                if (!this._ifpSwapping) this._ifpStartRaf();
+            });
+            audioEl.addEventListener("pause", () => {
+                if (this._ifpSwapping) return;
+                this._ifpStopRaf();
+                this._ifpDraw();
+            });
+            audioEl.addEventListener("ended", () => {
+                if (this._ifpSwapping) return;
+                this._ifpStopRaf();
+                this._ifpDraw();
+            });
+        };
+
+        // --- Web Audio API setup (called once, lazily) ---
+        // Creates the audio graph:
+        //   <audio> element -> MediaElementSourceNode -> elementGain -> destination
+        //   AudioBufferSourceNode (bridge) -----------> bridgeGain  -> destination
+        // Normal playback flows through the element path (elementGain=1, bridgeGain=0).
+        // During a swap the bridge path carries audio while the element reloads.
+
+        nodeType.prototype._ifpEnsureAudioCtx = function () {
+            if (this._ifpAudioCtx) return;
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const src = ctx.createMediaElementSource(this._ifpAudioEl);
+            const elementGain = ctx.createGain();
+            const bridgeGain = ctx.createGain();
+            src.connect(elementGain).connect(ctx.destination);
+            bridgeGain.connect(ctx.destination);
+            elementGain.gain.value = 1;
+            bridgeGain.gain.value = 0;
+            this._ifpAudioCtx = ctx;
+            this._ifpElementGain = elementGain;
+            this._ifpBridgeGain = bridgeGain;
         };
 
         // --- Loop bar helpers ---
@@ -346,7 +363,7 @@ app.registerExtension({
             if (this._ifpSwapping) return;
             const loop = this._ifpLoop;
             if (!loop.enabled || !this._ifpAudioDuration) return;
-            const audioEl = this._ifpActiveAudio;
+            const audioEl = this._ifpAudioEl;
             const endTime = loop.end * this._ifpAudioDuration;
             const startTime = loop.start * this._ifpAudioDuration;
             if (audioEl.currentTime >= endTime) {
@@ -354,7 +371,14 @@ app.registerExtension({
             }
         };
 
-        // --- Audio (double-buffered for seamless swaps) ---
+        // --- Audio: bridge-based swap using AudioBufferSourceNode ---
+        //
+        // On re-execution while audio is playing, we pre-fetch and decode the
+        // new audio into an AudioBuffer, then play it through an
+        // AudioBufferSourceNode ("bridge") with sample-accurate timing. While
+        // the bridge carries audio, we reload the <audio> element with the new
+        // source, seek it to the right position, resume playback, and crossfade
+        // back. This avoids the gap inherent in <audio> element source swaps.
 
         nodeType.prototype._ifpHandleAudio = function (audioFile, duration, rewindSeconds) {
             this._ifpAudioDuration = duration || 0;
@@ -365,63 +389,161 @@ app.registerExtension({
                 this._ifpSized = false;
             }
 
-            const prevTime = this._ifpRealTime;
-            const wasPlaying = this._ifpRealPlaying;
             const newUrl = buildAudioUrl(audioFile);
+            const audioEl = this._ifpAudioEl;
 
-            // Cancel any in-flight swap so stale callbacks can't fire
-            if (this._ifpSwapAbort) {
-                this._ifpSwapAbort.abort();
+            // Cancel any in-flight swap
+            this._ifpCleanupSwap();
+
+            // Initialize Web Audio routing on first audio load so all
+            // playback goes through the AudioContext consistently
+            this._ifpEnsureAudioCtx();
+
+            // First load: just set the src
+            if (!this._ifpHasAudio) {
+                audioEl.src = newUrl;
+                this._ifpHasAudio = true;
+                return;
             }
+
+            // Not playing: simple swap with position restore
+            if (audioEl.paused) {
+                const prevTime = audioEl.currentTime;
+                const targetTime = Math.max(0, prevTime - rewindSeconds);
+                audioEl.src = newUrl;
+                audioEl.addEventListener("loadeddata", () => {
+                    audioEl.currentTime = targetTime;
+                }, { once: true });
+                return;
+            }
+
+            // --- Playing: bridge swap for gapless transition ---
+            // Do NOT rewind during live playback. The bridge must start at the
+            // element's current position so the crossfade blends nearly-identical
+            // content at the same point in time, making the swap imperceptible.
+            const ctx = this._ifpAudioCtx;
+            if (ctx.state === "suspended") ctx.resume();
+
             const abort = new AbortController();
             this._ifpSwapAbort = abort;
-
             this._ifpSwapping = true;
 
-            const current = this._ifpActiveAudio;
-            const incoming = this._ifpInactiveAudio;
-
-            // Load new audio into the inactive (hidden) element while the
-            // current element keeps playing uninterrupted.
-            incoming.src = newUrl;
-            incoming.addEventListener("canplay", () => {
-                if (abort.signal.aborted) return;
-
-                // Use the live playback position from the still-playing audio
-                // so the rewind offset accounts for time elapsed during loading.
-                const liveTime = !current.paused ? current.currentTime : prevTime;
-                const targetTime = Math.max(0, liveTime - rewindSeconds);
-                incoming.currentTime = targetTime;
-
-                incoming.addEventListener("seeked", () => {
+            // Pre-fetch and decode the new audio into an AudioBuffer
+            fetch(newUrl, { signal: abort.signal })
+                .then(r => r.arrayBuffer())
+                .then(buf => {
                     if (abort.signal.aborted) return;
+                    return ctx.decodeAudioData(buf);
+                })
+                .then(audioBuffer => {
+                    if (abort.signal.aborted || !audioBuffer) return;
 
-                    this._ifpSwapping = false;
-                    this._ifpSwapAbort = null;
+                    // Use the LIVE position at the moment the bridge starts,
+                    // not a stale value captured before the fetch/decode.
+                    const livePos = audioEl.currentTime;
+                    const bridgeSrc = ctx.createBufferSource();
+                    bridgeSrc.buffer = audioBuffer;
+                    bridgeSrc.connect(this._ifpBridgeGain);
+                    this._ifpBridgeSource = bridgeSrc;
+                    this._ifpBridgeOffset = livePos;
+                    this._ifpBridgeStartCtxTime = ctx.currentTime;
+                    bridgeSrc.start(0, livePos);
 
-                    // Start new audio before stopping old to minimize any gap
-                    if (wasPlaying) {
-                        incoming.play();
-                    }
-                    current.pause();
+                    // Crossfade: element out, bridge in
+                    const now = ctx.currentTime;
+                    this._ifpElementGain.gain.cancelScheduledValues(now);
+                    this._ifpElementGain.gain.setValueAtTime(1, now);
+                    this._ifpElementGain.gain.linearRampToValueAtTime(0, now + BRIDGE_FADE_SEC);
 
-                    // Swap visibility
-                    current.style.display = "none";
-                    incoming.style.display = "block";
+                    this._ifpBridgeGain.gain.cancelScheduledValues(now);
+                    this._ifpBridgeGain.gain.setValueAtTime(0, now);
+                    this._ifpBridgeGain.gain.linearRampToValueAtTime(1, now + BRIDGE_FADE_SEC);
 
-                    // Swap references
-                    this._ifpActiveAudio = incoming;
-                    this._ifpInactiveAudio = current;
+                    // After fade to bridge completes, reload the <audio> element
+                    setTimeout(() => {
+                        if (abort.signal.aborted) return;
 
-                    this._ifpRealTime = incoming.currentTime;
-                }, { once: true, signal: abort.signal });
-            }, { once: true, signal: abort.signal });
+                        audioEl.pause();
+                        audioEl.src = newUrl;
 
-            incoming.addEventListener("error", () => {
-                if (abort.signal.aborted) return;
-                this._ifpSwapping = false;
+                        audioEl.addEventListener("canplay", () => {
+                            if (abort.signal.aborted) return;
+
+                            // Sync element to where the bridge currently is
+                            const bridgePos = (ctx.currentTime - this._ifpBridgeStartCtxTime) + this._ifpBridgeOffset;
+                            audioEl.currentTime = bridgePos;
+
+                            audioEl.addEventListener("seeked", () => {
+                                if (abort.signal.aborted) return;
+
+                                audioEl.play().then(() => {
+                                    if (abort.signal.aborted) return;
+
+                                    // Crossfade: bridge out, element back in
+                                    const now2 = ctx.currentTime;
+                                    this._ifpBridgeGain.gain.cancelScheduledValues(now2);
+                                    this._ifpBridgeGain.gain.setValueAtTime(1, now2);
+                                    this._ifpBridgeGain.gain.linearRampToValueAtTime(0, now2 + BRIDGE_FADE_SEC);
+
+                                    this._ifpElementGain.gain.cancelScheduledValues(now2);
+                                    this._ifpElementGain.gain.setValueAtTime(0, now2);
+                                    this._ifpElementGain.gain.linearRampToValueAtTime(1, now2 + BRIDGE_FADE_SEC);
+
+                                    // Finalize after fade completes
+                                    setTimeout(() => {
+                                        this._ifpFinishSwap();
+                                    }, BRIDGE_FADE_SEC * 1000 + 20);
+                                }).catch(() => {
+                                    // Autoplay blocked; element is loaded but paused
+                                    this._ifpFinishSwap();
+                                });
+                            }, { once: true, signal: abort.signal });
+                        }, { once: true, signal: abort.signal });
+                    }, BRIDGE_FADE_SEC * 1000 + 10);
+                })
+                .catch(err => {
+                    if (abort.signal.aborted) return;
+                    console.warn("IFP audio swap failed:", err);
+                    // Fallback: direct swap (will cause a brief gap)
+                    const fallbackPos = audioEl.currentTime;
+                    audioEl.src = newUrl;
+                    audioEl.addEventListener("loadeddata", () => {
+                        audioEl.currentTime = Math.max(0, fallbackPos);
+                        audioEl.play().catch(() => {});
+                    }, { once: true });
+                    this._ifpFinishSwap();
+                });
+        };
+
+        nodeType.prototype._ifpFinishSwap = function () {
+            this._ifpStopBridge();
+            this._ifpSwapping = false;
+            this._ifpSwapAbort = null;
+        };
+
+        nodeType.prototype._ifpStopBridge = function () {
+            if (this._ifpBridgeSource) {
+                try { this._ifpBridgeSource.stop(); } catch (e) { /* already stopped */ }
+                this._ifpBridgeSource.disconnect();
+                this._ifpBridgeSource = null;
+            }
+        };
+
+        nodeType.prototype._ifpCleanupSwap = function () {
+            if (this._ifpSwapAbort) {
+                this._ifpSwapAbort.abort();
                 this._ifpSwapAbort = null;
-            }, { once: true, signal: abort.signal });
+            }
+            this._ifpStopBridge();
+            this._ifpSwapping = false;
+            // Reset gains to clean state
+            if (this._ifpAudioCtx) {
+                const now = this._ifpAudioCtx.currentTime;
+                this._ifpElementGain.gain.cancelScheduledValues(now);
+                this._ifpElementGain.gain.setValueAtTime(1, now);
+                this._ifpBridgeGain.gain.cancelScheduledValues(now);
+                this._ifpBridgeGain.gain.setValueAtTime(0, now);
+            }
         };
 
         // --- RAF ---
@@ -651,7 +773,14 @@ app.registerExtension({
 
             // Playhead
             if (this._ifpAudioShown && this._ifpAudioDuration > 0) {
-                const currentTime = this._ifpSwapping ? this._ifpRealTime : this._ifpActiveAudio.currentTime;
+                // During a bridge swap, derive position from the bridge source;
+                // otherwise read directly from the <audio> element.
+                let currentTime;
+                if (this._ifpSwapping && this._ifpBridgeSource && this._ifpAudioCtx) {
+                    currentTime = (this._ifpAudioCtx.currentTime - this._ifpBridgeStartCtxTime) + this._ifpBridgeOffset;
+                } else {
+                    currentTime = this._ifpAudioEl.currentTime;
+                }
                 const progress = currentTime / this._ifpAudioDuration;
                 if (progress >= 0 && progress <= 1) {
                     const px = graphX + progress * graphW;
@@ -719,17 +848,18 @@ app.registerExtension({
         const onRemoved = nodeType.prototype.onRemoved;
         nodeType.prototype.onRemoved = function () {
             this._ifpStopRaf?.();
+            this._ifpCleanupSwap?.();
             if (this._ifpResizeObserver) {
                 this._ifpResizeObserver.disconnect();
                 this._ifpResizeObserver = null;
             }
-            if (this._ifpAudioA) {
-                this._ifpAudioA.pause();
-                this._ifpAudioA.src = "";
+            if (this._ifpAudioCtx) {
+                this._ifpAudioCtx.close();
+                this._ifpAudioCtx = null;
             }
-            if (this._ifpAudioB) {
-                this._ifpAudioB.pause();
-                this._ifpAudioB.src = "";
+            if (this._ifpAudioEl) {
+                this._ifpAudioEl.pause();
+                this._ifpAudioEl.src = "";
             }
             onRemoved?.apply(this, arguments);
         };
