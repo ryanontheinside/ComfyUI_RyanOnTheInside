@@ -557,7 +557,17 @@ class TranslucentComposite(ProgressMixin):
             
             # Apply background influence
             if background_influence > 0:
-                bg_influence_mask = cv2.GaussianBlur(mask_frame[..., None], (5, 5), 0) * background_influence
+                # Garantir que a máscara tenha 3 canais
+                bg_influence_mask = cv2.GaussianBlur(mask_frame, (5, 5), 0) * background_influence
+
+                # Se for 2D (H, W), expandir para (H, W, 1)
+                if bg_influence_mask.ndim == 2:
+                    bg_influence_mask = bg_influence_mask[:, :, None]
+
+                # Repetir o canal para virar RGB (H, W, 3)
+                if bg_influence_mask.shape[2] == 1:
+                    bg_influence_mask = np.repeat(bg_influence_mask, 3, axis=2)
+
                 blended = blended * (1 - bg_influence_mask) + bg_frame * bg_influence_mask
             
             # Final compositing with mask and opacity
