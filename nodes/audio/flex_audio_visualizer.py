@@ -507,7 +507,7 @@ class FlexAudioVisualizerLine(FlexAudioVisualizerBase):
         start_y = padded_height // 2 - target_y
         
         # Extract the correctly positioned region
-        image = padded_image[start_y:start_y + screen_height, start_x:start_x + screen_width]
+        image = padded_image[start_y:start_y + screen_height, start_x:start_x + screen_width].copy()
 
         return image
 
